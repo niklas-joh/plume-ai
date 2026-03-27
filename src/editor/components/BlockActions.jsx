@@ -24,22 +24,29 @@ const ACTIONS = [
 ];
 
 export default function BlockActions( { convId, onResult } ) {
-	const selectedBlock = useSelect( select =>
+	const selectedBlock = useSelect( ( select ) =>
 		select( 'core/block-editor' ).getSelectedBlock()
 	);
 
-	const blockText = selectedBlock?.attributes?.content
-		?? selectedBlock?.attributes?.value
-		?? '';
+	const blockText =
+		selectedBlock?.attributes?.content ??
+		selectedBlock?.attributes?.value ??
+		'';
 
 	async function runAction( action ) {
-		if ( ! blockText ) return;
+		if ( ! blockText ) {
+			return;
+		}
 		try {
-			const cid = convId || ( await apiFetch( {
-				path: '/wp-ai-mind/v1/conversations',
-				method: 'POST',
-				data: { title: action.label },
-			} ) ).id;
+			const cid =
+				convId ||
+				(
+					await apiFetch( {
+						path: '/wp-ai-mind/v1/conversations',
+						method: 'POST',
+						data: { title: action.label },
+					} )
+				).id;
 			const res = await apiFetch( {
 				path: `/wp-ai-mind/v1/conversations/${ cid }/messages`,
 				method: 'POST',
@@ -47,16 +54,18 @@ export default function BlockActions( { convId, onResult } ) {
 			} );
 			onResult?.( res.content, selectedBlock?.clientId );
 		} catch ( e ) {
-			console.error( e );
+			// Block action failed — silently ignore.
 		}
 	}
 
 	if ( ! blockText ) {
 		return (
-			<p style={ {
-				color: 'var(--color-text-muted)',
-				fontSize: 'var(--text-sm)',
-			} }>
+			<p
+				style={ {
+					color: 'var(--color-text-muted)',
+					fontSize: 'var(--text-sm)',
+				} }
+			>
 				Select a text block to use AI actions.
 			</p>
 		);
@@ -64,7 +73,7 @@ export default function BlockActions( { convId, onResult } ) {
 
 	return (
 		<div className="wpaim-block-actions">
-			{ ACTIONS.map( action => (
+			{ ACTIONS.map( ( action ) => (
 				<button
 					key={ action.slug }
 					className="wpaim-block-actions__btn"

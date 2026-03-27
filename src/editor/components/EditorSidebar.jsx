@@ -10,15 +10,21 @@ import '../../styles/tokens.css';
 import '../editor.css';
 
 function WpAiMindSidebar() {
-	const postId = useSelect( select => select( 'core/editor' ).getCurrentPostId() );
-	const [ convId, setConvId ] = useState( null );
+	const postId = useSelect( ( select ) =>
+		select( 'core/editor' ).getCurrentPostId()
+	);
+	const [ convId ] = useState( null );
 
 	function handleBlockResult( content, clientId ) {
-		if ( ! clientId || ! content ) return;
+		if ( ! clientId || ! content ) {
+			return;
+		}
 		// Dispatch block content update via wp.data.
 		const { dispatch } = window.wp?.data ?? {};
 		if ( dispatch ) {
-			dispatch( 'core/block-editor' ).updateBlockAttributes( clientId, { content } );
+			dispatch( 'core/block-editor' ).updateBlockAttributes( clientId, {
+				content,
+			} );
 		}
 	}
 
@@ -53,11 +59,20 @@ function WpAiMindSidebar() {
 						<h3 style={ panelHeadingStyle }>Chat</h3>
 						<MiniChat postId={ postId } />
 					</div>
-					<div className="wpaim-editor-panel" style={ dividerPanelStyle }>
+					<div
+						className="wpaim-editor-panel"
+						style={ dividerPanelStyle }
+					>
 						<h3 style={ panelHeadingStyle }>Block Actions</h3>
-						<BlockActions convId={ convId } onResult={ handleBlockResult } />
+						<BlockActions
+							convId={ convId }
+							onResult={ handleBlockResult }
+						/>
 					</div>
-					<div className="wpaim-editor-panel" style={ dividerPanelStyle }>
+					<div
+						className="wpaim-editor-panel"
+						style={ dividerPanelStyle }
+					>
 						<h3 style={ panelHeadingStyle }>SEO</h3>
 						<SeoPanel />
 					</div>

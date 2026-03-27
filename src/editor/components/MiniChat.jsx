@@ -5,9 +5,9 @@ import MarkdownContent from '../../shared/MarkdownContent';
 
 export default function MiniChat( { postId } ) {
 	const [ messages, setMessages ] = useState( [] );
-	const [ input, setInput ]       = useState( '' );
+	const [ input, setInput ] = useState( '' );
 	const [ isLoading, setIsLoading ] = useState( false );
-	const [ convId, setConvId ]     = useState( null );
+	const [ convId, setConvId ] = useState( null );
 	const endRef = useRef( null );
 
 	useEffect( () => {
@@ -15,10 +15,12 @@ export default function MiniChat( { postId } ) {
 	}, [ messages ] );
 
 	async function send() {
-		if ( ! input.trim() || isLoading ) return;
+		if ( ! input.trim() || isLoading ) {
+			return;
+		}
 		const text = input.trim();
 		setInput( '' );
-		setMessages( prev => [ ...prev, { role: 'user', content: text } ] );
+		setMessages( ( prev ) => [ ...prev, { role: 'user', content: text } ] );
 		setIsLoading( true );
 
 		try {
@@ -38,7 +40,10 @@ export default function MiniChat( { postId } ) {
 				method: 'POST',
 				data: { content: text },
 			} );
-			setMessages( prev => [ ...prev, { role: 'assistant', content: res.content } ] );
+			setMessages( ( prev ) => [
+				...prev,
+				{ role: 'assistant', content: res.content },
+			] );
 		} finally {
 			setIsLoading( false );
 		}
@@ -48,24 +53,29 @@ export default function MiniChat( { postId } ) {
 		<div className="wpaim-editor-mini-chat">
 			<div className="wpaim-editor-mini-chat__messages">
 				{ messages.length === 0 && (
-					<p style={ {
-						color: 'var(--color-text-muted)',
-						fontSize: 'var(--text-sm)',
-						textAlign: 'center',
-						padding: 'var(--space-4)',
-					} }>
+					<p
+						style={ {
+							color: 'var(--color-text-muted)',
+							fontSize: 'var(--text-sm)',
+							textAlign: 'center',
+							padding: 'var(--space-4)',
+						} }
+					>
 						Ask anything about this post…
 					</p>
 				) }
 				{ messages.map( ( m, i ) => (
 					<div
 						key={ i }
-						className={ `wpaim-editor-mini-chat__bubble wpaim-editor-mini-chat__bubble--${ m.role === 'user' ? 'user' : 'ai' }` }
+						className={ `wpaim-editor-mini-chat__bubble wpaim-editor-mini-chat__bubble--${
+							m.role === 'user' ? 'user' : 'ai'
+						}` }
 					>
-						{ m.role === 'assistant'
-							? <MarkdownContent content={ m.content } />
-							: m.content
-						}
+						{ m.role === 'assistant' ? (
+							<MarkdownContent content={ m.content } />
+						) : (
+							m.content
+						) }
 					</div>
 				) ) }
 				{ isLoading && (
@@ -79,8 +89,12 @@ export default function MiniChat( { postId } ) {
 				<input
 					className="wpaim-editor-mini-chat__input"
 					value={ input }
-					onChange={ e => setInput( e.target.value ) }
-					onKeyDown={ e => e.key === 'Enter' && ! e.shiftKey && ( e.preventDefault(), send() ) }
+					onChange={ ( e ) => setInput( e.target.value ) }
+					onKeyDown={ ( e ) =>
+						e.key === 'Enter' &&
+						! e.shiftKey &&
+						( e.preventDefault(), send() )
+					}
 					placeholder="Ask AI…"
 					disabled={ isLoading }
 				/>
@@ -89,10 +103,11 @@ export default function MiniChat( { postId } ) {
 					onClick={ send }
 					disabled={ isLoading || ! input.trim() }
 				>
-					{ isLoading
-						? <Loader2 size={ 14 } className="wpaim-spin" />
-						: <Send size={ 14 } />
-					}
+					{ isLoading ? (
+						<Loader2 size={ 14 } className="wpaim-spin" />
+					) : (
+						<Send size={ 14 } />
+					) }
 				</button>
 			</div>
 		</div>

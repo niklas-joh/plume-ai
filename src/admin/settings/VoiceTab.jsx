@@ -1,5 +1,6 @@
-import { useState } from '@wordpress/element';
-import { Mic } from 'lucide-react';
+import { useState }                from '@wordpress/element';
+import { TextareaControl, Button } from '@wordpress/components';
+import { Mic }                     from 'lucide-react';
 
 const MAX_CHARS = 2000;
 
@@ -13,8 +14,8 @@ export default function VoiceTab( { settings, saveSettings, isSaving } ) {
         setValue( savedValue );
     }
 
-    function handleChange( e ) {
-        setValue( e.target.value );
+    function handleChange( val ) {
+        setValue( val );
         setIsDirty( true );
     }
 
@@ -23,7 +24,7 @@ export default function VoiceTab( { settings, saveSettings, isSaving } ) {
         setIsDirty( false );
     }
 
-    const charCount = value.length;
+    const charCount   = value.length;
     const isOverLimit = charCount > MAX_CHARS;
 
     return (
@@ -40,28 +41,29 @@ export default function VoiceTab( { settings, saveSettings, isSaving } ) {
                     </p>
                 </div>
 
-                <textarea
-                    id="wpaim-site-voice"
-                    className={ `wpaim-textarea${ isOverLimit ? ' wpaim-textarea--error' : '' }` }
-                    rows={ 10 }
-                    value={ value }
-                    placeholder="Describe the writing style and persona for AI responses…"
-                    onChange={ handleChange }
-                    maxLength={ MAX_CHARS + 200 /* soft cap — enforced by count display */ }
-                />
+                <div className={ `wpaim-voice-textarea-wrap${ isOverLimit ? ' is-error' : '' }` }>
+                    <TextareaControl
+                        rows={ 10 }
+                        value={ value }
+                        placeholder="Describe the writing style and persona for AI responses…"
+                        onChange={ handleChange }
+                        __nextHasNoMarginBottom
+                    />
+                </div>
 
                 <div className="wpaim-voice-footer">
                     <span className={ `wpaim-char-count${ isOverLimit ? ' wpaim-char-count--error' : '' }` }>
                         { charCount } / { MAX_CHARS } characters
                     </span>
 
-                    <button
-                        className="wpaim-btn wpaim-btn--primary"
+                    <Button
+                        variant="primary"
+                        isBusy={ isSaving }
                         disabled={ isSaving || ! isDirty || isOverLimit }
                         onClick={ handleSave }
                     >
                         { isSaving ? 'Saving…' : 'Save Voice' }
-                    </button>
+                    </Button>
                 </div>
             </section>
         </div>

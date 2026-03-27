@@ -76,38 +76,6 @@
     display: block;
 }
 
-/* ── Table ── */
-.wpaim-usage__table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.wpaim-usage__table th {
-    text-align: left;
-    font-size: var(--text-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-text-muted);
-    border-bottom: 1px solid var(--color-border);
-    padding: var(--space-2) var(--space-3);
-    font-weight: 600;
-}
-
-.wpaim-usage__table td {
-    padding: var(--space-3);
-    border-bottom: 1px solid var(--color-border-subtle);
-    font-size: var(--text-base);
-    color: var(--color-text-primary);
-}
-
-.wpaim-usage__table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.wpaim-usage__table tbody tr:hover td {
-    background: var(--color-surface-2);
-}
-
 /* ── Empty state ── */
 .wpaim-usage__empty {
     text-align: center;
@@ -131,9 +99,5 @@
 @media (max-width: 640px) {
     .wpaim-usage__stats {
         grid-template-columns: 1fr;
-    }
-
-    .wpaim-usage__table {
-        font-size: var(--text-sm);
     }
 }

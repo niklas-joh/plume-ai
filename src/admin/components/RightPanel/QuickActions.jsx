@@ -1,3 +1,4 @@
+import { Button }                         from '@wordpress/components';
 import { FilePenLine, Search, Image } from 'lucide-react';
 
 const FREE_ACTIONS = [
@@ -20,14 +21,15 @@ export default function QuickActions({ onAction, isPro }) {
             <div className="wpaim-panel-label">Quick actions</div>
             <div className="wpaim-quick-actions">
                 { actions.map( action => (
-                    <button
+                    <Button
                         key={ action.label }
+                        variant="tertiary"
                         className="wpaim-quick-action"
                         onClick={ () => onAction( action.prompt ) }
                     >
                         <action.icon size={ 12 } strokeWidth={ 1.5 } />
                         <span>{ action.label }</span>
-                    </button>
+                    </Button>
                 ) ) }
                 { ! isPro && (
                     <div className="wpaim-pro-teaser">

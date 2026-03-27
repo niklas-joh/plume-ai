@@ -80,7 +80,7 @@ export default function UsageDashboard() {
                     <p>No usage recorded yet. Start chatting to see stats here.</p>
                 </div>
             ) : (
-                <table className="wpaim-usage__table">
+                <table className="widefat fixed striped">
                     <thead>
                         <tr>
                             <th>Provider</th>

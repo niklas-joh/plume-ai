@@ -1,6 +1,7 @@
-import { useState } from '@wordpress/element';
+import { useState }                           from '@wordpress/element';
+import { TextControl, SelectControl, Button } from '@wordpress/components';
 import { Wand2, Loader2, CheckCircle2, ExternalLink } from 'lucide-react';
-import apiFetch from '@wordpress/api-fetch';
+import apiFetch                               from '@wordpress/api-fetch';
 
 const TONES = ['professional', 'casual', 'friendly', 'authoritative', 'witty'];
 const LENGTHS = [
@@ -70,12 +71,12 @@ export default function GeneratorWizard() {
 					<div className="wpaim-generator__preview" dangerouslySetInnerHTML={{ __html: result.content }} />
 				</div>
 				<div className="wpaim-generator__actions" style={{ marginTop: 'var(--space-4)' }}>
-					<button
-						className="wpaim-generator__btn wpaim-generator__btn--ghost"
+					<Button
+						variant="tertiary"
 						onClick={() => { setStep(1); setResult(null); }}
 					>
 						Generate another
-					</button>
+					</Button>
 				</div>
 			</div>
 		);
@@ -106,65 +107,49 @@ export default function GeneratorWizard() {
 			)}
 
 			<div className="wpaim-generator__card">
-				<div className="wpaim-generator__field">
-					<label className="wpaim-generator__label">Post title *</label>
-					<input
-						className="wpaim-generator__input"
-						value={form.title}
-						onChange={e => update('title', e.target.value)}
-						placeholder="e.g. 10 Tips for Better Sleep"
-					/>
-				</div>
+				<TextControl
+					label="Post title *"
+					value={form.title}
+					onChange={val => update('title', val)}
+					placeholder="e.g. 10 Tips for Better Sleep"
+					__nextHasNoMarginBottom
+				/>
 
-				<div className="wpaim-generator__field">
-					<label className="wpaim-generator__label">
-						Keywords{' '}
-						<span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(optional)</span>
-					</label>
-					<input
-						className="wpaim-generator__input"
-						value={form.keywords}
-						onChange={e => update('keywords', e.target.value)}
-						placeholder="e.g. sleep hygiene, circadian rhythm, melatonin"
-					/>
-				</div>
+				<TextControl
+					label="Keywords"
+					value={form.keywords}
+					onChange={val => update('keywords', val)}
+					placeholder="e.g. sleep hygiene, circadian rhythm, melatonin"
+					__nextHasNoMarginBottom
+				/>
 
 				<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-					<div className="wpaim-generator__field">
-						<label className="wpaim-generator__label">Tone</label>
-						<select
-							className="wpaim-generator__select"
-							value={form.tone}
-							onChange={e => update('tone', e.target.value)}
-						>
-							{TONES.map(t => (
-								<option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-							))}
-						</select>
-					</div>
-					<div className="wpaim-generator__field">
-						<label className="wpaim-generator__label">Length</label>
-						<select
-							className="wpaim-generator__select"
-							value={form.length}
-							onChange={e => update('length', e.target.value)}
-						>
-							{LENGTHS.map(l => (
-								<option key={l.value} value={l.value}>{l.label}</option>
-							))}
-						</select>
-					</div>
+					<SelectControl
+						label="Tone"
+						options={TONES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
+						value={form.tone}
+						onChange={val => update('tone', val)}
+						__nextHasNoMarginBottom
+					/>
+					<SelectControl
+						label="Length"
+						options={LENGTHS}
+						value={form.length}
+						onChange={val => update('length', val)}
+						__nextHasNoMarginBottom
+					/>
 				</div>
 
 				<div className="wpaim-generator__actions">
-					<button
-						className="wpaim-generator__btn wpaim-generator__btn--primary"
-						onClick={generate}
+					<Button
+						variant="primary"
+						isBusy={step === 2}
 						disabled={!form.title.trim()}
+						onClick={generate}
 						style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
 					>
 						<Wand2 size={14} /> Generate Post
-					</button>
+					</Button>
 				</div>
 			</div>
 		</div>

@@ -1,18 +1,18 @@
 import { useState, useEffect } from '@wordpress/element';
-import apiFetch from '@wordpress/api-fetch';
-import { Settings, Key, Mic, Zap } from 'lucide-react';
-import ProvidersTab from './ProvidersTab';
-import VoiceTab from './VoiceTab';
-import FeaturesTab from './FeaturesTab';
+import { TabPanel, Notice }    from '@wordpress/components';
+import apiFetch                from '@wordpress/api-fetch';
+import { Settings }            from 'lucide-react';
+import ProvidersTab            from './ProvidersTab';
+import VoiceTab                from './VoiceTab';
+import FeaturesTab             from './FeaturesTab';
 
 const TABS = [
-    { id: 'providers', label: 'Providers', Icon: Key },
-    { id: 'voice',     label: 'Voice',     Icon: Mic },
-    { id: 'features',  label: 'Features',  Icon: Zap },
+    { name: 'providers', title: 'Providers' },
+    { name: 'voice',     title: 'Voice'     },
+    { name: 'features',  title: 'Features'  },
 ];
 
 export default function SettingsApp() {
-    const [ activeTab,  setActiveTab  ] = useState( 'providers' );
     const [ settings,   setSettings   ] = useState( null );
     const [ isSaving,   setIsSaving   ] = useState( false );
     const [ saveResult, setSaveResult ] = useState( null ); // 'success' | 'error' | null
@@ -60,44 +60,30 @@ export default function SettingsApp() {
                     <span>WP AI Mind — Settings</span>
                 </div>
 
-                { saveResult === 'success' && (
-                    <span className="wpaim-settings-notice wpaim-settings-notice--success">
-                        Saved successfully
-                    </span>
-                ) }
-                { saveResult === 'error' && (
-                    <span className="wpaim-settings-notice wpaim-settings-notice--error">
-                        Save failed — please try again
-                    </span>
-                ) }
-            </div>
-
-            <nav className="wpaim-settings-tabs" role="tablist">
-                { TABS.map( ( { id, label, Icon } ) => (
-                    <button
-                        key={ id }
-                        role="tab"
-                        aria-selected={ activeTab === id }
-                        className={ `wpaim-settings-tab${ activeTab === id ? ' is-active' : '' }` }
-                        onClick={ () => setActiveTab( id ) }
+                { saveResult && (
+                    <Notice
+                        status={ saveResult === 'success' ? 'success' : 'error' }
+                        isDismissible
+                        onRemove={ () => setSaveResult( null ) }
                     >
-                        <Icon size={ 14 } />
-                        { label }
-                    </button>
-                ) ) }
-            </nav>
-
-            <div className="wpaim-settings-content" role="tabpanel">
-                { settings === null ? (
-                    <div className="wpaim-settings-loading">Loading settings…</div>
-                ) : (
-                    <>
-                        { activeTab === 'providers' && <ProvidersTab { ...tabProps } /> }
-                        { activeTab === 'voice'     && <VoiceTab     { ...tabProps } /> }
-                        { activeTab === 'features'  && <FeaturesTab  { ...tabProps } /> }
-                    </>
+                        { saveResult === 'success'
+                            ? 'Saved successfully'
+                            : 'Save failed — please try again'
+                        }
+                    </Notice>
                 ) }
             </div>
+
+            <TabPanel tabs={ TABS } className="wpaim-settings-tabpanel">
+                { ( tab ) => {
+                    if ( settings === null ) {
+                        return <div className="wpaim-settings-loading">Loading settings…</div>;
+                    }
+                    if ( tab.name === 'providers' ) return <ProvidersTab { ...tabProps } />;
+                    if ( tab.name === 'voice' )     return <VoiceTab     { ...tabProps } />;
+                    if ( tab.name === 'features' )  return <FeaturesTab  { ...tabProps } />;
+                } }
+            </TabPanel>
 
             <div className="wpaim-settings-section" style={ { borderTop: '1px solid var(--color-border-subtle)', paddingTop: 'var(--space-4)', marginTop: 'var(--space-4)' } }>
                 <div className="wpaim-settings-label">Setup</div>

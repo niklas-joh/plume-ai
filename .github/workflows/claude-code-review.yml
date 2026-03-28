@@ -22,7 +22,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-      issues: read
+      issues: write
       id-token: write
     
     steps:
@@ -39,6 +39,7 @@ jobs:
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
+            PR URL: ${{ github.event.pull_request.html_url }}
 
             Please review this pull request and provide feedback on:
             - Code quality and best practices
@@ -46,12 +47,19 @@ jobs:
             - Performance considerations
             - Security concerns
             - Test coverage
-            
+
             Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
-          
+            Instead of commenting on the PR, create a GitHub Issue using:
+              gh issue create \
+                --title "Code Review: PR #${{ github.event.pull_request.number }} — <short summary of findings>" \
+                --body "@claude\n\n<your full review here>\n\n---\nPR: ${{ github.event.pull_request.html_url }}" \
+                --label "code-review" \
+                --repo ${{ github.repository }}
+
+            Include the PR link in the issue body so it remains traceable.
+
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/sdk#command-line for available options
-          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
+          claude_args: '--allowed-tools "Bash(gh issue create:*),Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
 

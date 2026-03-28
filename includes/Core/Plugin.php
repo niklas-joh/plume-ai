@@ -58,6 +58,10 @@ class Plugin {
 		if ( $this->modules->is_enabled( 'usage' ) ) {
 			\WP_AI_Mind\Modules\Usage\UsageModule::register();
 		}
+		// SEO and Images are always registered so their admin pages enqueue assets;
+		// the Pro gate is enforced inside each React app.
+		\WP_AI_Mind\Modules\Seo\SeoModule::register();
+		\WP_AI_Mind\Modules\Images\ImagesModule::register();
 	}
 
 	public function load_textdomain(): void {

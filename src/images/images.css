@@ -1,3 +1,152 @@
 @import '../shared/shared.css';
 
-/* Images page styles — implementation in subsequent task. */
+/* Thumbnail in table cell */
+.wpaim-image-badge-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wpaim-list-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+/* Prompt + controls layout */
+.wpaim-images-prompt-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: flex-start;
+}
+
+.wpaim-prompt-input {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--color-text-primary);
+  resize: vertical;
+  min-height: 88px;
+  box-sizing: border-box;
+}
+
+.wpaim-prompt-input:focus {
+  outline: none;
+  border-color: var(--wp-admin-theme-color);
+  box-shadow: 0 0 0 1px var(--wp-admin-theme-color);
+}
+
+.wpaim-images-controls {
+  width: 160px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wpaim-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wpaim-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.wpaim-field-input {
+  padding: 4px 6px;
+  font-size: 13px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--color-text-primary);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Count pills */
+.wpaim-count-pills {
+  display: flex;
+  gap: 4px;
+}
+
+.wpaim-pill {
+  flex: 1;
+  padding: 3px 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.wpaim-pill.is-active {
+  background: var(--wp-admin-theme-color);
+  border-color: var(--wp-admin-theme-color);
+  color: #fff;
+}
+
+/* Image result grid */
+.wpaim-image-grid {
+  display: grid;
+  grid-template-columns: repeat( 3, 1fr );
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.wpaim-image-card {
+  position: relative;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.wpaim-image-card:hover {
+  border-color: var(--wp-admin-theme-color);
+}
+
+.wpaim-image-card.is-selected {
+  border-color: var(--wp-admin-theme-color);
+}
+
+.wpaim-image-thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.wpaim-selected-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: var(--wp-admin-theme-color);
+  color: #fff;
+  border-radius: 99px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.wpaim-image-footer {
+  background: var(--color-surface);
+  padding: 4px 8px;
+  font-size: 11px;
+  text-align: right;
+}

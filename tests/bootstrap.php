@@ -2,6 +2,9 @@
 declare( strict_types=1 );
 
 // Define constants required for Plugin class in test context.
+if ( ! defined( 'ABSPATH' ) ) {
+    define( 'ABSPATH', dirname( __DIR__ ) . '/' );
+}
 if ( ! defined( 'WP_AI_MIND_BASENAME' ) ) {
     define( 'WP_AI_MIND_BASENAME', 'wp-ai-mind/wp-ai-mind.php' );
 }

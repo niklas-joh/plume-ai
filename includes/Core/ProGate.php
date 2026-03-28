@@ -19,13 +19,25 @@ namespace WP_AI_Mind\Core {
 			// wam_fs() is the Freemius bootstrap function defined in wp-ai-mind.php.
 			if ( function_exists( 'wam_fs' ) ) {
 				try {
-					return \wam_fs()->can_use_premium_code__premium_only(); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+					$result = \wam_fs()->can_use_premium_code__premium_only(); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 				} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 					// Freemius not yet initialised — fall through to option check.
+					$result = 'active' === \get_option( self::OPTION_KEY, '' );
 				}
+			} else {
+				// Fallback: manual licence flag set during activation.
+				$result = 'active' === \get_option( self::OPTION_KEY, '' );
 			}
-			// Fallback: manual licence flag set during activation.
-			return 'active' === \get_option( self::OPTION_KEY, '' );
+
+			/**
+			 * Filters the pro status of the plugin.
+			 *
+			 * Intended for local development only. Use a gitignored mu-plugin to
+			 * override — never define this in production code.
+			 *
+			 * @param bool $result Whether the current install has a valid pro licence.
+			 */
+			return (bool) \apply_filters( 'wp_ai_mind_is_pro', $result );
 		}
 
 		/** Called from Freemius webhook / activation in P6. */

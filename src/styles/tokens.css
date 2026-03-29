@@ -12,12 +12,6 @@
   --color-text-secondary: #a1a1aa;  /* zinc-400 */
   --color-text-muted:     #52525b;  /* zinc-600 */
 
-  /* Single accent — blue, used sparingly */
-  --color-accent:      #2563eb;   /* blue-600 */
-  --color-accent-hover:#1d4ed8;   /* blue-700 */
-  --color-accent-subtle: rgba(37,99,235,0.12);
-  --color-accent-border: rgba(37,99,235,0.3);
-
   /* Semantic */
   --color-success:     #16a34a;   /* green-600 */
   --color-success-subtle: rgba(22,163,74,0.1);

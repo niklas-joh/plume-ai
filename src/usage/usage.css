@@ -58,7 +58,7 @@
 .wpaim-usage__stat-value {
     font-size: var(--text-xl);
     font-weight: 700;
-    color: var(--color-accent);
+    color: var(--wp-admin-theme-color);
     margin-bottom: var(--space-1);
     line-height: 1.2;
 }

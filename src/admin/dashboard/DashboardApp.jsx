@@ -1,9 +1,8 @@
-import { useState } from '@wordpress/element';
 import StatusBanner from './StatusBanner';
 import StartTiles from './StartTiles';
 import ResourceList from './ResourceList';
 import PageFooter from './PageFooter';
-import OnboardingModal from './OnboardingModal';
+import OnboardingPage from './OnboardingPage';
 import './dashboard.css';
 
 export default function DashboardApp() {
@@ -19,7 +18,15 @@ export default function DashboardApp() {
         resourceUrls   = {},
     } = data;
 
-    const [ modalVisible, setModalVisible ] = useState( ! onboardingSeen );
+    if ( ! onboardingSeen ) {
+        return (
+            <OnboardingPage
+                nonce={ nonce }
+                restUrl={ restUrl }
+                urls={ urls }
+            />
+        );
+    }
 
     return (
         <div className="wpaim-dashboard">
@@ -40,15 +47,6 @@ export default function DashboardApp() {
             </div>
 
             <PageFooter urls={ urls } runSetupUrl={ runSetupUrl } />
-
-            { modalVisible && (
-                <OnboardingModal
-                    onDismiss={ () => setModalVisible( false ) }
-                    nonce={ nonce }
-                    restUrl={ restUrl }
-                    urls={ urls }
-                />
-            ) }
         </div>
     );
 }

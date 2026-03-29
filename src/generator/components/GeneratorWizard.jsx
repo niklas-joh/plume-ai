@@ -42,7 +42,7 @@ export default function GeneratorWizard() {
 		return (
 			<div className="wpaim-generator">
 				<div className="wpaim-generator__card" style={{ textAlign: 'center', padding: 'var(--space-8)' }}>
-					<Loader2 size={32} className="wpaim-spin" style={{ color: 'var(--color-accent)' }} />
+					<Loader2 size={32} className="wpaim-spin" style={{ color: 'var(--wp-admin-theme-color)' }} />
 					<p style={{ marginTop: 'var(--space-4)', color: 'var(--color-text-muted)' }}>
 						Generating your post — this may take a moment…
 					</p>
@@ -55,7 +55,7 @@ export default function GeneratorWizard() {
 		return (
 			<div className="wpaim-generator">
 				<div className="wpaim-generator__success">
-					<CheckCircle2 size={40} style={{ color: 'var(--color-accent)' }} />
+					<CheckCircle2 size={40} style={{ color: 'var(--wp-admin-theme-color)' }} />
 					<h2 style={{ marginTop: 'var(--space-3)' }}>Post Generated!</h2>
 					<p style={{ color: 'var(--color-text-muted)' }}>{result.tokens_used} tokens used</p>
 					<a
@@ -87,7 +87,7 @@ export default function GeneratorWizard() {
 		<div className="wpaim-generator">
 			<div className="wpaim-generator__header">
 				<h1 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-					<Wand2 size={24} style={{ color: 'var(--color-accent)' }} /> Post Generator
+					<Wand2 size={24} style={{ color: 'var(--wp-admin-theme-color)' }} /> Post Generator
 				</h1>
 				<p style={{ color: 'var(--color-text-muted)' }}>Describe your post and AI will write a full draft.</p>
 			</div>

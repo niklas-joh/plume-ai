@@ -45,7 +45,7 @@
 
 .wpaim-generator__step--active {
     opacity: 1;
-    color: var(--color-accent);
+    color: var(--wp-admin-theme-color);
 }
 
 .wpaim-generator__step-dot {
@@ -63,8 +63,8 @@
 }
 
 .wpaim-generator__step--active .wpaim-generator__step-dot {
-    background: var(--color-accent);
-    border-color: var(--color-accent);
+    background: var(--wp-admin-theme-color);
+    border-color: var(--wp-admin-theme-color);
     color: #fff;
 }
 

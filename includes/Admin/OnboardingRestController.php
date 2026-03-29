@@ -7,6 +7,10 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class OnboardingRestController {
 
 	public static function register_routes(): void {
@@ -28,10 +32,9 @@ class OnboardingRestController {
 						'sanitize_callback' => 'sanitize_text_field',
 						'enum'              => [ 'openai', 'claude', 'gemini' ],
 					],
-					'api_key'        => [
-						'type'              => 'string',
-						'required'          => false,
-						'sanitize_callback' => 'sanitize_text_field',
+					'api_keys'       => [
+						'type'     => 'object',
+						'required' => false,
 					],
 					'image_provider' => [
 						'type'              => 'string',
@@ -53,21 +56,24 @@ class OnboardingRestController {
 			delete_option( 'wp_ai_mind_onboarding_seen' );
 		}
 
+		$api_keys = $request->get_param( 'api_keys' );
 		$provider = $request->get_param( 'provider' );
 		if ( $provider ) {
-			update_option( 'wp_ai_mind_default_provider', $provider );
-
-			// API key is only stored when a provider is also specified — they are set together.
-			$api_key = $request->get_param( 'api_key' );
-			if ( $api_key ) {
-				$provider_settings = static::make_provider_settings();
-				$provider_settings->set_api_key( $provider, $api_key );
+			update_option( 'wp_ai_mind_default_provider', sanitize_text_field( $provider ) );
+		}
+		if ( $api_keys && is_array( $api_keys ) ) {
+			$valid    = [ 'openai', 'claude', 'gemini' ];
+			$settings = static::make_provider_settings();
+			foreach ( $api_keys as $p => $key ) {
+				if ( in_array( $p, $valid, true ) && ! empty( $key ) ) {
+					$settings->set_api_key( $p, sanitize_text_field( (string) $key ) );
+				}
 			}
 		}
 
 		$image_provider = $request->get_param( 'image_provider' );
 		if ( $image_provider ) {
-			update_option( 'wp_ai_mind_image_provider', $image_provider );
+			update_option( 'wp_ai_mind_image_provider', sanitize_text_field( $image_provider ) );
 		}
 
 		return new WP_REST_Response( [ 'success' => true ], 200 );

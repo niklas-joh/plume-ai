@@ -16,7 +16,7 @@ export default function UsageDashboard() {
 
     if (isLoading) return (
         <div className="wpaim-usage" style={{ textAlign: 'center', paddingTop: 'var(--space-12)' }}>
-            <Loader2 size={32} className="wpaim-spin" style={{ color: 'var(--color-accent)' }} />
+            <Loader2 size={32} className="wpaim-spin" style={{ color: 'var(--wp-admin-theme-color)' }} />
         </div>
     );
 
@@ -41,7 +41,7 @@ export default function UsageDashboard() {
         }).join(' ');
         return (
             <svg viewBox={`0 0 ${w} ${h}`} className="wpaim-usage__sparkline" preserveAspectRatio="none">
-                <polyline points={pts} fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinejoin="round" />
+                <polyline points={pts} fill="none" stroke="var(--wp-admin-theme-color)" strokeWidth="2" strokeLinejoin="round" />
             </svg>
         );
     }
@@ -50,24 +50,24 @@ export default function UsageDashboard() {
         <div className="wpaim-usage">
             <div className="wpaim-usage__header">
                 <h1 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                    <BarChart2 size={24} style={{ color: 'var(--color-accent)' }} /> Usage &amp; Cost
+                    <BarChart2 size={24} style={{ color: 'var(--wp-admin-theme-color)' }} /> Usage &amp; Cost
                 </h1>
                 <span className="wpaim-usage__period">Last 30 days</span>
             </div>
 
             <div className="wpaim-usage__stats">
                 <div className="wpaim-usage__stat-card">
-                    <Zap size={20} style={{ color: 'var(--color-accent)', marginBottom: 'var(--space-2)' }} />
+                    <Zap size={20} style={{ color: 'var(--wp-admin-theme-color)', marginBottom: 'var(--space-2)' }} />
                     <div className="wpaim-usage__stat-value">{totals.tokens.toLocaleString()}</div>
                     <div className="wpaim-usage__stat-label">Tokens used</div>
                 </div>
                 <div className="wpaim-usage__stat-card">
-                    <DollarSign size={20} style={{ color: 'var(--color-accent)', marginBottom: 'var(--space-2)' }} />
+                    <DollarSign size={20} style={{ color: 'var(--wp-admin-theme-color)', marginBottom: 'var(--space-2)' }} />
                     <div className="wpaim-usage__stat-value">${totals.cost_usd.toFixed(4)}</div>
                     <div className="wpaim-usage__stat-label">Total cost</div>
                 </div>
                 <div className="wpaim-usage__stat-card">
-                    <BarChart2 size={20} style={{ color: 'var(--color-accent)', marginBottom: 'var(--space-2)' }} />
+                    <BarChart2 size={20} style={{ color: 'var(--wp-admin-theme-color)', marginBottom: 'var(--space-2)' }} />
                     <div className="wpaim-usage__stat-value">{totals.requests.toLocaleString()}</div>
                     <div className="wpaim-usage__stat-label">API requests</div>
                 </div>

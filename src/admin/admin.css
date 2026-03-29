@@ -97,8 +97,8 @@
     color: #842029;
 }
 .wpaim-bubble--user .wpaim-bubble__content {
-    background: var(--color-accent-subtle);
-    border: 1px solid var(--color-accent-border);
+    background: rgba(var(--wp-admin-theme-color--rgb), 0.12);
+    border: 1px solid rgba(var(--wp-admin-theme-color--rgb), 0.30);
     border-top-right-radius: var(--radius-sm);
 }
 .wpaim-bubble__meta {
@@ -139,7 +139,7 @@
     max-height: 160px;
     line-height: 1.5;
 }
-.wpaim-composer__input:focus { outline: none; border-color: var(--color-accent); }
+.wpaim-composer__input:focus { outline: none; border-color: var(--wp-admin-theme-color); }
 .wpaim-composer__input::placeholder { color: var(--color-text-muted); }
 .wpaim-composer__attachment {
     padding-bottom: var(--space-2);
@@ -148,8 +148,8 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-1);
-    background: var(--color-accent-subtle);
-    border: 1px solid var(--color-accent-border);
+    background: rgba(var(--wp-admin-theme-color--rgb), 0.12);
+    border: 1px solid rgba(var(--wp-admin-theme-color--rgb), 0.30);
     border-radius: var(--radius-sm);
     padding: 2px var(--space-2);
     font-size: var(--text-xs);
@@ -349,7 +349,7 @@
     padding: 0 var(--space-2);
     height: 30px;
 }
-.wpaim-select:focus { outline: none; border-color: var(--color-accent); }
+.wpaim-select:focus { outline: none; border-color: var(--wp-admin-theme-color); }
 .wpaim-select--sm { font-size: var(--text-xs); height: 26px; margin-top: var(--space-1); }
 
 /* ── Empty state ── */
@@ -466,7 +466,7 @@
     border-radius: var(--radius-md);
     transition: border-color 0.1s;
 }
-.wpaim-feature-card--enabled { border-color: var(--color-accent-border); }
+.wpaim-feature-card--enabled { border-color: rgba(var(--wp-admin-theme-color--rgb), 0.30); }
 .wpaim-feature-card--locked { opacity: 0.6; }
 .wpaim-feature-card-header {
     display: flex;
@@ -540,8 +540,8 @@
     transition: transform 0.15s, background 0.15s;
 }
 .wpaim-toggle__input:checked + .wpaim-toggle__track {
-    background: var(--color-accent);
-    border-color: var(--color-accent);
+    background: var(--wp-admin-theme-color);
+    border-color: var(--wp-admin-theme-color);
 }
 .wpaim-toggle__input:checked + .wpaim-toggle__track::after {
     background: #fff;

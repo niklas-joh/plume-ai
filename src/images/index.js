@@ -6,10 +6,10 @@ import './images.css';
 
 const { nonce } = window.wpAiMindData ?? {};
 if ( nonce ) {
-    apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
+	apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 }
 
 const root = document.getElementById( 'wp-ai-mind-images' );
 if ( root ) {
-    render( <ImagesApp />, root );
+	render( <ImagesApp />, root );
 }

@@ -6,10 +6,10 @@ import './seo.css';
 
 const { nonce } = window.wpAiMindData ?? {};
 if ( nonce ) {
-    apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
+	apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 }
 
 const root = document.getElementById( 'wp-ai-mind-seo' );
 if ( root ) {
-    render( <SeoApp />, root );
+	render( <SeoApp />, root );
 }

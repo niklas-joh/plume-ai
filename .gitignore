@@ -9,3 +9,5 @@ test-results/
 .agents/
 .superpowers/
 .artifacts/
+.claude/agents/
+.claude/commands/

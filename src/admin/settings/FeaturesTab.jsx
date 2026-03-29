@@ -1,5 +1,6 @@
-import { useState }  from 'react';
-import { Lock }       from 'lucide-react';
+import { useState }                       from '@wordpress/element';
+import { ToggleControl, CheckboxControl } from '@wordpress/components';
+import { Lock }                           from 'lucide-react';
 
 const MODULES = [
     {
@@ -79,9 +80,9 @@ export default function FeaturesTab( { settings, saveSettings } ) {
         saveSettings( { allowed_post_types: updated } );
     }
 
-    function handleWriteToolsChange( e ) {
-        setEnableWriteTools( e.target.checked );
-        saveSettings( { enable_write_tools: e.target.checked } );
+    function handleWriteToolsChange( val ) {
+        setEnableWriteTools( val );
+        saveSettings( { enable_write_tools: val } );
     }
 
     return (
@@ -155,29 +156,24 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 
                 <div className="wpaim-post-type-list">
                     { availablePostTypes.map( ( { slug, label } ) => (
-                        <label key={ slug } className="wpaim-checkbox-label">
-                            <input
-                                type="checkbox"
-                                checked={ allowedPostTypes.includes( slug ) }
-                                onChange={ ( e ) => handlePostTypeChange( slug, e.target.checked ) }
-                            />
-                            { label } <code>{ slug }</code>
-                        </label>
+                        <CheckboxControl
+                            key={ slug }
+                            label={ <>{ label } <code>{ slug }</code></> }
+                            checked={ allowedPostTypes.includes( slug ) }
+                            onChange={ ( checked ) => handlePostTypeChange( slug, checked ) }
+                            __nextHasNoMarginBottom
+                        />
                     ) ) }
                 </div>
 
-                <div className="wpaim-settings-field" style={ { marginTop: '1rem' } }>
-                    <label className="wpaim-toggle-label">
-                        <input
-                            type="checkbox"
-                            checked={ enableWriteTools }
-                            onChange={ handleWriteToolsChange }
-                        />
-                        Enable write tools &mdash; allow AI to create and update posts
-                    </label>
-                    <p className="wpaim-settings-section-desc">
-                        When enabled, the AI can draft and publish content directly.
-                    </p>
+                <div style={ { marginTop: '1rem' } }>
+                    <ToggleControl
+                        label="Enable write tools — allow AI to create and update posts"
+                        help="When enabled, the AI can draft and publish content directly."
+                        checked={ enableWriteTools }
+                        onChange={ handleWriteToolsChange }
+                        __nextHasNoMarginBottom
+                    />
                 </div>
             </section>
         </div>

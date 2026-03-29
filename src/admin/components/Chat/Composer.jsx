@@ -1,6 +1,7 @@
-import { useState } from '@wordpress/element';
+import { useState }                                    from '@wordpress/element';
+import { Button }                                      from '@wordpress/components';
 import { CornerDownLeft, Loader2, Paperclip, FileText, X } from 'lucide-react';
-import ContextPicker from './ContextPicker';
+import ContextPicker                                   from './ContextPicker';
 
 export default function Composer({ onSend, isLoading, attachedPost, onAttach, onDetach }) {
     const [ value,      setValue      ] = useState( '' );
@@ -62,17 +63,18 @@ export default function Composer({ onSend, isLoading, attachedPost, onAttach, on
                 >
                     <Paperclip size={ 14 } strokeWidth={ 1.5 } />
                 </button>
-                <button
-                    className="wpaim-btn wpaim-btn--primary wpaim-btn--icon"
+                <Button
+                    variant="primary"
+                    className="wpaim-btn--icon"
                     onClick={ submit }
                     disabled={ ! value.trim() || isLoading }
-                    title="Send (Enter)"
+                    label="Send (Enter)"
                 >
                     { isLoading
                         ? <Loader2 size={ 14 } strokeWidth={ 1.5 } className="wpaim-spinner" />
                         : <CornerDownLeft size={ 14 } strokeWidth={ 1.5 } />
                     }
-                </button>
+                </Button>
             </div>
         </div>
     );

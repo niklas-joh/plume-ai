@@ -5,6 +5,7 @@ const PROVIDERS = [
         id: 'openai',
         name: 'OpenAI',
         keyUrl: 'https://platform.openai.com/api-keys',
+        docsUrl: 'https://platform.openai.com/docs/quickstart',
         keyLabel: 'Get API key',
         placeholder: 'sk-…  Paste your OpenAI API key',
     },
@@ -12,6 +13,7 @@ const PROVIDERS = [
         id: 'claude',
         name: 'Claude',
         keyUrl: 'https://console.anthropic.com/settings/keys',
+        docsUrl: 'https://docs.anthropic.com/en/api/getting-started',
         keyLabel: 'Get API key',
         placeholder: 'sk-ant-…  Paste your Anthropic API key',
     },
@@ -19,6 +21,7 @@ const PROVIDERS = [
         id: 'gemini',
         name: 'Gemini',
         keyUrl: 'https://aistudio.google.com/apikey',
+        docsUrl: 'https://ai.google.dev/gemini-api/docs/quickstart',
         keyLabel: 'Get API key',
         placeholder: 'AI…  Paste your Gemini API key',
     },
@@ -30,12 +33,14 @@ const IMAGE_PROVIDERS = [
         name: 'OpenAI (DALL·E)',
         docsUrl: 'https://platform.openai.com/docs/guides/images',
         docsLabel: 'DALL·E docs',
+        placeholder: 'sk-…  Paste your OpenAI API key',
     },
     {
         id: 'gemini',
         name: 'Gemini (Imagen 3)',
         docsUrl: 'https://ai.google.dev/gemini-api/docs/image-generation',
         docsLabel: 'Imagen docs',
+        placeholder: 'AI…  Paste your Gemini API key',
         // DEV NOTE: Verify Imagen 3 endpoint before shipping.
         // Confirm if imagen-3.0-generate-* uses generativelanguage.googleapis.com
         // (same as text) or requires Vertex AI / a separate endpoint.
@@ -132,18 +137,39 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 
 // ── Step 2 ────────────────────────────────────────────────────────────────────
 
-function Step2( { onBack, onFinish } ) {
+function Step2( { onBack, onFinish, nonce, restUrl } ) {
     const [ selectedProvider, setSelectedProvider ] = useState( null );
-    const [ apiKey, setApiKey ] = useState( '' );
+    const [ apiKeys, setApiKeys ] = useState( {} );
     const [ imageProvider, setImageProvider ] = useState( null );
     const [ imageOpen, setImageOpen ] = useState( false );
     const [ saving, setSaving ] = useState( false );
+    const [ testStatus, setTestStatus ] = useState( {} );
+
+    const imageNeedsSeparateKey = imageProvider && imageProvider !== selectedProvider;
+
+    const handleTestKey = useCallback( async ( provider ) => {
+        setTestStatus( ( prev ) => ( { ...prev, [ provider ]: 'testing' } ) );
+        try {
+            const res = await window.fetch( `${ restUrl }/test-key`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },
+                body: JSON.stringify( { provider, api_key: apiKeys[ provider ] } ),
+            } );
+            const data = await res.json();
+            setTestStatus( ( prev ) => ( {
+                ...prev,
+                [ provider ]: data.success ? 'valid' : `error:${ data.message ?? 'Invalid key' }`,
+            } ) );
+        } catch ( e ) {
+            setTestStatus( ( prev ) => ( { ...prev, [ provider ]: 'error:Network error' } ) );
+        }
+    }, [ apiKeys, nonce, restUrl ] );
 
     const handleFinish = useCallback( async () => {
         setSaving( true );
-        await onFinish( { provider: selectedProvider, apiKey, imageProvider } );
+        await onFinish( { provider: selectedProvider, apiKeys, imageProvider } );
         setSaving( false );
-    }, [ onFinish, selectedProvider, apiKey, imageProvider ] );
+    }, [ onFinish, selectedProvider, apiKeys, imageProvider ] );
 
     return (
         <>
@@ -170,6 +196,17 @@ function Step2( { onBack, onFinish } ) {
                         >
                             <div className="wpaim-ob-provider__check">&#x2713;</div>
                             <div className="wpaim-ob-provider__name">{ p.name }</div>
+                            { p.docsUrl && (
+                                <a
+                                    href={ p.docsUrl }
+                                    className="wpaim-ob-provider__link"
+                                    target="_blank"
+                                    rel="nofollow noreferrer"
+                                    onClick={ ( e ) => e.stopPropagation() }
+                                >
+                                    Setup guide &#x2197;
+                                </a>
+                            ) }
                             <a
                                 href={ p.keyUrl }
                                 className="wpaim-ob-provider__link"
@@ -184,16 +221,37 @@ function Step2( { onBack, onFinish } ) {
                 </div>
 
                 { selectedProvider && (
-                    <input
-                        className="wpaim-ob-key-input"
-                        type="password"
-                        value={ apiKey }
-                        onChange={ ( e ) => setApiKey( e.target.value ) }
-                        placeholder={
-                            PROVIDERS.find( ( p ) => p.id === selectedProvider )?.placeholder ?? 'Paste your API key'
-                        }
-                        autoComplete="off"
-                    />
+                    <>
+                        <div className="wpaim-ob-key-row">
+                            <input
+                                className="wpaim-ob-key-input"
+                                type="password"
+                                value={ apiKeys[ selectedProvider ] ?? '' }
+                                onChange={ ( e ) => {
+                                    setApiKeys( ( prev ) => ( { ...prev, [ selectedProvider ]: e.target.value } ) );
+                                    setTestStatus( ( prev ) => ( { ...prev, [ selectedProvider ]: null } ) );
+                                } }
+                                placeholder={
+                                    PROVIDERS.find( ( p ) => p.id === selectedProvider )?.placeholder ?? 'Paste your API key'
+                                }
+                                autoComplete="off"
+                            />
+                            <button
+                                type="button"
+                                className="wpaim-ob-test-btn"
+                                disabled={ ! apiKeys[ selectedProvider ] || testStatus[ selectedProvider ] === 'testing' }
+                                onClick={ () => handleTestKey( selectedProvider ) }
+                            >
+                                { testStatus[ selectedProvider ] === 'testing' ? '…' : 'Test key' }
+                            </button>
+                        </div>
+                        { testStatus[ selectedProvider ] === 'valid' && (
+                            <span className="wpaim-ob-key-status wpaim-ob-key-status--valid">&#x2713; Valid</span>
+                        ) }
+                        { testStatus[ selectedProvider ]?.startsWith( 'error:' ) && (
+                            <span className="wpaim-ob-key-status wpaim-ob-key-status--error">&#x2717; { testStatus[ selectedProvider ].slice( 6 ) }</span>
+                        ) }
+                    </>
                 ) }
 
                 { /* Image provider — optional, collapsible */ }
@@ -243,7 +301,39 @@ function Step2( { onBack, onFinish } ) {
                                 </div>
                             </div>
 
-
+                            { imageNeedsSeparateKey && (
+                                <>
+                                    <div className="wpaim-ob-key-row">
+                                        <input
+                                            className="wpaim-ob-key-input"
+                                            type="password"
+                                            value={ apiKeys[ imageProvider ] ?? '' }
+                                            onChange={ ( e ) => {
+                                                setApiKeys( ( prev ) => ( { ...prev, [ imageProvider ]: e.target.value } ) );
+                                                setTestStatus( ( prev ) => ( { ...prev, [ imageProvider ]: null } ) );
+                                            } }
+                                            placeholder={
+                                                IMAGE_PROVIDERS.find( ( p ) => p.id === imageProvider )?.placeholder ?? 'Paste your image API key'
+                                            }
+                                            autoComplete="off"
+                                        />
+                                        <button
+                                            type="button"
+                                            className="wpaim-ob-test-btn"
+                                            disabled={ ! apiKeys[ imageProvider ] || testStatus[ imageProvider ] === 'testing' }
+                                            onClick={ () => handleTestKey( imageProvider ) }
+                                        >
+                                            { testStatus[ imageProvider ] === 'testing' ? '…' : 'Test key' }
+                                        </button>
+                                    </div>
+                                    { testStatus[ imageProvider ] === 'valid' && (
+                                        <span className="wpaim-ob-key-status wpaim-ob-key-status--valid">&#x2713; Valid</span>
+                                    ) }
+                                    { testStatus[ imageProvider ]?.startsWith( 'error:' ) && (
+                                        <span className="wpaim-ob-key-status wpaim-ob-key-status--error">&#x2717; { testStatus[ imageProvider ].slice( 6 ) }</span>
+                                    ) }
+                                </>
+                            ) }
                         </div>
                     ) }
                 </div>
@@ -301,9 +391,9 @@ function DoneScreen( { apiTierLabel, urls } ) {
     );
 }
 
-// ── Root modal ────────────────────────────────────────────────────────────────
+// ── Root page ─────────────────────────────────────────────────────────────────
 
-export default function OnboardingModal( { onDismiss, nonce, restUrl, urls } ) {
+export default function OnboardingPage( { nonce, restUrl, urls } ) {
     const [ step, setStep ] = useState( 'step1' );        // 'step1' | 'step2' | 'done'
     const [ connection, setConnection ] = useState( 'plugin' ); // 'plugin' | 'own_key' | 'pro'
     const [ apiTierLabel, setApiTierLabel ] = useState( 'Using Plugin API (free tier)' );
@@ -321,8 +411,8 @@ export default function OnboardingModal( { onDismiss, nonce, restUrl, urls } ) {
 
     const handleSkip = useCallback( async () => {
         await postOnboarding( { seen: true } );
-        onDismiss();
-    }, [ postOnboarding, onDismiss ] );
+        window.location.reload();
+    }, [ postOnboarding ] );
 
     const handleStep1Continue = useCallback( async () => {
         if ( connection === 'plugin' ) {
@@ -335,15 +425,15 @@ export default function OnboardingModal( { onDismiss, nonce, restUrl, urls } ) {
         // 'pro' path handled by the upgrade link directly in Step1
     }, [ connection, postOnboarding ] );
 
-    const handleStep2Finish = useCallback( async ( { provider, apiKey, imageProvider } ) => {
-        await postOnboarding( { seen: true, provider, api_key: apiKey, image_provider: imageProvider } );
+    const handleStep2Finish = useCallback( async ( { provider, apiKeys, imageProvider } ) => {
+        await postOnboarding( { seen: true, provider, api_keys: apiKeys, image_provider: imageProvider } );
         setApiTierLabel( `Using your own ${ provider ? provider.charAt( 0 ).toUpperCase() + provider.slice( 1 ) : '' } API key` );
         setStep( 'done' );
     }, [ postOnboarding ] );
 
     return (
-        <div className="wpaim-ob-overlay">
-            <div className="wpaim-ob-modal">
+        <div className="wpaim-ob-page">
+            <div className="wpaim-ob-page__inner">
                 { step === 'step1' && (
                     <Step1
                         selection={ connection }
@@ -357,6 +447,8 @@ export default function OnboardingModal( { onDismiss, nonce, restUrl, urls } ) {
                     <Step2
                         onBack={ () => setStep( 'step1' ) }
                         onFinish={ handleStep2Finish }
+                        nonce={ nonce }
+                        restUrl={ restUrl }
                     />
                 ) }
                 { step === 'done' && (

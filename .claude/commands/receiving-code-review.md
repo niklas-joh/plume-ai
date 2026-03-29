@@ -1,0 +1,1 @@
+../../.agents/_core/skills/receiving-code-review/SKILL.md

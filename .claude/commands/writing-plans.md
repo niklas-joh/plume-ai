@@ -1,0 +1,1 @@
+../../.agents/_core/skills/writing-plans/SKILL.md

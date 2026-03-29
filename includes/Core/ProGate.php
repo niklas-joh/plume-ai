@@ -14,6 +14,10 @@ namespace WP_AI_Mind\Core {
 
 		private const OPTION_KEY = 'wp_ai_mind_licence_status';
 
+		private static function is_licence_active(): bool {
+			return 'active' === \get_option( self::OPTION_KEY, '' );
+		}
+
 		public static function is_pro(): bool {
 			// When Freemius SDK is loaded, delegate to it.
 			// wam_fs() is the Freemius bootstrap function defined in wp-ai-mind.php.
@@ -22,11 +26,11 @@ namespace WP_AI_Mind\Core {
 					$result = \wam_fs()->can_use_premium_code__premium_only(); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 				} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 					// Freemius not yet initialised — fall through to option check.
-					$result = 'active' === \get_option( self::OPTION_KEY, '' );
+					$result = self::is_licence_active();
 				}
 			} else {
 				// Fallback: manual licence flag set during activation.
-				$result = 'active' === \get_option( self::OPTION_KEY, '' );
+				$result = self::is_licence_active();
 			}
 
 			/**

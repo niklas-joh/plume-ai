@@ -1,0 +1,1 @@
+../../.agents/_core/skills/verification-before-completion/SKILL.md

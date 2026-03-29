@@ -1,0 +1,1 @@
+../../.agents/_core/skills/subagent-driven-development/SKILL.md

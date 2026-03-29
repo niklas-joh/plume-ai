@@ -3,7 +3,7 @@
  * Plugin Name:       WP AI Mind
  * Plugin URI:        https://njohansson.eu/wp-ai-mind/
  * Description:       AI-powered content co-pilot for WordPress.
- * Version:           0.2.0
+ * Version:           0.3.0-beta.1
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            Niklas Johansson

@@ -1,0 +1,1 @@
+../../.agents/_core/skills/dispatching-parallel-agents/SKILL.md

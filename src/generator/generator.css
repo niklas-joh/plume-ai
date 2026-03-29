@@ -45,7 +45,7 @@
 
 .wpaim-generator__step--active {
     opacity: 1;
-    color: var(--color-accent);
+    color: var(--wp-admin-theme-color);
 }
 
 .wpaim-generator__step-dot {
@@ -63,8 +63,8 @@
 }
 
 .wpaim-generator__step--active .wpaim-generator__step-dot {
-    background: var(--color-accent);
-    border-color: var(--color-accent);
+    background: var(--wp-admin-theme-color);
+    border-color: var(--wp-admin-theme-color);
     color: #fff;
 }
 
@@ -76,66 +76,6 @@
     padding: var(--space-6);
 }
 
-/* Fields */
-.wpaim-generator__field {
-    margin-bottom: var(--space-4);
-}
-
-.wpaim-generator__field:last-child {
-    margin-bottom: 0;
-}
-
-.wpaim-generator__label {
-    display: block;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    color: var(--color-text-secondary);
-    margin-bottom: var(--space-2);
-}
-
-.wpaim-generator__input,
-.wpaim-generator__textarea,
-.wpaim-generator__select {
-    width: 100%;
-    box-sizing: border-box;
-    background: var(--color-surface-2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius);
-    padding: var(--space-2) var(--space-3);
-    color: var(--color-text-primary);
-    font-size: var(--text-base);
-    font-family: var(--font-sans);
-    transition: border-color 0.15s;
-    outline: none;
-}
-
-.wpaim-generator__input:focus,
-.wpaim-generator__textarea:focus,
-.wpaim-generator__select:focus {
-    border-color: var(--color-accent-border);
-    box-shadow: 0 0 0 2px var(--color-accent-subtle);
-}
-
-.wpaim-generator__input::placeholder,
-.wpaim-generator__textarea::placeholder {
-    color: var(--color-text-muted);
-}
-
-.wpaim-generator__textarea {
-    min-height: 80px;
-    resize: vertical;
-}
-
-.wpaim-generator__select {
-    appearance: none;
-    -webkit-appearance: none;
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right var(--space-3) center;
-    padding-right: var(--space-8);
-}
-
 /* Actions */
 .wpaim-generator__actions {
     display: flex;
@@ -143,51 +83,6 @@
     justify-content: flex-end;
     gap: var(--space-3);
     margin-top: var(--space-4);
-}
-
-/* Buttons */
-.wpaim-generator__btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-4);
-    border-radius: var(--radius);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    font-family: var(--font-sans);
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
-    text-decoration: none;
-    line-height: 1.5;
-}
-
-.wpaim-generator__btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.wpaim-generator__btn--primary {
-    background: var(--color-accent);
-    color: #fff;
-    border-color: var(--color-accent);
-}
-
-.wpaim-generator__btn--primary:hover:not(:disabled) {
-    background: var(--color-accent-hover);
-    border-color: var(--color-accent-hover);
-}
-
-.wpaim-generator__btn--ghost {
-    background: transparent;
-    color: var(--color-text-secondary);
-    border-color: var(--color-border);
-}
-
-.wpaim-generator__btn--ghost:hover:not(:disabled) {
-    background: var(--color-surface-2);
-    color: var(--color-text-primary);
 }
 
 /* Preview */

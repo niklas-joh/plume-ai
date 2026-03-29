@@ -1,0 +1,1 @@
+../../.agents/_core/skills/executing-plans/SKILL.md

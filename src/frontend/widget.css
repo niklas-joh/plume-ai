@@ -13,7 +13,7 @@
     width: 52px;
     height: 52px;
     border-radius: 50%;
-    background: var(--color-accent);
+    background: var(--wp-admin-theme-color, #2563eb);
     border: none;
     cursor: pointer;
     display: flex;
@@ -25,7 +25,7 @@
 }
 
 .wpaim-widget__toggle:hover {
-    background: var(--color-accent-hover);
+    background: var(--wp-admin-theme-color-darker-10, #1d4ed8);
     transform: scale(1.05);
 }
 
@@ -95,7 +95,7 @@
 }
 
 .wpaim-widget__bubble--user {
-    background: var(--color-accent-subtle);
+    background: rgba(var(--wp-admin-theme-color--rgb, 37, 99, 235), 0.12);
     color: var(--color-text-primary);
     margin-left: auto;
     border-bottom-right-radius: var(--radius-sm);
@@ -133,8 +133,8 @@
 }
 
 .wpaim-widget__input:focus {
-    border-color: var(--color-accent-border);
-    box-shadow: 0 0 0 2px var(--color-accent-subtle);
+    border-color: rgba(var(--wp-admin-theme-color--rgb, 37, 99, 235), 0.30);
+    box-shadow: 0 0 0 2px rgba(var(--wp-admin-theme-color--rgb, 37, 99, 235), 0.12);
 }
 
 .wpaim-widget__input::placeholder {
@@ -148,7 +148,7 @@
 
 /* Send button */
 .wpaim-widget__send {
-    background: var(--color-accent);
+    background: var(--wp-admin-theme-color, #2563eb);
     color: #fff;
     border: none;
     border-radius: var(--radius);
@@ -162,7 +162,7 @@
 }
 
 .wpaim-widget__send:hover:not(:disabled) {
-    background: var(--color-accent-hover);
+    background: var(--wp-admin-theme-color-darker-10, #1d4ed8);
 }
 
 .wpaim-widget__send:disabled {

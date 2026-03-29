@@ -54,6 +54,7 @@ export default function ModelSelector({ providers, selectedProvider, selectedMod
                     <div className="wpaim-model-selector__row">
                         <Cpu size={ 12 } strokeWidth={ 1.5 } />
                         <select
+                            aria-label="AI provider"
                             className="wpaim-select"
                             value={ selectedProvider }
                             onChange={ e => { onProviderChange( e.target.value ); onModelChange( '' ); } }
@@ -72,6 +73,7 @@ export default function ModelSelector({ providers, selectedProvider, selectedMod
                     ) }
                     { models.length > 0 && active?.is_available && (
                         <select
+                            aria-label="Model"
                             className="wpaim-select wpaim-select--sm"
                             value={ selectedModel }
                             onChange={ e => onModelChange( e.target.value ) }

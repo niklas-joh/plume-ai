@@ -1,5 +1,5 @@
-import { useState } from '@wordpress/element';
-import { Key, Link } from 'lucide-react';
+import { useState }                           from '@wordpress/element';
+import { SelectControl, TextControl, Button } from '@wordpress/components';
 
 const API_KEY_PROVIDERS = [
     { id: 'claude',  label: 'Claude (Anthropic)' },
@@ -14,8 +14,13 @@ const PROVIDER_OPTIONS = [
     { value: 'ollama',  label: 'Ollama (local)' },
 ];
 
+const IMAGE_PROVIDER_OPTIONS = [
+    { value: 'openai', label: 'OpenAI (DALL·E)' },
+    { value: 'gemini', label: 'Google Gemini' },
+];
+
 export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
-    const apiKeys       = settings?.api_keys       ?? {};
+    const apiKeys       = settings?.api_keys ?? {};
     const [ dirty, setDirty ] = useState( {} ); // { [provider]: string }
 
     function handleKeyChange( provider, value ) {
@@ -49,99 +54,76 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
     return (
         <div className="wpaim-providers-tab">
 
-            {/* Default & image provider selects */ }
+            {/* Default & image provider selects */}
             <section className="wpaim-settings-section">
                 <h3 className="wpaim-settings-section-title">Default Providers</h3>
 
-                <div className="wpaim-field-row">
-                    <label className="wpaim-field-label" htmlFor="wpaim-default-provider">
-                        Default AI Provider
-                    </label>
-                    <select
-                        id="wpaim-default-provider"
-                        className="wpaim-select"
-                        value={ settings?.default_provider ?? '' }
-                        onChange={ e => saveSettings( { default_provider: e.target.value } ) }
-                    >
-                        { PROVIDER_OPTIONS.map( o => (
-                            <option key={ o.value } value={ o.value }>{ o.label }</option>
-                        ) ) }
-                    </select>
-                </div>
+                <SelectControl
+                    label="Default AI Provider"
+                    options={ PROVIDER_OPTIONS }
+                    value={ settings?.default_provider ?? '' }
+                    onChange={ val => saveSettings( { default_provider: val } ) }
+                    __nextHasNoMarginBottom
+                />
 
-                <div className="wpaim-field-row">
-                    <label className="wpaim-field-label" htmlFor="wpaim-image-provider">
-                        Image Provider
-                    </label>
-                    <select
-                        id="wpaim-image-provider"
-                        className="wpaim-select"
-                        value={ settings?.image_provider ?? '' }
-                        onChange={ e => saveSettings( { image_provider: e.target.value } ) }
-                    >
-                        <option value="openai">OpenAI (DALL·E)</option>
-                        <option value="gemini">Google Gemini</option>
-                    </select>
-                </div>
+                <SelectControl
+                    label="Image Provider"
+                    options={ IMAGE_PROVIDER_OPTIONS }
+                    value={ settings?.image_provider ?? '' }
+                    onChange={ val => saveSettings( { image_provider: val } ) }
+                    __nextHasNoMarginBottom
+                />
             </section>
 
-            {/* API key inputs */ }
+            {/* API key inputs */}
             <section className="wpaim-settings-section">
                 <h3 className="wpaim-settings-section-title">API Keys</h3>
 
                 { API_KEY_PROVIDERS.map( ( { id, label } ) => (
                     <div key={ id } className="wpaim-field-row wpaim-field-row--key">
-                        <label className="wpaim-field-label" htmlFor={ `wpaim-key-${ id }` }>
-                            <Key size={ 13 } />
-                            { label }
-                        </label>
                         <div className="wpaim-field-input-group">
-                            <input
-                                id={ `wpaim-key-${ id }` }
+                            <TextControl
+                                label={ label }
                                 type="password"
-                                className="wpaim-input"
                                 value={ dirty[ id ] ?? '' }
                                 placeholder={ apiKeys[ id ] ? '••••••••••••' : 'Enter API key…' }
-                                onChange={ e => handleKeyChange( id, e.target.value ) }
+                                onChange={ val => handleKeyChange( id, val ) }
                                 autoComplete="new-password"
+                                __nextHasNoMarginBottom
                             />
-                            <button
-                                className="wpaim-btn wpaim-btn--primary"
+                            <Button
+                                variant="primary"
                                 disabled={ isSaving || dirty[ id ] === undefined }
                                 onClick={ () => handleSaveKey( id ) }
                             >
                                 { isSaving ? 'Saving…' : 'Save' }
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 ) ) }
             </section>
 
-            {/* Ollama URL */ }
+            {/* Ollama URL */}
             <section className="wpaim-settings-section">
                 <h3 className="wpaim-settings-section-title">Ollama (Self-hosted)</h3>
 
                 <div className="wpaim-field-row wpaim-field-row--key">
-                    <label className="wpaim-field-label" htmlFor="wpaim-ollama-url">
-                        <Link size={ 13 } />
-                        Ollama URL
-                    </label>
                     <div className="wpaim-field-input-group">
-                        <input
-                            id="wpaim-ollama-url"
+                        <TextControl
+                            label="Ollama URL"
                             type="url"
-                            className="wpaim-input"
                             value={ dirty.ollama_url ?? '' }
                             placeholder={ apiKeys.ollama_url ?? 'http://localhost:11434' }
-                            onChange={ e => handleUrlChange( e.target.value ) }
+                            onChange={ handleUrlChange }
+                            __nextHasNoMarginBottom
                         />
-                        <button
-                            className="wpaim-btn wpaim-btn--primary"
+                        <Button
+                            variant="primary"
                             disabled={ isSaving || dirty.ollama_url === undefined }
                             onClick={ handleSaveUrl }
                         >
                             { isSaving ? 'Saving…' : 'Save' }
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </section>

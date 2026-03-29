@@ -1,4 +1,4 @@
-/* ── Dashboard shell ──────────────────────────────────────────────────────── */
+/* ── Dashboard shell ─────────────────────────────────────────────── */
 
 .wpaim-dashboard {
 	display: flex;
@@ -43,7 +43,7 @@
 	color: var(--color-text-muted);
 }
 
-/* ── Status banner ──────────────────────────────────────────────────────────── */
+/* ── Status banner ──────────────────────────────────────────────── */
 
 .wpaim-dash-banner {
 	margin: var(--space-4) var(--space-6) 0;
@@ -98,7 +98,7 @@
 	flex-shrink: 0;
 }
 
-/* ── Page body ──────────────────────────────────────────────────────────────── */
+/* ── Page body ──────────────────────────────────────────────────── */
 
 .wpaim-dash-body {
 	flex: 1;
@@ -124,7 +124,7 @@
 	font-family: var(--font-mono, monospace);
 }
 
-/* ── Start tiles ────────────────────────────────────────────────────────────── */
+/* ── Start tiles ────────────────────────────────────────────────── */
 
 .wpaim-dash-tiles {
 	display: grid;
@@ -201,7 +201,7 @@
 	padding-right: var(--space-3);
 }
 
-/* ── Resource list ──────────────────────────────────────────────────────────── */
+/* ── Resource list ──────────────────────────────────────────────── */
 
 .wpaim-dash-resources {
 	background: var(--color-surface);
@@ -257,7 +257,7 @@
 	color: var(--wp-admin-theme-color);
 }
 
-/* ── Page footer ────────────────────────────────────────────────────────────── */
+/* ── Page footer ────────────────────────────────────────────────── */
 
 .wpaim-dash-footer {
 	padding: var(--space-3) var(--space-6) var(--space-4);
@@ -292,7 +292,7 @@
 	flex-shrink: 0;
 }
 
-/* ── Buttons (shared small) ─────────────────────────────────────────────────── */
+/* ── Buttons (shared small) ─────────────────────────────────────── */
 
 .wpaim-dash-btn {
 	font-size: 0.6875rem;

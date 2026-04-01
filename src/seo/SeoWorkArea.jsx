@@ -1,6 +1,7 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { Loader2 } from 'lucide-react';
+import DOMPurify from 'dompurify';
 
 const { nonce, restUrl, adminUrl = '/wp-admin/' } = window.wpAiMindData ?? {};
 
@@ -14,6 +15,7 @@ const EMPTY_FIELDS = {
 export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 	const [ fields, setFields ] = useState( EMPTY_FIELDS );
 	const [ hasGenerated, setHasGenerated ] = useState( false );
+	const [ confirmReplace, setConfirmReplace ] = useState( false );
 	const [ generating, setGenerating ] = useState( false );
 	const [ applying, setApplying ] = useState( false );
 	const [ error, setError ] = useState( null );
@@ -24,12 +26,11 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 		setFields( ( f ) => ( { ...f, [ key ]: e.target.value } ) );
 
 	const handleGenerate = async () => {
-		if (
-			hasGenerated &&
-			! window.confirm( 'Replace current suggestions?' ) // eslint-disable-line no-alert
-		) {
+		if ( hasGenerated && ! confirmReplace ) {
+			setConfirmReplace( true );
 			return;
 		}
+		setConfirmReplace( false );
 		setGenerating( true );
 		setError( null );
 		try {
@@ -91,7 +92,9 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 			<div className="wpaim-work-header">
 				<span
 					className="wpaim-work-title"
-					dangerouslySetInnerHTML={ { __html: post.title.rendered } }
+					dangerouslySetInnerHTML={ {
+						__html: DOMPurify.sanitize( post.title.rendered ),
+					} }
 				/>
 				<button
 					className="button button-primary"
@@ -108,6 +111,24 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					) }
 				</button>
 			</div>
+
+			{ confirmReplace && (
+				<div className="wpaim-confirm-replace">
+					<span>Replace current suggestions?</span>
+					<button
+						className="button button-small"
+						onClick={ handleGenerate }
+					>
+						Yes, replace
+					</button>
+					<button
+						className="button button-small"
+						onClick={ () => setConfirmReplace( false ) }
+					>
+						Cancel
+					</button>
+				</div>
+			) }
 
 			<div className="wpaim-seo-fields-grid">
 				<div className="wpaim-field">

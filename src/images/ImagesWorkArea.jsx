@@ -1,6 +1,7 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { Loader2 } from 'lucide-react';
+import DOMPurify from 'dompurify';
 
 const { nonce, restUrl, adminUrl = '/wp-admin/' } = window.wpAiMindData ?? {};
 
@@ -59,12 +60,14 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 		setSetting( true );
 		setError( null );
 		try {
-			const endpoint =
-				post.type === 'page'
-					? `/wp/v2/pages/${ post.id }`
-					: `/wp/v2/posts/${ post.id }`;
+			const selfHref = post._links?.self?.[ 0 ]?.href;
+			if ( ! selfHref ) {
+				throw new Error(
+					`Cannot determine the REST endpoint for post type "${ post.type }".`
+				);
+			}
 			await apiFetch( {
-				path: endpoint,
+				url: selfHref,
 				method: 'POST',
 				data: { featured_media: selectedId },
 			} );
@@ -106,7 +109,9 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 			<div className="wpaim-work-header">
 				<span
 					className="wpaim-work-title"
-					dangerouslySetInnerHTML={ { __html: post.title.rendered } }
+					dangerouslySetInnerHTML={ {
+						__html: DOMPurify.sanitize( post.title.rendered ),
+					} }
 				/>
 			</div>
 

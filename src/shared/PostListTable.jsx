@@ -1,5 +1,6 @@
 import { useState, useEffect } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import DOMPurify from 'dompurify';
 
 const PER_PAGE = 20;
 
@@ -11,18 +12,36 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 	const [ search, setSearch ] = useState( '' );
 	const [ page, setPage ] = useState( 1 );
 	const [ expandedId, setExpandedId ] = useState( null );
+	const [ truncated, setTruncated ] = useState( false );
 
 	useEffect( () => {
 		const fetchAll = async () => {
 			try {
+				const fetchEndpoint = async ( path ) => {
+					const response = await apiFetch( { path, parse: false } );
+					const data = await response.json();
+					const total = parseInt(
+						response.headers.get( 'X-WP-Total' ) ?? '0',
+						10
+					);
+					return { data, total };
+				};
+
 				const [ postsRes, pagesRes ] = await Promise.all( [
-					apiFetch( { path: '/wp/v2/posts?per_page=100&_embed=1' } ),
-					apiFetch( { path: '/wp/v2/pages?per_page=100&_embed=1' } ),
+					fetchEndpoint( '/wp/v2/posts?per_page=100&_embed=1&context=edit' ),
+					fetchEndpoint( '/wp/v2/pages?per_page=100&_embed=1&context=edit' ),
 				] );
-				const merged = [ ...postsRes, ...pagesRes ].sort(
+
+				const merged = [ ...postsRes.data, ...pagesRes.data ].sort(
 					( a, b ) => new Date( b.modified ) - new Date( a.modified )
 				);
 				setPosts( merged );
+
+				const totalFetched = postsRes.data.length + pagesRes.data.length;
+				const totalAvailable = postsRes.total + pagesRes.total;
+				if ( totalAvailable > totalFetched ) {
+					setTruncated( true );
+				}
 			} catch ( e ) {
 				setError( e.message ?? 'Failed to load posts.' );
 			} finally {
@@ -76,6 +95,12 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 
 	return (
 		<div className="wpaim-post-list">
+			{ truncated && (
+				<div className="wpaim-list-notice">
+					⚠ Showing the 100 most recent posts and pages. Your site has
+					more content that is not listed here.
+				</div>
+			) }
 			<div className="wpaim-list-toolbar">
 				<div className="wpaim-list-tabs">
 					{ tabs.map( ( tab ) => (
@@ -193,7 +218,9 @@ function PostRow( {
 		<>
 			<tr className={ expanded ? 'is-expanded' : '' }>
 				<td
-					dangerouslySetInnerHTML={ { __html: post.title.rendered } }
+					dangerouslySetInnerHTML={ {
+						__html: DOMPurify.sanitize( post.title.rendered ),
+					} }
 				/>
 				<td>
 					<span className="wpaim-type-badge">{ post.type }</span>

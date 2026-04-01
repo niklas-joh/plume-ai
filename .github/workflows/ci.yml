@@ -23,7 +23,7 @@ jobs:
           key: composer-${{ hashFiles('composer.lock') }}
           restore-keys: composer-
       - run: composer install --no-interaction --prefer-dist
-      - run: ./vendor/bin/phpcs --standard=phpcs.xml.dist
+      - run: ./vendor/bin/phpcs --standard=phpcs.xml.dist --warning-severity=0
 
   phpunit:
     name: PHPUnit

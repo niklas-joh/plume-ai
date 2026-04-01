@@ -414,6 +414,7 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 								) ) }
 								<div
 									className="wpaim-ob-provider"
+									aria-hidden="true"
 									style={ {
 										opacity: 0.4,
 										cursor: 'default',

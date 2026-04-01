@@ -3,8 +3,8 @@
 /* ── Sidebar container ──────────────────────────────────────────────── */
 .wpaim-editor-sidebar {
 	padding: var(--space-4);
-	background: var(--color-surface-1, var(--color-surface));
-	color: var(--color-text-primary);
+	background: #fff;
+	color: #1d2327;
 	font-size: var(--text-base);
 }
 
@@ -47,8 +47,8 @@
 }
 
 .wpaim-editor-mini-chat__bubble--ai {
-	background: var(--color-surface-2);
-	color: var(--color-text-primary);
+	background: #f0f0f1;
+	color: #1d2327;
 	align-self: flex-start;
 	max-width: 92%;
 }
@@ -63,14 +63,19 @@
 
 .wpaim-editor-mini-chat__input {
 	flex: 1;
-	border: 1px solid var(--color-border);
+	border: 1px solid #dcdcde;
 	border-radius: var(--radius-sm);
-	background: var(--color-surface-2);
-	color: var(--color-text-primary);
+	background: #fff;
+	color: #1d2327;
 	font-size: var(--text-sm);
 	padding: var(--space-2) var(--space-3);
 	outline: none;
 	transition: border-color 0.15s ease;
+}
+
+.wpaim-editor-mini-chat__input:focus-visible {
+	outline: 2px solid var(--wp-admin-theme-color);
+	outline-offset: 2px;
 }
 
 .wpaim-editor-mini-chat__input:focus {
@@ -131,9 +136,9 @@
 	width: 100%;
 	text-align: left;
 	background: transparent;
-	border: 1px solid var(--color-border);
+	border: 1px solid #dcdcde;
 	border-radius: var(--radius-sm);
-	color: var(--color-text-primary);
+	color: #1d2327;
 	font-size: var(--text-sm);
 	padding: var(--space-2) var(--space-3);
 	cursor: pointer;
@@ -143,7 +148,7 @@
 }
 
 .wpaim-block-actions__btn:hover {
-	background: var(--color-surface-2);
+	background: #f0f0f1;
 	border-color: rgba(var(--wp-admin-theme-color--rgb), 0.3);
 }
 

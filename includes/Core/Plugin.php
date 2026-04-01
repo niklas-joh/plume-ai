@@ -44,6 +44,7 @@ class Plugin {
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
 		add_action( 'wp_ai_mind_register_menu', [ \WP_AI_Mind\Admin\AdminMenu::class, 'register' ] );
 		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\OnboardingRestController::class, 'register_routes' ] );
+		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\TestKeyRestController::class, 'register_routes' ] );
 		\WP_AI_Mind\Admin\ActivationNotice::register();
 		if ( $this->modules->is_enabled( 'chat' ) ) {
 			add_action( 'plugins_loaded', [ \WP_AI_Mind\Modules\Chat\ChatModule::class, 'register' ], 20 );

@@ -135,6 +135,8 @@ export default function ChatApp() {
 						className="wpaim-btn wpaim-btn--ghost wpaim-btn--icon"
 						onClick={ newConversation }
 						title="New conversation"
+						aria-label="New conversation"
+						type="button"
 					>
 						<Plus size={ 14 } strokeWidth={ 1.5 } />
 					</button>

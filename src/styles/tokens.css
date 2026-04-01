@@ -1,17 +1,17 @@
 /* Root tokens — define once in admin.css, use everywhere */
 :root {
 
-	/* Neutrals (zinc scale) */
-	--color-bg: #09090b;   /* zinc-950 — page background */
-	--color-surface: #18181b;   /* zinc-900 — card/panel background */
-	--color-surface-2: #27272a;   /* zinc-800 — input/hover background */
-	--color-border: #3f3f46;   /* zinc-700 — default border */
-	--color-border-subtle: #27272a; /* zinc-800 — subtle dividers */
+	/* Neutrals — WP admin light palette */
+	--color-bg: #fff;                  /* page background */
+	--color-surface: #f8f9fa;          /* card/panel background */
+	--color-surface-2: #f0f0f1;        /* input/hover background */
+	--color-border: #dcdcde;           /* default border */
+	--color-border-subtle: #e0e1e6;    /* subtle dividers */
 
-	/* Text */
-	--color-text-primary: #fafafa;  /* zinc-50 */
-	--color-text-secondary: #a1a1aa;  /* zinc-400 */
-	--color-text-muted: #52525b;  /* zinc-600 */
+	/* Text — WP admin standard */
+	--color-text-primary: #1d2327;     /* primary text */
+	--color-text-secondary: #50575e;   /* secondary / label text */
+	--color-text-muted: #787c82;       /* muted / placeholder text */
 
 	/* Semantic */
 	--color-success: #16a34a;   /* green-600 */

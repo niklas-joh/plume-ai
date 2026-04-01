@@ -40,6 +40,7 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
             PR URL: ${{ github.event.pull_request.html_url }}
+            BASE BRANCH: ${{ github.event.pull_request.base.ref }}
 
             Review this pull request against the repository's CLAUDE.md conventions. Be constructive and helpful.
 
@@ -53,16 +54,35 @@ jobs:
             ### Step 1 — Create issues for follow-up items (do this FIRST to capture URLs)
 
             For any finding that warrants independent follow-up (bug, non-trivial improvement,
-            security concern, missing test coverage), create a GitHub issue:
+            security concern, missing test coverage), create a GitHub issue.
+
+            Classify each finding:
+            - **blocking** (bug, security flaw, data loss risk) → labels: `code-review,blocking,auto-fix`
+            - **improvement** (non-trivial refactor, missing tests, performance) → labels: `code-review,enhancement`
+            - **nit/style** → no issue, PR comment only
+
+            Issue body MUST use this exact format so the auto-fix workflow can parse it:
+
+            ```
+            Found during review of PR #${{ github.event.pull_request.number }}
+
+            **PR:** ${{ github.event.pull_request.html_url }}
+            **Base branch:** ${{ github.event.pull_request.base.ref }}
+
+            ## Description
+
+            <detailed description of the finding and what needs to be fixed>
+            ```
+
+            Example command for a blocking issue:
 
               gh issue create \
                 --title "<concise title for the finding>" \
-                --body "Found during review of PR #${{ github.event.pull_request.number }}\n\n<details>\n\nPR: ${{ github.event.pull_request.html_url }}" \
-                --label "code-review" \
+                --body "Found during review of PR #${{ github.event.pull_request.number }}\n\n**PR:** ${{ github.event.pull_request.html_url }}\n**Base branch:** ${{ github.event.pull_request.base.ref }}\n\n## Description\n\n<details>" \
+                --label "code-review,blocking,auto-fix" \
                 --repo ${{ github.repository }}
 
             Capture the URL returned by each `gh issue create` call.
-            Cosmetic / style / minor nit findings do NOT need issues — include them only in the PR comment.
 
             ### Step 2 — Post the review comment on the PR
 

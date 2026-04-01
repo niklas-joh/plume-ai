@@ -1,0 +1,140 @@
+name: Auto-fix Code Review Issues
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  autofix:
+    name: Claude Issue Auto-fix
+    # Only run when the auto-fix label is applied (not on other label events)
+    if: github.event.label.name == 'auto-fix'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          prompt: |
+            Issue #${{ github.event.issue.number }} has been labeled `auto-fix` and needs to be resolved.
+
+            **Issue title:** ${{ github.event.issue.title }}
+            **Issue URL:** ${{ github.event.issue.html_url }}
+
+            **Issue body:**
+            ${{ github.event.issue.body }}
+
+            ---
+
+            ## Your task
+
+            ### Step 1 — Parse the issue
+
+            Read the issue body above. Extract:
+            - The PR number (look for "PR #NNN" or a GitHub pull request URL)
+            - The base branch (look for "**Base branch:** <name>")
+
+            If you cannot find a PR number or base branch in the issue body, comment on the issue
+            explaining what is missing and stop:
+
+              gh issue comment ${{ github.event.issue.number }} \
+                --body "⚠️ Could not auto-fix: issue body does not contain a parseable PR number or base branch. Please fix manually." \
+                --repo ${{ github.repository }}
+
+            ### Step 2 — Check PR state
+
+            Run:
+
+              gh pr view <PR-number> --repo ${{ github.repository }} --json state,headRefName,baseRefName,url
+
+            This tells you whether the PR is open or closed and what its branches are.
+
+            ### Step 3 — Fix the issue
+
+            **If the PR is OPEN:**
+
+            a. Check out the PR's head branch:
+
+                 git fetch origin <head-branch>
+                 git checkout <head-branch>
+
+            b. Read the relevant files and fix the problem described in the issue. Make the minimal
+               change needed — do not refactor unrelated code.
+
+            c. Commit using Conventional Commits format, referencing the issue:
+
+                 git commit -m "fix: <concise description> (closes #${{ github.event.issue.number }})"
+
+            d. Push to the same branch:
+
+                 git push origin <head-branch>
+
+            e. Leave a comment on the PR so reviewers know the fix landed:
+
+                 gh pr comment <PR-number> \
+                   --body "🔧 Pushed a fix for issue #${{ github.event.issue.number }} (_${{ github.event.issue.title }}_) to this branch." \
+                   --repo ${{ github.repository }}
+
+            **If the PR is CLOSED or MERGED (or the head branch no longer exists):**
+
+            a. Determine the base branch from the issue body (fallback: use the PR's `baseRefName`).
+
+            b. Create a new fix branch from the base:
+
+                 git fetch origin <base-branch>
+                 git checkout <base-branch>
+                 git pull origin <base-branch>
+                 # Slugify: lowercase, replace spaces/slashes with hyphens, truncate to 40 chars
+                 git checkout -b fix/issue-${{ github.event.issue.number }}-<slug>
+
+            c. Read the relevant files and fix the problem. Make the minimal change needed.
+
+            d. Commit:
+
+                 git commit -m "fix: <concise description> (closes #${{ github.event.issue.number }})"
+
+            e. Push the new branch:
+
+                 git push -u origin fix/issue-${{ github.event.issue.number }}-<slug>
+
+            f. Open a pull request targeting the base branch:
+
+                 gh pr create \
+                   --title "fix: <concise title matching issue title>" \
+                   --body "## Summary\n\nFixes #${{ github.event.issue.number }}\n\nOriginally reported during review of PR #<source-PR-number>.\n\n<brief description of what was changed and why>\n\n## Test plan\n\n- [ ] CI passes\n- [ ] Manually verified the fix addresses the reported problem" \
+                   --base <base-branch> \
+                   --repo ${{ github.repository }}
+
+            ### Step 4 — Close the issue
+
+            After the fix is committed and pushed (or the PR is created), close the issue with a
+            summary comment:
+
+              gh issue close ${{ github.event.issue.number }} \
+                --comment "✅ Fixed in <commit SHA or PR URL>. <One sentence describing what was changed.>" \
+                --repo ${{ github.repository }}
+
+            ---
+
+            ## Constraints
+
+            - PHP: follow WordPress Coding Standards (PHPCS ruleset in phpcs.xml.dist).
+              Prefix functions with `nj_` or use `WP_AI_Mind\` namespace.
+            - JS/CSS: fix only what is reported — do not reformat unrelated code.
+            - PHPUnit: fix the code under test, not the tests, unless the test assertion is clearly wrong.
+            - Do NOT bump version numbers, modify composer.lock, or change package-lock.json.
+            - Do NOT open more than one PR per issue.
+            - Loop-prevention: if the current branch already starts with `fix/issue-${{ github.event.issue.number }}`,
+              stop immediately — the fix is already in progress.
+
+          claude_args: "--max-turns 20 --allowedTools Bash(git:*),Bash(gh:*),Bash(composer:*),Bash(npm:*),Bash(npx:*),Bash(./vendor/bin/phpcs:*),Bash(./vendor/bin/phpunit:*),Read,Edit,MultiEdit,Write,Glob,Grep,LS"

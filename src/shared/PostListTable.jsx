@@ -27,6 +27,10 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 					return { data, total };
 				};
 
+				// context=edit is required so WordPress includes fields
+				// registered with schema context ['edit'], such as
+				// wpaim_seo_status. Without it the default 'view' context
+				// strips those fields and they arrive as undefined.
 				const [ postsRes, pagesRes ] = await Promise.all( [
 					fetchEndpoint(
 						'/wp/v2/posts?per_page=100&_embed=1&context=edit'

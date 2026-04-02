@@ -37,14 +37,17 @@ jobs:
         if: steps.diff.outputs.ahead == '0'
         run: echo "develop is already up to date with main — nothing to do."
 
-      - name: Attempt merge (dry-run)
+      # ── Clean path ──────────────────────────────────────────────────────────
+
+      - name: Attempt merge
         if: steps.diff.outputs.ahead != '0'
         id: merge
         run: |
           if git merge origin/main --no-edit -m "chore: nightly sync main → develop"; then
             echo "status=clean" >> "$GITHUB_OUTPUT"
           else
-            git merge --abort
+            # Save the conflicted file list before the resolver touches them
+            git diff --name-only --diff-filter=U > /tmp/conflicted_files.txt
             echo "status=conflict" >> "$GITHUB_OUTPUT"
           fi
 
@@ -52,8 +55,41 @@ jobs:
         if: steps.merge.outputs.status == 'clean'
         run: git push origin develop
 
-      - name: Open and close conflict PR
+      # ── Conflict path — ask Claude ────────────────────────────────────────
+
+      - uses: actions/setup-node@v4
         if: steps.merge.outputs.status == 'conflict'
+        with:
+          node-version: '20'
+
+      - name: Install Anthropic SDK
+        if: steps.merge.outputs.status == 'conflict'
+        run: npm install @anthropic-ai/sdk --no-save --quiet
+
+      - name: Resolve conflicts with Claude
+        if: steps.merge.outputs.status == 'conflict'
+        id: resolve
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        # exit 0 → easy, resolved; exit 2 → complex; exit 1 → error
+        # continue-on-error lets the next steps inspect the outcome
+        continue-on-error: true
+        run: node scripts/sync-resolve.js
+
+      - name: Complete merge and push (Claude resolved)
+        if: steps.merge.outputs.status == 'conflict' && steps.resolve.outcome == 'success'
+        run: |
+          # Stage the files Claude resolved
+          while IFS= read -r file; do
+            git add "$file"
+          done < /tmp/conflicted_files.txt
+          git commit --no-edit
+          git push origin develop
+
+      # ── Conflict path — too complex, close the PR ─────────────────────────
+
+      - name: Create and close conflict PR
+        if: steps.merge.outputs.status == 'conflict' && steps.resolve.outcome != 'success'
         uses: actions/github-script@v7
         with:
           script: |
@@ -61,13 +97,12 @@ jobs:
 
             // Avoid duplicate open PRs for the same sync conflict
             const { data: open } = await github.rest.pulls.list({
-              owner, repo,
-              state: 'open',
-              head: `${owner}:main`,
-              base: 'develop',
+              owner, repo, state: 'open',
+              head: `${owner}:main`, base: 'develop',
             });
             if (open.length > 0) {
               core.warning('A sync PR is already open — skipping creation.');
+              core.setFailed('Merge conflicts require manual resolution.');
               return;
             }
 
@@ -77,14 +112,14 @@ jobs:
               head: 'main',
               base: 'develop',
               body: [
-                '> **Automated nightly sync — created and closed by CI**',
+                '> **Automated nightly sync — closed automatically by CI**',
                 '',
                 '## Merge conflicts detected',
                 '',
-                'The nightly sync workflow could not automatically merge `main` into',
-                '`develop` due to conflicts. This PR has been closed automatically.',
+                'Claude reviewed the conflicts and determined they require human judgment.',
+                'This PR has been closed automatically.',
                 '',
-                '**Action required:** resolve the conflicts manually and push to `develop`.',
+                '**Action required:** resolve the conflicts manually and merge `main` into `develop`.',
               ].join('\n'),
             });
 
@@ -95,5 +130,5 @@ jobs:
             });
 
             core.setFailed(
-              `Merge conflict detected. PR #${pr.number} created and closed. Manual resolution required.`
+              `Conflicts too complex for auto-resolution. PR #${pr.number} created and closed.`
             );

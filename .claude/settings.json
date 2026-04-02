@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__github__add_labels_to_issue",
+      "mcp__github__remove_labels_from_issue",
+      "mcp__github__create_label",
+      "mcp__github__update_label",
+      "mcp__github__delete_label",
+      "mcp__github__list_labels"
+    ]
+  }
+}

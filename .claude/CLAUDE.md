@@ -74,6 +74,28 @@ mkdir -p .artifacts/reports .artifacts/screenshots
 
 ---
 
+## GitHub Label Permissions
+
+The following label-related MCP tools are explicitly allowed in `.claude/settings.json`:
+
+| Tool | Purpose |
+|---|---|
+| `mcp__github__create_label` | Create labels like `auto-fix`, `code-review`, `blocking`, `enhancement` when they don't yet exist |
+| `mcp__github__update_label` | Update label colour/description if needed |
+| `mcp__github__list_labels` | Check which labels already exist before creating |
+| `mcp__github__add_labels_to_issue` | Apply `auto-fix` (and others) to issues created by the code-review workflow |
+| `mcp__github__remove_labels_from_issue` | Remove labels when triaging or resolving issues |
+
+**`mcp__github__delete_label` is intentionally NOT allowed.**
+Label creation was originally blocked by a missing permission (see issue #34).
+The solution was to add `create_label` — not `delete_label`. Deleting labels
+is destructive (it removes them from all issues/PRs in the repo) and is never
+needed by the automated review or auto-fix workflows. The `auto-fix` label
+used by `.github/workflows/auto-fix-review-issue.yml` only needs to be
+*created* and *applied* — never deleted.
+
+---
+
 ## Release Process
 
 See `RELEASING.md` for the full release checklist.

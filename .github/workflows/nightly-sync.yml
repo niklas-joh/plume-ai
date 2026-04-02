@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write
 
 jobs:
   sync:
@@ -46,8 +47,6 @@ jobs:
           if git merge origin/main --no-edit -m "chore: nightly sync main → develop"; then
             echo "status=clean" >> "$GITHUB_OUTPUT"
           else
-            # Save the conflicted file list before the resolver touches them
-            git diff --name-only --diff-filter=U > /tmp/conflicted_files.txt
             echo "status=conflict" >> "$GITHUB_OUTPUT"
           fi
 
@@ -55,41 +54,46 @@ jobs:
         if: steps.merge.outputs.status == 'clean'
         run: git push origin develop
 
-      # ── Conflict path — ask Claude ────────────────────────────────────────
-
-      - uses: actions/setup-node@v4
-        if: steps.merge.outputs.status == 'conflict'
-        with:
-          node-version: '20'
-
-      - name: Install Anthropic SDK
-        if: steps.merge.outputs.status == 'conflict'
-        run: npm install @anthropic-ai/sdk --no-save --quiet
+      # ── Conflict path — ask Claude to review and resolve ───────────────────
 
       - name: Resolve conflicts with Claude
         if: steps.merge.outputs.status == 'conflict'
-        id: resolve
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        # exit 0 → easy, resolved; exit 2 → complex; exit 1 → error
-        # continue-on-error lets the next steps inspect the outcome
-        continue-on-error: true
-        run: node scripts/sync-resolve.js
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            A nightly `git merge origin/main` into `develop` has just failed due to merge conflicts.
+
+            Your task:
+            1. Run `git diff --name-only --diff-filter=U` to identify the conflicted files.
+            2. Read each conflicted file and assess whether each conflict is:
+               - **Easy** (safe to auto-resolve): non-overlapping additions, version/counter bumps,
+                 import-only additions, whitespace or comment differences, one-sided deletions.
+               - **Complex** (needs human judgment): both sides changed the same logic differently,
+                 structural or semantic incompatibilities, anything ambiguous.
+            3a. If ALL conflicts are easy: edit each file to remove all conflict markers
+                (`<<<<<<<`, `=======`, `>>>>>>>`), keeping the correct combined content.
+                Then run `git add` on each resolved file.
+                Finally, write the single word `resolved` to `/tmp/resolution-status.txt`.
+            3b. If ANY conflict is complex: do NOT modify any files.
+                Write the single word `complex` to `/tmp/resolution-status.txt`.
 
       - name: Complete merge and push (Claude resolved)
-        if: steps.merge.outputs.status == 'conflict' && steps.resolve.outcome == 'success'
+        if: steps.merge.outputs.status == 'conflict'
+        id: complete
         run: |
-          # Stage the files Claude resolved
-          while IFS= read -r file; do
-            git add "$file"
-          done < /tmp/conflicted_files.txt
-          git commit --no-edit
-          git push origin develop
+          STATUS=$(cat /tmp/resolution-status.txt 2>/dev/null || echo "complex")
+          echo "Resolution status: $STATUS"
+          echo "resolved=$( [ "$STATUS" = "resolved" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+          if [ "$STATUS" = "resolved" ]; then
+            git commit --no-edit
+            git push origin develop
+          fi
 
       # ── Conflict path — too complex, close the PR ─────────────────────────
 
       - name: Create and close conflict PR
-        if: steps.merge.outputs.status == 'conflict' && steps.resolve.outcome != 'success'
+        if: steps.merge.outputs.status == 'conflict' && steps.complete.outputs.resolved == 'false'
         uses: actions/github-script@v7
         with:
           script: |
@@ -114,9 +118,9 @@ jobs:
               body: [
                 '> **Automated nightly sync — closed automatically by CI**',
                 '',
-                '## Merge conflicts detected',
+                '## Merge conflicts require manual resolution',
                 '',
-                'Claude reviewed the conflicts and determined they require human judgment.',
+                'Claude reviewed the conflicts and determined they are too complex to auto-resolve.',
                 'This PR has been closed automatically.',
                 '',
                 '**Action required:** resolve the conflicts manually and merge `main` into `develop`.',

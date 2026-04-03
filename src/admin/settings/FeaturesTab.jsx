@@ -146,35 +146,19 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 											) }
 										</div>
 
-										<label
-											htmlFor={ `wpaim-toggle-${ slug }` }
-											className={ `wpaim-toggle${
-												isLocked
-													? ' wpaim-toggle--disabled'
-													: ''
-											}` }
-											aria-label={ `${
-												isEnabled ? 'Disable' : 'Enable'
-											} ${ label }` }
-										>
-											<input
-												id={ `wpaim-toggle-${ slug }` }
-												type="checkbox"
-												className="wpaim-toggle__input"
-												checked={ isEnabled }
-												disabled={ isLocked }
-												onChange={ () =>
-													handleToggle(
-														slug,
-														isProModule
-													)
-												}
-											/>
-											<span
-												className="wpaim-toggle__track"
-												aria-hidden="true"
-											/>
-										</label>
+										<ToggleControl
+											label={ label }
+											checked={ isEnabled }
+											onChange={ () =>
+												handleToggle(
+													slug,
+													isProModule
+												)
+											}
+											disabled={ isLocked }
+											hideLabelFromVision
+											__nextHasNoMarginBottom
+										/>
 									</div>
 
 									<p className="wpaim-feature-card-desc">

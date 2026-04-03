@@ -68,7 +68,7 @@ class TestKeyRestController {
 						],
 						'body'    => wp_json_encode(
 							[
-								'model'      => 'claude-haiku-4-5-20251001',
+								'model'      => apply_filters( 'wp_ai_mind_test_key_claude_model', 'claude-haiku-4-5-20251001' ),
 								'max_tokens' => 1,
 								'messages'   => [
 									[

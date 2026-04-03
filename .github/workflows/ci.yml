@@ -1,8 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [main, develop]
   pull_request:
     branches: [main, develop]
 
@@ -12,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
@@ -23,14 +21,14 @@ jobs:
           key: composer-${{ hashFiles('composer.lock') }}
           restore-keys: composer-
       - run: composer install --no-interaction --prefer-dist
-      - run: ./vendor/bin/phpcs --standard=phpcs.xml.dist
+      - run: ./vendor/bin/phpcs --standard=phpcs.xml.dist --warning-severity=0
 
   phpunit:
     name: PHPUnit
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
@@ -49,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'

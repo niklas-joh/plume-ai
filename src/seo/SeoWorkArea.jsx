@@ -210,7 +210,10 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 				</a>
 				<button
 					className="button"
-					onClick={ onClose }
+					onClick={ () => {
+						setConfirmReplace( false );
+						onClose();
+					} }
 					disabled={ applying }
 				>
 					Discard

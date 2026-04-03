@@ -21,6 +21,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Write untrusted issue content to files so it is never interpolated into
+      # the Claude prompt string (prevents prompt injection attacks).
+      - name: Write issue data to files
+        run: |
+          printf '%s' "$ISSUE_TITLE" > /tmp/issue-title.txt
+          printf '%s' "$ISSUE_BODY"  > /tmp/issue-body.txt
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY:  ${{ github.event.issue.body }}
+
       - uses: anthropics/claude-code-action@aee99972d0cfa0c47a4563e6fca42d7a5a0cb9bd  # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -28,11 +38,10 @@ jobs:
           prompt: |
             Issue #${{ github.event.issue.number }} has been labeled `auto-fix` and needs to be resolved.
 
-            **Issue title:** ${{ github.event.issue.title }}
+            **Issue title:** (read from /tmp/issue-title.txt)
             **Issue URL:** ${{ github.event.issue.html_url }}
 
-            **Issue body:**
-            ${{ github.event.issue.body }}
+            **Issue body:** (read from /tmp/issue-body.txt)
 
             ---
 
@@ -40,7 +49,8 @@ jobs:
 
             ### Step 1 — Parse the issue
 
-            Read the issue body above. Extract:
+            Run: `cat /tmp/issue-title.txt` and `cat /tmp/issue-body.txt` to read the issue content.
+            From the body, extract:
             - The PR number (look for "PR #NNN" or a GitHub pull request URL)
             - The base branch (look for "**Base branch:** <name>")
 
@@ -82,7 +92,7 @@ jobs:
             e. Leave a comment on the PR so reviewers know the fix landed:
 
                  gh pr comment <PR-number> \
-                   --body "🔧 Pushed a fix for issue #${{ github.event.issue.number }} (_${{ github.event.issue.title }}_) to this branch." \
+                   --body "🔧 Pushed a fix for issue #${{ github.event.issue.number }} to this branch." \
                    --repo ${{ github.repository }}
 
             **If the PR is CLOSED or MERGED (or the head branch no longer exists):**

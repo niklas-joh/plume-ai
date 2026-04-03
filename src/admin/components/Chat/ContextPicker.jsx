@@ -81,7 +81,7 @@ export default function ContextPicker( { onSelect, onClose } ) {
 				</div>
 			) }
 			{ results.length > 0 && (
-				<ul className="wpaim-context-picker__list">
+				<ul className="wpaim-context-picker__list" aria-live="polite">
 					{ results.map( ( post ) => (
 						<li key={ post.id }>
 							<button

@@ -49,6 +49,7 @@ export default function Composer( {
 							className="wpaim-composer__attachment-dismiss"
 							onClick={ onDetach }
 							title="Remove context"
+							aria-label="Remove context"
 							type="button"
 						>
 							<X size={ 10 } strokeWidth={ 2 } />
@@ -70,6 +71,7 @@ export default function Composer( {
 					className="wpaim-btn wpaim-btn--ghost wpaim-btn--icon"
 					onClick={ () => setShowPicker( ( prev ) => ! prev ) }
 					title="Attach post context"
+					aria-label="Attach post context"
 					type="button"
 				>
 					<Paperclip size={ 14 } strokeWidth={ 1.5 } />

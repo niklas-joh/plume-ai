@@ -1,11 +1,11 @@
-/* ── Dashboard shell ─────────────────────────────────────────────── */
+/* ── Dashboard shell ──────────────────────────────────────────────────────── */
 
 .wpaim-dashboard {
 	display: flex;
 	flex-direction: column;
 	min-height: 100vh;
-	background: var(--color-bg);
-	color: var(--color-text-primary);
+	background: #fff;
+	color: #1d2327;
 	font-family: var(--font-sans, -apple-system, sans-serif);
 	-webkit-font-smoothing: antialiased;
 }
@@ -16,7 +16,7 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: var(--space-4) var(--space-6) var(--space-3);
-	border-bottom: 1px solid var(--color-border-subtle);
+	border-bottom: 1px solid #e0e1e6;
 	flex-shrink: 0;
 }
 
@@ -38,12 +38,12 @@
 	font-size: 0.625rem;
 	padding: 3px 8px;
 	border-radius: var(--radius-sm);
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
-	color: var(--color-text-muted);
+	background: #f8f9fa;
+	border: 1px solid #dcdcde;
+	color: #787c82;
 }
 
-/* ── Status banner ──────────────────────────────────────────────── */
+/* ── Status banner ──────────────────────────────────────────────────────────── */
 
 .wpaim-dash-banner {
 	margin: var(--space-4) var(--space-6) 0;
@@ -98,7 +98,7 @@
 	flex-shrink: 0;
 }
 
-/* ── Page body ──────────────────────────────────────────────────── */
+/* ── Page body ──────────────────────────────────────────────────────────────── */
 
 .wpaim-dash-body {
 	flex: 1;
@@ -124,7 +124,7 @@
 	font-family: var(--font-mono, monospace);
 }
 
-/* ── Start tiles ────────────────────────────────────────────────── */
+/* ── Start tiles ────────────────────────────────────────────────────────────── */
 
 .wpaim-dash-tiles {
 	display: grid;
@@ -133,10 +133,10 @@
 }
 
 .wpaim-dash-tile {
-	background: var(--color-surface);
-	border: 1px solid var(--color-border-subtle);
+	background: #f8f9fa;
+	border: 1px solid #e0e1e6;
 	border-radius: var(--radius);
-	padding: var(--space-3) var(--space-3) var(--space-7);
+	padding: var(--space-4) var(--space-4) var(--space-7);
 	cursor: pointer;
 	position: relative;
 	overflow: hidden;
@@ -152,12 +152,12 @@
 	left: 0;
 	right: 0;
 	height: 1px;
-	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
 }
 
 .wpaim-dash-tile:hover {
-	border-color: var(--color-border);
-	background: var(--color-surface-2);
+	border-color: #dcdcde;
+	background: #f0f0f1;
 	transform: translateY(-1px);
 	text-decoration: none;
 }
@@ -201,11 +201,11 @@
 	padding-right: var(--space-3);
 }
 
-/* ── Resource list ──────────────────────────────────────────────── */
+/* ── Resource list ──────────────────────────────────────────────────────────── */
 
 .wpaim-dash-resources {
-	background: var(--color-surface);
-	border: 1px solid var(--color-border-subtle);
+	background: #f8f9fa;
+	border: 1px solid #e0e1e6;
 	border-radius: var(--radius);
 	overflow: hidden;
 }
@@ -213,8 +213,8 @@
 .wpaim-dash-resource {
 	display: flex;
 	align-items: center;
-	padding: var(--space-2) var(--space-3);
-	border-bottom: 1px solid var(--color-border-subtle);
+	padding: var(--space-3) var(--space-3);
+	border-bottom: 1px solid #e0e1e6;
 	text-decoration: none;
 	transition: background 0.1s;
 	gap: var(--space-3);
@@ -225,7 +225,7 @@
 }
 
 .wpaim-dash-resource:hover {
-	background: var(--color-surface-2);
+	background: #f0f0f1;
 	text-decoration: none;
 }
 
@@ -257,7 +257,7 @@
 	color: var(--wp-admin-theme-color);
 }
 
-/* ── Page footer ────────────────────────────────────────────────── */
+/* ── Page footer ────────────────────────────────────────────────────────────── */
 
 .wpaim-dash-footer {
 	padding: var(--space-3) var(--space-6) var(--space-4);
@@ -265,7 +265,7 @@
 	display: flex;
 	align-items: center;
 	gap: var(--space-3);
-	border-top: 1px solid var(--color-border-subtle);
+	border-top: 1px solid #e0e1e6;
 }
 
 .wpaim-dash-footer__link {
@@ -292,7 +292,7 @@
 	flex-shrink: 0;
 }
 
-/* ── Buttons (shared small) ─────────────────────────────────────── */
+/* ── Buttons (shared small) ─────────────────────────────────────────────────── */
 
 .wpaim-dash-btn {
 	font-size: 0.6875rem;
@@ -301,9 +301,9 @@
 	border-radius: var(--radius-sm);
 	cursor: pointer;
 	font-family: inherit;
-	border: 1px solid var(--color-border);
-	background: var(--color-surface);
-	color: var(--color-text-secondary);
+	border: 1px solid #dcdcde;
+	background: #f8f9fa;
+	color: #50575e;
 	text-decoration: none;
 	white-space: nowrap;
 	transition: border-color 0.12s, color 0.12s;
@@ -346,9 +346,9 @@
 .wpaim-ob-test-btn {
 	font-size: 0.6875rem;
 	padding: var(--space-2) var(--space-3);
-	background: var(--color-surface-2);
-	color: var(--color-text-secondary);
-	border: 1px solid var(--color-border-subtle);
+	background: #f0f0f1;
+	color: #50575e;
+	border: 1px solid #e0e1e6;
 	border-radius: var(--radius-sm);
 	cursor: pointer;
 	white-space: nowrap;
@@ -382,7 +382,7 @@
 
 .wpaim-ob-header {
 	padding: var(--space-4) var(--space-5) var(--space-3);
-	border-bottom: 1px solid var(--color-border-subtle);
+	border-bottom: 1px solid #e0e1e6;
 }
 
 .wpaim-ob-pips {
@@ -395,7 +395,7 @@
 	height: 2px;
 	flex: 1;
 	border-radius: 2px;
-	background: var(--color-border-subtle);
+	background: #e0e1e6;
 	transition: background 0.2s;
 }
 
@@ -429,7 +429,7 @@
 
 .wpaim-ob-footer {
 	padding: var(--space-2) var(--space-5) var(--space-3);
-	border-top: 1px solid var(--color-border-subtle);
+	border-top: 1px solid #e0e1e6;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -437,32 +437,32 @@
 
 /* Choice radio cards */
 .wpaim-ob-choice {
-	border: 1px solid var(--color-border-subtle);
+	border: 1px solid #dcdcde;
 	border-radius: var(--radius);
 	padding: var(--space-2) var(--space-3);
 	display: flex;
 	align-items: flex-start;
 	gap: var(--space-2);
-	background: var(--color-bg);
+	background: #fff;
 	cursor: pointer;
 	transition: border-color 0.12s, background 0.12s;
 }
 
 .wpaim-ob-choice:hover {
-	border-color: var(--color-border);
-	background: var(--color-surface-2);
+	border-color: #8c8f94;
+	background: #f0f0f1;
 }
 
 .wpaim-ob-choice--selected {
-	border-color: rgba(var(--wp-admin-theme-color--rgb), 0.3);
-	background: rgba(var(--wp-admin-theme-color--rgb), 0.12);
+	border-color: var(--wp-admin-theme-color);
+	background: color-mix(in srgb, var(--wp-admin-theme-color) 6%, #fff);
 }
 
 .wpaim-ob-radio {
 	width: 15px;
 	height: 15px;
 	border-radius: 50%;
-	border: 1.5px solid var(--color-border);
+	border: 1.5px solid #dcdcde;
 	margin-top: 1px;
 	flex-shrink: 0;
 	display: flex;
@@ -505,7 +505,7 @@
 .wpaim-ob-section-label {
 	font-size: 0.625rem;
 	font-weight: 600;
-	color: var(--color-text-muted);
+	color: #787c82;
 	text-transform: uppercase;
 	letter-spacing: 0.07em;
 	margin-top: var(--space-1);
@@ -519,10 +519,10 @@
 }
 
 .wpaim-ob-provider {
-	border: 1px solid var(--color-border-subtle);
+	border: 1px solid #dcdcde;
 	border-radius: var(--radius);
 	padding: var(--space-2) var(--space-2) var(--space-1);
-	background: var(--color-bg);
+	background: #fff;
 	cursor: pointer;
 	display: flex;
 	flex-direction: column;
@@ -532,12 +532,12 @@
 }
 
 .wpaim-ob-provider:hover {
-	border-color: var(--color-border);
+	border-color: #8c8f94;
 }
 
 .wpaim-ob-provider--selected {
-	border-color: rgba(var(--wp-admin-theme-color--rgb), 0.3);
-	background: rgba(var(--wp-admin-theme-color--rgb), 0.12);
+	border-color: var(--wp-admin-theme-color);
+	background: color-mix(in srgb, var(--wp-admin-theme-color) 6%, #fff);
 }
 
 .wpaim-ob-provider__check {
@@ -581,19 +581,24 @@
 /* API key input */
 .wpaim-ob-key-input {
 	width: 100%;
-	background: var(--color-bg);
-	border: 1px solid var(--color-border);
+	background: #fff;
+	border: 1px solid #dcdcde;
 	border-radius: var(--radius);
 	padding: var(--space-2) var(--space-2);
 	font-size: 0.6875rem;
-	color: var(--color-text-primary);
+	color: #1d2327;
 	font-family: var(--font-mono, monospace);
 	transition: border-color 0.12s;
 }
 
 .wpaim-ob-key-input:focus {
 	outline: none;
-	border-color: rgba(var(--wp-admin-theme-color--rgb), 0.3);
+	border-color: var(--wp-admin-theme-color);
+}
+
+.wpaim-ob-key-input:focus-visible {
+	outline: 2px solid var(--wp-admin-theme-color);
+	outline-offset: 2px;
 }
 
 .wpaim-ob-key-input::placeholder {
@@ -606,9 +611,9 @@
 
 /* Optional collapsible */
 .wpaim-ob-optional {
-	border: 1px solid var(--color-border-subtle);
+	border: 1px solid #e0e1e6;
 	border-radius: var(--radius);
-	background: var(--color-bg);
+	background: #fff;
 	overflow: hidden;
 }
 
@@ -636,8 +641,8 @@
 	font-weight: 600;
 	padding: 2px 6px;
 	border-radius: 3px;
-	background: var(--color-border-subtle);
-	color: var(--color-text-muted);
+	background: #e0e1e6;
+	color: #787c82;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
 }
@@ -655,7 +660,7 @@
 
 .wpaim-ob-optional__body {
 	padding: var(--space-2) var(--space-3) var(--space-3);
-	border-top: 1px solid var(--color-border-subtle);
+	border-top: 1px solid #e0e1e6;
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-2);
@@ -683,7 +688,7 @@
 }
 
 .wpaim-ob-devnote code {
-	background: rgba(0, 0, 0, 0.3);
+	background: rgba(0, 0, 0, 0.08);
 	padding: 1px 4px;
 	border-radius: 3px;
 	font-size: 0.5625rem;

@@ -15,6 +15,9 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
+      # Required by anthropics/claude-code-action when using claude_code_oauth_token:
+      # the action fetches a GitHub OIDC token internally to verify the workflow's
+      # identity before accepting the OAuth token.
       id-token: write
 
     steps:

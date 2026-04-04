@@ -99,7 +99,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 				<button
 					className="button button-primary"
 					onClick={ handleGenerate }
-					disabled={ generating }
+					disabled={ generating || confirmReplace }
 				>
 					{ generating ? (
 						<>
@@ -113,11 +113,17 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 			</div>
 
 			{ confirmReplace && (
-				<div className="wpaim-confirm-replace">
+				<div
+					className="wpaim-confirm-replace"
+					role="alertdialog"
+					aria-live="assertive"
+					aria-label="Replace confirmation"
+				>
 					<span>Replace current suggestions?</span>
 					<button
 						className="button button-small"
 						onClick={ handleGenerate }
+						autoFocus
 					>
 						Yes, replace
 					</button>

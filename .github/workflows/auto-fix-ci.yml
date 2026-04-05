@@ -10,9 +10,11 @@ jobs:
     name: Claude CI Auto-fix
     if: |
       github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.repository.full_name == github.repository &&
       !startsWith(github.event.workflow_run.head_branch, 'claude-auto-fix-ci-')
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: ci-autofix
     permissions:
       contents: write
       pull-requests: write
@@ -23,6 +25,15 @@ jobs:
       id-token: write
 
     steps:
+      - name: Sanitize workflow_run inputs
+        id: sanitize
+        run: |
+          # Strip all non-alphanumeric characters (keep hyphens and slashes for branch names)
+          SAFE_BRANCH=$(echo "${{ github.event.workflow_run.head_branch }}" | tr -cd '[:alnum:]/_-')
+          SAFE_RUN_ID=$(echo "${{ github.event.workflow_run.id }}" | tr -cd '[:digit:]')
+          echo "branch=${SAFE_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "run_id=${SAFE_RUN_ID}" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
@@ -36,15 +47,15 @@ jobs:
           # anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
           prompt: |
-            The CI workflow just failed on branch `${{ github.event.workflow_run.head_branch }}`.
+            The CI workflow just failed on branch `${{ steps.sanitize.outputs.branch }}`.
 
             Steps:
-            1. Run `gh run view ${{ github.event.workflow_run.id }} --log-failed --repo ${{ github.repository }}` to read the exact error output.
+            1. Run `gh run view ${{ steps.sanitize.outputs.run_id }} --log-failed --repo ${{ github.repository }}` to read the exact error output.
             2. Identify the root cause (PHPCS violation, PHPUnit failure, or JS/CSS lint error).
             3. Fix only the failing code — do not refactor unrelated areas.
             4. Slugify the source branch name and commit your changes to a new branch named
                `claude-auto-fix-ci-<slugified-branch>` (replace `/` with `-`, truncate to 50 chars).
-            5. Open a pull request against `${{ github.event.workflow_run.head_branch }}` with a clear description of what failed and what was changed.
+            5. Open a pull request against `${{ steps.sanitize.outputs.branch }}` with a clear description of what failed and what was changed.
 
             Constraints:
             - PHP: follow WordPress Coding Standards (PHPCS ruleset in phpcs.xml.dist). Prefix functions with `nj_` or use `WP_AI_Mind\` namespace.

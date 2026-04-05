@@ -3,12 +3,11 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    paths-ignore:
+      - "package-lock.json"
+      - "composer.lock"
+      - "yarn.lock"
+      - "*.lock"
 
 jobs:
   claude-review:
@@ -17,8 +16,9 @@ jobs:
     #   github.event.pull_request.user.login == 'external-contributor' ||
     #   github.event.pull_request.user.login == 'new-developer' ||
     #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-    
+
     runs-on: ubuntu-latest
+    continue-on-error: true  # review is informational; never block merges
     permissions:
       contents: read
       pull-requests: write

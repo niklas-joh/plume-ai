@@ -21,10 +21,15 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 	const [ error, setError ] = useState( null );
 
 	const yesButtonRef = useRef( null );
+	const generateButtonRef = useRef( null );
+	const wasConfirmingRef = useRef( false );
 
 	useEffect( () => {
-		if ( confirmReplace && yesButtonRef.current ) {
-			yesButtonRef.current.focus();
+		if ( confirmReplace ) {
+			wasConfirmingRef.current = true;
+			yesButtonRef.current?.focus();
+		} else if ( wasConfirmingRef.current ) {
+			generateButtonRef.current?.focus();
 		}
 	}, [ confirmReplace ] );
 
@@ -108,6 +113,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					className="button button-primary"
 					onClick={ handleGenerate }
 					disabled={ generating || confirmReplace }
+					ref={ generateButtonRef }
 				>
 					{ generating ? (
 						<>
@@ -124,7 +130,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 				<div
 					className="wpaim-confirm-replace"
 					role="alertdialog"
-					aria-live="assertive"
+					aria-modal="true"
 					aria-label="Replace confirmation"
 				>
 					<span>Replace current suggestions?</span>

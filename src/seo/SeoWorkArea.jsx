@@ -1,4 +1,4 @@
-import { useState } from '@wordpress/element';
+import { useState, useRef, useEffect } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { Loader2 } from 'lucide-react';
 import DOMPurify from 'dompurify';
@@ -19,6 +19,14 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 	const [ generating, setGenerating ] = useState( false );
 	const [ applying, setApplying ] = useState( false );
 	const [ error, setError ] = useState( null );
+
+	const yesButtonRef = useRef( null );
+
+	useEffect( () => {
+		if ( confirmReplace && yesButtonRef.current ) {
+			yesButtonRef.current.focus();
+		}
+	}, [ confirmReplace ] );
 
 	const editUrl = `${ adminUrl }post.php?post=${ post.id }&action=edit`;
 
@@ -123,7 +131,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					<button
 						className="button button-small"
 						onClick={ handleGenerate }
-						autoFocus
+						ref={ yesButtonRef }
 					>
 						Yes, replace
 					</button>

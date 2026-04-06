@@ -50,6 +50,12 @@ jobs:
         if: steps.guard.outputs.skip != 'true'
         id: claude-review
         uses: anthropics/claude-code-action@aee99972d0cfa0c47a4563e6fca42d7a5a0cb9bd  # v1
+        env:
+          # Use a PAT so that `gh issue edit --add-label auto-fix` fires the
+          # issues:labeled webhook event. GITHUB_TOKEN is silently blocked from
+          # triggering new workflow runs (GitHub anti-loop protection), which
+          # would prevent auto-fix-review-issue.yml from ever starting.
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |

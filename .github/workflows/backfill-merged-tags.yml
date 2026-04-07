@@ -6,7 +6,10 @@ name: Backfill merged/* Tags (one-shot)
 # DELETE THIS WORKFLOW after it has been successfully run.
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - '.github/workflows/backfill-merged-tags.yml'
 
 permissions:
   contents: write

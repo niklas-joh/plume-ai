@@ -35,6 +35,7 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
           AFTER:  ${{ github.event.after }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -59,15 +60,26 @@ jobs:
             MSG=$(git log -1 --format="%s" "$SHA")
             echo "Processing merge commit $SHA: $MSG"
 
-            # Match: "Merge pull request #NNN from owner/branch-name"
-            if ! echo "$MSG" | grep -qP '^Merge pull request #\d+ from [^/]+/.+'; then
-              echo "Skipping $SHA — commit message does not match expected merge format."
+            # Format 1 (GitHub default): "Merge pull request #NNN from owner/branch-name"
+            if echo "$MSG" | grep -qP '^Merge pull request #\d+ from [^/]+/.+'; then
+              PR_NUMBER=$(echo "$MSG" | grep -oP '(?<=pull request #)\d+')
+              # Everything after "owner/" is the branch name.
+              BRANCH=$(echo "$MSG" | grep -oP '(?<=from )[^/]+/\K.+')
+
+            # Format 2 (Conventional Commits): "description (#NNN)"
+            elif echo "$MSG" | grep -qP '\(#\d+\)$'; then
+              PR_NUMBER=$(echo "$MSG" | grep -oP '(?<=\(#)\d+(?=\)$)')
+              # Fetch branch name from GitHub API since it's not in the commit message.
+              BRANCH=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefName --jq '.headRefName' 2>/dev/null || true)
+              if [ -z "$BRANCH" ]; then
+                echo "Could not determine branch name for PR #${PR_NUMBER} — skipping."
+                continue
+              fi
+
+            else
+              echo "Skipping $SHA — commit message format not recognized."
               continue
             fi
-
-            PR_NUMBER=$(echo "$MSG" | grep -oP '(?<=pull request #)\d+')
-            # Everything after "owner/" is the branch name.
-            BRANCH=$(echo "$MSG" | grep -oP '(?<=from )[^/]+/\K.+')
 
             # Sanitise: keep alphanumerics, dots, hyphens, slashes; collapse
             # anything else to a hyphen; strip leading/trailing hyphens per segment.

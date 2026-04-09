@@ -43,7 +43,7 @@ content = (
     "- Reuse an existing tag slug if this PR clearly extends that work\n"
     "- Otherwise create a new descriptive slug\n"
     '- Respond with ONLY valid JSON, no markdown fences:\n'
-    '  {"tag":"feat/example","action":"reuse","reasoning":"one sentence"}\n'
+    '  {{"tag":"feat/example","action":"reuse","reasoning":"one sentence"}}\n'
     '  where action is "reuse" or "create"'
 ).format(
     title=title,

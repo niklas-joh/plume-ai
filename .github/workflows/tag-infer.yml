@@ -44,9 +44,7 @@ jobs:
     name: Infer and apply semantic tag
     # Skip on close (handled by job 2) and skip bot-triggered label events
     # to prevent the loop: bot applies label → labeled event → bot applies label...
-    if: |
-      github.event.action != 'closed' &&
-      !(github.event.action == 'labeled' && github.actor == 'github-actions[bot]')
+    if: github.event.action != 'closed' && !(github.event.action == 'labeled' && github.actor == 'github-actions[bot]')
     runs-on: ubuntu-latest
 
     steps:
@@ -100,6 +98,11 @@ jobs:
           EXISTING_TAGS:  ${{ steps.context.outputs.existing_tags }}
         run: |
           set -euo pipefail
+
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "::warning::ANTHROPIC_API_KEY secret is not configured — skipping semantic tag inference."
+            exit 0
+          fi
 
           # Build the request payload via helper script (avoids inline Python in YAML).
           PAYLOAD=$(python3 .github/scripts/infer_tag_payload.py)

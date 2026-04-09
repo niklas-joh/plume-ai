@@ -214,14 +214,19 @@ jobs:
             ACTION_TEXT="created new slug"
           fi
 
+          # Write body to a temp file to avoid unindented lines in the YAML block.
+          {
+            echo "## Semantic tag assigned: \`${TAG}\`"
+            echo ""
+            echo "**Action:** ${ACTION_TEXT}"
+            echo "**Reasoning:** ${REASONING}"
+            echo ""
+            echo "To override: edit the \`${LABEL_NAME}\` label on this PR. Changing the label will retrigger this workflow and update the git tag automatically."
+          } > /tmp/pr_comment_body.txt
+
           gh pr comment "$PR_NUMBER" \
             --repo "${{ github.repository }}" \
-            --body "## Semantic tag assigned: \`${TAG}\`
-
-**Action:** ${ACTION_TEXT}
-**Reasoning:** ${REASONING}
-
-To override: edit the \`${LABEL_NAME}\` label on this PR. Changing the label will retrigger this workflow and update the git tag automatically."
+            --body-file /tmp/pr_comment_body.txt
 
   # --------------------------------------------------------------------------
   # Job 2: Move the tag to the merge commit once the PR merges

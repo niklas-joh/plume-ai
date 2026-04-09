@@ -105,36 +105,50 @@ Agents must never trigger a release without explicit user instruction.
 
 ## Feature-Grouping & Release System
 
-The repo uses an automated feature-grouping system. Understand it before touching branches, tags, or labels.
+The repo uses an AI-powered semantic tagging system. Understand it before touching branches, tags, or labels.
+
+### Semantic tag schema
+
+| Tag / label prefix | Version bump | PR targets | Meaning |
+|---|---|---|---|
+| `feat/<slug>` / `feat: <slug>` | minor | `develop` | New feature |
+| `feat!/<slug>` / `feat!: <slug>` | **major** | `develop` | Breaking change |
+| `fix/<slug>` / `fix: <slug>` | patch | `develop` | Bug fix |
+| `hotfix/<slug>` / `hotfix: <slug>` | patch | `main` | Emergency fix bypassing develop |
 
 ### How it works
 
-1. Feature PRs target `develop` and are merged as **merge commits** (not squash).
-2. On every push to `develop`, `tag-feature-merge.yml` automatically creates an annotated tag `merged/<branch-name>` at each merge commit. The tag annotation contains the PR number: `PR #NN: branch-name`.
-3. The `release-ready` label on a PR signals "include this feature in the next release."
-4. Running the `Build Release Branch` workflow (`workflow_dispatch`) collects all `merged/*` tags whose PR has `release-ready`, cherry-picks them onto a new `release/vX.Y.Z` branch, bumps versions, and opens a PR to `main`.
-5. When that PR merges, `tag-release-merge.yml` creates the `vX.Y.Z` tag → `release.yml` builds the zip.
+1. Feature/fix PRs target `develop`; hotfix PRs target `main`. All are merged as **merge commits** (not squash).
+2. When a PR is opened (or updated), `.github/workflows/tag-infer.yml` calls `claude-haiku-4-5` to infer the best semantic slug, applies a GitHub label (`feat: <slug>` etc.) to the PR, force-updates a git tag (`feat/<slug>`) to the PR head SHA, and posts a comment explaining the choice.
+3. On merge, `tag-infer.yml` moves the git tag to the merge commit SHA so `git checkout feat/<slug>` always resolves to the final merged state.
+4. Multiple PRs that are part of the same feature receive the **same** semantic label (the AI reuses existing slugs when it detects continuity). This bundles them as a group.
+5. The `release-ready` label on **any one PR** in a semantic group signals "include this whole group in the next release."
+6. Running the `Build Release Branch` workflow (`workflow_dispatch`) collects all semantic labels (`feat:`, `feat!:`, `fix:`) whose group has a `release-ready` PR, cherry-picks **all** merged PRs in each matching group onto a `release/vX.Y.Z` branch, bumps versions, and opens a PR to `main`.
+7. When that PR merges, `tag-release-merge.yml` creates the `vX.Y.Z` tag → `release.yml` builds the zip.
 
 ### Agent rules for this system
 
 - **NEVER apply `release-ready` to a PR automatically.** It is a deliberate human release decision. Only apply it when explicitly instructed by the user.
 - **NEVER trigger `build-release-branch.yml`** (or any release workflow) without explicit user instruction.
-- **NEVER create, move, or delete `merged/*` tags.** They are managed exclusively by `tag-feature-merge.yml`.
+- **NEVER create, move, or delete `feat/*`, `feat!/*`, `fix/*`, or `hotfix/*` git tags manually.** They are managed exclusively by `tag-infer.yml`.
 - **NEVER push `v*` tags directly.** Tags are created by `tag-release-merge.yml` on PR merge.
 - PRs from agents targeting `develop` should follow the same Conventional Commits convention as all other PRs — this is critical for `semantic-release` to correctly derive the version bump.
+- If the AI assigns an incorrect tag, override it by editing the semantic label on the PR — `tag-infer.yml` will retrigger automatically on the `labeled` event.
 
 ### Querying release state (for agents)
 
 When the user asks "what features are queued for release?" or similar:
 
 ```bash
-# List all merged/* tags
-git tag -l 'merged/*' --sort=version:refname
+# List all semantic tags (feat/, fix/, hotfix/)
+git tag -l 'feat/*' 'feat!/*' 'fix/*' 'hotfix/*' --sort=version:refname
 
-# For each tag, check if its PR has release-ready label
-# (extract PR number from tag annotation first)
-git for-each-ref 'refs/tags/merged/*' --format='%(refname:short) %(contents)'
+# List all PRs with a semantic label and their release-ready status
+gh pr list --repo niklas-joh/wp-ai-mind --state merged \
+  --json number,title,labels,state \
+  --jq '.[] | select(.labels[].name | test("^(feat[!]?|fix|hotfix): ")) | {number,title,labels:[.labels[].name]}'
 
+# Check a specific PR
 gh pr view <PR_NUMBER> --repo niklas-joh/wp-ai-mind \
   --json number,title,labels,state \
   --jq '{number,title,labels:[.labels[].name],state}'
@@ -142,6 +156,6 @@ gh pr view <PR_NUMBER> --repo niklas-joh/wp-ai-mind \
 
 ### PR targets
 
-- Feature work: PR targets `develop`
+- Feature/fix work: PR targets `develop`
 - Hotfixes that must bypass `develop`: PR targets `main` directly (document in `RELEASING.md` emergency section)
 - Release branches (`release/vX.Y.Z`): PR targets `main` (created automatically by `build-release-branch.yml`)

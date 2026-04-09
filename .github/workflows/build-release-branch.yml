@@ -3,8 +3,9 @@ name: Build Release Branch
 # Triggered manually when it's time to cut a release from `develop`.
 #
 # The workflow:
-#   1. Finds all `merged/*` annotated tags whose originating PR carries the
-#      `release-ready` label.
+#   1. Finds all semantic labels (feat:, feat!:, fix:) in the repo; for each
+#      label whose PRs carry `release-ready`, bundles ALL merged PRs with that
+#      label so multi-PR features always ship as a unit.
 #   2. Creates a `release/vX.Y.Z` branch from `main` and cherry-picks those
 #      merge commits onto it.
 #   3. Derives the next version automatically via `semantic-release --dry-run`.
@@ -62,7 +63,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── Step 2: Find release-ready merge commits ───────────────────────────
+      # ── Step 2: Find release-ready merge commits via semantic labels ──────────
+      #
+      # The new semantic-tag system applies a label (feat: <slug>, feat!: <slug>,
+      # fix: <slug>) to every PR.  When the user applies `release-ready` to any
+      # one PR in a semantic group, ALL merged PRs with that same label are
+      # bundled into the release — ensuring multi-PR features ship as a unit.
+      #
+      # hotfix: labels are intentionally excluded; hotfixes target `main`
+      # directly and bypass this release-branch workflow entirely.
 
       - name: Collect release-ready merge commits
         id: collect
@@ -73,62 +82,66 @@ jobs:
 
           git fetch --tags
 
-          # List all merged/* tags, oldest first.
-          TAGS=$(git tag -l 'merged/*' --sort=version:refname)
+          # List all semantic labels in the repo (feat:, feat!:, fix: only).
+          ALL_SEM_LABELS=$(gh label list \
+            --repo "${{ github.repository }}" \
+            --limit 200 \
+            --json name \
+            --jq '[.[].name | select(test("^(feat[!]?|fix): "))] | .[]')
 
-          if [ -z "$TAGS" ]; then
-            echo "::error::No merged/* tags found. Merge at least one feature branch to develop first."
+          if [ -z "$ALL_SEM_LABELS" ]; then
+            echo "::error::No semantic labels found. Ensure tag-infer.yml has run on at least one merged PR."
             exit 1
           fi
 
           SELECTED_SHAS=""
           FEATURE_LIST=""
 
-          for TAG in $TAGS; do
-            # Read the annotation — format: "PR #NNN: branch-name"
-            ANNOTATION=$(git tag -v "$TAG" 2>&1 | grep -oP '(?<=tagger .{0,80}\n).*' || \
-                         git for-each-ref "refs/tags/$TAG" --format='%(contents)' | head -1)
+          while IFS= read -r LABEL; do
+            [ -z "$LABEL" ] && continue
 
-            # Robust extraction: look for "PR #NNN" anywhere in annotation
-            PR_NUMBER=$(git for-each-ref "refs/tags/$TAG" --format='%(contents)' \
-                        | grep -oP '(?<=PR #)\d+' | head -1 || true)
+            # Does any merged PR with this label also carry release-ready?
+            COUNT=$(gh pr list \
+              --repo "${{ github.repository }}" \
+              --label "$LABEL" \
+              --label "release-ready" \
+              --state merged \
+              --json number \
+              --jq 'length')
 
-            if [ -z "$PR_NUMBER" ]; then
-              echo "Warning: could not extract PR number from tag $TAG — skipping."
+            if [ "$COUNT" -eq 0 ]; then
+              echo "Skipping label '${LABEL}' — no release-ready PRs."
               continue
             fi
 
-            # Check if the PR has the release-ready label.
-            LABELS=$(gh pr view "$PR_NUMBER" \
-              --repo "${{ github.repository }}" \
-              --json labels \
-              --jq '[.labels[].name] | join(",")' 2>/dev/null || echo "")
+            echo "Processing label '${LABEL}' — bundling all merged PRs in this group."
 
-            if echo "$LABELS" | grep -q "release-ready"; then
-              SHA=$(git rev-list -n 1 "$TAG")
-              BRANCH_NAME=$(git for-each-ref "refs/tags/$TAG" --format='%(contents)' \
-                            | grep -oP '(?<=PR #\d{1,6}: ).+' | head -1 || echo "$TAG")
-              echo "Selected: $TAG (PR #$PR_NUMBER) — SHA $SHA"
+            # Collect ALL merged PRs with this semantic label (bundle the group).
+            while IFS=$'\t' read -r SHA PR_NUM; do
+              [ -z "$SHA" ] && continue
+              echo "  Selected: PR #${PR_NUM} [${LABEL}] — ${SHA}"
               SELECTED_SHAS="${SELECTED_SHAS} ${SHA}"
-              FEATURE_LIST="${FEATURE_LIST}\n- ${BRANCH_NAME} (PR #${PR_NUMBER})"
-            else
-              echo "Skipping: $TAG (PR #$PR_NUMBER) — no release-ready label"
-            fi
-          done
+              FEATURE_LIST="${FEATURE_LIST}\n- ${LABEL} (PR #${PR_NUM})"
+            done < <(gh pr list \
+              --repo "${{ github.repository }}" \
+              --label "$LABEL" \
+              --state merged \
+              --json number,mergeCommit \
+              --jq '.[] | [.mergeCommit.oid, (.number | tostring)] | @tsv')
+
+          done <<< "$ALL_SEM_LABELS"
 
           if [ -z "$(echo "$SELECTED_SHAS" | tr -d ' ')" ]; then
             echo "::error::No release-ready features found. Apply the 'release-ready' label to merged PRs before building a release."
             exit 1
           fi
 
-          # Sort SHAs by commit date (oldest first) so cherry-picks apply cleanly.
-          SORTED_SHAS=$(echo "$SELECTED_SHAS" | tr ' ' '\n' | grep -v '^$' \
+          # Deduplicate and sort by commit date (oldest first) for clean cherry-picks.
+          SORTED_SHAS=$(echo "$SELECTED_SHAS" | tr ' ' '\n' | grep -v '^$' | sort -u \
             | xargs -I{} git log -1 --format="%ct %H" {} \
             | sort -n | awk '{print $2}')
 
-          # Store as newline-separated; GitHub outputs can't contain raw newlines.
           echo "shas=$(echo "$SORTED_SHAS" | tr '\n' ' ' | xargs)" >> "$GITHUB_OUTPUT"
-          # Use a delimiter for multiline feature list
           {
             echo "feature_list<<EOF_FEATURES"
             echo -e "$FEATURE_LIST"

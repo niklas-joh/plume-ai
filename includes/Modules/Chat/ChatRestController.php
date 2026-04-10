@@ -137,7 +137,7 @@ class ChatRestController {
 			$request->get_param( 'title' ),
 			! empty( $post_id_param ) ? (int) $post_id_param : null
 		);
-		return rest_ensure_response( [ 'id' => $id ] );
+		return rest_ensure_response( $store->get_conversation( $id ) );
 	}
 
 	public function get_messages( \WP_REST_Request $request ): \WP_REST_Response {

@@ -1,0 +1,243 @@
+name: Backfill Semantic Tags
+
+# One-shot workflow to retroactively apply semantic labels and git tags to
+# merged PRs that pre-date the tag-infer.yml workflow, or to any PR that was
+# skipped when the workflow was still broken.
+#
+# Runs only on manual dispatch so it is never triggered accidentally.
+# Always start with dry_run: true to preview what will change before committing.
+#
+# Required secrets: CLAUDE_CODE_OAUTH_TOKEN (same as tag-infer.yml)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — print planned actions without writing any labels or tags'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write        # push annotated git tags
+  pull-requests: write   # apply labels to closed/merged PRs
+
+jobs:
+  backfill:
+    name: Backfill semantic tags for untagged merged PRs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Backfill semantic tags
+        env:
+          GH_TOKEN:              ${{ secrets.GITHUB_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          DRY_RUN:               ${{ inputs.dry_run }}
+          GITHUB_REPOSITORY:     ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN is not configured."
+            exit 1
+          fi
+
+          git fetch --tags
+
+          # Snapshot the existing tag namespace before the loop starts so Claude
+          # can decide whether each PR belongs to an in-progress feature group or
+          # needs a new slug. We update this list after each successful inference
+          # so that PRs processed later in the run benefit from earlier decisions.
+          EXISTING_TAGS=$(git tag -l 'feat/*' 'feat!/*' 'fix/*' 'hotfix/*' \
+            | head -30 | tr '\n' ' ' || true)
+
+          EXISTING_TAGS="$EXISTING_TAGS" python3 - <<'PYEOF'
+          import json, os, re, subprocess, sys
+
+          dry_run       = os.environ.get('DRY_RUN', 'true').lower() in ('true', '1')
+          repo          = os.environ.get('GITHUB_REPOSITORY', '')
+          existing_tags = [t for t in os.environ.get('EXISTING_TAGS', '').split() if t]
+
+          # Fetch the list of merged PRs once. We only pull fields needed to decide
+          # which PRs to skip — the expensive per-PR detail fetch comes later.
+          r = subprocess.run(
+              ['gh', 'pr', 'list', '--repo', repo, '--state', 'merged',
+               '--base', 'develop', '--limit', '100',
+               '--json', 'number,title,headRefName,labels'],
+              capture_output=True, text=True, check=True
+          )
+          pr_list = json.loads(r.stdout)
+
+          SEMANTIC_RE = re.compile(r'^(feat[!]?|fix|hotfix): ')
+
+          # Exclude:
+          # • main→develop sync PRs (headRefName == "main") — they carry no feature work
+          # • PRs that already have a semantic label — nothing to backfill
+          to_tag = [
+              pr for pr in pr_list
+              if pr['headRefName'] != 'main'
+              and not any(SEMANTIC_RE.match(lb['name']) for lb in pr.get('labels', []))
+          ]
+
+          print(f"Merged PRs to develop : {len(pr_list)}")
+          print(f"Already tagged        : {len(pr_list) - len(to_tag)}")
+          print(f"Need semantic tag     : {len(to_tag)}")
+          if dry_run:
+              print("Mode                  : DRY RUN — no labels or tags will be written")
+          print()
+
+          COLOURS = {'feat!/': 'b60205', 'feat/': '0075ca', 'fix/': 'e4e669', 'hotfix/': 'ff6b35'}
+
+          for pr in to_tag:
+              number = pr['number']
+              title  = pr['title']
+              branch = pr['headRefName']
+              print(f"── PR #{number}: {title}")
+
+              # Fetch merge commit SHA and recent commit messages for this PR.
+              # We do this per-PR rather than in bulk because mergeCommit is not
+              # reliably returned in the list endpoint across all gh CLI versions.
+              r = subprocess.run(
+                  ['gh', 'pr', 'view', str(number), '--repo', repo,
+                   '--json', 'mergeCommit,commits'],
+                  capture_output=True, text=True, check=True
+              )
+              detail    = json.loads(r.stdout)
+              merge_sha = (detail.get('mergeCommit') or {}).get('oid', '')
+              commits   = '\n'.join(
+                  c['messageHeadline'] for c in detail.get('commits', [])[-15:]
+              )
+
+              if not merge_sha:
+                  print(f"  ✗ No merge commit — skipping\n")
+                  continue
+
+              prompt = (
+                  "You are a semantic tagger for a WordPress plugin repository.\n\n"
+                  "Given this PR, choose the best semantic tag slug.\n\n"
+                  f"PR title: {title}\n"
+                  f"PR branch: {branch}\n"
+                  "PR base branch: develop\n"
+                  f"Recent commits:\n{commits or '(none available)'}\n\n"
+                  "Existing semantic tags (reuse if this PR clearly extends one of them):\n"
+                  + ('\n'.join(existing_tags) if existing_tags else '(none yet)') + "\n\n"
+                  "Rules:\n"
+                  "- Prefix options: feat/ (new feature), feat!/ (breaking change), fix/ (bug fix)\n"
+                  "  Base is develop, so never use hotfix/\n"
+                  "- Slug: lowercase, hyphens only, max 4 words\n"
+                  "- Reuse an existing slug if this PR clearly extends that work\n"
+                  '- Respond with ONLY valid JSON, no markdown fences:\n'
+                  '  {"tag":"feat/example","action":"reuse","reasoning":"one sentence"}\n'
+                  '  where action is "reuse" or "create"'
+              )
+
+              try:
+                  r = subprocess.run(
+                      ['claude', '--print', '--model', 'claude-haiku-4-5-20251001'],
+                      input=prompt, capture_output=True, text=True, timeout=60
+                  )
+                  response = r.stdout.strip()
+              except subprocess.TimeoutExpired:
+                  print(f"  ✗ Claude timed out — skipping\n", file=sys.stderr)
+                  continue
+              except Exception as e:
+                  print(f"  ✗ Claude call failed: {e} — skipping\n", file=sys.stderr)
+                  continue
+
+              # Three-tier JSON extraction — mirrors tag-infer.yml so behaviour is
+              # identical whether a PR is tagged live or through this backfill.
+              parsed = None
+              stripped = re.sub(r'^\s*```[a-z]*\s*', '', response)
+              stripped = re.sub(r'\s*```\s*$', '', stripped).strip()
+              for candidate in [response, stripped]:
+                  try:
+                      parsed = json.loads(candidate)
+                      break
+                  except json.JSONDecodeError:
+                      pass
+              if parsed is None:
+                  m = re.search(r'\{[^{}]*"tag"[^{}]*\}', response, re.DOTALL)
+                  if m:
+                      try:
+                          parsed = json.loads(m.group())
+                      except json.JSONDecodeError:
+                          pass
+
+              if parsed is None:
+                  print(f"  ✗ Could not parse Claude response: {response!r} — skipping\n",
+                        file=sys.stderr)
+                  continue
+
+              tag       = parsed.get('tag', '')
+              reasoning = parsed.get('reasoning', '')
+
+              if not re.match(r'^(feat[!]?|fix|hotfix)/[a-z0-9][a-z0-9-]*$', tag):
+                  print(f"  ✗ Invalid tag format '{tag}' — skipping\n")
+                  continue
+
+              label_name = tag.replace('/', ': ', 1)
+              print(f"  → {tag}  ({reasoning})")
+
+              if dry_run:
+                  print(f"  · Would apply label '{label_name}' to PR #{number}")
+                  print(f"  · Would push tag    '{tag}' → {merge_sha[:8]}\n")
+                  # Still update the tag list so subsequent dry-run entries reflect reuse
+                  if tag not in existing_tags:
+                      existing_tags.append(tag)
+                  continue
+
+              # Create the label (idempotent — the 2>/dev/null || true equivalent).
+              colour = next((v for k, v in COLOURS.items() if tag.startswith(k)), 'cccccc')
+              subprocess.run(
+                  ['gh', 'label', 'create', label_name,
+                   '--color', colour, '--description', f'Semantic group: {tag}',
+                   '--repo', repo],
+                  capture_output=True
+              )
+
+              # gh pr edit works on closed/merged PRs — the API does not require the PR
+              # to be open to modify its labels.
+              r = subprocess.run(
+                  ['gh', 'pr', 'edit', str(number), '--add-label', label_name, '--repo', repo],
+                  capture_output=True, text=True
+              )
+              if r.returncode != 0:
+                  print(f"  ✗ Label apply failed: {r.stderr.strip()}", file=sys.stderr)
+              else:
+                  print(f"  ✓ Label  '{label_name}' applied to PR #{number}")
+
+              # Delete the tag if it already exists remotely before re-creating it,
+              # so the annotation message reflects the correct PR number.
+              subprocess.run(
+                  ['git', 'push', 'origin', f':refs/tags/{tag}'], capture_output=True
+              )
+              subprocess.run(
+                  ['git', 'tag', '-af', tag, merge_sha, '-m', f'PR #{number}: {tag} (backfill)'],
+                  check=True
+              )
+              r = subprocess.run(
+                  ['git', 'push', 'origin', f'refs/tags/{tag}'],
+                  capture_output=True, text=True
+              )
+              if r.returncode != 0:
+                  print(f"  ✗ Tag push failed: {r.stderr.strip()}", file=sys.stderr)
+              else:
+                  print(f"  ✓ Tag    '{tag}' → {merge_sha[:8]}\n")
+
+              if tag not in existing_tags:
+                  existing_tags.append(tag)
+
+          print("Backfill complete.")
+          PYEOF

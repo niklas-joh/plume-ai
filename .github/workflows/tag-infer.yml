@@ -104,22 +104,129 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Tag inference is a nice-to-have — it must never block a PR.
+          # Treat a missing token as "skip gracefully" rather than a hard failure.
           if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
             echo "::warning::CLAUDE_CODE_OAUTH_TOKEN secret is not configured — skipping semantic tag inference."
             exit 0
           fi
 
-          # Build the prompt text via helper script (avoids inline Python in YAML).
-          PROMPT=$(python3 .github/scripts/build_infer_prompt.py)
+          # Build the prompt in Python rather than a shell heredoc so that
+          # special characters in PR titles and commit messages (quotes, backslashes,
+          # newlines) can't break variable expansion or corrupt the prompt string.
+          PROMPT=$(python3 - <<'PYEOF'
+          import os
+          tags_raw = os.environ.get('EXISTING_TAGS', '').strip()
+          tags     = [t for t in tags_raw.split() if t]
+          commits  = os.environ.get('COMMITS', '').strip()
+          base     = os.environ.get('PR_BASE_BRANCH', 'develop')
+          title    = os.environ.get('PR_TITLE', '')
+          branch   = os.environ.get('PR_BRANCH', '')
+          print(
+              "You are a semantic tagger for a WordPress plugin repository.\n\n"
+              "Given this PR, choose the best semantic tag slug.\n\n"
+              f"PR title: {title}\n"
+              f"PR branch: {branch}\n"
+              f"PR base branch: {base}\n"
+              f"Recent commits:\n{commits or '(no commits yet)'}\n\n"
+              "Existing semantic tags (reuse if this PR clearly extends one of them):\n"
+              + ('\n'.join(tags) if tags else '(none yet)') + "\n\n"
+              "Rules:\n"
+              "- Prefix options:\n"
+              "    feat/      new feature (targets develop) — minor version bump\n"
+              "    feat!/     breaking change (targets develop) — MAJOR version bump\n"
+              "    fix/       bug fix (targets develop) — patch version bump\n"
+              "    hotfix/    emergency fix targeting main — patch version bump\n"
+              '  If PR base branch is "main", the prefix MUST be hotfix/\n'
+              '  If the PR title or commits contain "!" or "BREAKING CHANGE", use feat!/\n'
+              "- Slug: lowercase, hyphens only, max 4 words\n"
+              "  Examples: feat/ai-chat, fix/api-key-validation, feat!/remove-legacy-api\n"
+              "- Reuse an existing tag slug if this PR clearly extends that work\n"
+              "- Otherwise create a new descriptive slug\n"
+              '- Respond with ONLY valid JSON, no markdown fences:\n'
+              '  {"tag":"feat/example","action":"reuse","reasoning":"one sentence"}\n'
+              '  where action is "reuse" or "create"'
+          )
+          PYEOF
+          )
 
+          # Send the prompt to Claude and capture the raw text.
           RESPONSE=$(printf '%s' "$PROMPT" \
             | claude --print --model claude-haiku-4-5-20251001)
 
-          # Parse tag, action, reasoning from the response (one value per line).
-          PARSED=$(echo "$RESPONSE" | python3 .github/scripts/parse_infer_response.py)
-          TAG=$(echo "$PARSED"      | sed -n '1p')
-          ACTION=$(echo "$PARSED"   | sed -n '2p')
-          REASONING=$(echo "$PARSED" | sed -n '3p')
+          # Extract tag/action/reasoning from Claude's response.
+          #
+          # Claude is instructed to return bare JSON, but LLM output is non-deterministic:
+          # it may wrap the object in ```json fences or prefix it with a sentence.
+          # A three-tier extraction strategy makes us resilient to all observed formats
+          # without having to re-prompt or retry, which would slow down every PR event.
+          #
+          # The response is passed via env var rather than stdin because the heredoc
+          # already occupies stdin to supply the Python script source to `python3 -`.
+          #
+          # On any parse failure we exit 0 (not 1) and emit a ::warning:: with the raw
+          # Claude output, so maintainers can diagnose the exact response without the
+          # workflow blocking the PR.
+          PARSED=$(CLAUDE_RESPONSE="$RESPONSE" python3 - <<'PYEOF'
+          import json, os, re, sys
+
+          raw  = os.environ.get('CLAUDE_RESPONSE', '')
+          text = raw.strip()
+          parsed = None
+
+          # Tier 1: trust the model — fast path for well-formed responses.
+          try:
+              parsed = json.loads(text)
+          except json.JSONDecodeError:
+              pass
+
+          # Tier 2: Claude sometimes wraps the JSON in ```json … ``` fences despite
+          # being instructed not to. Strip them and retry before falling back to regex.
+          if parsed is None:
+              stripped = re.sub(r'^\s*```[a-z]*\s*', '', text)
+              stripped = re.sub(r'\s*```\s*$', '', stripped).strip()
+              try:
+                  parsed = json.loads(stripped)
+              except json.JSONDecodeError:
+                  pass
+
+          # Tier 3: scan for the first {...} block containing "tag". This catches
+          # responses that add a sentence of commentary before or after the JSON.
+          if parsed is None:
+              m = re.search(r'\{[^{}]*"tag"[^{}]*\}', text, re.DOTALL)
+              if m:
+                  try:
+                      parsed = json.loads(m.group())
+                  except json.JSONDecodeError:
+                      pass
+
+          if parsed is None:
+              # Surface the raw Claude output so the next person debugging this
+              # doesn't have to guess what the model actually returned.
+              print(
+                  f"::warning::Semantic tag inference: could not extract JSON "
+                  f"from Claude's response. Raw output: {raw!r}",
+                  file=sys.stderr,
+              )
+              sys.exit(0)
+
+          try:
+              print(parsed['tag'])
+              print(parsed['action'])
+              print(parsed.get('reasoning', ''))
+          except KeyError as e:
+              print(
+                  f"::warning::Semantic tag inference: JSON is missing required "
+                  f"field {e}. Parsed object: {parsed}",
+                  file=sys.stderr,
+              )
+              sys.exit(0)
+          PYEOF
+          )
+
+          TAG=$(printf '%s' "$PARSED"       | sed -n '1p')
+          ACTION=$(printf '%s' "$PARSED"    | sed -n '2p')
+          REASONING=$(printf '%s' "$PARSED" | sed -n '3p')
 
           # Validate: must match feat/, feat!/, fix/, or hotfix/ + slug
           if ! echo "$TAG" | grep -qP '^(feat[!]?|fix|hotfix)/[a-z0-9][a-z0-9-]*$'; then

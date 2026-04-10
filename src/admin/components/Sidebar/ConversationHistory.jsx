@@ -18,7 +18,9 @@ export default function ConversationHistory( {
 			{ conversations.map( ( conv ) => (
 				<div
 					key={ conv.id }
-					className={ `wpaim-conv-item ${ conv.id === activeId ? 'is-active' : '' }` }
+					className={ `wpaim-conv-item ${
+						conv.id === activeId ? 'is-active' : ''
+					}` }
 				>
 					<button
 						className="wpaim-conv-item__body"
@@ -37,7 +39,9 @@ export default function ConversationHistory( {
 						onClick={ () => onDelete( conv.id ) }
 						type="button"
 						title="Delete conversation"
-						aria-label={ `Delete conversation: ${ conv.title || 'Untitled' }` }
+						aria-label={ `Delete conversation: ${
+							conv.title || 'Untitled'
+						}` }
 					>
 						<Trash2 size={ 12 } strokeWidth={ 1.5 } />
 					</button>

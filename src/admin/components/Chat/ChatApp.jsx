@@ -76,6 +76,24 @@ export default function ChatApp() {
 		setMessages( [] );
 	}
 
+	async function deleteConversation( convId ) {
+		try {
+			await apiFetch( {
+				path: `/wp-ai-mind/v1/conversations/${ convId }`,
+				method: 'DELETE',
+			} );
+		} catch ( e ) {
+			if ( e?.data?.status !== 404 ) {
+				return; // silent fail on unexpected errors; 404 = already gone, proceed
+			}
+		}
+		setConversations( ( prev ) => prev.filter( ( c ) => c.id !== convId ) );
+		if ( activeConvId === convId ) {
+			setActiveConvId( null );
+			setMessages( [] );
+		}
+	}
+
 	async function sendMessage( content ) {
 		// Resolve conversation ID — create one if none active.
 		let convId = activeConvId;
@@ -145,6 +163,7 @@ export default function ChatApp() {
 					conversations={ conversations }
 					activeId={ activeConvId }
 					onSelect={ setActiveConvId }
+					onDelete={ deleteConversation }
 				/>
 			</aside>
 

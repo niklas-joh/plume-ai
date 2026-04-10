@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Build the Anthropic API JSON payload for semantic tag inference.
+Build the prompt for semantic tag inference via Claude Code CLI.
 
-Reads context from environment variables and prints the request payload
-to stdout. Called by tag-infer.yml before the curl step.
+Reads context from environment variables and prints the prompt text to stdout.
+Called by tag-infer.yml before the claude CLI step.
 
 Env vars consumed:
   EXISTING_TAGS   space-separated list of existing semantic git tags
@@ -12,7 +12,6 @@ Env vars consumed:
   PR_TITLE        PR title
   PR_BRANCH       PR head branch name
 """
-import json
 import os
 
 tags_raw = os.environ.get('EXISTING_TAGS', '').strip()
@@ -22,7 +21,7 @@ base = os.environ.get('PR_BASE_BRANCH', 'develop')
 title = os.environ.get('PR_TITLE', '')
 branch = os.environ.get('PR_BRANCH', '')
 
-content = (
+print((
     "You are a semantic tagger for a WordPress plugin repository.\n\n"
     "Given this PR, choose the best semantic tag slug.\n\n"
     "PR title: {title}\n"
@@ -51,11 +50,4 @@ content = (
     base=base,
     commits=commits or '(no commits yet)',
     tags='\n'.join(tags) if tags else '(none yet)',
-)
-
-data = {
-    'model': 'claude-haiku-4-5-20251001',
-    'max_tokens': 256,
-    'messages': [{'role': 'user', 'content': content}],
-}
-print(json.dumps(data))
+))

@@ -24,7 +24,7 @@ name: Infer Semantic Tag
 #   fix/<slug>    patch version bump — bug fix targeting develop
 #   hotfix/<slug> patch version bump — emergency fix targeting main directly
 #
-# Required secret: ANTHROPIC_API_KEY (pay-as-you-go API key from console.anthropic.com)
+# Required secret: CLAUDE_CODE_OAUTH_TOKEN (same token used by all other Claude Code workflows)
 
 on:
   pull_request:
@@ -84,12 +84,17 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "existing_tags=$EXISTING_TAGS" >> "$GITHUB_OUTPUT"
 
-      # ── Step 2: Call Anthropic API ────────────────────────────────────────
+      # ── Step 2: Install Claude Code CLI ──────────────────────────────────
 
-      - name: Call Anthropic API to infer semantic tag
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      # ── Step 3: Call Claude Code to infer semantic tag ────────────────────
+
+      - name: Call Claude Code to infer semantic tag
         id: infer
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           PR_TITLE:       ${{ github.event.pull_request.title }}
           PR_BRANCH:      ${{ github.event.pull_request.head.ref }}
           PR_BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
@@ -99,19 +104,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-            echo "::warning::ANTHROPIC_API_KEY secret is not configured — skipping semantic tag inference."
+          if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::warning::CLAUDE_CODE_OAUTH_TOKEN secret is not configured — skipping semantic tag inference."
             exit 0
           fi
 
-          # Build the request payload via helper script (avoids inline Python in YAML).
-          PAYLOAD=$(python3 .github/scripts/infer_tag_payload.py)
+          # Build the prompt text via helper script (avoids inline Python in YAML).
+          PROMPT=$(python3 .github/scripts/build_infer_prompt.py)
 
-          RESPONSE=$(curl -sf https://api.anthropic.com/v1/messages \
-            -H "x-api-key: ${ANTHROPIC_API_KEY}" \
-            -H "anthropic-version: 2023-06-01" \
-            -H "content-type: application/json" \
-            -d "$PAYLOAD")
+          RESPONSE=$(printf '%s' "$PROMPT" \
+            | claude --print --model claude-haiku-4-5-20251001)
 
           # Parse tag, action, reasoning from the response (one value per line).
           PARSED=$(echo "$RESPONSE" | python3 .github/scripts/parse_infer_response.py)
@@ -133,7 +135,7 @@ jobs:
             echo "EOF_REASONING"
           } >> "$GITHUB_OUTPUT"
 
-      # ── Step 3: Derive label name and colour ──────────────────────────────
+      # ── Step 4: Derive label name and colour ──────────────────────────────
 
       - name: Derive label name and colour
         id: label
@@ -157,7 +159,7 @@ jobs:
           echo "name=$LABEL_NAME"   >> "$GITHUB_OUTPUT"
           echo "color=$COLOR"       >> "$GITHUB_OUTPUT"
 
-      # ── Step 4: Ensure label exists (idempotent) ──────────────────────────
+      # ── Step 5: Ensure label exists (idempotent) ──────────────────────────
 
       - name: Ensure label exists
         if: steps.infer.outputs.tag != ''
@@ -172,7 +174,7 @@ jobs:
             --description "Semantic group: $TAG" \
             --repo "${{ github.repository }}" 2>/dev/null || true
 
-      # ── Step 5: Apply label to PR ─────────────────────────────────────────
+      # ── Step 6: Apply label to PR ─────────────────────────────────────────
 
       - name: Apply label to PR
         if: steps.infer.outputs.tag != ''
@@ -185,7 +187,7 @@ jobs:
             --add-label "$LABEL_NAME" \
             --repo "${{ github.repository }}"
 
-      # ── Step 6: Force-update git tag at PR head SHA ───────────────────────
+      # ── Step 7: Force-update git tag at PR head SHA ───────────────────────
 
       - name: Force-update git tag
         if: steps.infer.outputs.tag != ''
@@ -199,7 +201,7 @@ jobs:
           git push origin "refs/tags/${TAG}"
           echo "Tag '${TAG}' → ${SHA}"
 
-      # ── Step 7: Post PR comment ───────────────────────────────────────────
+      # ── Step 8: Post PR comment ───────────────────────────────────────────
 
       - name: Post PR comment
         if: steps.infer.outputs.tag != ''

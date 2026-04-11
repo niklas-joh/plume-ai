@@ -51,10 +51,9 @@ jobs:
         id: claude-review
         uses: anthropics/claude-code-action@aee99972d0cfa0c47a4563e6fca42d7a5a0cb9bd  # v1
         env:
-          # Use a PAT so that `gh issue edit --add-label auto-fix` fires the
-          # issues:labeled webhook event. GITHUB_TOKEN is silently blocked from
-          # triggering new workflow runs (GitHub anti-loop protection), which
-          # would prevent auto-fix-review-issue.yml from ever starting.
+          # Use a PAT for all gh calls inside Claude (issue/label creation).
+          # The actual auto-fix label is applied in the dedicated step below,
+          # which also uses this PAT to fire the issues:labeled webhook event.
           GH_TOKEN: ${{ secrets.GH_PAT }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -113,11 +112,12 @@ jobs:
                 --label "code-review,blocking" \
                 --repo ${{ github.repository }})
               ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
-              gh issue edit "$ISSUE_NUMBER" --add-label "auto-fix" --repo ${{ github.repository }}
+              echo "$ISSUE_NUMBER" >> /tmp/auto-fix-issues.txt
 
-            The two-step label approach is required: labels applied at issue creation do not
-            fire the `issues: labeled` event, so the auto-fix workflow would never trigger.
-            Adding `auto-fix` in a separate `gh issue edit` call fires that event correctly.
+            Do NOT apply the `auto-fix` label yourself. A subsequent workflow step applies
+            it via a PAT outside this action, which guarantees the `issues: labeled` webhook
+            fires correctly and triggers the auto-fix workflow. Just append each created
+            issue number (one per line) to /tmp/auto-fix-issues.txt.
 
             Capture the URL returned by each `gh issue create` call.
 
@@ -138,3 +138,23 @@ jobs:
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/sdk#command-line for available options
           claude_args: "--allowedTools Bash(gh:*),Read,Glob,Grep"
+
+      - name: Apply auto-fix labels via PAT
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          # Explicit PAT ensures gh fires a real issues:labeled webhook event.
+          # GITHUB_TOKEN is silently blocked from triggering new workflow runs
+          # (GitHub anti-loop protection), so the auto-fix workflow would never
+          # start if we used it here.
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          if [[ ! -f /tmp/auto-fix-issues.txt ]]; then
+            echo "No issues created — nothing to label."
+            exit 0
+          fi
+          while IFS= read -r issue_number; do
+            [[ -z "$issue_number" ]] && continue
+            gh issue edit "$issue_number" --add-label "auto-fix" \
+              --repo ${{ github.repository }}
+            echo "Applied auto-fix label to issue #$issue_number"
+          done < /tmp/auto-fix-issues.txt

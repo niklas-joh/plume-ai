@@ -34,14 +34,13 @@ export default function ConversationHistory( {
 						</span>
 						<span className="wpaim-conv-item__date">
 							{ conv.updated_at
-								? new Date( conv.updated_at ).toLocaleDateString(
-									navigator.language,
-									{
+								? new Date(
+										conv.updated_at
+								  ).toLocaleDateString( navigator.language, {
 										day: '2-digit',
 										month: '2-digit',
 										year: 'numeric',
-									}
-								)
+								  } )
 								: '—' }
 						</span>
 					</button>

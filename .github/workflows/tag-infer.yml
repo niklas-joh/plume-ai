@@ -2,20 +2,18 @@ name: Infer Semantic Tag
 
 # Fires on every PR event targeting `develop` (features/fixes) or `main` (hotfixes).
 #
-# Job 1 — infer-and-tag (all events except closed):
+# infer-and-tag:
 #   • Calls claude-haiku-4-5 to infer the best semantic tag for the PR.
 #   • Creates/updates a GitHub label (feat: <slug>, feat!: <slug>, fix: <slug>,
 #     hotfix: <slug>) and applies it to the PR.
 #   • Force-updates the matching git tag (feat/<slug> etc.) to the PR head SHA.
 #   • Posts a comment explaining the assignment and how to override.
 #
-# Job 2 — move-tag-on-merge (closed + merged):
-#   • Reads the semantic label already on the PR and moves the git tag to the
-#     merge commit SHA so `git checkout feat/<slug>` always resolves to the
-#     final merged state.
+# The merge-time tag move (closed + merged) is handled by tag-move-on-merge.yml
+# to keep the two concerns separate and avoid a skipped job appearing in PR checks.
 #
 # Loop guard: when the bot applies a label, that fires a `labeled` event.
-# The `if` condition on job 1 skips it when actor == github-actions[bot] to
+# The `if` condition skips it when actor == github-actions[bot] to
 # prevent an infinite retrigger loop.
 #
 # Tag schema:
@@ -28,7 +26,7 @@ name: Infer Semantic Tag
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, closed]
+    types: [opened, synchronize, reopened, labeled]
     branches: [develop, main]
 
 permissions:
@@ -37,14 +35,11 @@ permissions:
 
 jobs:
 
-  # --------------------------------------------------------------------------
-  # Job 1: Infer slug, apply label, update git tag
-  # --------------------------------------------------------------------------
   infer-and-tag:
     name: Infer and apply semantic tag
-    # Skip on close (handled by job 2) and skip bot-triggered label events
-    # to prevent the loop: bot applies label → labeled event → bot applies label...
-    if: github.event.action != 'closed' && !(github.event.action == 'labeled' && github.actor == 'github-actions[bot]')
+    # Skip bot-triggered label events to prevent the loop:
+    # bot applies label → labeled event → bot applies label...
+    if: "!(github.event.action == 'labeled' && github.actor == 'github-actions[bot]')"
     runs-on: ubuntu-latest
 
     steps:
@@ -340,60 +335,3 @@ jobs:
             --repo "${{ github.repository }}" \
             --body-file /tmp/pr_comment_body.txt
 
-  # --------------------------------------------------------------------------
-  # Job 2: Move the tag to the merge commit once the PR merges
-  # --------------------------------------------------------------------------
-  move-tag-on-merge:
-    name: Move tag to merge commit
-    if: github.event.action == 'closed' && github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Configure git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Read semantic label from merged PR
-        id: read-label
-        env:
-          GH_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          set -euo pipefail
-
-          LABEL=$(gh pr view "$PR_NUMBER" \
-            --repo "${{ github.repository }}" \
-            --json labels \
-            --jq '[.labels[].name | select(test("^(feat[!]?|fix|hotfix): "))] | first // ""')
-
-          if [ -z "$LABEL" ]; then
-            echo "No semantic label on PR #${PR_NUMBER} — skipping tag move."
-            exit 0
-          fi
-
-          # feat: oauth → feat/oauth  |  feat!: x → feat!/x
-          TAG=$(echo "$LABEL" | sed 's|: |/|')
-          echo "label=$LABEL" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG"     >> "$GITHUB_OUTPUT"
-
-      - name: Force-move tag to merge commit SHA
-        if: steps.read-label.outputs.tag != ''
-        env:
-          TAG:       ${{ steps.read-label.outputs.tag }}
-          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          git fetch --tags
-
-          git push origin ":refs/tags/${TAG}" 2>/dev/null || true
-          git tag -d "${TAG}" 2>/dev/null || true
-          git tag -a "${TAG}" "${MERGE_SHA}" \
-            -m "PR #${PR_NUMBER}: ${TAG} (merged)"
-          git push origin "refs/tags/${TAG}"
-          echo "Tag '${TAG}' → merge commit ${MERGE_SHA}"

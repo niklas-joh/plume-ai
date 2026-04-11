@@ -91,20 +91,8 @@ jobs:
             - **improvement** (non-trivial refactor, missing tests, performance) → labels: `code-review,enhancement`
             - **nit/style** → no issue, PR comment only
 
-            Issue body MUST use this exact format so the auto-fix workflow can parse it:
-
-            ```
-            Found during review of PR #${{ github.event.pull_request.number }}
-
-            **PR:** ${{ github.event.pull_request.html_url }}
-            **Base branch:** ${{ github.event.pull_request.base.ref }}
-
-            ## Description
-
-            <detailed description of the finding and what needs to be fixed>
-            ```
-
-            Example command for a blocking issue:
+            Example command for a blocking issue (use this exact body format — the auto-fix
+            workflow parses it to find the PR number and base branch):
 
               ISSUE_URL=$(gh issue create \
                 --title "<concise title for the finding>" \

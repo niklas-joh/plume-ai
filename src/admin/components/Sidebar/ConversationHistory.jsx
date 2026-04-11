@@ -36,7 +36,15 @@ export default function ConversationHistory( {
 					</button>
 					<button
 						className="wpaim-conv-item__delete wpaim-btn wpaim-btn--ghost"
-						onClick={ () => onDelete( conv.id ) }
+						onClick={ () => {
+							if (
+								window.confirm(
+									`Delete "${ conv.title || 'Untitled' }"? This cannot be undone.`
+								)
+							) {
+								onDelete( conv.id );
+							}
+						} }
 						type="button"
 						title="Delete conversation"
 						aria-label={ `Delete conversation: ${

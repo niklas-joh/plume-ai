@@ -392,6 +392,7 @@ jobs:
           git fetch --tags
 
           git push origin ":refs/tags/${TAG}" 2>/dev/null || true
+          git tag -d "${TAG}" 2>/dev/null || true
           git tag -a "${TAG}" "${MERGE_SHA}" \
             -m "PR #${PR_NUMBER}: ${TAG} (merged)"
           git push origin "refs/tags/${TAG}"

@@ -18,6 +18,8 @@ export default function ChatApp() {
 	const [ selectedModel, setSelectedModel ] = useState( '' );
 	const [ providers, setProviders ] = useState( [] );
 	const [ attachedPost, setAttachedPost ] = useState( null );
+	const [ deletingIds, setDeletingIds ] = useState( new Set() );
+	const [ deleteError, setDeleteError ] = useState( null );
 	const skipLoadRef = useRef( false );
 
 	useEffect( () => {
@@ -74,6 +76,46 @@ export default function ChatApp() {
 		setConversations( ( prev ) => [ conv, ...prev ] );
 		setActiveConvId( conv.id );
 		setMessages( [] );
+	}
+
+	function removeConversationFromState( convId ) {
+		setConversations( ( prev ) => prev.filter( ( c ) => c.id !== convId ) );
+		if ( activeConvId === convId ) {
+			setActiveConvId( null );
+			setMessages( [] );
+		}
+	}
+
+	async function deleteConversation( convId ) {
+		if ( deletingIds.has( convId ) ) {
+			return;
+		}
+		setDeleteError( null );
+		setDeletingIds( ( prev ) => new Set( [ ...prev, convId ] ) );
+		try {
+			await apiFetch( {
+				path: `/wp-ai-mind/v1/conversations/${ convId }`,
+				method: 'DELETE',
+			} );
+			removeConversationFromState( convId );
+		} catch ( e ) {
+			if ( e?.data?.status === 404 ) {
+				// Already gone on the server — remove from list.
+				removeConversationFromState( convId );
+			} else {
+				// eslint-disable-next-line no-console
+				console.error( 'Failed to delete conversation:', e );
+				setDeleteError(
+					'Failed to delete conversation. Please try again.'
+				);
+			}
+		} finally {
+			setDeletingIds( ( prev ) => {
+				const next = new Set( prev );
+				next.delete( convId );
+				return next;
+			} );
+		}
 	}
 
 	async function sendMessage( content ) {
@@ -141,10 +183,15 @@ export default function ChatApp() {
 						<Plus size={ 14 } strokeWidth={ 1.5 } />
 					</button>
 				</div>
+				{ deleteError && (
+					<div className="wpaim-sidebar__error">{ deleteError }</div>
+				) }
 				<ConversationHistory
 					conversations={ conversations }
 					activeId={ activeConvId }
 					onSelect={ setActiveConvId }
+					onDelete={ deleteConversation }
+					deletingIds={ deletingIds }
 				/>
 			</aside>
 

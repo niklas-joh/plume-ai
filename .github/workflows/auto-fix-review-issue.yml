@@ -25,132 +25,162 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Write untrusted issue content to files so it is never interpolated into
-      # the Claude prompt string (prevents prompt injection attacks).
-      - name: Write issue data to files
-        run: |
-          printf '%s' "$ISSUE_TITLE" > /tmp/issue-title.txt
-          printf '%s' "$ISSUE_BODY"  > /tmp/issue-body.txt
-          printf '%s' "$ISSUE_URL"   > /tmp/issue-url.txt
+      # Write only the issue body to a file — body is untrusted and may contain
+      # arbitrary markdown/code that could escape a YAML string if interpolated.
+      # The title is a single-line string and is safe to inline in the prompt.
+      - name: Write issue body to file
+        run: printf '%s' "$ISSUE_BODY" > /tmp/issue-body.txt
         env:
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          ISSUE_BODY:  ${{ github.event.issue.body }}
-          ISSUE_URL:   ${{ github.event.issue.html_url }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+
+      # Pre-flight: parse PR number and base branch from the issue body.
+      # The code-review workflow always produces bodies in this format:
+      #   "**PR:** <url>"  and  "**Base branch:** <name>"
+      - name: Parse issue body
+        id: parse
+        run: |
+          BODY=$(cat /tmp/issue-body.txt)
+          PR_NUMBER=$(printf '%s' "$BODY" | grep -oP '(?<=PR #)\d+' | head -1)
+          if [[ -z "$PR_NUMBER" ]]; then
+            PR_NUMBER=$(printf '%s' "$BODY" | grep -oP '(?<=/pull/)\d+' | head -1)
+          fi
+          BASE_BRANCH=$(printf '%s' "$BODY" | grep -oP '(?<=\*\*Base branch:\*\* )\S+' | head -1)
+          echo "pr_number=$PR_NUMBER"      >> "$GITHUB_OUTPUT"
+          echo "base_branch=$BASE_BRANCH"  >> "$GITHUB_OUTPUT"
+
+      # Pre-flight: check whether a fix branch already exists remotely.
+      # Replaces the in-prompt branch-name check which can never fire on a fresh
+      # ephemeral runner (actions/checkout always starts on the default branch).
+      - name: Check for existing fix branch
+        id: guard
+        run: |
+          EXISTING=$(git ls-remote --heads origin \
+            "fix/issue-${{ github.event.issue.number }}-*")
+          if [[ -n "$EXISTING" ]]; then
+            echo "skip=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip — fix branch already exists
+        if: steps.guard.outputs.skip == 'true'
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "⚠️ A fix branch already exists for this issue — skipping re-run to avoid duplicate work." \
+            --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Skip — no parseable PR number in issue body
+        if: steps.guard.outputs.skip != 'true' && steps.parse.outputs.pr_number == ''
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "⚠️ Could not auto-fix: the issue body does not contain a parseable PR number or base branch. Please fix manually." \
+            --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      # Pre-flight: look up PR state and head branch so Claude doesn't have to.
+      - name: Check PR state
+        id: pr_state
+        if: steps.guard.outputs.skip != 'true' && steps.parse.outputs.pr_number != ''
+        run: |
+          INFO=$(gh pr view "${{ steps.parse.outputs.pr_number }}" \
+            --repo "${{ github.repository }}" \
+            --json state,headRefName \
+            --jq '.')
+          echo "state=$(printf '%s' "$INFO" | jq -r '.state')"       >> "$GITHUB_OUTPUT"
+          echo "head=$(printf '%s' "$INFO"  | jq -r '.headRefName')" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
 
       - uses: anthropics/claude-code-action@aee99972d0cfa0c47a4563e6fca42d7a5a0cb9bd  # v1
+        if: |
+          steps.guard.outputs.skip != 'true' &&
+          steps.parse.outputs.pr_number != '' &&
+          steps.pr_state.outcome == 'success'
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
           prompt: |
-            Issue #${{ github.event.issue.number }} has been labeled `auto-fix` and needs to be resolved.
+            Fix issue #${{ github.event.issue.number }}: "${{ github.event.issue.title }}"
 
-            **Issue title:** (read from /tmp/issue-title.txt)
-            **Issue URL:** (read from /tmp/issue-url.txt)
+            Read /tmp/issue-body.txt for the full description of what needs to be fixed.
 
-            **Issue body:** (read from /tmp/issue-body.txt)
+            **Context — already resolved, no further lookups needed:**
+            - Source PR: #${{ steps.parse.outputs.pr_number }}
+            - PR state: **${{ steps.pr_state.outputs.state }}**
+            - Head branch: `${{ steps.pr_state.outputs.head }}`
+            - Base branch: `${{ steps.parse.outputs.base_branch }}`
 
             ---
 
             ## Your task
 
-            ### Step 1 — Parse the issue
+            ### Step 1 — Read the issue
 
-            Run: `cat /tmp/issue-title.txt` and `cat /tmp/issue-body.txt` to read the issue content.
-            From the body, extract:
-            - The PR number (look for "PR #NNN" or a GitHub pull request URL)
-            - The base branch (look for "**Base branch:** <name>")
+              cat /tmp/issue-body.txt
 
-            If you cannot find a PR number or base branch in the issue body, comment on the issue
-            explaining what is missing and stop:
+            ### Step 2 — Prepare the working branch
 
-              gh issue comment ${{ github.event.issue.number }} \
-                --body "⚠️ Could not auto-fix: issue body does not contain a parseable PR number or base branch. Please fix manually." \
-                --repo ${{ github.repository }}
+            **If PR state is `OPEN`:**
 
-            ### Step 2 — Check PR state
+                git fetch origin ${{ steps.pr_state.outputs.head }} && \
+                  git checkout ${{ steps.pr_state.outputs.head }}
 
-            Run:
+            **If PR state is `CLOSED` or `MERGED`:**
 
-              gh pr view <PR-number> --repo ${{ github.repository }} --json state,headRefName,baseRefName,url
+                git fetch origin ${{ steps.parse.outputs.base_branch }}
+                git checkout ${{ steps.parse.outputs.base_branch }}
+                git pull origin ${{ steps.parse.outputs.base_branch }}
+                # Slugify the issue title: lowercase, spaces/slashes → hyphens, max 40 chars
+                git checkout -b fix/issue-${{ github.event.issue.number }}-<slug>
 
-            This tells you whether the PR is open or closed and what its branches are.
+            ### Step 3 — Fix the problem
 
-            ### Step 3 — Fix the issue
+            Read the relevant source files and make the minimal change described in the issue.
+            Before committing, run `npm ci` if `node_modules/` is absent (required by the
+            pre-commit build hook which runs `npm run build` on every commit to `src/`).
 
-            **If the PR is OPEN:**
+            Commit:
 
-            a. Check out the PR's head branch:
+                git commit -m "fix: <concise description> (closes #${{ github.event.issue.number }})"
 
-                 git fetch origin <head-branch>
-                 git checkout <head-branch>
+            Push:
+            - OPEN PR  → `git push origin ${{ steps.pr_state.outputs.head }}`
+            - New branch → `git push -u origin fix/issue-${{ github.event.issue.number }}-<slug>`
 
-            b. Read the relevant files and fix the problem described in the issue. Make the minimal
-               change needed — do not refactor unrelated code.
+            ### Step 4 — Notify and close
 
-            c. Commit using Conventional Commits format, referencing the issue:
+            **If PR was OPEN** — comment on the existing PR:
 
-                 git commit -m "fix: <concise description> (closes #${{ github.event.issue.number }})"
+                gh pr comment ${{ steps.parse.outputs.pr_number }} \
+                  --body "🔧 Pushed a fix for issue #${{ github.event.issue.number }} to this branch." \
+                  --repo ${{ github.repository }}
 
-            d. Push to the same branch:
+            **If PR was CLOSED/MERGED** — open a new PR targeting the base branch:
 
-                 git push origin <head-branch>
+                gh pr create \
+                  --title "fix: <title matching issue>" \
+                  --body "## Summary\n\nFixes #${{ github.event.issue.number }}\n\nOriginally reported during review of PR #${{ steps.parse.outputs.pr_number }}.\n\n<description of what changed and why>\n\n## Test plan\n\n- [ ] CI passes\n- [ ] Fix verified manually" \
+                  --base ${{ steps.parse.outputs.base_branch }} \
+                  --repo ${{ github.repository }}
 
-            e. Leave a comment on the PR so reviewers know the fix landed:
+            Close the issue with a summary comment:
 
-                 gh pr comment <PR-number> \
-                   --body "🔧 Pushed a fix for issue #${{ github.event.issue.number }} to this branch." \
-                   --repo ${{ github.repository }}
-
-            **If the PR is CLOSED or MERGED (or the head branch no longer exists):**
-
-            a. Determine the base branch from the issue body (fallback: use the PR's `baseRefName`).
-
-            b. Create a new fix branch from the base:
-
-                 git fetch origin <base-branch>
-                 git checkout <base-branch>
-                 git pull origin <base-branch>
-                 # Slugify: lowercase, replace spaces/slashes with hyphens, truncate to 40 chars
-                 git checkout -b fix/issue-${{ github.event.issue.number }}-<slug>
-
-            c. Read the relevant files and fix the problem. Make the minimal change needed.
-
-            d. Commit:
-
-                 git commit -m "fix: <concise description> (closes #${{ github.event.issue.number }})"
-
-            e. Push the new branch:
-
-                 git push -u origin fix/issue-${{ github.event.issue.number }}-<slug>
-
-            f. Open a pull request targeting the base branch:
-
-                 gh pr create \
-                   --title "fix: <concise title matching issue title>" \
-                   --body "## Summary\n\nFixes #${{ github.event.issue.number }}\n\nOriginally reported during review of PR #<source-PR-number>.\n\n<brief description of what was changed and why>\n\n## Test plan\n\n- [ ] CI passes\n- [ ] Manually verified the fix addresses the reported problem" \
-                   --base <base-branch> \
-                   --repo ${{ github.repository }}
-
-            ### Step 4 — Close the issue
-
-            After the fix is committed and pushed (or the PR is created), close the issue with a
-            summary comment:
-
-              gh issue close ${{ github.event.issue.number }} \
-                --comment "✅ Fixed in <commit SHA or PR URL>. <One sentence describing what was changed.>" \
-                --repo ${{ github.repository }}
+                gh issue close ${{ github.event.issue.number }} \
+                  --comment "✅ Fixed in <commit SHA or PR URL>. <One sentence summary.>" \
+                  --repo ${{ github.repository }}
 
             ---
 
             ## Constraints
 
-            - PHP: follow WordPress Coding Standards (PHPCS ruleset in phpcs.xml.dist).
+            - PHP: follow WordPress Coding Standards (PHPCS ruleset in `phpcs.xml.dist`).
               Prefix functions with `nj_` or use `WP_AI_Mind\` namespace.
             - JS/CSS: fix only what is reported — do not reformat unrelated code.
-            - PHPUnit: fix the code under test, not the tests, unless the test assertion is clearly wrong.
-            - Do NOT bump version numbers, modify composer.lock, or change package-lock.json.
+            - PHPUnit: fix the code under test, not the tests, unless the assertion is clearly wrong.
+            - Do NOT bump version numbers, modify `composer.lock`, or change `package-lock.json`.
             - Do NOT open more than one PR per issue.
-            - Loop-prevention: if the current branch already starts with `fix/issue-${{ github.event.issue.number }}`,
-              stop immediately — the fix is already in progress.
 
           claude_args: "--max-turns 20 --allowedTools Bash(git:*),Bash(gh:*),Bash(composer:*),Bash(npm:*),Bash(npx:*),Bash(./vendor/bin/phpcs:*),Bash(./vendor/bin/phpunit:*),Read,Edit,MultiEdit,Write,Glob,Grep,LS"

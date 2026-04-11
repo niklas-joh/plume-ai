@@ -1,3 +1,4 @@
+/* global navigator */
 import { Trash2 } from 'lucide-react';
 
 export default function ConversationHistory( {
@@ -32,7 +33,15 @@ export default function ConversationHistory( {
 							{ conv.title || 'Untitled' }
 						</span>
 						<span className="wpaim-conv-item__date">
-							{ new Date( conv.updated_at ).toLocaleDateString() }
+							{ conv.updated_at
+								? new Date(
+										conv.updated_at
+								  ).toLocaleDateString( navigator.language, {
+										day: '2-digit',
+										month: '2-digit',
+										year: 'numeric',
+								  } )
+								: '—' }
 						</span>
 					</button>
 					<button

@@ -15,14 +15,15 @@
     "lucide-react": "^0.474.0",
     "marked": "^17.0.4"
   },
-  "peerDependencies": {
-    "@wordpress/element": ">=6.0.0"
-  },
   "devDependencies": {
     "@semantic-release/commit-analyzer": "^13.0.0",
     "@semantic-release/release-notes-generator": "^14.0.0",
+    "@wordpress/element": ">=6.0.0",
     "@wordpress/scripts": "^31.8.0",
     "semantic-release": "^24.0.0"
+  },
+  "peerDependencies": {
+    "@wordpress/element": ">=6.0.0"
   },
   "wp-scripts-config": {
     "webpack": "./webpack.config.js"

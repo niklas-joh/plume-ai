@@ -77,12 +77,19 @@ jobs:
           EXISTING_TAGS=$(git tag -l 'feat/*' 'feat!/*' 'fix/*' 'hotfix/*' 2>/dev/null \
             | head -20 | tr '\n' ' ' || true)
 
+          EXISTING_PR_LABELS=$(gh pr view "$PR_NUMBER" \
+            --repo "${{ github.repository }}" \
+            --json labels \
+            --jq '[.labels[].name | select(test("^(feat[!]?|fix|hotfix): "))] | join(" ")' \
+            2>/dev/null || echo "")
+
           {
             echo "commits<<EOF_COMMITS"
             echo "$COMMITS"
             echo "EOF_COMMITS"
           } >> "$GITHUB_OUTPUT"
           echo "existing_tags=$EXISTING_TAGS" >> "$GITHUB_OUTPUT"
+          echo "existing_pr_labels=$EXISTING_PR_LABELS" >> "$GITHUB_OUTPUT"
 
       # ── Step 2: Install Claude Code CLI ──────────────────────────────────
 
@@ -99,8 +106,9 @@ jobs:
           PR_BRANCH:      ${{ github.event.pull_request.head.ref }}
           PR_BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
           PR_NUMBER:      ${{ github.event.pull_request.number }}
-          COMMITS:        ${{ steps.context.outputs.commits }}
-          EXISTING_TAGS:  ${{ steps.context.outputs.existing_tags }}
+          COMMITS:           ${{ steps.context.outputs.commits }}
+          EXISTING_TAGS:     ${{ steps.context.outputs.existing_tags }}
+          EXISTING_PR_LABELS: ${{ steps.context.outputs.existing_pr_labels }}
         run: |
           set -euo pipefail
 
@@ -116,12 +124,13 @@ jobs:
           # newlines) can't break variable expansion or corrupt the prompt string.
           PROMPT=$(python3 - <<'PYEOF'
           import os
-          tags_raw = os.environ.get('EXISTING_TAGS', '').strip()
-          tags     = [t for t in tags_raw.split() if t]
-          commits  = os.environ.get('COMMITS', '').strip()
-          base     = os.environ.get('PR_BASE_BRANCH', 'develop')
-          title    = os.environ.get('PR_TITLE', '')
-          branch   = os.environ.get('PR_BRANCH', '')
+          tags_raw  = os.environ.get('EXISTING_TAGS', '').strip()
+          tags      = [t for t in tags_raw.split() if t]
+          pr_labels = os.environ.get('EXISTING_PR_LABELS', '').strip()
+          commits   = os.environ.get('COMMITS', '').strip()
+          base      = os.environ.get('PR_BASE_BRANCH', 'develop')
+          title     = os.environ.get('PR_TITLE', '')
+          branch    = os.environ.get('PR_BRANCH', '')
           print(
               "You are a semantic tagger for a WordPress plugin repository.\n\n"
               "Given this PR, choose the best semantic tag slug.\n\n"
@@ -129,7 +138,10 @@ jobs:
               f"PR branch: {branch}\n"
               f"PR base branch: {base}\n"
               f"Recent commits:\n{commits or '(no commits yet)'}\n\n"
-              "Existing semantic tags (reuse if this PR clearly extends one of them):\n"
+              "Semantic labels ALREADY ON THIS PR (highest priority — you MUST reuse this\n"
+              "slug unless it is clearly wrong for the PR content):\n"
+              + (pr_labels if pr_labels else "(none)") + "\n\n"
+              "Existing semantic tags across all PRs (reuse if this PR clearly extends one):\n"
               + ('\n'.join(tags) if tags else '(none yet)') + "\n\n"
               "Rules:\n"
               "- Prefix options:\n"
@@ -141,6 +153,8 @@ jobs:
               '  If the PR title or commits contain "!" or "BREAKING CHANGE", use feat!/\n'
               "- Slug: lowercase, hyphens only, max 4 words\n"
               "  Examples: feat/ai-chat, fix/api-key-validation, feat!/remove-legacy-api\n"
+              "- If a semantic label is already on this PR, you MUST reuse its slug unless\n"
+              "  the PR content makes that slug clearly incorrect\n"
               "- Reuse an existing tag slug if this PR clearly extends that work\n"
               "- Otherwise create a new descriptive slug\n"
               '- Respond with ONLY valid JSON, no markdown fences:\n'
@@ -290,6 +304,23 @@ jobs:
           PR_NUMBER:  ${{ github.event.pull_request.number }}
           LABEL_NAME: ${{ steps.label.outputs.name }}
         run: |
+          # Remove any stale semantic labels before applying the new one so that
+          # labels never accumulate across reruns. Idempotent: if the label is
+          # unchanged the loop body is skipped entirely.
+          EXISTING_SEMANTIC=$(gh pr view "$PR_NUMBER" \
+            --repo "${{ github.repository }}" \
+            --json labels \
+            --jq '[.labels[].name | select(test("^(feat[!]?|fix|hotfix): "))] | .[]' \
+            2>/dev/null || echo "")
+
+          while IFS= read -r OLD_LABEL; do
+            if [ -n "$OLD_LABEL" ] && [ "$OLD_LABEL" != "$LABEL_NAME" ]; then
+              gh pr edit "$PR_NUMBER" \
+                --remove-label "$OLD_LABEL" \
+                --repo "${{ github.repository }}" 2>/dev/null || true
+            fi
+          done <<< "$EXISTING_SEMANTIC"
+
           gh pr edit "$PR_NUMBER" \
             --add-label "$LABEL_NAME" \
             --repo "${{ github.repository }}"

@@ -32,6 +32,8 @@ jobs:
     name: Build release branch
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
@@ -41,7 +43,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install JS dependencies
@@ -161,6 +163,7 @@ jobs:
           git checkout -b release/staging origin/main
 
       - name: Cherry-pick release-ready merge commits
+        id: cherry_pick
         env:
           SHAS: ${{ steps.collect.outputs.shas }}
         run: |
@@ -168,12 +171,74 @@ jobs:
           for SHA in $SHAS; do
             echo "Cherry-picking $SHA"
             # -m 1 uses the first parent (main-line) diff for merge commits.
-            git cherry-pick -m 1 "$SHA" || {
-              echo "::error::Cherry-pick of $SHA failed — conflicts must be resolved manually."
-              git cherry-pick --abort 2>/dev/null || true
-              exit 1
-            }
+            if git cherry-pick -m 1 "$SHA"; then
+              echo "  Successfully cherry-picked $SHA"
+            else
+              echo "  Conflict detected for $SHA — handing off to Claude."
+
+              # Collect the SHAs that come AFTER the conflicting one.
+              FOUND=false
+              REMAINING=""
+              for S in $SHAS; do
+                if [ "$FOUND" = true ]; then
+                  REMAINING="$REMAINING$S "
+                fi
+                [ "$S" = "$SHA" ] && FOUND=true
+              done
+              printf '%s\n' $REMAINING > /tmp/remaining-shas.txt
+
+              echo "conflict=true" >> "$GITHUB_OUTPUT"
+              exit 0  # Leave conflicted state in place; Claude handles it next.
+            fi
           done
+          echo "conflict=false" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve cherry-pick conflicts with Claude
+        if: steps.cherry_pick.outputs.conflict == 'true'
+        uses: anthropics/claude-code-action@aee99972d0cfa0c47a4563e6fca42d7a5a0cb9bd  # v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--model claude-sonnet-4-6'
+          prompt: |
+            During the Build Release Branch workflow, a `git cherry-pick -m 1` has left
+            the repository in a conflicted state.
+
+            Your task is to resolve all conflicts and complete every remaining cherry-pick:
+
+            1. Run `git status` to confirm the current state.
+            2. Run `git diff --name-only --diff-filter=U` to list conflicted files.
+            3. For each conflicted file:
+               - Read the full file content.
+               - Resolve all conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`).
+                 Keep the best combined content; for semantic conflicts prefer the
+                 cherry-picked (incoming / THEIRS) changes, as those are the
+                 intentional new changes being applied.
+               - Write the resolved content back to the file.
+               - Run `git add <file>`.
+            4. Run `git cherry-pick --continue --no-edit` to complete the current cherry-pick.
+            5. Read `/tmp/remaining-shas.txt`. For each SHA listed (one per line, file may be empty):
+               a. Run `git cherry-pick -m 1 <SHA>`.
+               b. If it succeeds, continue to the next SHA.
+               c. If it fails with conflicts, repeat steps 2–4 for those conflicts,
+                  then run `git cherry-pick --continue --no-edit`.
+            6. When ALL cherry-picks are done successfully, write the single word
+               `completed` to `/tmp/cherry-pick-status.txt`.
+            7. If you cannot resolve a conflict (binary file, irreconcilable semantic
+               conflict), write `failed: <brief reason>` to `/tmp/cherry-pick-status.txt`
+               and stop immediately — do not modify further files.
+
+            Do not create commits manually — `git cherry-pick --continue` handles that.
+            Do not modify any files other than the conflicted source files.
+
+      - name: Check conflict resolution status
+        if: steps.cherry_pick.outputs.conflict == 'true'
+        run: |
+          STATUS=$(cat /tmp/cherry-pick-status.txt 2>/dev/null || echo "failed: Claude did not write a status")
+          echo "Resolution status: $STATUS"
+          if [ "$STATUS" != "completed" ]; then
+            echo "::error::Cherry-pick conflict resolution failed — $STATUS"
+            exit 1
+          fi
 
       # ── Step 4: Determine version with semantic-release (dry-run) ─────────
 

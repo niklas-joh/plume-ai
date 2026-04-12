@@ -12,7 +12,7 @@ fi
 base=$(echo "$input" | jq -r '.tool_input.base // empty')
 head=$(echo "$input" | jq -r '.tool_input.head // empty')
 
-if [[ "$base" == "main" && ! "$head" =~ ^release/ ]]; then
+if [[ "$base" == "main" && ! "$head" =~ ^release/ && ! "$head" =~ ^hotfix/ ]]; then
   echo "BLOCKED: PRs for feature/fix/chore branches must target 'develop', not 'main'." >&2
   echo "Change the 'base' parameter to 'develop' before creating this PR." >&2
   echo "Only 'release/vX.Y.Z' branches (and emergency hotfixes) target 'main' directly." >&2

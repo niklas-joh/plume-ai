@@ -1,10 +1,61 @@
 {
-  "branches": [
-    "main",
-    { "name": "release/**" }
-  ],
+  "branches": ["main"],
   "plugins": [
-    "@semantic-release/commit-analyzer",
-    "@semantic-release/release-notes-generator"
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "releaseRules": [
+          {"breaking": true, "release": "major"},
+          {"type": "feat", "release": "minor"},
+          {"type": "fix", "release": "patch"},
+          {"type": "perf", "release": "patch"},
+          {"type": "refactor", "release": false},
+          {"type": "chore", "release": false},
+          {"type": "docs", "release": false},
+          {"type": "test", "release": false},
+          {"type": "style", "release": false},
+          {"type": "build", "release": false},
+          {"type": "ci", "release": false}
+        ]
+      }
+    ],
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/changelog",
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "sed -i 's/ \\* Version:.*/ * Version:           ${nextRelease.version}/' wp-ai-mind.php && sed -i \"s/define( 'WP_AI_MIND_VERSION', '[^']*' )/define( 'WP_AI_MIND_VERSION', '${nextRelease.version}' )/\" wp-ai-mind.php && sed -i 's/^Stable tag:.*/Stable tag: ${nextRelease.version}/' readme.txt && mkdir -p dist && REPO_DIR=$(pwd) && PLUGIN_TMP=$(mktemp -d) && mkdir -p \"$PLUGIN_TMP/wp-ai-mind\" && cp wp-ai-mind.php uninstall.php readme.txt \"$PLUGIN_TMP/wp-ai-mind/\" && cp -r assets includes languages vendor \"$PLUGIN_TMP/wp-ai-mind/\" && (cd \"$PLUGIN_TMP\" && zip -r \"$REPO_DIR/dist/wp-ai-mind-${nextRelease.version}.zip\" wp-ai-mind/) && rm -rf \"$PLUGIN_TMP\""
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": false
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "CHANGELOG.md",
+          "package.json",
+          "package-lock.json",
+          "wp-ai-mind.php",
+          "readme.txt"
+        ],
+        "message": "chore(release): ${nextRelease.version} [skip ci]"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "dist/wp-ai-mind-*.zip",
+            "label": "wp-ai-mind-${nextRelease.version}.zip"
+          }
+        ]
+      }
+    ]
   ]
 }

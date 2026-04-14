@@ -49,10 +49,12 @@ class ProviderSettingsTest extends TestCase {
         $settings->set_api_key( 'claude', 'sk-ant-from-db' );
 
         putenv( 'CLAUDE_API_KEY=sk-ant-from-env' );
-        $settings2 = new ProviderSettings();
-        $this->assertSame( 'sk-ant-from-env', $settings2->get_api_key( 'claude' ) );
-
-        putenv( 'CLAUDE_API_KEY' ); // clean up.
+        try {
+            $settings2 = new ProviderSettings();
+            $this->assertSame( 'sk-ant-from-env', $settings2->get_api_key( 'claude' ) );
+        } finally {
+            putenv( 'CLAUDE_API_KEY' ); // clean up even if assertion fails.
+        }
     }
 
     public function test_falls_back_to_db_when_env_var_not_set(): void {

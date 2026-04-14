@@ -34,8 +34,11 @@ the compiled `assets/` whenever `src/` files are committed. No manual build step
 
 ### Pull Request Rules
 
-- Feature/fix/chore PRs target `develop`. Only hotfixes and `release/vX.Y.Z` branches target `main` directly (see "PR targets" section below).
-- PR title must follow Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`.
+- **All PRs target `main` directly.** There is no `develop` branch.
+- PR title **must** follow Conventional Commits — CI enforces this via `commitlint`:
+  `feat(scope):`, `fix(scope):`, `chore(scope):`, `docs(scope):`, `refactor(scope):`, `test(scope):`
+  Scope is strongly recommended (CI warns if absent). A PR title that is not a valid
+  conventional commit will cause the "Commit convention (PR title)" check to fail.
 - Include a short summary and a test plan in the PR body.
 - Request review before merging — do not self-merge without explicit user instruction.
 
@@ -98,50 +101,37 @@ used by `.github/workflows/auto-fix-review-issue.yml` only needs to be
 
 ## Release Process
 
-See `RELEASING.md` for the full release checklist.
-Agents must never trigger a release without explicit user instruction.
-
----
-
-## Feature-Grouping & Release System
-
-The repo uses an automated feature-grouping system. Understand it before touching branches, tags, or labels.
+Releases are fully automated via `semantic-release`. Agents must never trigger a release
+without explicit user instruction.
 
 ### How it works
 
-1. Feature PRs target `develop` and are merged as **merge commits** (not squash).
-2. On every push to `develop`, `tag-feature-merge.yml` automatically creates an annotated tag `merged/<branch-name>` at each merge commit. The tag annotation contains the PR number: `PR #NN: branch-name`.
-3. The `release-ready` label on a PR signals "include this feature in the next release."
-4. Running the `Build Release Branch` workflow (`workflow_dispatch`) collects all `merged/*` tags whose PR has `release-ready`, cherry-picks them onto a new `release/vX.Y.Z` branch, bumps versions, and opens a PR to `main`.
-5. When that PR merges, `tag-release-merge.yml` creates the `vX.Y.Z` tag → `release.yml` builds the zip.
+1. All PRs target `main` directly and are merged as **squash merges**.
+   The squash commit message = the PR title, which must be a valid Conventional Commit.
+2. Every push to `main` triggers `release.yml`, which runs `npx semantic-release`.
+3. `semantic-release` reads commit messages since the last `vX.Y.Z` tag to determine
+   whether a release is warranted and what version bump to apply:
+   - `feat(scope):` → minor bump
+   - `fix(scope):` / `perf(scope):` → patch bump
+   - Breaking change (`!` or `BREAKING CHANGE:`) → major bump
+   - `chore:`, `docs:`, `test:`, `refactor:`, `style:`, `build:`, `ci:` → **no release**
+4. If a release is warranted, `semantic-release` automatically:
+   - Updates the version in `wp-ai-mind.php` (header + constant), `readme.txt`, `package.json`
+   - Writes `CHANGELOG.md`
+   - Commits those changes back with `[skip ci]` to prevent an infinite loop
+   - Creates a `vX.Y.Z` tag
+   - Builds a plugin zip into `dist/`
+   - Publishes a GitHub Release with the zip attached
 
-### Agent rules for this system
+### Agent rules
 
-- **NEVER apply `release-ready` to a PR automatically.** It is a deliberate human release decision. Only apply it when explicitly instructed by the user.
-- **NEVER trigger `build-release-branch.yml`** (or any release workflow) without explicit user instruction.
-- **NEVER create, move, or delete `merged/*` tags.** They are managed exclusively by `tag-feature-merge.yml`.
-- **NEVER push `v*` tags directly.** Tags are created by `tag-release-merge.yml` on PR merge.
-- PRs from agents targeting `develop` should follow the same Conventional Commits convention as all other PRs — this is critical for `semantic-release` to correctly derive the version bump.
-
-### Querying release state (for agents)
-
-When the user asks "what features are queued for release?" or similar:
-
-```bash
-# List all merged/* tags
-git tag -l 'merged/*' --sort=version:refname
-
-# For each tag, check if its PR has release-ready label
-# (extract PR number from tag annotation first)
-git for-each-ref 'refs/tags/merged/*' --format='%(refname:short) %(contents)'
-
-gh pr view <PR_NUMBER> --repo niklas-joh/wp-ai-mind \
-  --json number,title,labels,state \
-  --jq '{number,title,labels:[.labels[].name],state}'
-```
+- **NEVER bump versions manually** (no `sed`, no `npm version`, no hand-editing version strings).
+  `semantic-release` owns all version state.
+- **NEVER push `v*` tags directly.** Tags are created by `semantic-release` on merge to `main`.
+- **NEVER trigger `release.yml`** or any release workflow without explicit user instruction.
+- The `[skip ci]` commit that `semantic-release` pushes back must never be amended or force-pushed.
 
 ### PR targets
 
-- Feature work: PR targets `develop`
-- Hotfixes that must bypass `develop`: PR targets `main` directly (document in `RELEASING.md` emergency section)
-- Release branches (`release/vX.Y.Z`): PR targets `main` (created automatically by `build-release-branch.yml`)
+- All work (features, fixes, chores): PR targets `main`
+- There is no `develop` branch

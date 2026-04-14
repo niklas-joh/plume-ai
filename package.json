@@ -19,6 +19,7 @@
     "@wordpress/element": ">=6.0.0"
   },
   "devDependencies": {
+    "@wordpress/element": ">=6.0.0",
     "@commitlint/cli": "^19.0.0",
     "@commitlint/config-conventional": "^19.0.0",
     "@semantic-release/changelog": "^6.0.0",

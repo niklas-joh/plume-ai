@@ -137,7 +137,11 @@ class ChatRestController {
 			$request->get_param( 'title' ),
 			! empty( $post_id_param ) ? (int) $post_id_param : null
 		);
-		return rest_ensure_response( [ 'id' => $id ] );
+		$conversation = $store->get_conversation( $id );
+		if ( null === $conversation ) {
+			return new \WP_REST_Response( new \WP_Error( 'create_failed', __( 'Failed to create conversation.', 'wp-ai-mind' ) ), 500 );
+		}
+		return rest_ensure_response( $conversation );
 	}
 
 	public function get_messages( \WP_REST_Request $request ): \WP_REST_Response {

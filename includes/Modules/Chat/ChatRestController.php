@@ -153,11 +153,13 @@ class ChatRestController {
 		if ( null === $conversation ) {
 			return new \WP_REST_Response( [ 'message' => __( 'Failed to retrieve conversation.', 'wp-ai-mind' ) ], 500 );
 		}
-		return rest_ensure_response( [
-			'id'         => (int) $conversation['id'],
-			'title'      => $conversation['title'],
-			'updated_at' => $conversation['updated_at'],
-		] );
+		return rest_ensure_response(
+			[
+				'id'         => (int) $conversation['id'],
+				'title'      => $conversation['title'],
+				'updated_at' => $conversation['updated_at'],
+			]
+		);
 	}
 
 	public function get_messages( \WP_REST_Request $request ): \WP_REST_Response {

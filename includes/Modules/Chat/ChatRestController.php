@@ -133,14 +133,14 @@ class ChatRestController {
 	public function create_conversation( \WP_REST_Request $request ): \WP_REST_Response {
 		$store         = $this->make_store();
 		$post_id_param = $request->get_param( 'post_id' );
-		$id            = $store->create(
+		$id = $store->create(
 			$request->get_param( 'title' ),
 			! empty( $post_id_param ) ? (int) $post_id_param : null
 		);
-		$conversation = $store->get_conversation( $id );
-		if ( null === $conversation ) {
+		if ( 0 === $id ) {
 			return new \WP_REST_Response( [ 'message' => __( 'Failed to create conversation.', 'wp-ai-mind' ) ], 500 );
 		}
+		$conversation = $store->get_conversation( $id );
 		return rest_ensure_response( $conversation );
 	}
 

@@ -130,7 +130,7 @@ class ChatRestController {
 		return rest_ensure_response( $store->list_for_user( get_current_user_id() ) );
 	}
 
-	public function create_conversation( \WP_REST_Request $request ): \WP_REST_Response {
+	public function create_conversation( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		$store         = $this->make_store();
 		$post_id_param = $request->get_param( 'post_id' );
 		$id            = $store->create(
@@ -139,7 +139,7 @@ class ChatRestController {
 		);
 		$conversation = $store->get_conversation( $id );
 		if ( null === $conversation ) {
-			return new \WP_REST_Response( new \WP_Error( 'create_failed', __( 'Failed to create conversation.', 'wp-ai-mind' ) ), 500 );
+			return new \WP_Error( 'create_failed', __( 'Failed to create conversation.', 'wp-ai-mind' ), [ 'status' => 500 ] );
 		}
 		return rest_ensure_response( $conversation );
 	}
@@ -303,16 +303,16 @@ class ChatRestController {
 		}
 	}
 
-	public function delete_conversation( \WP_REST_Request $request ): \WP_REST_Response {
+	public function delete_conversation( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		$store   = $this->make_store();
 		$conv_id = (int) $request->get_param( 'id' );
 		$conv    = $store->get_conversation( $conv_id );
 
 		if ( ! $conv ) {
-			return new \WP_REST_Response( [ 'message' => 'Not found.' ], 404 );
+			return new \WP_Error( 'not_found', __( 'Not found.', 'wp-ai-mind' ), [ 'status' => 404 ] );
 		}
 		if ( get_current_user_id() !== (int) $conv['user_id'] && ! current_user_can( 'manage_options' ) ) {
-			return new \WP_REST_Response( [ 'message' => 'You cannot delete this conversation.' ], 403 );
+			return new \WP_Error( 'forbidden', __( 'You cannot delete this conversation.', 'wp-ai-mind' ), [ 'status' => 403 ] );
 		}
 
 		$store->delete( $conv_id );

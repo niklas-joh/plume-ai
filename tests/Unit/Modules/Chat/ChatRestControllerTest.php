@@ -134,7 +134,7 @@ class ChatRestControllerTest extends TestCase {
 
     // ── create_conversation ───────────────────────────────────────────────────
 
-    public function test_create_conversation_returns_200_with_conversation_data(): void {
+    public function test_create_conversation_returns_201_with_conversation_data(): void {
         $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
         $store_mock->method( 'create' )->willReturn( 7 );
         $store_mock->method( 'get_conversation' )->with( 7 )->willReturn(
@@ -162,7 +162,7 @@ class ChatRestControllerTest extends TestCase {
         $response = $controller->create_conversation( $request );
 
         $this->assertInstanceOf( \WP_REST_Response::class, $response );
-        $this->assertSame( 200, $response->get_status() );
+        $this->assertSame( 201, $response->get_status() );
         $this->assertArrayHasKey( 'id', $response->data );
         $this->assertArrayHasKey( 'title', $response->data );
         $this->assertArrayHasKey( 'updated_at', $response->data );

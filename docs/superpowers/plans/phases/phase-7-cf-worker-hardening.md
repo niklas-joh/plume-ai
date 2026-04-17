@@ -4,9 +4,9 @@
 
 **Goal:** Harden the Cloudflare Worker with brute-force rate limiting, real SSE streaming, multi-provider support (OpenAI + Gemini), structured error logging, and a staging environment.
 
-**Architecture:** New `src/ratelimit.ts` module for KV-backed IP rate limiting. Chat handler refactored to use `TransformStream` for real streaming. Provider routing added via a `provider` field in the chat request body. Staging environment configured in `wrangler.toml`.
+**Architecture:** New `src/ratelimit.ts` module for Durable Object-backed IP rate limiting (strongly consistent, race-condition-free). New `src/rate-limiter-do.ts` defines the `RateLimiterDO` class. Chat handler refactored to use `TransformStream` for real streaming. Provider routing added via a `provider` field in the chat request body. Staging environment configured in `wrangler.toml`.
 
-**Tech Stack:** Cloudflare Workers (TypeScript), Cloudflare KV, Wrangler CLI, Vitest.
+**Tech Stack:** Cloudflare Workers (TypeScript), Cloudflare Durable Objects, Cloudflare KV (usage tracking only), Wrangler CLI, Vitest.
 
 **Depends on:** Phase 3 complete (Worker chat endpoint live).
 
@@ -18,7 +18,8 @@
 
 | File | Purpose |
 |------|---------|
-| `wp-ai-mind-proxy/src/ratelimit.ts` | `checkLoginRateLimit(env, clientIP)` returns boolean; uses KV with 15-min TTL |
+| `wp-ai-mind-proxy/src/rate-limiter-do.ts` | `RateLimiterDO` Durable Object class — single-threaded counter with 15-min sliding window |
+| `wp-ai-mind-proxy/src/ratelimit.ts` | `checkLoginRateLimit(env, clientIP)` returns boolean; calls the `RateLimiterDO` stub (strongly consistent) |
 | `wp-ai-mind-proxy/src/providers/anthropic.ts` | Anthropic-specific request builder + response normaliser |
 | `wp-ai-mind-proxy/src/providers/openai.ts` | OpenAI-specific request builder + response normaliser |
 | `wp-ai-mind-proxy/src/providers/gemini.ts` | Gemini-specific request builder + response normaliser |
@@ -32,7 +33,7 @@
 |------|--------|
 | `wp-ai-mind-proxy/src/auth.ts` | `handleToken` + `handleRegister`: add rate limit check at entry |
 | `wp-ai-mind-proxy/src/chat.ts` | Refactor to use provider adapters + real SSE streaming via TransformStream |
-| `wp-ai-mind-proxy/src/types.ts` | Add `OPENAI_API_KEY` and `GEMINI_API_KEY` to `Env` interface |
+| `wp-ai-mind-proxy/src/types.ts` | Add `RATE_LIMITER` DO binding, `OPENAI_API_KEY`, and `GEMINI_API_KEY` to `Env` interface |
 | `wp-ai-mind-proxy/wrangler.toml` | Add `[env.staging]` block |
 
 ---
@@ -41,48 +42,66 @@
 
 ### Task 1: Rate limiter — tests first
 
+> **Why Durable Objects?** Cloudflare KV has eventual consistency: concurrent requests hitting
+> different edge nodes can each read a stale counter and all pass the `>= 10` check before any
+> increment propagates, breaking the security guarantee. Durable Objects are single-threaded and
+> strongly consistent — every `fetch()` to a given stub is serialised, making the counter
+> race-condition-free.
+
 - [ ] Create `wp-ai-mind-proxy/test/ratelimit.test.ts` with the following content:
 
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
 import { checkLoginRateLimit } from '../src/ratelimit';
 
-// Mock Env
-function makeEnv(stored: string | null): any {
+// Mock a Durable Object stub that returns a given { allowed } response.
+function makeStub(allowed: boolean) {
     return {
-        USAGE_KV: {
-            get: vi.fn().mockResolvedValue(stored),
-            put: vi.fn().mockResolvedValue(undefined),
+        fetch: vi.fn().mockResolvedValue(
+            new Response(JSON.stringify({ allowed }), {
+                status:  200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        ),
+    };
+}
+
+function makeEnv(allowed: boolean): { RATE_LIMITER: any; _stub: ReturnType<typeof makeStub> } {
+    const stub = makeStub(allowed);
+    return {
+        RATE_LIMITER: {
+            idFromName: vi.fn().mockReturnValue('mock-do-id'),
+            get:        vi.fn().mockReturnValue(stub),
         },
+        _stub: stub,
     };
 }
 
 describe('checkLoginRateLimit', () => {
-    it('allows first attempt (no key in KV)', async () => {
-        const env = makeEnv(null);
-        const result = await checkLoginRateLimit(env, '1.2.3.4');
+    it('allows attempt when DO returns { allowed: true }', async () => {
+        const env    = makeEnv(true);
+        const result = await checkLoginRateLimit(env as any, '1.2.3.4');
         expect(result).toBe(true);
-        expect(env.USAGE_KV.put).toHaveBeenCalledWith(
-            'ratelimit:login:1.2.3.4', '1', { expirationTtl: 900 }
-        );
+        expect(env.RATE_LIMITER.idFromName).toHaveBeenCalledWith('login:1.2.3.4');
+        expect(env.RATE_LIMITER.get).toHaveBeenCalledWith('mock-do-id');
+        expect(env._stub.fetch).toHaveBeenCalledOnce();
     });
 
-    it('allows attempt 9 (below limit)', async () => {
-        const env = makeEnv('9');
-        const result = await checkLoginRateLimit(env, '1.2.3.4');
-        expect(result).toBe(true);
-    });
-
-    it('blocks attempt 10 (at limit)', async () => {
-        const env = makeEnv('10');
-        const result = await checkLoginRateLimit(env, '1.2.3.4');
+    it('blocks attempt when DO returns { allowed: false }', async () => {
+        const env    = makeEnv(false);
+        const result = await checkLoginRateLimit(env as any, '1.2.3.4');
         expect(result).toBe(false);
-        expect(env.USAGE_KV.put).not.toHaveBeenCalled();
     });
 
-    it('blocks attempts beyond limit', async () => {
-        const env = makeEnv('15');
-        const result = await checkLoginRateLimit(env, '1.2.3.4');
+    it('uses a per-IP DO instance (idFromName keyed on IP)', async () => {
+        const env = makeEnv(true);
+        await checkLoginRateLimit(env as any, '5.6.7.8');
+        expect(env.RATE_LIMITER.idFromName).toHaveBeenCalledWith('login:5.6.7.8');
+    });
+
+    it('returns false for unknown IP when DO blocks', async () => {
+        const env    = makeEnv(false);
+        const result = await checkLoginRateLimit(env as any, 'unknown');
         expect(result).toBe(false);
     });
 });
@@ -100,20 +119,63 @@ Expected output: `FAIL` — cannot find module `../src/ratelimit`
 
 ### Task 2: Rate limiter — implementation
 
+- [ ] Create `wp-ai-mind-proxy/src/rate-limiter-do.ts` (the Durable Object class):
+
+```typescript
+/**
+ * RateLimiterDO — Cloudflare Durable Object for strongly-consistent IP rate limiting.
+ *
+ * Each IP gets its own DO instance (keyed via `idFromName`). Because a DO is
+ * single-threaded, every fetch() call is serialised — there is no read-modify-write
+ * race condition that would exist with a KV-backed counter.
+ *
+ * State stored in DO storage:
+ *   count  — number of attempts in the current window
+ *   expiry — window expiry timestamp (ms since epoch)
+ */
+export class RateLimiterDO {
+    private readonly state: DurableObjectState;
+
+    constructor(state: DurableObjectState) {
+        this.state = state;
+    }
+
+    async fetch(_req: Request): Promise<Response> {
+        const MAX_ATTEMPTS   = 10;
+        const WINDOW_MS      = 900_000; // 15 minutes
+
+        const now    = Date.now();
+        let count:  number = (await this.state.storage.get<number>('count'))  ?? 0;
+        let expiry: number = (await this.state.storage.get<number>('expiry')) ?? 0;
+
+        // Reset counter when the window has elapsed.
+        if (now > expiry) {
+            count  = 0;
+            expiry = now + WINDOW_MS;
+            await this.state.storage.put('expiry', expiry);
+        }
+
+        if (count >= MAX_ATTEMPTS) {
+            return Response.json({ allowed: false });
+        }
+
+        await this.state.storage.put('count', count + 1);
+        return Response.json({ allowed: true });
+    }
+}
+```
+
 - [ ] Create `wp-ai-mind-proxy/src/ratelimit.ts`:
 
 ```typescript
 import type { Env } from './types';
 
-const MAX_ATTEMPTS   = 10;
-const WINDOW_SECONDS = 900; // 15 minutes
-
 export async function checkLoginRateLimit(env: Env, clientIP: string): Promise<boolean> {
-    const key     = `ratelimit:login:${clientIP}`;
-    const current = parseInt((await env.USAGE_KV.get(key)) ?? '0', 10);
-    if (current >= MAX_ATTEMPTS) return false;
-    await env.USAGE_KV.put(key, String(current + 1), { expirationTtl: WINDOW_SECONDS });
-    return true;
+    const id   = env.RATE_LIMITER.idFromName(`login:${clientIP}`);
+    const stub = env.RATE_LIMITER.get(id);
+    const resp = await stub.fetch('https://do/check');
+    const { allowed } = await resp.json<{ allowed: boolean }>();
+    return allowed;
 }
 ```
 
@@ -334,9 +396,10 @@ Expected: no errors
 
 ### Task 8: Update Env types + wrangler.toml for new provider secrets
 
-- [ ] Open `wp-ai-mind-proxy/src/types.ts` and add the two new API key fields to the `Env` interface:
+- [ ] Open `wp-ai-mind-proxy/src/types.ts` and add the Durable Object binding and the two new API key fields to the `Env` interface:
 
 ```typescript
+RATE_LIMITER:  DurableObjectNamespace;
 OPENAI_API_KEY: string;
 GEMINI_API_KEY: string;
 ```
@@ -346,12 +409,32 @@ The complete `Env` interface should now include (in addition to existing fields)
 ```typescript
 export interface Env {
     // ... existing fields ...
+    RATE_LIMITER:   DurableObjectNamespace;
     OPENAI_API_KEY: string;
     GEMINI_API_KEY: string;
 }
 ```
 
-- [ ] Open `wp-ai-mind-proxy/wrangler.toml` and append the staging environment block at the end of the file:
+- [ ] Open `wp-ai-mind-proxy/src/index.ts` (or wherever the Worker entry point exports bindings) and export the `RateLimiterDO` class so the runtime can instantiate it:
+
+```typescript
+export { RateLimiterDO } from './rate-limiter-do';
+```
+
+- [ ] Open `wp-ai-mind-proxy/wrangler.toml` and:
+  1. Add the Durable Object class declaration and binding to the **production** section (before any `[env.*]` blocks):
+
+```toml
+[[durable_objects.bindings]]
+name       = "RATE_LIMITER"
+class_name = "RateLimiterDO"
+
+[[migrations]]
+tag               = "v1"
+new_classes       = ["RateLimiterDO"]
+```
+
+  2. Append the staging environment block at the end of the file:
 
 ```toml
 [env.staging]
@@ -370,6 +453,10 @@ migrations_dir = "migrations"
 binding    = "USAGE_KV"
 id         = "<set after: wrangler kv:namespace create USAGE_KV_STAGING>"
 preview_id = "<set after: wrangler kv:namespace create USAGE_KV_STAGING --preview>"
+
+[[env.staging.durable_objects.bindings]]
+name       = "RATE_LIMITER"
+class_name = "RateLimiterDO"
 ```
 
 - [ ] Register the new secrets in Wrangler for both production and staging:
@@ -703,8 +790,8 @@ curl -X POST https://wp-ai-mind-proxy.YOUR_SUBDOMAIN.workers.dev/v1/chat \
 
 ## Acceptance Criteria
 
-- [ ] `POST /v1/auth/token` returns `429` after 10 attempts from the same IP within 15 minutes
-- [ ] `POST /v1/auth/register` is also rate-limited with the same 15-minute window
+- [ ] `POST /v1/auth/token` returns `429` after 10 attempts from the same IP within 15 minutes (enforced by `RateLimiterDO` — strongly consistent, no race condition)
+- [ ] `POST /v1/auth/register` is also rate-limited with the same 15-minute window via `RateLimiterDO`
 - [ ] Streaming: `POST /v1/chat` with `stream: true` returns `Content-Type: text/event-stream` with tokens arriving incrementally (verified via `wrangler dev` + curl)
 - [ ] OpenAI requests proxied correctly — model `gpt-4o-mini` routes via `openaiAdapter`
 - [ ] Gemini requests proxied correctly — model `gemini-1.5-flash` routes via `geminiAdapter`

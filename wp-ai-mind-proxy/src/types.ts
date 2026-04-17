@@ -5,6 +5,8 @@ export interface Env {
   ANTHROPIC_API_KEY: string;
   LEMONSQUEEZY_WEBHOOK_SECRET: string;
   ENVIRONMENT?: string;
+  /** Comma-separated list of allowed CORS origins, e.g. "https://example.com,https://www.example.com" */
+  ALLOWED_ORIGINS?: string;
 }
 
 /** All valid plan values. Must stay in sync with TIER_CONFIG keys in tier-config.ts. */

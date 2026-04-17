@@ -14,32 +14,66 @@ export default {
 
     // CORS preflight
     if (method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders(request) });
+      return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
 
     // Public routes
-    if (method === 'POST' && path === '/v1/auth/register')      return handleRegister(request, env);
-    if (method === 'POST' && path === '/v1/auth/token')         return handleToken(request, env);
-    if (method === 'POST' && path === '/v1/auth/refresh')       return handleRefresh(request, env);
+    if (method === 'POST' && path === '/v1/auth/register')      return addCors(await handleRegister(request, env), request, env);
+    if (method === 'POST' && path === '/v1/auth/token')         return addCors(await handleToken(request, env), request, env);
+    if (method === 'POST' && path === '/v1/auth/refresh')       return addCors(await handleRefresh(request, env), request, env);
     if (method === 'POST' && path === '/webhooks/lemonsqueezy') return handleLemonSqueezy(request, env);
 
     // Authenticated routes
     const authResult = await requireAuth(request, env);
-    if (authResult instanceof Response) return authResult;
+    if (authResult instanceof Response) return addCors(authResult, request, env);
     const { user } = authResult;
 
-    if (method === 'GET'  && path === '/v1/entitlement') return handleEntitlement(request, env, user);
-    if (method === 'POST' && path === '/v1/chat')        return handleChat(request, env, user);
+    if (method === 'GET'  && path === '/v1/entitlement') return addCors(await handleEntitlement(request, env, user), request, env);
+    if (method === 'POST' && path === '/v1/chat')        return addCors(await handleChat(request, env, user), request, env);
 
-    return json({ error: 'Not found' }, 404);
+    return addCors(json({ error: 'Not found' }, 404), request, env);
   },
 };
 
-function corsHeaders(req: Request): HeadersInit {
-  return {
-    'Access-Control-Allow-Origin':  req.headers.get('Origin') ?? '*',
+function allowedOrigin(req: Request, env: Env): string | null {
+  const origin  = req.headers.get('Origin');
+  if (!origin) return null;
+
+  const allowlist = (env.ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
+
+  return allowlist.includes(origin) ? origin : null;
+}
+
+function corsHeaders(req: Request, env: Env): HeadersInit {
+  const origin = allowedOrigin(req, env);
+  const headers: Record<string, string> = {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
     'Access-Control-Max-Age':       '86400',
   };
+  if (origin) {
+    headers['Access-Control-Allow-Origin'] = origin;
+    headers['Vary'] = 'Origin';
+  }
+  return headers;
+}
+
+function addCors(response: Response, req: Request, env: Env): Response {
+  const origin = allowedOrigin(req, env);
+  if (!origin) return response;
+
+  const newHeaders = new Headers(response.headers);
+  newHeaders.set('Access-Control-Allow-Origin', origin);
+  newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  newHeaders.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  newHeaders.append('Vary', 'Origin');
+
+  return new Response(response.body, {
+    status:     response.status,
+    statusText: response.statusText,
+    headers:    newHeaders,
+  });
 }

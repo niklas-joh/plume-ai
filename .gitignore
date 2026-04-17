@@ -8,6 +8,7 @@ test-results/
 .phpunit.result.cache
 .agents/
 .superpowers/
+.worktrees/
 .artifacts/
 .claude/agents/
 .claude/commands/

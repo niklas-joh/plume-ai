@@ -1,6 +1,7 @@
 import { hashPassword, verifyPassword } from './password';
 import { signJWT, verifyJWT } from './jwt';
 import { json } from './utils';
+import { getUserByEmail, getUserById, updateUserPlan } from './db';
 import type { Env, User } from './types';
 
 export async function handleRegister(req: Request, env: Env): Promise<Response> {
@@ -30,8 +31,7 @@ export async function handleToken(req: Request, env: Env): Promise<Response> {
   const body  = await req.json<{ email?: string; password?: string }>();
   const email = body.email?.trim().toLowerCase() ?? '';
 
-  const user = await env.DB.prepare(`SELECT * FROM users WHERE email = ?`)
-    .bind(email).first<User>();
+  const user = await getUserByEmail(email, env);
 
   if (!user || !(await verifyPassword(body.password ?? '', user.password_hash))) {
     await new Promise(r => setTimeout(r, 200)); // Constant-time delay to prevent timing attacks.
@@ -41,9 +41,7 @@ export async function handleToken(req: Request, env: Env): Promise<Response> {
   let plan = user.plan;
   if (plan === 'trial' && user.plan_expires && new Date(user.plan_expires) < new Date()) {
     plan = 'free';
-    await env.DB.prepare(
-      `UPDATE users SET plan = 'free', plan_expires = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
-    ).bind(user.id).run();
+    await updateUserPlan(email, 'free', null, env);
   }
 
   const access  = await signJWT({ sub: user.id, email: user.email, plan }, env.JWT_SECRET, 3600);
@@ -60,8 +58,7 @@ export async function handleRefresh(req: Request, env: Env): Promise<Response> {
     return json({ error: 'Invalid or expired refresh token' }, 401);
   }
 
-  const user = await env.DB.prepare(`SELECT * FROM users WHERE id = ?`)
-    .bind(payload['sub']).first<User>();
+  const user = await getUserById(payload['sub'] as number, env);
   if (!user) return json({ error: 'User not found' }, 404);
 
   const access = await signJWT({ sub: user.id, email: user.email, plan: user.plan }, env.JWT_SECRET, 3600);

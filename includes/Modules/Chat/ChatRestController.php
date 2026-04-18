@@ -9,6 +9,8 @@ use WP_AI_Mind\Providers\CompletionRequest;
 use WP_AI_Mind\Providers\CompletionResponse;
 use WP_AI_Mind\Providers\ProviderException;
 use WP_AI_Mind\Settings\ProviderSettings;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 use WP_AI_Mind\Tools\ToolRegistry;
 use WP_AI_Mind\Tools\ToolExecutor;
 use WP_AI_Mind\Voice\VoiceInjector;
@@ -63,7 +65,7 @@ class ChatRestController {
 				[
 					'methods'             => \WP_REST_Server::CREATABLE,
 					'callback'            => [ $this, 'send_message' ],
-					'permission_callback' => [ $this, 'check_permission' ],
+					'permission_callback' => [ $this, 'check_ai_permission' ],
 					'args'                => [
 						'content'         => [
 							'type'              => 'string',
@@ -388,6 +390,21 @@ class ChatRestController {
 	public function check_permission(): bool|\WP_Error {
 		if ( ! current_user_can( 'edit_posts' ) ) {
 			return new \WP_Error( 'rest_forbidden', __( 'Insufficient permissions.', 'wp-ai-mind' ), [ 'status' => 403 ] );
+		}
+		return true;
+	}
+
+	public function check_ai_permission(): bool|\WP_Error {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			return new \WP_Error( 'rest_forbidden', __( 'Insufficient permissions.', 'wp-ai-mind' ), [ 'status' => 403 ] );
+		}
+		if ( ! NJ_Tier_Manager::user_can( 'chat' ) ) {
+			// Phase 2 adds proxy routing; until then only pro_byok users are fully functional.
+			return new \WP_Error( 'rest_forbidden', __( 'Chat is not available on your current plan.', 'wp-ai-mind' ), [ 'status' => 403 ] );
+		}
+		if ( ! NJ_Usage_Tracker::check_limit() ) {
+			// WordPress enforces display-side; Cloudflare KV is the real enforcement from Phase 2 onwards.
+			return new \WP_Error( 'rest_rate_limit', __( 'Monthly token limit reached.', 'wp-ai-mind' ), [ 'status' => 429 ] );
 		}
 		return true;
 	}

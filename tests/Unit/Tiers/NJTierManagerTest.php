@@ -128,4 +128,33 @@ class NJTierManagerTest extends TestCase {
 		$this->assertContains( 'pro_byok', NJ_Tier_Config::get_valid_tiers() );
 		$this->assertCount( 4, NJ_Tier_Config::get_valid_tiers() );
 	}
+
+	public function test_free_user_cannot_use_seo_images_generator(): void {
+		Functions\expect( 'get_current_user_id' )->times( 3 )->andReturn( 1 );
+		Functions\expect( 'get_user_meta' )->times( 3 )->with( 1, 'wp_ai_mind_tier', true )->andReturn( 'free' );
+
+		$this->assertFalse( NJ_Tier_Manager::user_can( 'seo' ) );
+		$this->assertFalse( NJ_Tier_Manager::user_can( 'images' ) );
+		$this->assertFalse( NJ_Tier_Manager::user_can( 'generator' ) );
+	}
+
+	public function test_trial_user_can_use_all_ai_features(): void {
+		Functions\expect( 'get_current_user_id' )->times( 4 )->andReturn( 10 );
+		Functions\expect( 'get_user_meta' )->times( 4 )->with( 10, 'wp_ai_mind_tier', true )->andReturn( 'trial' );
+
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'chat' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'seo' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'images' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'generator' ) );
+	}
+
+	public function test_pro_managed_user_can_use_all_ai_features(): void {
+		Functions\expect( 'get_current_user_id' )->times( 4 )->andReturn( 2 );
+		Functions\expect( 'get_user_meta' )->times( 4 )->with( 2, 'wp_ai_mind_tier', true )->andReturn( 'pro_managed' );
+
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'chat' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'seo' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'images' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'generator' ) );
+	}
 }

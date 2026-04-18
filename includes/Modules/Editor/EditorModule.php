@@ -42,7 +42,7 @@ class EditorModule {
 				'nonce'         => \wp_create_nonce( 'wp_rest' ),
 				'restUrl'       => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
 				'currentPostId' => isset( $GLOBALS['post'] ) ? (int) $GLOBALS['post']->ID : ( isset( $_GET['post'] ) ? \absint( $_GET['post'] ) : 0 ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only post ID for editor sidebar; no form processing.
-				'isPro'         => \wp_ai_mind_is_pro(),
+				'isPro'         => \nj_can_user( 'chat' ),
 				'siteTitle'     => \get_bloginfo( 'name' ),
 			]
 		);

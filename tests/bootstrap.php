@@ -76,3 +76,25 @@ if ( ! class_exists( 'WP_REST_Server' ) ) {
 if ( ! function_exists( 'rest_ensure_response' ) ) {
 	function rest_ensure_response( $data ) { return new \WP_REST_Response( $data ); }
 }
+
+// nj_ global helpers — mirrors wp-ai-mind.php; required so module tests can call them.
+if ( ! function_exists( 'nj_can_user' ) ) {
+	function nj_can_user( string $feature, ?int $user_id = null ): bool {
+		return \WP_AI_Mind\Tiers\NJ_Tier_Manager::user_can( $feature, $user_id );
+	}
+}
+if ( ! function_exists( 'nj_check_usage_limit' ) ) {
+	function nj_check_usage_limit( ?int $user_id = null ): bool {
+		return \WP_AI_Mind\Tiers\NJ_Usage_Tracker::check_limit( $user_id );
+	}
+}
+if ( ! function_exists( 'nj_get_user_tier' ) ) {
+	function nj_get_user_tier( ?int $user_id = null ): string {
+		return \WP_AI_Mind\Tiers\NJ_Tier_Manager::get_user_tier( $user_id );
+	}
+}
+if ( ! function_exists( 'nj_log_usage' ) ) {
+	function nj_log_usage( int $tokens, ?int $user_id = null ): void {
+		\WP_AI_Mind\Tiers\NJ_Usage_Tracker::log_usage( $tokens, $user_id );
+	}
+}

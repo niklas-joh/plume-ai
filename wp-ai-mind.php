@@ -108,3 +108,35 @@ if ( function_exists( 'wam_fs' ) ) {
 	// Boot.
 	add_action( 'plugins_loaded', [ 'WP_AI_Mind\Core\Plugin', 'instance' ] );
 }
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- nj_ is the documented project prefix; WPCS rejects it as too short.
+
+/**
+ * Returns the current user's tier slug: 'free', 'pro_managed', or 'pro_byok'.
+ */
+function nj_get_user_tier( ?int $user_id = null ): string {
+	return \WP_AI_Mind\Tiers\NJ_Tier_Manager::get_user_tier( $user_id );
+}
+
+/**
+ * Returns true if the current user's tier grants the requested feature.
+ * Feature keys: 'chat', 'model_selection', 'own_api_key'
+ */
+function nj_can_user( string $feature, ?int $user_id = null ): bool {
+	return \WP_AI_Mind\Tiers\NJ_Tier_Manager::user_can( $feature, $user_id );
+}
+
+/**
+ * Returns true if the user has tokens remaining this month.
+ */
+function nj_check_usage_limit( ?int $user_id = null ): bool {
+	return \WP_AI_Mind\Tiers\NJ_Usage_Tracker::check_limit( $user_id );
+}
+
+/**
+ * Logs token usage to the user's monthly counter.
+ */
+function nj_log_usage( int $tokens, ?int $user_id = null ): void {
+	\WP_AI_Mind\Tiers\NJ_Usage_Tracker::log_usage( $tokens, $user_id );
+}
+// phpcs:enable

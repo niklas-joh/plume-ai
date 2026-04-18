@@ -34,7 +34,7 @@ class FrontendWidgetModule {
 				'nonce'         => \wp_create_nonce( 'wp_rest' ),
 				'restUrl'       => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
 				'currentPostId' => \get_the_ID() ? \get_the_ID() : 0,
-				'isPro'         => \wp_ai_mind_is_pro(),
+				'isPro'         => \nj_can_user( 'chat' ),
 				'siteTitle'     => \get_bloginfo( 'name' ),
 			]
 		);

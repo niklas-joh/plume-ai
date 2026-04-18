@@ -114,7 +114,7 @@ class SeoModuleTest extends TestCase {
 
 	// ── permission_callback ────────────────────────────────────────────────────
 
-	public function test_permission_callback_returns_false_without_pro(): void {
+	public function test_permission_callback_returns_false_when_usage_limit_exceeded(): void {
 		$captured_args = [];
 
 		Functions\when( 'register_rest_route' )->alias(
@@ -128,9 +128,21 @@ class SeoModuleTest extends TestCase {
 		$this->assertArrayHasKey( '/seo/generate', $captured_args );
 		$permission_callback = $captured_args['/seo/generate']['permission_callback'];
 
-		// Without pro: wp_ai_mind_is_pro returns false, current_user_can returns true.
-		Functions\when( 'wp_ai_mind_is_pro' )->justReturn( false );
+		// User has permission but is over the free monthly limit.
+		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_meta' )->alias(
+			function( $user_id, $key, $single ) use ( $month_key ) {
+				if ( 'wp_ai_mind_tier' === $key ) {
+					return 'free';
+				}
+				if ( $month_key === $key ) {
+					return '60000'; // over 50k free limit
+				}
+				return '';
+			}
+		);
 
 		$result = $permission_callback();
 

@@ -39,7 +39,7 @@ class GeneratorModule {
 				'nonce'         => \wp_create_nonce( 'wp_rest' ),
 				'restUrl'       => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
 				'currentPostId' => 0,
-				'isPro'         => \wp_ai_mind_is_pro(),
+				'isPro'         => \nj_can_user( 'chat' ),
 				'siteTitle'     => \get_bloginfo( 'name' ),
 			]
 		);
@@ -52,7 +52,7 @@ class GeneratorModule {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_generate' ],
-				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && \wp_ai_mind_is_pro(),
+				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && \nj_can_user( 'chat' ) && \nj_check_usage_limit(),
 				'args'                => [
 					'title'    => [
 						'type'              => 'string',
@@ -127,6 +127,7 @@ class GeneratorModule {
 			);
 
 			$response = $provider->complete( $req );
+			\nj_log_usage( $response->total_tokens );
 			$content  = $response->content;
 
 			// Create a draft post

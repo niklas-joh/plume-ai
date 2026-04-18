@@ -46,7 +46,7 @@ class SeoModule {
 			[
 				'nonce'    => \wp_create_nonce( 'wp_rest' ),
 				'restUrl'  => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
-				'isPro'    => \wp_ai_mind_is_pro(),
+				'isPro'    => \nj_can_user( 'chat' ),
 				'adminUrl' => \esc_url_raw( \admin_url() ),
 			]
 		);
@@ -66,7 +66,7 @@ class SeoModule {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_generate' ],
-				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && \wp_ai_mind_is_pro(),
+				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && \nj_can_user( 'chat' ) && \nj_check_usage_limit(),
 				'args'                => [
 					'post_id' => [
 						'required'          => true,
@@ -83,7 +83,7 @@ class SeoModule {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_apply' ],
-				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && \wp_ai_mind_is_pro(),
+				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && \nj_can_user( 'chat' ) && \nj_check_usage_limit(),
 				'args'                => [
 					'post_id'        => [
 						'required'          => true,

@@ -14,9 +14,21 @@ class NJ_Tier_Manager {
 
 	// Single source of truth: what each tier can do.
 	const FEATURES = [
-		'free'        => [ 'chat' => true,  'model_selection' => false, 'own_api_key' => false ],
-		'pro_managed' => [ 'chat' => true,  'model_selection' => true,  'own_api_key' => false ],
-		'pro_byok'    => [ 'chat' => true,  'model_selection' => true,  'own_api_key' => true  ],
+		'free'        => [
+			'chat'            => true,
+			'model_selection' => false,
+			'own_api_key'     => false,
+		],
+		'pro_managed' => [
+			'chat'            => true,
+			'model_selection' => true,
+			'own_api_key'     => false,
+		],
+		'pro_byok'    => [
+			'chat'            => true,
+			'model_selection' => true,
+			'own_api_key'     => true,
+		],
 	];
 
 	const MONTHLY_LIMITS = [
@@ -26,15 +38,16 @@ class NJ_Tier_Manager {
 	];
 
 	public static function get_user_tier( ?int $user_id = null ): string {
-		$user_id = $user_id ?: get_current_user_id();
-		return get_user_meta( $user_id, self::META_KEY, true ) ?: 'free';
+		$user_id = $user_id ?? get_current_user_id();
+		$stored  = get_user_meta( $user_id, self::META_KEY, true );
+		return $stored ? (string) $stored : 'free';
 	}
 
 	public static function set_user_tier( string $tier, ?int $user_id = null ): bool {
 		if ( ! in_array( $tier, self::TIERS, true ) ) {
 			return false;
 		}
-		$user_id = $user_id ?: get_current_user_id();
+		$user_id = $user_id ?? get_current_user_id();
 		return (bool) update_user_meta( $user_id, self::META_KEY, $tier );
 	}
 

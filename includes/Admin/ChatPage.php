@@ -49,7 +49,7 @@ class ChatPage {
 				'nonce'             => wp_create_nonce( 'wp_rest' ),
 				'restUrl'           => esc_url_raw( rest_url( 'wp-ai-mind/v1' ) ),
 				'currentPostId'     => 0,
-				'isPro'             => \wp_ai_mind_is_pro(),
+				'isPro'             => \nj_can_user( 'chat' ),
 				'siteTitle'         => get_bloginfo( 'name' ),
 				'defaultModelLabel' => esc_html( $default_model_label ),
 			]

@@ -22,7 +22,7 @@ class ImagesModuleTest extends TestCase {
 
 	// ── permission_callback ────────────────────────────────────────────────────
 
-	public function test_permission_callback_returns_false_without_pro(): void {
+	public function test_permission_callback_returns_false_when_usage_limit_exceeded(): void {
 		$captured_args = [];
 
 		Functions\when( 'register_rest_route' )->alias(
@@ -36,18 +36,28 @@ class ImagesModuleTest extends TestCase {
 		$this->assertArrayHasKey( '/images/generate', $captured_args );
 		$permission_callback = $captured_args['/images/generate']['permission_callback'];
 
-		// Without pro: wp_ai_mind_is_pro returns false, current_user_can returns true.
-		Functions\when( 'wp_ai_mind_is_pro' )->justReturn( false );
+		// User has permission but is over the free monthly limit.
+		$month_key = 'wp_ai_mind_usage_' . date( 'Y_m' );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_meta' )->alias(
+			function( $user_id, $key, $single ) use ( $month_key ) {
+				if ( 'wp_ai_mind_tier' === $key ) {
+					return 'free';
+				}
+				if ( $month_key === $key ) {
+					return '60000'; // over 50k free limit
+				}
+				return '';
+			}
+		);
 
-		$result = $permission_callback();
-
-		$this->assertFalse( (bool) $result );
+		$this->assertFalse( (bool) $permission_callback() );
 	}
 
-	// ── permission_callback with pro enabled ───────────────────────────────────
+	// ── permission_callback with usage within limit ───────────────────────────
 
-	public function test_permission_callback_returns_true_with_pro_and_capability(): void {
+	public function test_permission_callback_returns_true_with_capability_and_usage_within_limit(): void {
 		$captured_args = [];
 
 		Functions\when( 'register_rest_route' )->alias(
@@ -60,12 +70,22 @@ class ImagesModuleTest extends TestCase {
 
 		$permission_callback = $captured_args['/images/generate']['permission_callback'];
 
-		// With pro active and capability granted.
-		Functions\when( 'wp_ai_mind_is_pro' )->justReturn( true );
+		// User has permission and has tokens remaining.
+		$month_key = 'wp_ai_mind_usage_' . date( 'Y_m' );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_meta' )->alias(
+			function( $user_id, $key, $single ) use ( $month_key ) {
+				if ( 'wp_ai_mind_tier' === $key ) {
+					return 'free';
+				}
+				if ( $month_key === $key ) {
+					return '0'; // well under 50k limit
+				}
+				return '';
+			}
+		);
 
-		$result = $permission_callback();
-
-		$this->assertTrue( (bool) $result );
+		$this->assertTrue( (bool) $permission_callback() );
 	}
 }

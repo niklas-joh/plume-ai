@@ -57,7 +57,7 @@ class DashboardPage {
 		$provider_settings = new ProviderSettings();
 		$provider          = (string) get_option( 'wp_ai_mind_default_provider', '' );
 		$has_own_key       = $provider && $provider_settings->has_key( $provider );
-		$is_pro            = \wp_ai_mind_is_pro();
+		$is_pro            = \nj_can_user( 'chat' );
 
 		if ( $is_pro || $has_own_key ) {
 			$banner_state = 'none';

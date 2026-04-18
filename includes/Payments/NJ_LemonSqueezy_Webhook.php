@@ -42,7 +42,14 @@ class NJ_LemonSqueezy_Webhook {
 
 		$user = get_user_by( 'email', $email );
 		if ( ! $user ) {
-			return new WP_REST_Response( [ 'error' => 'User not found' ], 404 );
+			return new WP_REST_Response(
+				[
+					'received' => true,
+					'action'   => 'skipped',
+					'reason'   => 'user_not_found',
+				],
+				200
+			);
 		}
 
 		self::apply_event( $event['meta']['event_name'] ?? '', $user->ID );

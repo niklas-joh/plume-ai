@@ -149,11 +149,27 @@ class NJ_Api_Key_Settings {
 		return $encrypted ? '••••••••••••••••••••' : '';
 	}
 
-	// AES-256-CBC encryption using WordPress AUTH_KEY as the secret.
+	/**
+	 * Derive a 32-byte AES-256 key from WordPress AUTH_KEY via SHA-256.
+	 * Returns false when AUTH_KEY is not defined so callers can bail early.
+	 *
+	 * @return string|false 32-byte binary key, or false if AUTH_KEY is absent.
+	 */
+	private static function derive_key(): string|false {
+		if ( ! defined( 'AUTH_KEY' ) || '' === AUTH_KEY ) {
+			return false;
+		}
+		return hash( 'sha256', AUTH_KEY, true );
+	}
+
+	// AES-256-CBC encryption using a SHA-256 hash of WordPress AUTH_KEY as the secret.
 	public static function encrypt( string $plaintext ): string|false {
-		$key = defined( 'AUTH_KEY' ) ? AUTH_KEY : 'default-insecure-key';
+		$key = self::derive_key();
+		if ( false === $key ) {
+			return false;
+		}
 		$iv  = random_bytes( 16 );
-		$enc = openssl_encrypt( $plaintext, 'AES-256-CBC', $key, 0, $iv );
+		$enc = openssl_encrypt( $plaintext, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv );
 		if ( false === $enc ) {
 			return false;
 		}
@@ -161,12 +177,15 @@ class NJ_Api_Key_Settings {
 	}
 
 	public static function decrypt( string $ciphertext ): string|false {
-		$key  = defined( 'AUTH_KEY' ) ? AUTH_KEY : 'default-insecure-key';
+		$key  = self::derive_key();
+		if ( false === $key ) {
+			return false;
+		}
 		$data = base64_decode( $ciphertext ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 		if ( false === $data || ! str_contains( $data, '::' ) ) {
 			return false;
 		}
 		[ $iv, $enc ] = explode( '::', $data, 2 );
-		return openssl_decrypt( $enc, 'AES-256-CBC', $key, 0, $iv );
+		return openssl_decrypt( $enc, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv );
 	}
 }

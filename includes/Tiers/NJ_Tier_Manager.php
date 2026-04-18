@@ -59,17 +59,25 @@ class NJ_Tier_Manager {
 
 	// Called by daily cron to demote expired trial users to free.
 	public static function maybe_demote_expired_trials(): void {
-		$users = get_users(
-			[
-				'meta_key'   => self::META_KEY,
-				'meta_value' => 'trial',
-				'fields'     => 'ID',
-			]
-		);
-		foreach ( $users as $user_id ) {
-			if ( ! self::is_trial_active( (int) $user_id ) ) {
-				self::set_user_tier( 'free', (int) $user_id );
+		$batch_size = 200;
+		$offset     = 0;
+
+		do {
+			$users = get_users(
+				[
+					'meta_key'   => self::META_KEY,
+					'meta_value' => 'trial',
+					'fields'     => 'ID',
+					'number'     => $batch_size,
+					'offset'     => $offset,
+				]
+			);
+			foreach ( $users as $user_id ) {
+				if ( ! self::is_trial_active( (int) $user_id ) ) {
+					self::set_user_tier( 'free', (int) $user_id );
+				}
 			}
-		}
+			$offset += $batch_size;
+		} while ( count( $users ) === $batch_size );
 	}
 }

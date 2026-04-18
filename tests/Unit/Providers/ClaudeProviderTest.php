@@ -13,6 +13,21 @@ class ClaudeProviderTest extends TestCase {
 	protected function setUp(): void    { parent::setUp(); Monkey\setUp(); }
 	protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
+	private function mock_wpdb(): void {
+		global $wpdb;
+		$wpdb = new class extends \stdClass {
+			public string $usermeta      = 'wp_usermeta';
+			public int    $rows_affected = 1;
+			public string $prefix        = 'wpaim_';
+			public function insert(): int { return 1; }
+			public function prepare( string $sql, ...$args ): string { return $sql; }
+			public function query( string $sql ): int { return 1; }
+		};
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
+	}
+
 	public function test_get_slug_returns_claude(): void {
 		$provider = new ClaudeProvider( 'sk-ant-test' );
 		$this->assertSame( 'claude', $provider->get_slug() );
@@ -41,17 +56,7 @@ class ClaudeProviderTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		Functions\when( 'wp_json_encode' )->alias( fn($v) => json_encode($v) );
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
-		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
-
-		global $wpdb;
-		$wpdb = new class extends \stdClass {
-			public $prefix = 'wpaim_';
-			public function insert() {
-				return 1;
-			}
-		};
+		$this->mock_wpdb();
 
 		$provider = new ClaudeProvider( 'sk-ant-test' );
 		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
@@ -97,15 +102,7 @@ class ClaudeProviderTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		Functions\when( 'wp_json_encode' )->alias( fn($v) => json_encode($v) );
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
-		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
-
-		global $wpdb;
-		$wpdb = new class extends \stdClass {
-			public $prefix = 'wpaim_';
-			public function insert() { return 1; }
-		};
+		$this->mock_wpdb();
 
 		$provider = new ClaudeProvider( 'sk-ant-test' );
 		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'list posts' ] ] );
@@ -131,15 +128,7 @@ class ClaudeProviderTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		Functions\when( 'wp_json_encode' )->alias( fn($v) => json_encode($v) );
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
-		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
-
-		global $wpdb;
-		$wpdb = new class extends \stdClass {
-			public $prefix = 'wpaim_';
-			public function insert() { return 1; }
-		};
+		$this->mock_wpdb();
 
 		$provider = new ClaudeProvider( 'sk-ant-test' );
 		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
@@ -166,15 +155,7 @@ class ClaudeProviderTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		Functions\when( 'wp_json_encode' )->alias( fn($v) => json_encode($v) );
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
-		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
-
-		global $wpdb;
-		$wpdb = new class extends \stdClass {
-			public $prefix = 'wpaim_';
-			public function insert() { return 1; }
-		};
+		$this->mock_wpdb();
 
 		$tools    = [ [ 'name' => 'get_recent_posts', 'description' => 'Fetches recent posts.' ] ];
 		$provider = new ClaudeProvider( 'sk-ant-test' );

@@ -4,6 +4,7 @@ namespace WP_AI_Mind\Tests\Unit\Tiers;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
+use WP_AI_Mind\Tiers\NJ_Tier_Config;
 use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
 class NJTierManagerTest extends TestCase {
@@ -50,6 +51,18 @@ class NJTierManagerTest extends TestCase {
 		$this->assertFalse( NJ_Tier_Manager::user_can( 'model_selection' ) );
 	}
 
+	public function test_trial_user_can_chat_but_not_model_selection(): void {
+		Functions\expect( 'get_current_user_id' )->twice()->andReturn( 10 );
+		Functions\expect( 'get_user_meta' )->twice()->with( 10, 'wp_ai_mind_tier', true )->andReturn( 'trial' );
+
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'chat' ) );
+		$this->assertFalse( NJ_Tier_Manager::user_can( 'model_selection' ) );
+	}
+
+	public function test_trial_tier_monthly_limit(): void {
+		$this->assertSame( 300000, NJ_Tier_Manager::get_monthly_limit( 'trial' ) );
+	}
+
 	public function test_pro_managed_user_can_chat_and_model_selection(): void {
 		Functions\expect( 'get_current_user_id' )->twice()->andReturn( 2 );
 		Functions\expect( 'get_user_meta' )->twice()->with( 2, 'wp_ai_mind_tier', true )->andReturn( 'pro_managed' );
@@ -73,6 +86,46 @@ class NJTierManagerTest extends TestCase {
 
 	public function test_get_monthly_limit_returns_correct_values(): void {
 		$this->assertSame( 50000, NJ_Tier_Manager::get_monthly_limit( 'free' ) );
+		$this->assertSame( 300000, NJ_Tier_Manager::get_monthly_limit( 'trial' ) );
 		$this->assertSame( 2000000, NJ_Tier_Manager::get_monthly_limit( 'pro_managed' ) );
+	}
+
+	public function test_start_trial_sets_tier_and_timestamp(): void {
+		Functions\expect( 'update_user_meta' )
+			->once()->with( 4, 'wp_ai_mind_tier', 'trial' )->andReturn( true );
+		Functions\expect( 'update_user_meta' )
+			->once()->with( 4, 'wp_ai_mind_trial_started', \Mockery::type( 'int' ) )->andReturn( true );
+
+		$this->assertTrue( NJ_Tier_Manager::start_trial( 4 ) );
+	}
+
+	public function test_is_trial_active_returns_false_for_non_trial_tier(): void {
+		Functions\expect( 'get_current_user_id' )->never();
+		Functions\expect( 'get_user_meta' )->once()->with( 5, 'wp_ai_mind_tier', true )->andReturn( 'free' );
+
+		$this->assertFalse( NJ_Tier_Manager::is_trial_active( 5 ) );
+	}
+
+	public function test_is_trial_active_returns_true_within_window(): void {
+		Functions\expect( 'get_user_meta' )->once()->with( 6, 'wp_ai_mind_tier', true )->andReturn( 'trial' );
+		Functions\expect( 'get_user_meta' )->once()->with( 6, 'wp_ai_mind_trial_started', true )->andReturn( (string) time() );
+
+		$this->assertTrue( NJ_Tier_Manager::is_trial_active( 6 ) );
+	}
+
+	public function test_is_trial_active_returns_false_after_seven_days(): void {
+		$started = time() - ( 8 * DAY_IN_SECONDS );
+		Functions\expect( 'get_user_meta' )->once()->with( 6, 'wp_ai_mind_tier', true )->andReturn( 'trial' );
+		Functions\expect( 'get_user_meta' )->once()->with( 6, 'wp_ai_mind_trial_started', true )->andReturn( (string) $started );
+
+		$this->assertFalse( NJ_Tier_Manager::is_trial_active( 6 ) );
+	}
+
+	public function test_tier_config_has_four_tiers(): void {
+		$this->assertContains( 'free', NJ_Tier_Config::get_valid_tiers() );
+		$this->assertContains( 'trial', NJ_Tier_Config::get_valid_tiers() );
+		$this->assertContains( 'pro_managed', NJ_Tier_Config::get_valid_tiers() );
+		$this->assertContains( 'pro_byok', NJ_Tier_Config::get_valid_tiers() );
+		$this->assertCount( 4, NJ_Tier_Config::get_valid_tiers() );
 	}
 }

@@ -72,7 +72,7 @@ Total: ~4 weeks (vs original 7 weeks = 45% faster)
 | **Pro Managed** | `'pro_managed'` | 2,000,000 | Haiku + Sonnet + Opus | → Cloudflare proxy | LemonSqueezy |
 | **Pro BYOK** | `'pro_byok'` | Unlimited (own cost) | Any model | → Direct provider calls | LemonSqueezy |
 
-> **WordPress-native tier management.** Limits, allowed models, and feature flags are defined in WordPress PHP classes (`NJ_Tier_Manager`). To change what a tier can do, edit the tier configuration in WordPress.
+> **WordPress-native tier management.** Limits, allowed models, and feature flags are defined in `NJ_Tier_Config` (single source of truth). `NJ_Tier_Manager` handles CRUD and trial logic. No global helper functions — call class methods directly.
 
 ---
 
@@ -82,7 +82,7 @@ Total: ~4 weeks (vs original 7 weeks = 45% faster)
 |----------|--------|-----------|
 | User account storage | WordPress users + custom meta | WordPress-native; no external database needed |
 | Tier management | WordPress user meta | Simple, reliable, follows WordPress patterns |
-| Rate limiting | WordPress user meta + transients | Good enough accuracy, simpler than external KV |
+| Rate limiting enforcement | Cloudflare KV (proxy-routed tiers) | Single enforcement point; WP meta serves display only |
 | Payment processing | LemonSqueezy webhooks to WordPress | Direct integration; no external auth system |
 | API key protection | Minimal Cloudflare proxy (200 lines) | Protects keys without complex microservices |
 | Pro BYOK routing | Direct to provider, bypasses proxy | No proxy costs for power users |

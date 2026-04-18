@@ -8,6 +8,8 @@ use WP_AI_Mind\Providers\ProviderFactory;
 use WP_AI_Mind\Providers\CompletionRequest;
 use WP_AI_Mind\Providers\ProviderException;
 use WP_AI_Mind\Settings\ProviderSettings;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 
 class SeoModule {
 
@@ -46,7 +48,7 @@ class SeoModule {
 			[
 				'nonce'    => \wp_create_nonce( 'wp_rest' ),
 				'restUrl'  => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
-				'isPro'    => \nj_can_user( 'chat' ),
+				'isPro'    => NJ_Tier_Manager::user_can( 'chat' ),
 				'adminUrl' => \esc_url_raw( \admin_url() ),
 			]
 		);
@@ -66,7 +68,7 @@ class SeoModule {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_generate' ],
-				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && \nj_can_user( 'chat' ) && \nj_check_usage_limit(),
+				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && NJ_Tier_Manager::user_can( 'chat' ) && NJ_Usage_Tracker::check_limit(),
 				'args'                => [
 					'post_id' => [
 						'required'          => true,
@@ -83,7 +85,7 @@ class SeoModule {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_apply' ],
-				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && \nj_can_user( 'chat' ) && \nj_check_usage_limit(),
+				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && NJ_Tier_Manager::user_can( 'chat' ) && NJ_Usage_Tracker::check_limit(),
 				'args'                => [
 					'post_id'        => [
 						'required'          => true,
@@ -167,7 +169,7 @@ class SeoModule {
 			$factory  = new ProviderFactory( new ProviderSettings() );
 			$provider = $factory->make_default();
 			$response = $provider->complete( $req );
-			\nj_log_usage( $response->total_tokens );
+			NJ_Usage_Tracker::log_usage( $response->total_tokens );
 		} catch ( ProviderException $e ) {
 			\error_log( 'WP AI Mind SeoModule provider error: ' . $e->getMessage() );
 			return new \WP_REST_Response( [ 'error' => __( 'Provider error. Please try again later.', 'wp-ai-mind' ) ], 502 );

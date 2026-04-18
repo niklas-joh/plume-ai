@@ -3,7 +3,7 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Providers;
 
-use WP_AI_Mind\DB\UsageLogger;
+use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 
 abstract class AbstractProvider implements ProviderInterface {
 
@@ -89,8 +89,6 @@ abstract class AbstractProvider implements ProviderInterface {
 	// ── Usage logging ─────────────────────────────────────────────────────────
 
 	private function maybe_log( CompletionRequest $request, CompletionResponse $response ): void {
-		$feature = $request->metadata['feature'] ?? 'chat';
-		$post_id = $request->metadata['post_id'] ?? null;
-		UsageLogger::log( $feature, $this->get_slug(), $response, 0, $post_id );
+		NJ_Usage_Tracker::log_usage( $response->total_tokens );
 	}
 }

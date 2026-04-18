@@ -3,6 +3,7 @@ declare( strict_types=1 );
 namespace WP_AI_Mind\Admin;
 
 use WP_AI_Mind\Settings\ProviderSettings;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
 class DashboardPage {
 
@@ -57,7 +58,7 @@ class DashboardPage {
 		$provider_settings = new ProviderSettings();
 		$provider          = (string) get_option( 'wp_ai_mind_default_provider', '' );
 		$has_own_key       = $provider && $provider_settings->has_key( $provider );
-		$is_pro            = \nj_can_user( 'chat' );
+		$is_pro            = NJ_Tier_Manager::user_can( 'chat' );
 
 		if ( $is_pro || $has_own_key ) {
 			$banner_state = 'none';

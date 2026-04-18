@@ -15,9 +15,10 @@ if ( ! defined( 'WP_AI_MIND_HTTP_TIMEOUT' ) ) {
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
 // WordPress query-result format constants (not provided by Brain Monkey).
-if ( ! defined( 'OBJECT' ) )   { define( 'OBJECT',   'OBJECT' ); }
-if ( ! defined( 'ARRAY_A' ) )  { define( 'ARRAY_A',  'ARRAY_A' ); }
-if ( ! defined( 'ARRAY_N' ) )  { define( 'ARRAY_N',  'ARRAY_N' ); }
+if ( ! defined( 'OBJECT' ) )          { define( 'OBJECT',          'OBJECT' ); }
+if ( ! defined( 'ARRAY_A' ) )         { define( 'ARRAY_A',         'ARRAY_A' ); }
+if ( ! defined( 'ARRAY_N' ) )         { define( 'ARRAY_N',         'ARRAY_N' ); }
+if ( ! defined( 'DAY_IN_SECONDS' ) )  { define( 'DAY_IN_SECONDS',  86400 ); }
 
 // Brain Monkey setUp/tearDown are called per test via trait.
 // WP stubs — Brain Monkey provides them when you call Monkey\setUp().
@@ -77,24 +78,15 @@ if ( ! function_exists( 'rest_ensure_response' ) ) {
 	function rest_ensure_response( $data ) { return new \WP_REST_Response( $data ); }
 }
 
-// nj_ global helpers — mirrors wp-ai-mind.php; required so module tests can call them.
-if ( ! function_exists( 'nj_can_user' ) ) {
-	function nj_can_user( string $feature, ?int $user_id = null ): bool {
-		return \WP_AI_Mind\Tiers\NJ_Tier_Manager::user_can( $feature, $user_id );
-	}
+// Minimal $wpdb stub so NJ_Usage_Tracker::log_usage() doesn't throw in tests
+// that don't set up their own $wpdb mock (e.g. provider tests).
+global $wpdb;
+if ( null === $wpdb ) {
+	$wpdb               = new class() {
+		public string $usermeta      = 'wp_usermeta';
+		public int    $rows_affected = 1;
+		public function prepare( string $sql, ...$args ): string { return $sql; }
+		public function query( string $sql ): int { return 1; }
+	};
 }
-if ( ! function_exists( 'nj_check_usage_limit' ) ) {
-	function nj_check_usage_limit( ?int $user_id = null ): bool {
-		return \WP_AI_Mind\Tiers\NJ_Usage_Tracker::check_limit( $user_id );
-	}
-}
-if ( ! function_exists( 'nj_get_user_tier' ) ) {
-	function nj_get_user_tier( ?int $user_id = null ): string {
-		return \WP_AI_Mind\Tiers\NJ_Tier_Manager::get_user_tier( $user_id );
-	}
-}
-if ( ! function_exists( 'nj_log_usage' ) ) {
-	function nj_log_usage( int $tokens, ?int $user_id = null ): void {
-		\WP_AI_Mind\Tiers\NJ_Usage_Tracker::log_usage( $tokens, $user_id );
-	}
-}
+

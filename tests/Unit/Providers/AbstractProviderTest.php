@@ -45,10 +45,12 @@ class AbstractProviderTest extends TestCase {
 		$wpdb->insert = function() { return 1; };
 		// Allow the method to be called via __call if needed.
 		$wpdb = new class extends \stdClass {
-			public $prefix = 'wp_';
-			public function insert() {
-				return 1;
-			}
+			public string $usermeta      = 'wp_usermeta';
+			public int    $rows_affected = 1;
+			public string $prefix        = 'wp_';
+			public function insert(): int { return 1; }
+			public function prepare( string $sql, ...$args ): string { return $sql; }
+			public function query( string $sql ): int { return 1; }
 		};
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );

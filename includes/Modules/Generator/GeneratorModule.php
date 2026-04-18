@@ -127,6 +127,7 @@ class GeneratorModule {
 			);
 
 			$response = $provider->complete( $req );
+			\nj_log_usage( $response->total_tokens );
 			$content  = $response->content;
 
 			// Create a draft post

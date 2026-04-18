@@ -167,6 +167,7 @@ class SeoModule {
 			$factory  = new ProviderFactory( new ProviderSettings() );
 			$provider = $factory->make_default();
 			$response = $provider->complete( $req );
+			\nj_log_usage( $response->total_tokens );
 		} catch ( ProviderException $e ) {
 			\error_log( 'WP AI Mind SeoModule provider error: ' . $e->getMessage() );
 			return new \WP_REST_Response( [ 'error' => __( 'Provider error. Please try again later.', 'wp-ai-mind' ) ], 502 );

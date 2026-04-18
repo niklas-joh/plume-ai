@@ -137,6 +137,7 @@ class ImagesModule {
 			);
 		}
 
+		\nj_log_usage( count( $images ) );
 		$status = empty( $errors ) ? 201 : 207;
 
 		return new \WP_REST_Response(

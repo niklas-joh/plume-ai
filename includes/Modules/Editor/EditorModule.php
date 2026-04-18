@@ -3,6 +3,8 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Modules\Editor;
 
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+
 /**
  * Enqueues block-editor assets for the WP AI Mind sidebar panel.
  */
@@ -42,7 +44,7 @@ class EditorModule {
 				'nonce'         => \wp_create_nonce( 'wp_rest' ),
 				'restUrl'       => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
 				'currentPostId' => isset( $GLOBALS['post'] ) ? (int) $GLOBALS['post']->ID : ( isset( $_GET['post'] ) ? \absint( $_GET['post'] ) : 0 ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only post ID for editor sidebar; no form processing.
-				'isPro'         => \nj_can_user( 'chat' ),
+				'isPro'         => NJ_Tier_Manager::user_can( 'chat' ),
 				'siteTitle'     => \get_bloginfo( 'name' ),
 			]
 		);

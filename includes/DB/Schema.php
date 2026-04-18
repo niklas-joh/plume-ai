@@ -7,7 +7,6 @@ class Schema {
 	private const PREFIX = 'wpaim_';
 
 	private const TABLES = [
-		'usage_log'     => 'usage_log',
 		'conversations' => 'conversations',
 		'messages'      => 'messages',
 	];
@@ -27,27 +26,6 @@ class Schema {
 		global $wpdb;
 		$charset = $wpdb->get_charset_collate();
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-
-		$usage_log = self::table( 'usage_log' );
-		dbDelta(
-			"CREATE TABLE {$usage_log} (
-            id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            created_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            user_id       BIGINT UNSIGNED NOT NULL DEFAULT 0,
-            feature       VARCHAR(50)     NOT NULL,
-            provider      VARCHAR(50)     NOT NULL,
-            model         VARCHAR(100)    NOT NULL,
-            prompt_tokens INT UNSIGNED    NOT NULL DEFAULT 0,
-            completion_tokens INT UNSIGNED NOT NULL DEFAULT 0,
-            total_tokens  INT UNSIGNED    NOT NULL DEFAULT 0,
-            cost_usd      DECIMAL(10,6)   NOT NULL DEFAULT 0.000000,
-            post_id       BIGINT UNSIGNED          DEFAULT NULL,
-            PRIMARY KEY (id),
-            KEY user_id (user_id),
-            KEY feature (feature),
-            KEY created_at (created_at)
-        ) {$charset};"
-		);
 
 		$conversations = self::table( 'conversations' );
 		dbDelta(

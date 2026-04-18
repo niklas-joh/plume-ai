@@ -8,7 +8,6 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 global $wpdb;
 
 // Drop custom tables.
-$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpaim_usage_log" );
 $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpaim_conversations" );
 $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpaim_messages" );
 

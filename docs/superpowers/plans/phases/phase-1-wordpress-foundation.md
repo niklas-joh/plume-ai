@@ -19,29 +19,36 @@
 | Usage Tracking | User meta: `wp_ai_mind_usage_YYYY_MM` | Monthly reset pattern, WordPress-native |
 | Payment Integration | LemonSqueezy webhooks → WordPress REST | Direct integration, no external dependency |
 | API Key Protection | Store encrypted in user meta (Pro BYOK only) | Free/Pro Managed use proxy (Phase 2) |
-| ProGate Replacement | `nj_get_user_tier()` + `nj_can_user()` helpers | Simple, no complex abstractions |
+| ProGate Replacement | `NJ_Tier_Manager::user_can()` class methods directly | No global helpers; single entry point per concern |
 
 ---
 
-## Three-Tier System
+## Four-Tier System
 
 ### Tier 1: Free (50k tokens/month)
-- Monthly limit: 50,000 tokens
+- Monthly limit: 50,000 tokens (after trial expires)
 - Model: Claude Haiku only
 - API routing: **Blocked until Phase 2** (proxy required)
 - User setup: None required
 
-### Tier 2: Pro Managed (2M tokens/month)
+### Tier 2: Trial (300k tokens, 7-day window)
+- Monthly limit: 300,000 tokens within 7 days of `start_trial()`
+- Model: Claude Haiku only
+- API routing: **Blocked until Phase 2** (proxy required)
+- User setup: None; auto-granted on first activation
+- Expiry: Daily cron (`wp_ai_mind_trial_check`) demotes expired trials to Free
+
+### Tier 3: Pro Managed (2M tokens/month)
 - Monthly limit: 2,000,000 tokens
 - Models: Haiku, Sonnet, Opus (user choice)
 - API routing: **Blocked until Phase 2** (proxy required)
 - User setup: Payment via LemonSqueezy
 
-### Tier 3: Pro BYOK (unlimited)
+### Tier 4: Pro BYOK (unlimited)
 - Monthly limit: None
 - Models: Any model their key supports
 - API routing: **Direct to provider** (works in Phase 1)
-- User setup: Payment + encrypted API key storage
+- User setup: Payment + per-provider encrypted API keys in user meta
 
 ---
 
@@ -496,15 +503,20 @@ class NJ_Tier_Settings {
 
 ## Phase 1 Acceptance Criteria
 
-- [ ] Three tiers implemented: `free`, `pro_managed`, `pro_byok`
+- [ ] Four tiers implemented: `free`, `trial`, `pro_managed`, `pro_byok`
+- [ ] `NJ_Tier_Config` is the single source of truth for features and limits
+- [ ] `NJ_Tier_Manager` handles CRUD + trial start/demote; delegates config to `NJ_Tier_Config`
+- [ ] Trial expiry: daily cron `wp_ai_mind_trial_check` demotes expired trial users to `free`
 - [ ] WordPress user meta stores tier: `wp_ai_mind_tier`
-- [ ] Usage tracking via user meta: `wp_ai_mind_usage_YYYY_MM`
-- [ ] Rate limiting works: `nj_check_usage_limit()` returns false when exceeded
-- [ ] LemonSqueezy webhook endpoint: `/wp-json/wp-ai-mind/v1/webhook`
-- [ ] Pro BYOK users can store encrypted API keys
-- [ ] All ProGate calls replaced with `nj_can_user()` calls
-- [ ] Admin UI shows current tier and usage
-- [ ] Free/Pro Managed users see "Coming soon" for chat (until Phase 2)
+- [ ] Usage tracking via user meta: `wp_ai_mind_usage_YYYY_MM` (atomic SQL increment)
+- [ ] Rate limiting works: `NJ_Usage_Tracker::check_limit()` returns false when exceeded
+- [ ] LemonSqueezy webhook endpoint: `/wp-json/wp-ai-mind/v1/webhook` (HMAC verified by `NJ_Webhook_Verifier`)
+- [ ] Pro BYOK users can store per-provider encrypted API keys (`wp_ai_mind_api_key_{provider}`)
+- [ ] All ProGate calls and global `nj_*` helper calls replaced with direct class method calls
+- [ ] `NJ_Tier_Status_Page`: read-only tier + usage display
+- [ ] `NJ_Api_Key_Settings`: Pro BYOK key form saves via REST (not options.php)
+- [ ] `UsageLogger` deleted; `AbstractProvider::maybe_log()` calls `NJ_Usage_Tracker::log_usage()`
+- [ ] Free/Trial/Pro Managed users see "Coming soon" for chat (until Phase 2)
 - [ ] Pro BYOK users can use chat with their own API keys immediately
 
 **This phase creates a fully functional tier system. Pro BYOK works end-to-end. Free/Pro Managed wait for Phase 2 proxy.**

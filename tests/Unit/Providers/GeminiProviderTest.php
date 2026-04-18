@@ -16,10 +16,12 @@ class GeminiProviderTest extends TestCase {
 	private function mock_wpdb(): void {
 		global $wpdb;
 		$wpdb = new class extends \stdClass {
-			public $prefix = 'wpaim_';
-			public function insert() {
-				return 1;
-			}
+			public string $usermeta      = 'wp_usermeta';
+			public int    $rows_affected = 1;
+			public string $prefix        = 'wpaim_';
+			public function insert(): int { return 1; }
+			public function prepare( string $sql, ...$args ): string { return $sql; }
+			public function query( string $sql ): int { return 1; }
 		};
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );

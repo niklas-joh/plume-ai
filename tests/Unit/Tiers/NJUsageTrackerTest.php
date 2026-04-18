@@ -15,6 +15,9 @@ class NJUsageTrackerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		// Reset $wpdb mock between tests.
+		global $wpdb;
+		$wpdb = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -51,6 +54,21 @@ class NJUsageTrackerTest extends TestCase {
 		$this->assertSame( 0, $usage['remaining'] );
 	}
 
+	public function test_get_usage_trial_tier_uses_300k_limit(): void {
+		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+
+		Functions\expect( 'get_user_meta' )
+			->once()->with( 5, 'wp_ai_mind_tier', true )->andReturn( 'trial' );
+		Functions\expect( 'get_user_meta' )
+			->once()->with( 5, $month_key, true )->andReturn( '100000' );
+
+		$usage = NJ_Usage_Tracker::get_usage( 5 );
+		$this->assertSame( 'trial', $usage['tier'] );
+		$this->assertSame( 300000, $usage['limit'] );
+		$this->assertSame( 200000, $usage['remaining'] );
+		$this->assertTrue( $usage['can_use'] );
+	}
+
 	public function test_get_usage_pro_byok_is_always_unlimited(): void {
 		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
 
@@ -66,17 +84,44 @@ class NJUsageTrackerTest extends TestCase {
 		$this->assertNull( $usage['remaining'] );
 	}
 
-	public function test_log_usage_increments_existing_count(): void {
+	public function test_log_usage_performs_atomic_sql_increment(): void {
+		global $wpdb;
 		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
 
+		$wpdb                = \Mockery::mock( 'wpdb' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$wpdb->usermeta      = 'wp_usermeta';
+		$wpdb->rows_affected = 1;
+		$wpdb->shouldReceive( 'prepare' )
+			->once()
+			->andReturnUsing( fn( $sql ) => $sql );
+		$wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+
 		Functions\expect( 'get_current_user_id' )->once()->andReturn( 1 );
-		Functions\expect( 'get_user_meta' )
-			->once()->with( 1, $month_key, true )->andReturn( '1000' );
-		Functions\expect( 'update_user_meta' )
-			->once()->with( 1, $month_key, 1500 )->andReturn( true );
 
 		NJ_Usage_Tracker::log_usage( 500 );
-		$this->addToAssertionCount( 1 ); // Mockery expectation above is the assertion.
+		$this->addToAssertionCount( 1 );
+	}
+
+	public function test_log_usage_falls_back_to_insert_when_no_row_exists(): void {
+		global $wpdb;
+		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+
+		$wpdb                = \Mockery::mock( 'wpdb' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$wpdb->usermeta      = 'wp_usermeta';
+		$wpdb->rows_affected = 0; // No existing row.
+		$wpdb->shouldReceive( 'prepare' )
+			->once()
+			->andReturnUsing( fn( $sql ) => $sql );
+		$wpdb->shouldReceive( 'query' )->once()->andReturn( 0 );
+
+		Functions\expect( 'get_current_user_id' )->once()->andReturn( 1 );
+		Functions\expect( 'add_user_meta' )
+			->once()
+			->with( 1, $month_key, 500, true )
+			->andReturn( true );
+
+		NJ_Usage_Tracker::log_usage( 500 );
+		$this->addToAssertionCount( 1 );
 	}
 
 	public function test_check_limit_returns_false_when_exhausted(): void {

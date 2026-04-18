@@ -42,9 +42,13 @@ class Plugin {
 		add_action( 'init', [ $this, 'load_textdomain' ] );
 		add_action( 'admin_menu', [ $this, 'register_admin_menu' ] );
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
+		add_action( 'wp_ai_mind_trial_check', [ \WP_AI_Mind\Tiers\NJ_Tier_Manager::class, 'maybe_demote_expired_trials' ] );
 		add_action( 'wp_ai_mind_register_menu', [ \WP_AI_Mind\Admin\AdminMenu::class, 'register' ] );
 		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\OnboardingRestController::class, 'register_routes' ] );
 		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\TestKeyRestController::class, 'register_routes' ] );
+		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Payments\NJ_LemonSqueezy_Webhook::class, 'register_routes' ] );
+		\WP_AI_Mind\Admin\NJ_Tier_Status_Page::register_hooks();
+		\WP_AI_Mind\Admin\NJ_Api_Key_Settings::register_hooks();
 		\WP_AI_Mind\Admin\ActivationNotice::register();
 		if ( $this->modules->is_enabled( 'chat' ) ) {
 			add_action( 'plugins_loaded', [ \WP_AI_Mind\Modules\Chat\ChatModule::class, 'register' ], 20 );
@@ -86,12 +90,15 @@ class Plugin {
 
 	public static function activate(): void {
 		Schema::create_tables();
-		// Set activation flag for onboarding redirect.
 		update_option( 'wp_ai_mind_just_activated', true );
+		if ( ! wp_next_scheduled( 'wp_ai_mind_trial_check' ) ) {
+			wp_schedule_event( time(), 'daily', 'wp_ai_mind_trial_check' );
+		}
 		flush_rewrite_rules();
 	}
 
 	public static function deactivate(): void {
+		wp_clear_scheduled_hook( 'wp_ai_mind_trial_check' );
 		flush_rewrite_rules();
 	}
 

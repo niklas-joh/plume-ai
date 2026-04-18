@@ -4,6 +4,8 @@ declare( strict_types=1 );
 
 namespace WP_AI_Mind\Admin;
 
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+
 /**
  * Renders the WP AI Mind post-generator admin page.
  *
@@ -40,7 +42,7 @@ class GeneratorPage {
 				'nonce'         => \wp_create_nonce( 'wp_rest' ),
 				'restUrl'       => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
 				'currentPostId' => 0,
-				'isPro'         => \nj_can_user( 'chat' ),
+				'isPro'         => NJ_Tier_Manager::user_can( 'chat' ),
 				'siteTitle'     => \get_bloginfo( 'name' ),
 			]
 		);

@@ -4,7 +4,8 @@ declare( strict_types=1 );
 
 namespace WP_AI_Mind\Modules\Usage;
 
-use WP_AI_Mind\DB\Schema;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 
 /**
  * Registers the Usage admin page assets and REST endpoint.
@@ -44,7 +45,7 @@ class UsageModule {
 				'nonce'         => \wp_create_nonce( 'wp_rest' ),
 				'restUrl'       => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
 				'currentPostId' => 0,
-				'isPro'         => \nj_can_user( 'chat' ),
+				'isPro'         => NJ_Tier_Manager::user_can( 'chat' ),
 				'siteTitle'     => \get_bloginfo( 'name' ),
 			]
 		);
@@ -70,61 +71,15 @@ class UsageModule {
 	}
 
 	public static function get_usage( \WP_REST_Request $request ): \WP_REST_Response { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by WP_REST_Server callback signature.
-		global $wpdb;
-
-		$table = Schema::table( 'usage_log' );
-
-		// Total tokens + cost per provider (last 30 days).
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT provider, feature,
-			        SUM(tokens_used)  AS tokens,
-			        SUM(cost_usd)     AS cost,
-			        COUNT(*)          AS requests
-			 FROM   {$table}
-			 WHERE  created_at >= DATE_SUB(NOW(), INTERVAL %d DAY)
-			 GROUP  BY provider, feature
-			 ORDER  BY cost DESC",
-				30
-			),
-			ARRAY_A
-		);
-
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-		// Daily totals for the sparkline (last 30 days).
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$daily = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT DATE(created_at) AS day,
-			        SUM(tokens_used) AS tokens,
-			        SUM(cost_usd)    AS cost
-			 FROM   {$table}
-			 WHERE  created_at >= DATE_SUB(NOW(), INTERVAL %d DAY)
-			 GROUP  BY DATE(created_at)
-			 ORDER  BY day ASC",
-				30
-			),
-			ARRAY_A
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-		$rows_data    = ! empty( $rows ) ? $rows : [];
-		$daily_data   = ! empty( $daily ) ? $daily : [];
-		$total_tokens = array_sum( array_column( $rows_data, 'tokens' ) );
-		$total_cost   = array_sum( array_column( $rows_data, 'cost' ) );
+		$usage = NJ_Usage_Tracker::get_usage();
 
 		return new \WP_REST_Response(
 			[
-				'breakdown'   => $rows_data,
-				'daily'       => $daily_data,
-				'totals'      => [
-					'tokens'   => (int) $total_tokens,
-					'cost_usd' => round( (float) $total_cost, 4 ),
-					'requests' => array_sum( array_column( $rows_data, 'requests' ) ),
-				],
-				'period_days' => 30,
+				'tier'      => $usage['tier'],
+				'used'      => $usage['used'],
+				'limit'     => $usage['limit'],
+				'remaining' => $usage['remaining'],
+				'can_use'   => $usage['can_use'],
 			]
 		);
 	}

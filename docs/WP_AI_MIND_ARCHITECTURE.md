@@ -55,25 +55,31 @@ Pro BYOK users retain the capability to configure their own API keys — see tie
 
 ---
 
-## Three-Tier System Design
+## Four-Tier System Design
 
 ### Tier 1: Free (Plugin API Key, Rate Limited)
-- **Monthly limit:** 50,000 tokens
+- **Monthly limit:** 50,000 tokens (after trial expires)
 - **Model:** Claude Haiku only
 - **API routing:** Through minimal Cloudflare proxy (protects your API key)
 - **User setup:** Zero configuration required
 
-### Tier 2: Pro Managed (Plugin API Key, Higher Limits)
+### Tier 2: Trial (Plugin API Key, Time-Limited)
+- **Monthly limit:** 300,000 tokens (7-day window, then demoted to Free)
+- **Model:** Claude Haiku only
+- **API routing:** Through minimal Cloudflare proxy
+- **User setup:** Zero configuration required; automatic via `NJ_Tier_Manager::start_trial()`
+
+### Tier 3: Pro Managed (Plugin API Key, Higher Limits)
 - **Monthly limit:** 2,000,000 tokens
 - **Models:** Claude Haiku, Sonnet, Opus (user choice)
 - **API routing:** Through minimal Cloudflare proxy (protects your API key)
 - **User setup:** Payment via LemonSqueezy, no API key needed
 
-### Tier 3: Pro BYOK (User's API Key, Unlimited)
+### Tier 4: Pro BYOK (User's API Key, Unlimited)
 - **Monthly limit:** None (user pays their own API costs)
 - **Models:** Any model their key supports
 - **API routing:** Direct from WordPress to provider (bypass proxy entirely)
-- **User setup:** User provides their own API key, stored encrypted in WordPress
+- **User setup:** Payment + API keys stored encrypted per provider in user meta
 
 ---
 
@@ -86,102 +92,64 @@ No external auth system needed. Use WordPress's existing user system:
 **User tier storage:**
 ```php
 // Stored as user meta
-wp_ai_mind_tier          // 'free', 'pro_managed', 'pro_byok'
-wp_ai_mind_tier_expires  // For trial periods
-wp_ai_mind_monthly_usage // Current month token usage
-wp_ai_mind_usage_reset   // Timestamp of last reset
+wp_ai_mind_tier               // 'free', 'trial', 'pro_managed', 'pro_byok'
+wp_ai_mind_trial_started      // Unix timestamp when trial began (trial tier only)
+wp_ai_mind_usage_YYYY_MM      // Monthly token count (e.g. wp_ai_mind_usage_2026_04)
 ```
 
-**For Pro BYOK users:**
+**For Pro BYOK users — per-provider API keys:**
 ```php
-wp_ai_mind_api_keys      // JSON object with encrypted provider keys
+wp_ai_mind_api_key_claude     // AES-256-CBC encrypted Anthropic key
+wp_ai_mind_api_key_openai     // AES-256-CBC encrypted OpenAI key
+wp_ai_mind_api_key_gemini     // AES-256-CBC encrypted Gemini key
 ```
 
-**Tier checking:**
+**Tier checking — use class methods directly (no global helpers):**
 ```php
-function nj_get_user_tier( $user_id = null ): string {
-    $user_id = $user_id ?: get_current_user_id();
-    return get_user_meta( $user_id, 'wp_ai_mind_tier', true ) ?: 'free';
-}
+// Single source of truth for feature matrix and limits:
+NJ_Tier_Config::get_feature( string $tier, string $feature ): bool
+NJ_Tier_Config::get_limit( string $tier ): ?int
 
-function nj_can_user( string $feature, $user_id = null ): bool {
-    $tier = nj_get_user_tier( $user_id );
-    return match([$tier, $feature]) {
-        ['free', 'chat'] => true,
-        ['free', 'model_selection'] => false,
-        ['pro_managed', 'chat'] => true,
-        ['pro_managed', 'model_selection'] => true,
-        ['pro_byok', 'chat'] => true,
-        ['pro_byok', 'model_selection'] => true,
-        ['pro_byok', 'unlimited'] => true,
-        default => false,
-    };
-}
+// Tier CRUD + trial logic:
+NJ_Tier_Manager::get_user_tier( ?int $user_id = null ): string
+NJ_Tier_Manager::user_can( string $feature, ?int $user_id = null ): bool
 ```
 
 ---
 
 ## Rate Limiting System
 
-### WordPress-Native Rate Limiting
+### Enforcement Authority
 
-Rate limits enforced in WordPress using user meta + transients:
+| Tier | Enforcement | Display |
+|------|-------------|---------|
+| Free / Trial / Pro Managed | **Cloudflare KV** (proxy checks before forwarding) | WordPress user meta (updated from proxy response) |
+| Pro BYOK | None (user pays own costs) | WordPress user meta |
+
+Cloudflare KV is the single enforcement point for proxy-routed tiers. WordPress user meta is updated after each proxied response for dashboard display only — it is not used for enforcement. This eliminates dual-counting and divergence.
+
+**Known limitation:** Cloudflare KV has no atomic increment. Concurrent requests may under-count usage by the concurrency factor. For monthly rate limiting at these volumes this is acceptable; worst-case overshoot is bounded by request concurrency and is negligible.
+
+### Usage Tracking API
 
 ```php
-function nj_check_user_usage( $user_id = null ): array {
-    $user_id = $user_id ?: get_current_user_id();
-    $tier = nj_get_user_tier( $user_id );
-
-    // Get monthly limits
-    $limits = [
-        'free' => 50000,
-        'pro_managed' => 2000000,
-        'pro_byok' => null, // unlimited
-    ];
-
-    $monthly_limit = $limits[$tier];
-
-    if ($monthly_limit === null) {
-        return ['unlimited' => true];
-    }
-
-    // Check current usage
-    $usage_key = 'wp_ai_mind_usage_' . date('Y_m');
-    $current_usage = (int) get_user_meta( $user_id, $usage_key, true );
-
-    return [
-        'tier' => $tier,
-        'used' => $current_usage,
-        'limit' => $monthly_limit,
-        'remaining' => max(0, $monthly_limit - $current_usage),
-        'can_use' => $current_usage < $monthly_limit,
-    ];
-}
-
-function nj_log_usage( int $tokens, $user_id = null ): void {
-    $user_id = $user_id ?: get_current_user_id();
-    $usage_key = 'wp_ai_mind_usage_' . date('Y_m');
-
-    $current = (int) get_user_meta( $user_id, $usage_key, true );
-    update_user_meta( $user_id, $usage_key, $current + $tokens );
-}
+// Implemented in NJ_Usage_Tracker — atomic SQL increment, no race condition in WP:
+NJ_Usage_Tracker::get_usage( ?int $user_id = null ): array
+NJ_Usage_Tracker::log_usage( int $tokens, ?int $user_id = null ): void
+NJ_Usage_Tracker::check_limit( ?int $user_id = null ): bool
 ```
+
+Token limits are defined once in `NJ_Tier_Config::MONTHLY_LIMITS` — not in the proxy.
 
 ### Plan Definitions
 
-| Feature | Free | Pro Managed | Pro BYOK |
-|---|---|---|---|
-| Monthly token budget | 50,000 | 2,000,000 | Unlimited |
-| Model selection | Claude Haiku only | Haiku/Sonnet/Opus | Any (user's key) |
-| API routing | Through proxy | Through proxy | Direct to provider |
-| Setup required | None | Payment only | Payment + API key |
-| Your cost | ~$0.05/user/month | ~$0.50/user/month | $0 |
-
-**Design rationale:**
-- Free tier is generous enough for casual users but has ceiling for power users
-- Pro Managed removes friction (no API key setup) while generating revenue
-- Pro BYOK serves power users who want control and don't mind complexity
-- Proxy protects your API keys for tiers 1&2, direct routing eliminates your costs for tier 3
+| Feature | Free | Trial | Pro Managed | Pro BYOK |
+|---|---|---|---|---|
+| Monthly token budget | 50,000 | 300,000 (7 days) | 2,000,000 | Unlimited |
+| Model selection | Haiku only | Haiku only | Haiku/Sonnet/Opus | Any |
+| API routing | Through proxy | Through proxy | Through proxy | Direct to provider |
+| Setup required | None | None (auto) | Payment only | Payment + API key |
+| Your cost | ~$0.05/user/month | ~$0.15/user | ~$0.50/user/month | $0 |
 
 ---
 
@@ -352,24 +320,46 @@ The plugin's responsibility: full user management, payments, rate limiting, UI, 
 wp-ai-mind/
 └── includes/
     ├── Tiers/
-    │   ├── class-nj-tier-manager.php    # Tier checking and management
-    │   └── class-nj-usage-tracker.php   # Rate limiting and usage logging
+    │   ├── NJ_Tier_Config.php           # Constants: TIERS, FEATURES, MONTHLY_LIMITS (no WP calls)
+    │   ├── NJ_Tier_Manager.php          # Tier CRUD + trial start/demote logic
+    │   └── NJ_Usage_Tracker.php         # Monthly token counting (atomic SQL)
     ├── Payments/
-    │   └── class-nj-lemonsqueezy.php    # LemonSqueezy webhook handling
+    │   ├── NJ_Webhook_Verifier.php      # HMAC signature verification only
+    │   └── NJ_LemonSqueezy_Webhook.php  # REST handler → delegates to NJ_Tier_Manager
     ├── Proxy/
-    │   └── class-nj-proxy-client.php    # Signed requests to minimal proxy
+    │   ├── NJ_Request_Signer.php        # HMAC signing of outbound requests (Phase 2)
+    │   ├── NJ_Proxy_Client.php          # HTTP send to proxy (Free/Trial/Pro Managed) (Phase 2)
+    │   └── NJ_Direct_Client.php         # Direct provider call (Pro BYOK) (Phase 2)
     └── Admin/
-        ├── class-nj-tier-settings.php   # Tier management UI
-        └── class-nj-usage-widget.php    # Dashboard usage meter UI
+        ├── NJ_Tier_Status_Page.php      # Read-only: tier + usage meter
+        └── NJ_Api_Key_Settings.php      # Pro BYOK API key form (saves via REST, not options.php)
 ```
 
-**Classes to remove or gut:**
+**Classes to remove:**
 
 ```
-ProGate              → delete entirely (replace with nj_get_user_tier())
-UsageLogger          → replace with WordPress-native logging
-FreemiusProvider     → delete (entire Freemius integration)
-[Provider]ApiKey     → retain for Pro BYOK users only
+ProGate       → already replaced with NJ_Tier_Manager (call sites updated in Phase 1)
+UsageLogger   → deleted; NJ_Usage_Tracker::log_usage() handles token counting
+```
+
+**Proxy URL storage (Phase 2):** Use a PHP constant in wp-config.php with a wp_options fallback:
+```php
+// wp-config.php (server-level, takes priority):
+define( 'WP_AI_MIND_PROXY_URL', 'https://wp-ai-mind-proxy.your-account.workers.dev' );
+
+// In NJ_Proxy_Client — reads at runtime:
+private static function get_proxy_url(): string {
+    return defined( 'WP_AI_MIND_PROXY_URL' )
+        ? WP_AI_MIND_PROXY_URL
+        : (string) get_option( 'wp_ai_mind_proxy_url', '' );
+}
+```
+
+**Per-provider API key meta keys (Pro BYOK):**
+```
+wp_ai_mind_api_key_claude    // AES-256-CBC encrypted with AUTH_KEY
+wp_ai_mind_api_key_openai
+wp_ai_mind_api_key_gemini
 ```
 
 ### `class-nj-tier-manager.php` (WordPress-Native)
@@ -647,7 +637,7 @@ class NJ_LemonSqueezy_Webhook {
 | User Management | WordPress users + meta | External D1 database + JWT | WordPress-native, familiar to developers |
 | Authentication | WordPress sessions | External JWT system | Follows plugin conventions |
 | Payment Processing | LemonSqueezy → WordPress | LemonSqueezy → Cloudflare Worker | Simpler integration, no external dependency |
-| Rate Limiting | WordPress user meta | Cloudflare KV | Good enough accuracy, simpler deployment |
+| Rate Limiting | Cloudflare KV (enforcement) + WP meta (display) | Cloudflare KV only | KV enforces at edge; WP meta serves dashboard without extra queries |
 | API Key Protection | Minimal proxy (200 lines) | Full microservices (1000+ lines) | 80% simpler, same security benefits |
 | Development Complexity | 3 phases, WordPress-first | 7 phases, microservices-first | 70% reduction in scope |
 | Plugin Distribution | Standard WordPress plugin | Requires external setup | Better for WordPress ecosystem |
@@ -657,14 +647,13 @@ class NJ_LemonSqueezy_Webhook {
 **Projected shared key cost (Claude Haiku):** ~$0.05/user/month for free tier, ~$0.50/user/month for pro managed tier.
 
 **Cost control layers:**
-1. **WordPress**: Rate limiting before proxy requests
-2. **Proxy**: Double-check rate limits at edge
-3. **Anthropic Console**: Hard monthly spend cap as circuit breaker
+1. **Proxy (Cloudflare KV)**: Single enforcement point before forwarding to Anthropic
+2. **Anthropic Console**: Hard monthly spend cap as circuit breaker
 
 ### Migration Path
 
-**Phase 1**: WordPress foundation (can work standalone with Pro BYOK only)
-**Phase 2**: Add minimal proxy (enables Free/Pro Managed tiers)
+**Phase 1**: WordPress foundation (can work standalone with Pro BYOK only; includes Trial tier)
+**Phase 2**: Add minimal proxy (enables Free/Trial/Pro Managed tiers; KV enforcement)
 **Phase 3**: Polish integration and remove legacy code
 
 This approach gives you **80% of the benefits** of the full microservices approach with **30% of the complexity**.

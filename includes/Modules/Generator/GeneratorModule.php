@@ -3,6 +3,9 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Modules\Generator;
 
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+
 class GeneratorModule {
 
 	public static function register(): void {
@@ -39,7 +42,7 @@ class GeneratorModule {
 				'nonce'         => \wp_create_nonce( 'wp_rest' ),
 				'restUrl'       => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
 				'currentPostId' => 0,
-				'isPro'         => \nj_can_user( 'chat' ),
+				'isPro'         => NJ_Tier_Manager::user_can( 'chat' ),
 				'siteTitle'     => \get_bloginfo( 'name' ),
 			]
 		);
@@ -52,7 +55,7 @@ class GeneratorModule {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_generate' ],
-				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && \nj_can_user( 'chat' ) && \nj_check_usage_limit(),
+				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && NJ_Tier_Manager::user_can( 'chat' ) && NJ_Usage_Tracker::check_limit(),
 				'args'                => [
 					'title'    => [
 						'type'              => 'string',
@@ -127,8 +130,8 @@ class GeneratorModule {
 			);
 
 			$response = $provider->complete( $req );
-			\nj_log_usage( $response->total_tokens );
-			$content  = $response->content;
+			NJ_Usage_Tracker::log_usage( $response->total_tokens );
+			$content = $response->content;
 
 			// Create a draft post
 			$post_id = \wp_insert_post(

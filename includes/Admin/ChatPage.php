@@ -5,6 +5,7 @@ namespace WP_AI_Mind\Admin;
 
 use WP_AI_Mind\Providers\ProviderFactory;
 use WP_AI_Mind\Settings\ProviderSettings;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
 class ChatPage {
 
@@ -49,7 +50,7 @@ class ChatPage {
 				'nonce'             => wp_create_nonce( 'wp_rest' ),
 				'restUrl'           => esc_url_raw( rest_url( 'wp-ai-mind/v1' ) ),
 				'currentPostId'     => 0,
-				'isPro'             => \nj_can_user( 'chat' ),
+				'isPro'             => NJ_Tier_Manager::user_can( 'chat' ),
 				'siteTitle'         => get_bloginfo( 'name' ),
 				'defaultModelLabel' => esc_html( $default_model_label ),
 			]

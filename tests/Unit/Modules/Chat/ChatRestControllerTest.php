@@ -264,6 +264,64 @@ class ChatRestControllerTest extends TestCase {
         $this->assertInstanceOf( \WP_Error::class, $result );
     }
 
+    // ── check_ai_permission ────────────────────────────────────────────────────
+
+    public function test_check_ai_permission_returns_403_without_edit_posts(): void {
+        Functions\when( 'current_user_can' )->justReturn( false );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+        $controller = new ChatRestController( $this->tool_registry, $this->tool_executor );
+
+        $result = $controller->check_ai_permission();
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rest_forbidden', $result->code );
+    }
+
+    public function test_check_ai_permission_returns_rate_limit_error_when_usage_exceeded(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+
+        $month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_user_meta' )->alias(
+            function( $user_id, $key, $single ) use ( $month_key ) {
+                if ( 'wp_ai_mind_tier' === $key ) {
+                    return 'free';
+                }
+                if ( $month_key === $key ) {
+                    return '60000'; // over 50k free limit
+                }
+                return '';
+            }
+        );
+
+        $controller = new ChatRestController( $this->tool_registry, $this->tool_executor );
+        $result     = $controller->check_ai_permission();
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rest_rate_limit', $result->code );
+    }
+
+    public function test_check_ai_permission_returns_true_when_all_checks_pass(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_user_meta' )->alias(
+            function( $user_id, $key, $single ) use ( $month_key ) {
+                if ( 'wp_ai_mind_tier' === $key ) {
+                    return 'pro_byok';
+                }
+                if ( $month_key === $key ) {
+                    return '0';
+                }
+                return '';
+            }
+        );
+
+        $controller = new ChatRestController( $this->tool_registry, $this->tool_executor );
+        $this->assertTrue( $controller->check_ai_permission() );
+    }
+
     // ── Ownership guard ────────────────────────────────────────────────────────
 
     public function test_send_message_returns_403_when_conversation_not_owned(): void {

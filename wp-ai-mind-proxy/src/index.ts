@@ -16,8 +16,15 @@ export default {
 	},
 };
 
+const MAX_BODY_BYTES = 1_048_576; // 1 MB — guards against oversized message arrays
+
 async function handleChatProxy( request: Request, env: Env ): Promise<Response> {
 	try {
+		const contentLength = parseInt( request.headers.get( 'Content-Length' ) ?? '0', 10 );
+		if ( contentLength > MAX_BODY_BYTES ) {
+			return jsonResponse( { error: 'Request body too large' }, 413 );
+		}
+
 		// Read raw body before parsing — signature covers the exact bytes WordPress sent.
 		const bodyText = await request.text();
 		const signature = request.headers.get( 'X-WP-Signature' ) ?? '';

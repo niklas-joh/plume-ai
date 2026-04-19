@@ -28,6 +28,9 @@ export async function verifySignature(
 }
 
 function hexToBytes( hex: string ): Uint8Array {
+	if ( hex.length % 2 !== 0 || ! /^[0-9a-f]+$/i.test( hex ) ) {
+		return new Uint8Array( 0 ); // crypto.subtle.verify will return false safely
+	}
 	const out = new Uint8Array( hex.length / 2 );
 	for ( let i = 0; i < hex.length; i += 2 ) {
 		out[ i / 2 ] = parseInt( hex.slice( i, i + 2 ), 16 );

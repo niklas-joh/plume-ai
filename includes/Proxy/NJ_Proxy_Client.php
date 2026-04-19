@@ -98,8 +98,8 @@ class NJ_Proxy_Client {
 		if ( ! defined( 'WP_AI_MIND_PROXY_SECRET' ) || '' === WP_AI_MIND_PROXY_SECRET ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log( '[WP AI Mind] WP_AI_MIND_PROXY_SECRET is not defined in wp-config.php' );
+			return ''; // Worker will reject the request with 401 — misconfiguration is visible in logs.
 		}
-		$secret = defined( 'WP_AI_MIND_PROXY_SECRET' ) ? WP_AI_MIND_PROXY_SECRET : '';
-		return hash_hmac( 'sha256', $body, $secret );
+		return hash_hmac( 'sha256', $body, WP_AI_MIND_PROXY_SECRET );
 	}
 }

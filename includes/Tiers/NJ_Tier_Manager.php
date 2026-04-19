@@ -77,7 +77,8 @@ class NJ_Tier_Manager {
 					self::set_user_tier( 'free', (int) $user_id );
 				}
 			}
-			$offset += $batch_size;
-		} while ( count( $users ) === $batch_size );
+			$offset   += $batch_size;
+			$batch_len = count( $users );
+		} while ( $batch_len === $batch_size );
 	}
 }

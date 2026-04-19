@@ -39,7 +39,7 @@ export default function UsageDashboard() {
 		);
 	}
 
-	const { tier, used, limit, remaining, can_use } = data;
+	const { tier, used, limit, remaining, canUse: canUse } = data;
 
 	const hasLimit = limit !== null && limit !== undefined;
 	const usedPct = hasLimit ? Math.min( 100, ( used / limit ) * 100 ) : 0;
@@ -60,9 +60,7 @@ export default function UsageDashboard() {
 					/>{ ' ' }
 					Usage
 				</h1>
-				<span className="wpaim-usage__period">
-					Tier: { tier }
-				</span>
+				<span className="wpaim-usage__period">Tier: { tier }</span>
 			</div>
 
 			<div className="wpaim-usage__stats">
@@ -88,9 +86,7 @@ export default function UsageDashboard() {
 						} }
 					/>
 					<div className="wpaim-usage__stat-value">
-						{ hasLimit
-							? remaining.toLocaleString()
-							: '∞' }
+						{ hasLimit ? remaining.toLocaleString() : '∞' }
 					</div>
 					<div className="wpaim-usage__stat-label">Remaining</div>
 				</div>
@@ -125,16 +121,17 @@ export default function UsageDashboard() {
 							style={ {
 								width: `${ usedPct }%`,
 								height: '100%',
-								background: can_use
+								background: canUse
 									? 'var(--wp-admin-theme-color)'
 									: '#d63638',
 								transition: 'width 0.3s ease',
 							} }
 						/>
 					</div>
-					{ ! can_use && (
+					{ ! canUse && (
 						<p style={ { color: '#d63638', margin: 0 } }>
-							Monthly limit reached. Upgrade your plan to continue.
+							Monthly limit reached. Upgrade your plan to
+							continue.
 						</p>
 					) }
 				</div>

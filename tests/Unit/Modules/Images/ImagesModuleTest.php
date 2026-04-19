@@ -77,10 +77,10 @@ class ImagesModuleTest extends TestCase {
 		Functions\when( 'get_user_meta' )->alias(
 			function( $user_id, $key, $single ) use ( $month_key ) {
 				if ( 'wp_ai_mind_tier' === $key ) {
-					return 'free';
+					return 'pro_byok';
 				}
 				if ( $month_key === $key ) {
-					return '0'; // well under 50k limit
+					return '0'; // well under limit (unlimited for pro_byok)
 				}
 				return '';
 			}

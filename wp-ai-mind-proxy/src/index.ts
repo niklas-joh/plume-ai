@@ -47,6 +47,10 @@ async function handleChatProxy( request: Request, env: Env ): Promise<Response> 
 		// Enforce model selection per tier regardless of what WordPress requested.
 		const selectedModel = getModelForTier( tier, model );
 
+		// Clamp max_tokens to a per-tier ceiling so a large client-supplied value
+		// cannot consume far more tokens than the per-response default allows.
+		const resolvedMaxTokens = Math.min( max_tokens ?? MAX_TOKENS[ tier ], MAX_TOKENS[ tier ] );
+
 		const anthropicResponse = await fetch( 'https://api.anthropic.com/v1/messages', {
 			method: 'POST',
 			headers: {
@@ -56,7 +60,7 @@ async function handleChatProxy( request: Request, env: Env ): Promise<Response> 
 			},
 			body: JSON.stringify( {
 				model: selectedModel,
-				max_tokens: max_tokens ?? ( tier === 'free' ? 1000 : 4000 ),
+				max_tokens: resolvedMaxTokens,
 				messages,
 			} ),
 		} );
@@ -79,6 +83,13 @@ async function handleChatProxy( request: Request, env: Env ): Promise<Response> 
 		return jsonResponse( { error: 'Internal proxy error' }, 500 );
 	}
 }
+
+// Per-tier ceiling for max_tokens forwarded to Anthropic.
+const MAX_TOKENS: Record<ProxyTier, number> = {
+	free:        1000,
+	trial:       2000,
+	pro_managed: 8000,
+};
 
 // Mirrors NJ_Tier_Config::MONTHLY_LIMITS (PHP). Keep in sync.
 const MONTHLY_LIMITS: Record<ProxyTier, number> = {

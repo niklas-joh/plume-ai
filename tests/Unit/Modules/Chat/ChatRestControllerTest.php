@@ -276,6 +276,30 @@ class ChatRestControllerTest extends TestCase {
         $this->assertSame( 'rest_forbidden', $result->code );
     }
 
+    public function test_check_ai_permission_returns_plan_required_error_when_user_cannot_chat(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+
+        // Return a tier slug not present in NJ_Tier_Config::FEATURES so that
+        // NJ_Tier_Config::get_feature() falls through to its ?? false default,
+        // making NJ_Tier_Manager::user_can('chat') return false.
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_user_meta' )->alias(
+            function( $user_id, $key, $single ) {
+                if ( 'wp_ai_mind_tier' === $key ) {
+                    return 'restricted'; // not a defined tier → chat feature defaults to false
+                }
+                return '';
+            }
+        );
+
+        $controller = new ChatRestController( $this->tool_registry, $this->tool_executor );
+        $result     = $controller->check_ai_permission();
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rest_plan_required', $result->code );
+    }
+
     public function test_check_ai_permission_returns_rate_limit_error_when_usage_exceeded(): void {
         Functions\when( 'current_user_can' )->justReturn( true );
         Functions\when( '__' )->alias( fn( $s ) => $s );

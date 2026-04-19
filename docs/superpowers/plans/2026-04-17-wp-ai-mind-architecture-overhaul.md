@@ -250,8 +250,6 @@ Adds brute-force rate limiting on auth endpoints, real SSE streaming via `Transf
 
 ---
 
----
-
 ## Code Reuse Policy
 
 This applies to **every phase**. Agentic workers must follow this policy before and after implementation.

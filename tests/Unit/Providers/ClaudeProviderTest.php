@@ -24,6 +24,8 @@ class ClaudeProviderTest extends TestCase {
 			public function query( string $sql ): int { return 1; }
 		};
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		// Return 'pro_byok' so routing goes direct — preserving existing test behaviour.
+		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
 		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
 	}
@@ -67,6 +69,10 @@ class ClaudeProviderTest extends TestCase {
 	}
 
 	public function test_complete_throws_on_api_error(): void {
+		// Stub tier resolution so routing goes direct (pro_byok path).
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
+
 		Functions\when( 'wp_remote_post' )->justReturn( [
 			'response' => [ 'code' => 401 ],
 			'body'     => json_encode( [ 'error' => [ 'message' => 'Unauthorised' ] ] ),
@@ -136,6 +142,73 @@ class ClaudeProviderTest extends TestCase {
 
 		$this->assertFalse( $response->is_tool_call() );
 		$this->assertNull( $response->tool_call );
+	}
+
+	public function test_complete_routes_free_tier_to_proxy_returns_error_when_not_registered(): void {
+		// Mock get_current_user_id — called by NJ_Tier_Manager::get_user_tier() and NJ_Proxy_Client::chat().
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		// Mock get_user_meta to return 'free' tier (called by NJ_Tier_Manager::get_user_tier()).
+		Functions\when( 'get_user_meta' )
+			->justReturn( 'free' );
+
+		// Mock get_option to return empty token (site not registered — called by NJ_Site_Registration::get_site_token()).
+		Functions\when( 'get_option' )
+			->justReturn( '' );
+
+		// is_wp_error must return true when passed the WP_Error returned by NJ_Proxy_Client::chat().
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+
+		// Stub translation functions used inside NJ_Proxy_Client::chat().
+		Functions\stubs( [ '__' => fn( $str ) => $str ] );
+
+		$provider = new ClaudeProvider( 'test-api-key' );
+		$request  = new CompletionRequest(
+			messages: [ [ 'role' => 'user', 'content' => 'Hi' ] ],
+			max_tokens: 100,
+		);
+
+		// For a free-tier user, do_complete() routes through NJ_Proxy_Client.
+		// NJ_Proxy_Client::chat() returns WP_Error('not_registered') when site token is missing.
+		// ClaudeProvider converts this WP_Error to a ProviderException.
+		$this->expectException( ProviderException::class );
+		$provider->complete( $request );
+	}
+
+	public function test_complete_routes_pro_byok_direct_not_via_proxy(): void {
+		// Mock get_current_user_id — called by NJ_Tier_Manager::get_user_tier().
+		Functions\when( 'get_current_user_id' )->justReturn( 2 );
+
+		// Mock get_user_meta to return 'pro_byok' tier.
+		Functions\when( 'get_user_meta' )
+			->justReturn( 'pro_byok' );
+
+		// pro_byok users route to parent::do_complete() which calls wp_remote_post directly.
+		// Stub wp_remote_post to return a valid response.
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content' => [ [ 'type' => 'text', 'text' => 'Direct API response' ] ],
+				'model'   => 'claude-sonnet-4-6',
+				'usage'   => [ 'input_tokens' => 10, 'output_tokens' => 5 ],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		$this->mock_wpdb();
+
+		$provider = new ClaudeProvider( 'sk-ant-byok-key' );
+		$request  = new CompletionRequest(
+			messages: [ [ 'role' => 'user', 'content' => 'Hi' ] ],
+			max_tokens: 100,
+		);
+
+		$response = $provider->complete( $request );
+
+		// Verify it returned a direct API result (not a proxy result).
+		$this->assertSame( 'Direct API response', $response->content );
 	}
 
 	public function test_tools_injected_in_request_body(): void {

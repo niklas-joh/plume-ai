@@ -398,9 +398,11 @@ class ChatRestController {
 		if ( ! current_user_can( 'edit_posts' ) ) {
 			return new \WP_Error( 'rest_forbidden', __( 'Insufficient permissions.', 'wp-ai-mind' ), [ 'status' => 403 ] );
 		}
+		// Phase 2 stub: all tiers currently have chat:true in NJ_Tier_Config::FEATURES,
+		// so this guard never fires yet. It becomes active once a tier sets chat:false
+		// or a dedicated proxy-gated feature flag is introduced.
 		if ( ! NJ_Tier_Manager::user_can( 'chat' ) ) {
-			// Phase 2 adds proxy routing; until then only pro_byok users are fully functional.
-			return new \WP_Error( 'rest_forbidden', __( 'Chat is not available on your current plan.', 'wp-ai-mind' ), [ 'status' => 403 ] );
+			return new \WP_Error( 'rest_plan_required', __( 'Chat is not available on your current plan.', 'wp-ai-mind' ), [ 'status' => 403 ] );
 		}
 		if ( ! NJ_Usage_Tracker::check_limit() ) {
 			// WordPress enforces display-side; Cloudflare KV is the real enforcement from Phase 2 onwards.

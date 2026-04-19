@@ -68,9 +68,10 @@ async function handleChatProxy( request: Request, env: Env ): Promise<Response> 
 		const result = await anthropicResponse.json() as Record<string, unknown>;
 
 		// Update KV usage counter after a successful Anthropic response.
+		// Pass limitCheck.used to avoid a second KV read (prevents under-counting under concurrent load).
 		if ( anthropicResponse.ok && result.usage ) {
 			const usage = result.usage as { input_tokens: number; output_tokens: number };
-			await updateUsage( user_id, usage.input_tokens + usage.output_tokens, env );
+			await updateUsage( user_id, usage.input_tokens + usage.output_tokens, limitCheck.used, env );
 		}
 
 		return new Response( JSON.stringify( result ), {
@@ -109,10 +110,9 @@ async function checkRateLimit(
 	return { allowed: currentUsage < limit, used: currentUsage, limit };
 }
 
-async function updateUsage( userId: number, tokens: number, env: Env ): Promise<void> {
+async function updateUsage( userId: number, tokens: number, knownUsage: number, env: Env ): Promise<void> {
 	const monthKey = `usage:${ userId }:${ getCurrentMonth() }`;
-	const currentUsage = parseInt( ( await env.USAGE_KV.get( monthKey ) ) ?? '0', 10 );
-	await env.USAGE_KV.put( monthKey, String( currentUsage + tokens ), {
+	await env.USAGE_KV.put( monthKey, String( knownUsage + tokens ), {
 		expirationTtl: getSecondsUntilNextMonth(),
 	} );
 }

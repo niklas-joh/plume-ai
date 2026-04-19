@@ -94,9 +94,10 @@ jobs:
             Example command for a blocking issue (use this exact body format — the auto-fix
             workflow parses it to find the PR number and base branch):
 
+              # Use $'...' quoting so \n is interpreted as real newlines by bash (double quotes do not expand \n).
               ISSUE_URL=$(gh issue create \
                 --title "<concise title for the finding>" \
-                --body "Found during review of PR #${{ github.event.pull_request.number }}\n\n**PR:** ${{ github.event.pull_request.html_url }}\n**Base branch:** ${{ github.event.pull_request.base.ref }}\n\n## Description\n\n<details>" \
+                --body $'Found during review of PR #${{ github.event.pull_request.number }}\n\n**PR:** ${{ github.event.pull_request.html_url }}\n**Base branch:** ${{ github.event.pull_request.base.ref }}\n\n## Description\n\n<details>' \
                 --label "code-review,blocking" \
                 --repo ${{ github.repository }})
               ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')

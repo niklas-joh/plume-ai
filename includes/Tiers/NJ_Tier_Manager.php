@@ -72,12 +72,13 @@ class NJ_Tier_Manager {
 					'offset'     => $offset,
 				]
 			);
+			$found = count( $users );
 			foreach ( $users as $user_id ) {
 				if ( ! self::is_trial_active( (int) $user_id ) ) {
 					self::set_user_tier( 'free', (int) $user_id );
 				}
 			}
 			$offset += $batch_size;
-		} while ( count( $users ) === $batch_size );
+		} while ( $found === $batch_size );
 	}
 }

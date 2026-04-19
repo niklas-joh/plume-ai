@@ -77,7 +77,7 @@ class NJ_Proxy_Client {
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		$body = json_decode( wp_remote_retrieve_body( $response ), true ) ?? [];
 
-		if ( $code === 429 ) {
+		if ( 429 === $code ) {
 			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'wp-ai-mind' ) );
 		}
 

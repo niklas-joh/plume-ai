@@ -3,6 +3,10 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Providers;
 
+use WP_AI_Mind\Proxy\NJ_Proxy_Client;
+use WP_AI_Mind\Proxy\NJ_Site_Registration;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+
 class ClaudeProvider extends AbstractProvider {
 
 	private const API_BASE      = 'https://api.anthropic.com/v1';
@@ -31,6 +35,9 @@ class ClaudeProvider extends AbstractProvider {
 		],
 	];
 
+	/** Tracks whether the proxy handled logging so maybe_log() can skip double-logging. */
+	private bool $proxy_logged = false;
+
 	public function __construct( private readonly string $api_key ) {}
 
 	public function get_slug(): string {
@@ -40,12 +47,67 @@ class ClaudeProvider extends AbstractProvider {
 	public function get_default_model(): string {
 		return self::DEFAULT_MODEL; }
 	public function is_available(): bool {
-		return '' !== $this->api_key; }
+		if ( '' !== $this->api_key ) {
+			return true;
+		}
+		$tier = NJ_Tier_Manager::get_user_tier( get_current_user_id() );
+		return in_array( $tier, [ 'free', 'trial', 'pro_managed' ], true )
+			&& NJ_Site_Registration::is_registered();
+	}
 
+	/**
+	 * Route completion by tier:
+	 *   - free / trial / pro_managed → proxy (NJ_Proxy_Client handles usage logging)
+	 *   - pro_byok                   → direct Anthropic API call (AbstractProvider logs usage)
+	 */
 	protected function do_complete( CompletionRequest $request ): CompletionResponse {
-		$body = $this->build_body( $request );
-		$raw  = $this->post( '/messages', $body );
+		$tier = NJ_Tier_Manager::get_user_tier( get_current_user_id() );
+
+		if ( in_array( $tier, [ 'free', 'trial', 'pro_managed' ], true ) ) {
+			return $this->complete_via_proxy( $request );
+		}
+
+		// pro_byok — direct Anthropic API call; AbstractProvider::complete() will log usage.
+		$this->proxy_logged = false;
+		$body               = $this->build_body( $request );
+		$raw                = $this->post( '/messages', $body );
 		return $this->parse_response( $raw, $request );
+	}
+
+	/**
+	 * Suppress AbstractProvider usage logging when the proxy already logged it.
+	 *
+	 * @param CompletionRequest  $request
+	 * @param CompletionResponse $response
+	 */
+	protected function maybe_log( CompletionRequest $request, CompletionResponse $response ): void {
+		if ( $this->proxy_logged ) {
+			$this->proxy_logged = false; // Reset for re-use.
+			return;
+		}
+		parent::maybe_log( $request, $response );
+	}
+
+	private function complete_via_proxy( CompletionRequest $request ): CompletionResponse {
+		$result = NJ_Proxy_Client::chat(
+			$request->messages,
+			array_filter(
+				[
+					'model'      => ! empty( $request->model ) ? $request->model : null,
+					'max_tokens' => $request->max_tokens,
+					'system'     => '' !== $request->system ? $request->system : null,
+				],
+				fn( $v ) => null !== $v
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			throw new ProviderException( $result->get_error_message(), 'claude' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		// NJ_Proxy_Client::chat() already called NJ_Usage_Tracker::log_usage() — flag to suppress parent logging.
+		$this->proxy_logged = true;
+		return $this->parse_response( $result, $request );
 	}
 
 	protected function do_stream( CompletionRequest $request, callable $on_chunk ): CompletionResponse {
@@ -113,7 +175,7 @@ class ClaudeProvider extends AbstractProvider {
 		return $data;
 	}
 
-	private function parse_response( array $data, CompletionRequest $request ): CompletionResponse {
+	protected function parse_response( array $data, CompletionRequest $request ): CompletionResponse {
 		$model      = $data['model'] ?? ( ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL );
 		$in_tokens  = (int) ( $data['usage']['input_tokens'] ?? 0 );
 		$out_tokens = (int) ( $data['usage']['output_tokens'] ?? 0 );

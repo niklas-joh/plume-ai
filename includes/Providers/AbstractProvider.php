@@ -88,7 +88,7 @@ abstract class AbstractProvider implements ProviderInterface {
 
 	// ── Usage logging ─────────────────────────────────────────────────────────
 
-	private function maybe_log( CompletionRequest $request, CompletionResponse $response ): void {
+	protected function maybe_log( CompletionRequest $request, CompletionResponse $response ): void {
 		NJ_Usage_Tracker::log_usage( $response->total_tokens );
 	}
 }

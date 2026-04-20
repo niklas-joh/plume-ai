@@ -4,9 +4,13 @@ compatibility_date = "2025-01-01"
 
 [[kv_namespaces]]
 binding = "USAGE_KV"
-id = "REPLACE_AFTER_KV_CREATE"
-preview_id = "REPLACE_AFTER_KV_CREATE_PREVIEW"
+id = "71612d363b07408bb70eec49d5739b1c"
+preview_id = "38975852f1bc4c838da456ea9a21e789"
 
 # Secrets (set via CLI — never commit values):
 # wrangler secret put ANTHROPIC_API_KEY
-# wrangler secret put PROXY_SIGNATURE_SECRET   ← must match WP_AI_MIND_PROXY_SECRET in wp-config.php
+# wrangler secret put LS_WEBHOOK_SECRET            ← must match LemonSqueezy webhook signing secret
+# wrangler secret put LS_PRO_MONTHLY_VARIANT_ID    ← LemonSqueezy: Products → WP AI Mind Pro → Variants
+# wrangler secret put LS_PRO_ANNUAL_VARIANT_ID     ← LemonSqueezy: Products → WP AI Mind Pro → Variants
+# PROXY_SIGNATURE_SECRET is no longer used — can be deleted:
+# wrangler secret delete PROXY_SIGNATURE_SECRET

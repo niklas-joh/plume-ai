@@ -2,250 +2,205 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Complete integration of the three-tier system with full provider routing, remove all Freemius/ProGate legacy code, and polish the admin UI. All tiers work seamlessly with appropriate routing (proxy vs direct).
+**Goal:** Complete the user-facing product: admin UI with upgrade flows, Pro BYOK API key entry, usage meters, and an end-to-end smoke test. All back-end routing and auth was completed in Phase 2.1.
 
-**Architecture:** Final routing logic that directs Free/Pro Managed through proxy, Pro BYOK through direct provider calls. Complete removal of Freemius SDK. Polished admin UI with usage meters and upgrade flows.
+**Architecture:** `ClaudeProvider` already routes by tier (Phase 2.1). This phase adds the UI layer that connects users to the tier system — upgrade buttons via `NJ_Site_Registration::checkout_url()`, Pro BYOK key management, and usage visualisation. No new routing logic needed.
 
-**Tech Stack:** PHP 8.1+, WordPress plugin patterns, existing provider architecture
+**Tech Stack:** PHP 8.1+, WordPress plugin patterns, existing admin class structure
 
-**Depends on:** Phase 1 (WordPress foundation) + Phase 2 (Cloudflare proxy) both complete
+**Depends on:** Phase 2.1 merged (`feat/api-overhaul` → `main`)
 
 ---
 
-## Design Decisions
+## What Phase 2.1 Already Delivered (Do Not Re-implement)
 
-| Decision | Choice | Reason |
-|----------|--------|--------|
-| Routing Logic | Single `nj_resolve_provider()` function | Central decision point, easy to debug |
-| Legacy Removal | Complete Freemius removal | Clean codebase, no mixed patterns |
-| Provider Integration | Extend existing `ProviderInterface` | Maintain existing architecture patterns |
-| Admin UI | Enhance existing admin pages | WordPress-native, familiar UX |
-| Error Handling | Graceful degradation | Never break existing functionality |
+| Concern | Where It Lives |
+|---------|---------------|
+| Tier-based routing (proxy vs direct) | `ClaudeProvider::do_complete()` |
+| Site registration + token storage | `NJ_Site_Registration::maybe_register()` on `init` |
+| Bearer token auth | `NJ_Proxy_Client` → `Authorization: Bearer <token>` |
+| LemonSqueezy webhook tier upgrades | Cloudflare Worker `/webhook` |
+| Checkout URL with embedded site token | `NJ_Site_Registration::checkout_url(string $variant_id)` |
+| Rate limiting (authoritative) | Cloudflare KV |
+| Rate limiting (fail-fast) | `NJ_Usage_Tracker::check_limit()` in `NJ_Proxy_Client` |
+| ProGate / Freemius removal | Phase 1 |
+
+**Do NOT create a `ProxyProvider` class** — routing is already in `ClaudeProvider`. Do NOT add `nj_resolve_provider()` — the provider pattern is already wired.
+
+---
+
+## LemonSqueezy Variant IDs (for checkout URLs)
+
+| Product | Variant | ID |
+|---------|---------|-----|
+| Pro Managed | Monthly | `1550505` |
+| Pro Managed | Annual | `1550477` |
+| Pro BYOK | One-time | `1550517` |
+
+Use `NJ_Site_Registration::checkout_url('1550505')` to build upgrade links.
 
 ---
 
 ## Task 0: Pre-implementation Audit
 
-> **Mandatory.** Understand current state before final integration.
+- [ ] **Step 0.1: Check current admin file structure**
 
-- [ ] **Step 0.1: Verify Phase 1 & 2 completion**
 ```bash
-# Check WordPress tier system
-grep -n "nj_get_user_tier\|nj_can_user" wp-ai-mind.php
-
-# Check proxy client exists
-ls includes/Proxy/NJ_Proxy_Client.php
-
-# Confirm proxy is deployed
-curl -X POST "https://wp-ai-mind-proxy.YOUR-ACCOUNT.workers.dev/v1/chat"
+ls includes/Admin/
 ```
 
-- [ ] **Step 0.2: Audit existing provider architecture**
+- [ ] **Step 0.2: Verify Phase 2.1 is merged**
+
 ```bash
-ls includes/Providers/
-grep -rn "ProviderInterface" includes/Providers/ --include="*.php"
-# Understand how to integrate proxy as a new provider
+git log --oneline main | head -5
+# Confirm feat/phase-2.1-licence-auth commits are on main
 ```
 
-- [ ] **Step 0.3: Map remaining ProGate usage**
+- [ ] **Step 0.3: Check what Freemius/ProGate references remain (if any)**
+
 ```bash
-grep -rn "ProGate\|wam_fs()" includes/ --include="*.php" > remaining_progate.txt
-# These are the remaining calls to replace
+grep -r "wp_ai_mind_is_pro\|wam_fs\|ProGate\|Freemius" includes/ --include="*.php" -l
+# Should return nothing — Phase 1 removed these
 ```
 
 ---
 
-## Task 1: Provider Routing Integration
+## Task 1: End-to-End Smoke Test (Deferred from Phase 2.1 Task 13)
 
-**Files:** Create `includes/Providers/ProxyProvider.php`, modify provider factory
+**Files:** None (Docker + browser test)
 
-> **Pre-implementation audit required — 5 known issues to resolve before writing code:**
->
-> **Issue A — `ProxyProvider` method signature:** `AbstractProvider` requires overriding `do_complete(CompletionRequest $request)`, not a non-existent `send_request()`. Inspect `AbstractProvider` and `ProviderInterface` before writing `ProxyProvider`.
->
-> **Issue B — Double usage logging:** `AbstractProvider::maybe_log()` calls `NJ_Usage_Tracker::log_usage()` after every `complete()`. `NJ_Proxy_Client::chat()` also mirrors usage locally. Choose one — either skip `maybe_log()` in `ProxyProvider` (override it as a no-op) or skip mirroring in `NJ_Proxy_Client`. Do not do both.
->
-> **Issue C — Wrong API key meta key:** `nj_get_user_configured_provider()` checks `wp_ai_mind_api_key_anthropic` — the actual meta key for Claude is `wp_ai_mind_api_key_claude` (see `NJ_Api_Key_Settings.php`). Fix before implementing.
->
-> **Issue D — `ProviderFactory` is constructor-injected, not static:** The factory is instantiated as `new ProviderFactory(new ProviderSettings())`. Do not add a static `get_provider()` method — extend the existing pattern. Inspect `includes/Core/ProviderFactory.php` first.
->
-> **Issue E — Wrong Claude model IDs and missing `trial` tier:** Model IDs must match `ClaudeProvider::MODELS` (Claude 4, not Claude 3). `nj_resolve_provider()` must also handle `trial` tier (→ `'proxy'`). See correct IDs in Phase 2 plan.
+- [ ] **Step 1.1: Start local environment**
 
-- [ ] **Step 1.1: Audit existing provider architecture**
 ```bash
-cat includes/Providers/AbstractProvider.php
-cat includes/Core/ProviderFactory.php
-grep -n "do_complete\|maybe_log\|log_usage" includes/Providers/ -r --include="*.php"
+docker compose up -d
 ```
 
-- [ ] **Step 1.2: Create ProxyProvider class**
+- [ ] **Step 1.2: Verify auto-registration fires**
 
-Use the audit findings (Step 1.1) to implement correctly. Skeleton below — resolve Issues A–E before writing:
+Clear the stored token and reload an admin page:
+
+```bash
+docker exec blognjohanssoneu-db-1 mysql -uwp_user -pwp_pass wordpress \
+  -e "DELETE FROM wp_options WHERE option_name = 'wp_ai_mind_site_token';"
+```
+
+Visit any WP admin page (triggers `init` → `NJ_Site_Registration::maybe_register()`), then verify the token was stored:
+
+```bash
+docker exec blognjohanssoneu-db-1 mysql -uwp_user -pwp_pass wordpress \
+  -e "SELECT option_value FROM wp_options WHERE option_name = 'wp_ai_mind_site_token';"
+```
+
+Expected: a 64-character hex string.
+
+- [ ] **Step 1.3: Verify free-tier request routes through proxy**
+
+Tail the Worker logs in a separate terminal:
+
+```bash
+cd wp-ai-mind-proxy && wrangler tail
+```
+
+As a free-tier user, send a chat message. Confirm the Worker logs show a `POST /v1/chat` with `Authorization: Bearer <token>`.
+
+- [ ] **Step 1.4: Verify pro_byok bypasses proxy**
+
+Set a test user's tier to `pro_byok`:
+
+```bash
+docker exec blognjohanssoneu-db-1 mysql -uwp_user -pwp_pass wordpress \
+  -e "UPDATE wp_usermeta SET meta_value='pro_byok' WHERE meta_key='wp_ai_mind_tier' AND user_id=1;"
+```
+
+Send a chat request. The Worker tail should show **no** `/v1/chat` call.
+
+- [ ] **Step 1.5: Verify stale token recovery**
+
+Corrupt the token:
+
+```bash
+docker exec blognjohanssoneu-db-1 mysql -uwp_user -pwp_pass wordpress \
+  -e "UPDATE wp_options SET option_value='invalid' WHERE option_name='wp_ai_mind_site_token';"
+```
+
+Send a chat request — expect an error. Reload an admin page (triggers `init` → re-registers). Send again — should succeed.
+
+---
+
+## Task 2: Admin Settings Page — Tier Status & Upgrade Flows
+
+**Files:**
+- Modify: `includes/Admin/NJ_Tier_Settings.php`
+
+Update the settings page to show real upgrade buttons using `NJ_Site_Registration::checkout_url()` with the correct variant IDs.
+
+- [ ] **Step 2.1: Update the plan comparison table**
+
+Replace any placeholder checkout URLs in `NJ_Tier_Settings.php`. The upgrade buttons should call `NJ_Site_Registration::checkout_url()`:
+
+```php
+// Pro Managed upgrade button
+$monthly_url = \WP_AI_Mind\Proxy\NJ_Site_Registration::checkout_url( '1550505' );
+$annual_url  = \WP_AI_Mind\Proxy\NJ_Site_Registration::checkout_url( '1550477' );
+
+// Pro BYOK upgrade button
+$byok_url = \WP_AI_Mind\Proxy\NJ_Site_Registration::checkout_url( '1550517' );
+```
+
+- [ ] **Step 2.2: Show current registration status**
+
+Add a "Connection" row to the admin page showing whether the site is registered with the proxy:
+
+```php
+$registered = \WP_AI_Mind\Proxy\NJ_Site_Registration::is_registered();
+// Display: "Connected ✓" or "Not connected — will auto-connect on next page load"
+```
+
+- [ ] **Step 2.3: Run full test suite**
+
+```bash
+./vendor/bin/phpunit tests/Unit/ --colors=always
+```
+
+- [ ] **Step 2.4: Lint**
+
+```bash
+./vendor/bin/phpcs --standard=phpcs.xml.dist includes/Admin/NJ_Tier_Settings.php
+```
+
+- [ ] **Step 2.5: Commit**
+
+```bash
+git add includes/Admin/NJ_Tier_Settings.php
+git commit -m "feat(admin): wire real LemonSqueezy checkout URLs via NJ_Site_Registration::checkout_url()"
+```
+
+---
+
+## Task 3: Dashboard Widget — Usage Meter
+
+**Files:**
+- Modify or create: `includes/Admin/NJ_Usage_Widget.php`
+
+- [ ] **Step 3.1: Check if widget class already exists**
+
+```bash
+ls includes/Admin/
+```
+
+If `NJ_Usage_Widget.php` exists, audit it before editing. If not, create it.
+
+- [ ] **Step 3.2: Implement usage widget**
 
 ```php
 <?php
-namespace WP_AI_Mind\Providers;
-
-use WP_Error;
-use WP_AI_Mind\Proxy\NJ_Proxy_Client;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-
-class ProxyProvider extends AbstractProvider {
-
-    public function get_name(): string {
-        return 'proxy';
-    }
-
-    public function is_configured(): bool {
-        $tier = NJ_Tier_Manager::get_user_tier();
-        // trial tier also routes through proxy (Issue E fix)
-        return in_array( $tier, [ 'free', 'trial', 'pro_managed' ], true );
-    }
-
-    // Override do_complete() (or whatever AbstractProvider requires) — see Issue A.
-    // Do NOT use send_request() — that method doesn't exist.
-
-    public function get_available_models(): array {
-        $tier = NJ_Tier_Manager::get_user_tier();
-        // Use Claude 4 model IDs (Issue E fix — mirrors ClaudeProvider::MODELS)
-        return match( $tier ) {
-            'free', 'trial' => [
-                'claude-haiku-4-5-20251001' => 'Claude Haiku',
-            ],
-            'pro_managed' => [
-                'claude-haiku-4-5-20251001' => 'Claude Haiku',
-                'claude-sonnet-4-6'         => 'Claude Sonnet',
-                'claude-opus-4-6'           => 'Claude Opus',
-            ],
-            default => [],
-        };
-    }
-}
-```
-
-- [ ] **Step 1.3: Create provider routing function**
-
-Add to `wp-ai-mind.php`:
-```php
-function nj_resolve_provider(): string {
-    $tier = nj_get_user_tier();
-    return match( $tier ) {
-        'free', 'trial', 'pro_managed' => 'proxy',  // Issue E fix: trial → proxy
-        'pro_byok'                     => nj_get_user_configured_provider(),
-        default                        => '',
-    };
-}
-
-function nj_get_user_configured_provider(): string {
-    $user_id = get_current_user_id();
-    // Issue C fix: meta key is wp_ai_mind_api_key_claude, not wp_ai_mind_api_key_anthropic
-    if ( get_user_meta( $user_id, 'wp_ai_mind_api_key_claude', true ) ) {
-        return 'claude';
-    }
-    if ( get_user_meta( $user_id, 'wp_ai_mind_api_key_openai', true ) ) {
-        return 'openai';
-    }
-    if ( get_user_meta( $user_id, 'wp_ai_mind_api_key_gemini', true ) ) {
-        return 'gemini';
-    }
-    return 'claude';
-}
-```
-
-- [ ] **Step 1.4: Extend provider factory**
-
-> **Issue D:** `ProviderFactory` uses constructor injection — do NOT add a static method. Inspect the existing factory first and extend the existing instantiation pattern.
-
----
-
----
-
-## Task 2: Complete ProGate Removal
-
-**Files:** All files containing ProGate/Freemius references
-
-- [ ] **Step 2.1: Replace remaining ProGate calls**
-
-```bash
-# For each file in remaining_progate.txt, replace patterns:
-
-# OLD:
-if ( wp_ai_mind_is_pro() ) {
-    // feature code
-}
-
-# NEW:
-if ( nj_can_user( 'specific_feature' ) ) {
-    // feature code
-}
-
-# OLD:
-if ( ProGate::is_pro() ) {
-    $provider = ProviderFactory::get_provider( 'claude' );
-}
-
-# NEW:
-$provider = ProviderFactory::get_provider( nj_resolve_provider() );
-if ( $provider && $provider->is_configured() ) {
-    // use provider
-}
-```
-
-- [ ] **Step 2.2: Remove Freemius integration**
-
-```bash
-# Remove Freemius files
-rm -rf includes/vendor/freemius/
-grep -rn "freemius\|wam_fs" . --include="*.php" | cut -d: -f1 | sort -u > freemius_files.txt
-
-# For each file in freemius_files.txt:
-# - Remove freemius includes
-# - Remove wam_fs() calls
-# - Remove freemius menu items
-# - Remove freemius settings
-```
-
-- [ ] **Step 2.3: Update plugin header**
-
-Remove Freemius references from `wp-ai-mind.php`:
-```php
-// Remove these lines:
-// if ( ! function_exists( 'wam_fs' ) ) {
-//     // Freemius integration code
-// }
-
-// Keep clean plugin header:
-<?php
-/**
- * Plugin Name: WP AI Mind
- * Description: AI-powered content generation with three-tier system
- * Version: 2.0.0
- * Author: Your Name
- */
-
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
-}
-
-// Load tier system
-require_once plugin_dir_path( __FILE__ ) . 'includes/Core/Plugin.php';
-```
-
----
-
-## Task 3: Admin UI Polish
-
-**Files:** Enhance existing admin pages with tier-aware UI
-
-- [ ] **Step 3.1: Enhanced dashboard widget**
-
-Update `includes/Admin/NJ_Usage_Widget.php`:
-```php
-<?php
+declare( strict_types=1 );
 namespace WP_AI_Mind\Admin;
 
 use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class NJ_Usage_Widget {
 
@@ -257,288 +212,121 @@ class NJ_Usage_Widget {
         wp_add_dashboard_widget(
             'wp_ai_mind_usage',
             __( 'AI Mind Usage', 'wp-ai-mind' ),
-            [ self::class, 'dashboard_widget_content' ]
+            [ self::class, 'render' ]
         );
     }
 
-    public static function dashboard_widget_content(): void {
-        $usage = NJ_Usage_Tracker::get_current_usage();
-        $tier = NJ_Tier_Manager::get_user_tier();
+    public static function render(): void {
+        $user_id = get_current_user_id();
+        $usage   = NJ_Usage_Tracker::get_current_usage( $user_id );
+        $tier    = NJ_Tier_Manager::get_user_tier( $user_id );
 
-        ?>
-        <div class="wp-ai-mind-usage-widget">
-            <div class="usage-header">
-                <h4><?php echo esc_html( ucfirst( str_replace( '_', ' ', $tier ) ) ); ?> Plan</h4>
-            </div>
+        echo '<div class="wp-ai-mind-usage-widget">';
+        echo '<p><strong>' . esc_html( ucwords( str_replace( '_', ' ', $tier ) ) ) . ' Plan</strong></p>';
 
-            <?php if ( $usage['limit'] ): ?>
-                <div class="usage-meter">
-                    <?php
-                    $percentage = ( $usage['used'] / $usage['limit'] ) * 100;
-                    $bar_color = $percentage > 80 ? '#d63638' : ( $percentage > 60 ? '#dba617' : '#00a32a' );
-                    ?>
-                    <div class="usage-bar" style="background: #e0e0e0; height: 10px; border-radius: 5px;">
-                        <div class="usage-fill" style="width: <?php echo min( $percentage, 100 ); ?>%; background: <?php echo $bar_color; ?>; height: 100%; border-radius: 5px;"></div>
-                    </div>
+        if ( ! empty( $usage['limit'] ) ) {
+            $pct   = min( 100, (int) round( ( $usage['used'] / $usage['limit'] ) * 100 ) );
+            $color = $pct > 80 ? '#d63638' : ( $pct > 60 ? '#dba617' : '#00a32a' );
+            printf(
+                '<div style="background:#e0e0e0;height:10px;border-radius:5px;margin:8px 0"><div style="width:%d%%;background:%s;height:100%%;border-radius:5px"></div></div>',
+                $pct,
+                esc_attr( $color )
+            );
+            printf(
+                '<p style="font-size:12px;color:#666">%s / %s tokens (%s remaining)</p>',
+                esc_html( number_format( (int) $usage['used'] ) ),
+                esc_html( number_format( (int) $usage['limit'] ) ),
+                esc_html( number_format( (int) $usage['remaining'] ) )
+            );
+            if ( $pct > 80 ) {
+                echo '<p class="notice notice-warning inline">' . esc_html__( 'Over 80% of monthly tokens used. Consider upgrading.', 'wp-ai-mind' ) . '</p>';
+            }
+        } else {
+            echo '<p>' . esc_html__( 'Unlimited — using your own API key.', 'wp-ai-mind' ) . '</p>';
+        }
 
-                    <div class="usage-text">
-                        <?php echo number_format( $usage['used'] ); ?> / <?php echo number_format( $usage['limit'] ); ?> tokens
-                        (<?php echo number_format( $usage['remaining'] ); ?> remaining)
-                    </div>
-                </div>
-
-                <?php if ( $percentage > 80 ): ?>
-                    <div class="notice notice-warning inline">
-                        <p><?php _e( 'You\'ve used over 80% of your monthly tokens. Consider upgrading for higher limits.', 'wp-ai-mind' ); ?></p>
-                    </div>
-                <?php endif; ?>
-
-            <?php else: ?>
-                <div class="unlimited-usage">
-                    <p><strong><?php _e( 'Unlimited Usage', 'wp-ai-mind' ); ?></strong></p>
-                    <p><?php _e( 'You\'re using your own API key with no monthly limits.', 'wp-ai-mind' ); ?></p>
-                </div>
-            <?php endif; ?>
-
-            <?php if ( in_array( $tier, [ 'free', 'pro_managed' ] ) ): ?>
-                <div class="upgrade-section">
-                    <p><a href="<?php echo admin_url( 'options-general.php?page=wp-ai-mind-tiers' ); ?>" class="button">
-                        <?php _e( 'Manage Plan', 'wp-ai-mind' ); ?>
-                    </a></p>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <style>
-        .wp-ai-mind-usage-widget .usage-meter { margin: 10px 0; }
-        .wp-ai-mind-usage-widget .usage-text { margin-top: 5px; font-size: 12px; color: #666; }
-        .wp-ai-mind-usage-widget .upgrade-section { margin-top: 15px; text-align: center; }
-        </style>
-        <?php
+        echo '</div>';
     }
 }
 ```
 
-- [ ] **Step 3.2: Enhanced settings page**
+- [ ] **Step 3.3: Hook it in Plugin.php**
 
-Update `includes/Admin/NJ_Tier_Settings.php` with better upgrade flows:
-```php
-public static function settings_page(): void {
-    $current_user_tier = nj_get_user_tier();
-    $usage = \WP_AI_Mind\Tiers\NJ_Usage_Tracker::get_current_usage();
-
-    ?>
-    <div class="wrap">
-        <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-
-        <!-- Current Status Card -->
-        <div class="card">
-            <h2>Current Plan: <?php echo esc_html( ucfirst( str_replace( '_', ' ', $current_user_tier ) ) ); ?></h2>
-
-            <?php if ( $usage['limit'] ): ?>
-                <div class="tier-usage">
-                    <p><strong>Usage this month:</strong>
-                        <?php echo number_format( $usage['used'] ); ?> / <?php echo number_format( $usage['limit'] ); ?> tokens
-                    </p>
-                    <p><strong>Resets:</strong> <?php echo date( 'F 1, Y', strtotime( 'first day of next month' ) ); ?></p>
-                </div>
-            <?php else: ?>
-                <p><strong>Unlimited usage</strong> with your own API key.</p>
-            <?php endif; ?>
-        </div>
-
-        <!-- Plan Comparison -->
-        <div class="card">
-            <h2>Available Plans</h2>
-            <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th>Plan</th>
-                        <th>Monthly Tokens</th>
-                        <th>Models</th>
-                        <th>Setup</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr<?php echo $current_user_tier === 'free' ? ' style="background: #f0f8ff;"' : ''; ?>>
-                        <td><strong>Free</strong></td>
-                        <td>50,000</td>
-                        <td>Claude Haiku</td>
-                        <td>None required</td>
-                        <td><?php echo $current_user_tier === 'free' ? 'Current' : '—'; ?></td>
-                    </tr>
-                    <tr<?php echo $current_user_tier === 'pro_managed' ? ' style="background: #f0f8ff;"' : ''; ?>>
-                        <td><strong>Pro Managed</strong></td>
-                        <td>2,000,000</td>
-                        <td>Haiku, Sonnet, Opus</td>
-                        <td>Payment only</td>
-                        <td>
-                            <?php if ( $current_user_tier === 'pro_managed' ): ?>
-                                Current
-                            <?php else: ?>
-                                <a href="https://wpaimind.lemonsqueezy.com/checkout" class="button button-primary" target="_blank">Upgrade</a>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr<?php echo $current_user_tier === 'pro_byok' ? ' style="background: #f0f8ff;"' : ''; ?>>
-                        <td><strong>Pro BYOK</strong></td>
-                        <td>Unlimited</td>
-                        <td>Any (your key)</td>
-                        <td>Payment + API key</td>
-                        <td>
-                            <?php if ( $current_user_tier === 'pro_byok' ): ?>
-                                Current
-                            <?php else: ?>
-                                <a href="https://wpaimind.lemonsqueezy.com/checkout/byok" class="button" target="_blank">Upgrade</a>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <?php if ( $current_user_tier === 'pro_byok' ): ?>
-            <!-- API Key Management for Pro BYOK -->
-            <div class="card">
-                <h2>API Key Configuration</h2>
-                <form method="post" action="options.php">
-                    <?php settings_fields( 'wp_ai_mind_api_keys' ); ?>
-                    <table class="form-table">
-                        <tr>
-                            <th><label for="anthropic_api_key">Anthropic API Key</label></th>
-                            <td>
-                                <input type="password" id="anthropic_api_key" name="anthropic_api_key"
-                                       value="<?php echo esc_attr( self::get_masked_api_key( 'anthropic' ) ); ?>"
-                                       class="regular-text" />
-                                <p class="description">Your API key is encrypted and stored securely.</p>
-                            </td>
-                        </tr>
-                    </table>
-                    <?php submit_button(); ?>
-                </form>
-            </div>
-        <?php endif; ?>
-    </div>
-    <?php
-}
-```
-
----
-
-## Task 4: Error Handling & Edge Cases
-
-**Files:** Improve error handling across all components
-
-- [ ] **Step 4.1: Graceful provider fallbacks**
+In `includes/Core/Plugin.php`, add:
 
 ```php
-// In provider factory or main chat handlers
-function nj_handle_chat_request( array $messages, array $options = [] ) {
-    $provider = ProviderFactory::get_provider();
-
-    if ( ! $provider ) {
-        return new WP_Error( 'no_provider', __( 'No AI provider available. Please check your plan and configuration.', 'wp-ai-mind' ) );
-    }
-
-    if ( ! $provider->is_configured() ) {
-        $tier = nj_get_user_tier();
-
-        return match( $tier ) {
-            'pro_byok' => new WP_Error( 'api_key_required', __( 'Please configure your API key in Settings > AI Mind Tiers.', 'wp-ai-mind' ) ),
-            default => new WP_Error( 'service_unavailable', __( 'AI service temporarily unavailable. Please try again later.', 'wp-ai-mind' ) ),
-        };
-    }
-
-    return $provider->send_request( $messages, $options );
-}
+use WP_AI_Mind\Admin\NJ_Usage_Widget;
+// ...
+NJ_Usage_Widget::register_hooks();
 ```
 
-- [ ] **Step 4.2: Rate limit grace handling**
+- [ ] **Step 3.4: Run tests + lint**
 
-```php
-// In usage tracker
-public static function check_rate_limit_with_grace( $user_id = null ): array {
-    $usage = self::get_current_usage( $user_id );
-
-    // Allow small overage (5%) for grace
-    $grace_limit = $usage['limit'] ? $usage['limit'] * 1.05 : null;
-    $hard_blocked = $grace_limit && $usage['used'] > $grace_limit;
-
-    return [
-        'allowed' => $usage['can_use'] || ! $hard_blocked,
-        'warning' => ! $usage['can_use'] && ! $hard_blocked,
-        'blocked' => $hard_blocked,
-        'usage' => $usage,
-    ];
-}
-```
-
----
-
-## Task 5: Production Testing
-
-**Files:** Comprehensive testing across all tiers
-
-- [ ] **Step 5.1: End-to-end tier testing**
-
-Create test script `tests/manual-tier-test.php`:
-```php
-<?php
-// Test script for manual verification
-
-function test_tier_system() {
-    $test_user_id = 1; // Replace with actual test user
-
-    // Test Free tier
-    NJ_Tier_Manager::set_user_tier( 'free', $test_user_id );
-    $provider = ProviderFactory::get_provider();
-    assert( $provider instanceof ProxyProvider );
-
-    // Test Pro Managed tier
-    NJ_Tier_Manager::set_user_tier( 'pro_managed', $test_user_id );
-    $provider = ProviderFactory::get_provider();
-    assert( $provider instanceof ProxyProvider );
-
-    // Test Pro BYOK tier
-    NJ_Tier_Manager::set_user_tier( 'pro_byok', $test_user_id );
-    $provider_name = nj_resolve_provider();
-    assert( in_array( $provider_name, [ 'claude', 'openai', 'gemini' ] ) );
-
-    echo "All tier tests passed!\n";
-}
-```
-
-- [ ] **Step 5.2: Verify proxy integration**
-
-Test that Free/Pro Managed users route through proxy:
 ```bash
-# Check WordPress logs for proxy requests
-tail -f wp-content/debug.log | grep "proxy"
-
-# Check Cloudflare Worker logs
-wrangler tail wp-ai-mind-proxy
+./vendor/bin/phpunit tests/Unit/ --colors=always
+./vendor/bin/phpcs --standard=phpcs.xml.dist includes/Admin/NJ_Usage_Widget.php includes/Core/Plugin.php
 ```
 
-- [ ] **Step 5.3: Verify direct provider routing**
+- [ ] **Step 3.5: Commit**
 
-Test that Pro BYOK users bypass proxy and use direct provider calls.
+```bash
+git add includes/Admin/NJ_Usage_Widget.php includes/Core/Plugin.php
+git commit -m "feat(admin): add dashboard usage widget with token meter"
+```
+
+---
+
+## Task 4: Pro BYOK — API Key Entry
+
+**Files:**
+- Modify: `includes/Admin/NJ_Tier_Settings.php` (or the existing API key settings file)
+
+Pro BYOK users need to enter their Anthropic API key after purchase. The key is stored per-user in `wp_usermeta` (already encrypted by the existing `NJ_Api_Key_Settings` class if it exists — audit before writing).
+
+- [ ] **Step 4.1: Audit existing API key storage**
+
+```bash
+grep -rn "wp_ai_mind_api_key" includes/ --include="*.php" | head -20
+# Find where keys are stored and how they are encrypted/retrieved
+```
+
+- [ ] **Step 4.2: Wire API key form for Pro BYOK users**
+
+Show the API key input only when the current user's tier is `pro_byok`:
+
+```php
+$tier = \WP_AI_Mind\Tiers\NJ_Tier_Manager::get_user_tier( get_current_user_id() );
+if ( 'pro_byok' === $tier ) {
+    // Render API key input — reuse existing NJ_Api_Key_Settings pattern
+}
+```
+
+- [ ] **Step 4.3: Run tests + lint**
+
+```bash
+./vendor/bin/phpunit tests/Unit/ --colors=always
+./vendor/bin/phpcs --standard=phpcs.xml.dist includes/Admin/
+```
+
+- [ ] **Step 4.4: Commit**
+
+```bash
+git add includes/Admin/
+git commit -m "feat(admin): show API key entry for Pro BYOK users"
+```
 
 ---
 
 ## Phase 3 Acceptance Criteria
 
-- [ ] All three tiers route correctly: Free/Pro Managed → Proxy, Pro BYOK → Direct
-- [ ] ProxyProvider integrates with existing provider architecture
-- [ ] All ProGate/Freemius code removed
-- [ ] Global helpers `nj_get_user_tier()`, `nj_can_user()` work throughout codebase
-- [ ] `nj_resolve_provider()` returns correct provider for each tier
-- [ ] Admin UI shows tier status, usage meters, and upgrade options
-- [ ] Dashboard widget displays current usage and warnings
-- [ ] Error handling gracefully handles misconfigurations
-- [ ] LemonSqueezy webhook properly upgrades/downgrades users
-- [ ] Rate limiting works end-to-end (WordPress + proxy double-check)
-- [ ] Pro BYOK users can configure and use encrypted API keys
-- [ ] No mixed ProGate/new tier system code remains
+- [ ] End-to-end smoke test passes in local Docker (Task 1)
+- [ ] Upgrade buttons use real LemonSqueezy checkout URLs with embedded site token
+- [ ] Admin page shows connection status (`NJ_Site_Registration::is_registered()`)
+- [ ] Dashboard widget shows current usage, tier, and percentage bar
+- [ ] Pro BYOK users see the API key entry field after purchase
+- [ ] `./vendor/bin/phpunit tests/Unit/ --colors=always` — all pass
+- [ ] `./vendor/bin/phpcs --standard=phpcs.xml.dist` — no violations
+- [ ] `npm run build` — no errors
+- [ ] No `wp_ai_mind_is_pro`, `wam_fs`, `ProGate`, or `Freemius` references remain
 
-**After Phase 3: Complete three-tier system with WordPress-native management, minimal proxy for API protection, and clean codebase.**
+**After Phase 3: Complete product — zero-friction activation, automatic tier upgrades on purchase, admin UI for usage and upgrades, Pro BYOK key management.**

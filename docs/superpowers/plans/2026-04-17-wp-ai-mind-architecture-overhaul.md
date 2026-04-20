@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the Freemius-gated, user-API-key model with a WordPress-native four-tier architecture: (1) Free users (50k tokens), (2) Trial users (300k tokens, 7-day window), (3) Pro Managed users (2M tokens + model selection), (4) Pro BYOK users (unlimited, own API keys). Free/Trial/Pro Managed route through minimal Cloudflare proxy; Pro BYOK bypasses proxy entirely. All user management and business logic stays in WordPress.
+**Goal:** Replace the Freemius-gated, user-API-key model with a WordPress-native four-tier architecture: (1) Free users (50k tokens), (2) Trial users (300k tokens, 30-day window), (3) Pro Managed users (2M tokens + model selection), (4) Pro BYOK users (unlimited, own API keys). Free/Trial/Pro Managed route through minimal Cloudflare proxy; Pro BYOK bypasses proxy entirely. All user management and business logic stays in WordPress.
 
-**Architecture:** The WordPress plugin handles all user management via WordPress users + custom meta, payment processing via LemonSqueezy webhooks to WordPress endpoints, and rate limiting via WordPress transients. A minimal Cloudflare Worker (~200 lines) serves only to protect API keys for Free/Trial/Pro Managed users. Pro BYOK users store encrypted API keys in WordPress and make direct provider calls. No external auth system, no complex microservices.
+**Architecture:** The WordPress plugin handles all user management via WordPress users + custom meta. Payment processing is handled by LemonSqueezy webhooks firing directly to the Cloudflare Worker (not WordPress). A Cloudflare Worker (~300 lines across 5 files) issues per-site Bearer tokens, handles LemonSqueezy webhook tier upgrades/downgrades, and proxies Anthropic API calls for Free/Trial/Pro Managed users. Pro BYOK users store encrypted API keys in WordPress and make direct provider calls. No shared secrets distributed in plugin code.
 
 **Tech Stack:** PHP 8.1+ (WordPress plugin), WordPress users + meta (user management), LemonSqueezy webhooks (payments), WordPress transients (rate limiting), minimal Cloudflare Workers (TypeScript, ~200 lines), Cloudflare KV (usage tracking), existing provider architecture.
 
@@ -30,8 +30,9 @@ These principles govern every implementation decision across all phases. An agen
 | Phase | Name | Phase Document | Depends on | Status |
 |-------|------|---------------|-----------|--------|
 | **1** | WordPress Three-Tier Foundation | [phase-1-wordpress-foundation.md](phases/phase-1-wordpress-foundation.md) | — | ✅ Complete |
-| **2** | Minimal Cloudflare Proxy | [phase-2-minimal-cloudflare-proxy.md](phases/phase-2-minimal-cloudflare-proxy.md) | Phase 1 complete | 🔵 In progress |
-| **3** | Integration & Cleanup | [phase-3-integration-cleanup.md](phases/phase-3-integration-cleanup.md) | Phase 1 + 2 complete | ⬜ Not started |
+| **2** | Minimal Cloudflare Proxy | [phase-2-minimal-cloudflare-proxy.md](phases/phase-2-minimal-cloudflare-proxy.md) | Phase 1 | ✅ Complete (superseded by 2.1) |
+| **2.1** | Licence Auth & Zero-Friction Activation | [phase-2.1-licence-auth-overhaul.md](phases/phase-2.1-licence-auth-overhaul.md) | Phase 2 | 🔵 In progress — PR #208 open |
+| **3** | Integration & Cleanup | [phase-3-integration-cleanup.md](phases/phase-3-integration-cleanup.md) | Phase 2.1 merged | ⬜ Not started |
 
 **Original 7-phase plan eliminated** - Replaced with 3-phase hybrid approach for 70% complexity reduction.
 
@@ -68,9 +69,9 @@ Total: ~4 weeks (vs original 7 weeks = 45% faster)
 | Tier | WordPress user meta | Monthly token limit | Allowed models | Routing | Payment |
 |------|---------------------|--------------------|--------------------|---------|---------|
 | **Free** | `'free'` | 50,000 | Claude Haiku only | → Cloudflare proxy | None |
-| **Trial** | `'trial'` | 300,000 | Claude Haiku only | → Cloudflare proxy | None (7-day window) |
-| **Pro Managed** | `'pro_managed'` | 2,000,000 | Haiku + Sonnet + Opus | → Cloudflare proxy | LemonSqueezy |
-| **Pro BYOK** | `'pro_byok'` | Unlimited (own cost) | Any model | → Direct provider calls | LemonSqueezy |
+| **Trial** | `'trial'` | 300,000 | Claude Haiku only | → Cloudflare proxy | None (30-day window) |
+| **Pro Managed** | `'pro_managed'` | 2,000,000 | Haiku + Sonnet + Opus | → Cloudflare proxy | LemonSqueezy (variant 1550505 monthly / 1550477 annual) |
+| **Pro BYOK** | `'pro_byok'` | Unlimited (own cost) | Any model | → Direct provider calls | LemonSqueezy (variant 1550517, one-time) |
 
 > **WordPress-native tier management.** Limits, allowed models, and feature flags are defined in `NJ_Tier_Config` (single source of truth). `NJ_Tier_Manager` handles CRUD and trial logic. No global helper functions — call class methods directly.
 
@@ -81,15 +82,16 @@ Total: ~4 weeks (vs original 7 weeks = 45% faster)
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | User account storage | WordPress users + custom meta | WordPress-native; no external database needed |
-| Tier management | WordPress user meta | Simple, reliable, follows WordPress patterns |
-| Rate limiting enforcement | Cloudflare KV (proxy-routed tiers) | Single enforcement point; WP meta serves display only |
-| Payment processing | LemonSqueezy webhooks to WordPress | Direct integration; no external auth system |
-| API key protection | Minimal Cloudflare proxy (200 lines) | Protects keys without complex microservices |
-| Pro BYOK routing | Direct to provider, bypasses proxy | No proxy costs for power users |
-| Request signing | HMAC-SHA256 from WordPress | WordPress signs, proxy validates |
-| Usage tracking | WordPress user meta + Cloudflare KV | WordPress for display, KV for enforcement |
-| Legacy code removal | Complete Freemius + ProGate removal | Clean slate, WordPress-native patterns |
-| Provider routing | Single decision point in WordPress | Centralized logic, clear separation |
+| Tier management | WordPress user meta (mirrors KV) | Simple, reliable; KV is authoritative for enforcement |
+| Rate limiting enforcement | Cloudflare KV per site token per month | WP meta is fail-fast display only; KV cannot be bypassed |
+| Payment processing | LemonSqueezy webhooks → Cloudflare Worker | Worker upgrades/downgrades site token tier in KV automatically |
+| API key protection | Cloudflare Worker with Bearer site tokens | No shared secret in plugin code; token issued on registration |
+| Site registration | Plugin POSTs to `/register` on `init`; token stored in `wp_options` | Zero user action; idempotent |
+| Checkout URL | `NJ_Site_Registration::checkout_url()` embeds site token | LS passes it back in webhook; Worker associates purchase automatically |
+| Pro BYOK routing | `ClaudeProvider::do_complete()` bypasses proxy for `pro_byok` | No proxy cost; user's own API key |
+| Provider routing | `ClaudeProvider::do_complete()` checks tier and routes | No separate ProxyProvider class needed |
+| Usage tracking | Cloudflare KV authoritative; WordPress user meta for dashboard display | KV enforces; WP mirrors locally |
+| Legacy code removal | Complete Freemius + ProGate removal (Phase 1) | Clean slate, WordPress-native patterns |
 
 ---
 
@@ -128,30 +130,46 @@ WordPress-native three-tier system using user meta, LemonSqueezy webhooks, and W
 ---
 
 ### Phase 2: Minimal Cloudflare Proxy
-**Duration estimate:** 1 week
+**Status: ✅ Complete (superseded by Phase 2.1)**
 
-Minimal proxy (~200 lines) for API key protection only. Single endpoint `/v1/chat` with HMAC verification. WordPress signs requests, proxy validates and forwards to providers.
-
-**Key deliverables:**
-- `src/index.ts` — minimal proxy with signed request verification
-- `NJ_Proxy_Client` class — WordPress proxy client with HMAC signing
-- Cloudflare KV usage tracking for Free/Pro Managed tiers
-- Deploy proxy to Cloudflare Workers
+Original HMAC-based design. Scaffold and KV namespaces were created; full implementation replaced by Phase 2.1 when the distributed-plugin auth problem was identified.
 
 **Acceptance criteria:** See [phase-2-minimal-cloudflare-proxy.md](phases/phase-2-minimal-cloudflare-proxy.md)
 
 ---
 
+### Phase 2.1: Licence Auth & Zero-Friction Activation
+**Status: 🔵 In progress — PR #208 open (`feat/phase-2.1-licence-auth` → `feat/api-overhaul`)**
+
+Replaces HMAC shared-secret with per-site Bearer token auth. Plugin auto-registers on `init`. LemonSqueezy webhook fires to Worker (not WordPress), automatically upgrading site tier in KV on purchase.
+
+**Key deliverables (all ✅ merged to branch):**
+- `src/auth.ts` — Bearer token authentication
+- `src/registration.ts` — `/register` endpoint (idempotent, IP rate-limited)
+- `src/webhook.ts` — `/webhook` endpoint (LemonSqueezy HMAC, tier upgrade/downgrade)
+- `src/index.ts` — updated routing; HMAC removed; `system` prompt forwarded
+- `NJ_Site_Registration` — auto-registers on `init`; `checkout_url()` helper
+- `NJ_Proxy_Client` — uses Bearer token; handles 401 stale-token recovery
+- `ClaudeProvider::do_complete()` — routes by tier (proxy vs direct)
+- `NJ_Tier_Config::TRIAL_DAYS = 30`, `PROXY_URL` constant
+- Wrangler secrets: `LS_PRO_MONTHLY_VARIANT_ID` (1550505), `LS_PRO_ANNUAL_VARIANT_ID` (1550477)
+
+**Acceptance criteria:** See [phase-2.1-licence-auth-overhaul.md](phases/phase-2.1-licence-auth-overhaul.md)
+
+---
+
 ### Phase 3: Integration & Cleanup
 **Duration estimate:** 1 week
+**Depends on:** Phase 2.1 merged
 
-Final integration, provider routing logic, admin UI polish, and cleanup of any remaining legacy code.
+Admin UI for tier management and upgrade flows, Pro BYOK API key entry, usage meters, end-to-end Docker smoke test.
 
 **Key deliverables:**
-- Provider routing logic (Free/Pro Managed → proxy, Pro BYOK → direct)
-- Admin UI for tier management and usage display
-- Final cleanup and testing
-- Documentation updates
+- Admin settings page with LemonSqueezy checkout buttons (using `NJ_Site_Registration::checkout_url()`)
+- Pro BYOK API key entry and storage
+- Dashboard usage widget with token meter and upgrade prompt
+- End-to-end Docker smoke test (deferred Task 13 from Phase 2.1)
+- LemonSqueezy product button links updated from 'placeholder' to real URL
 
 **Acceptance criteria:** See [phase-3-integration-cleanup.md](phases/phase-3-integration-cleanup.md)
 
@@ -209,23 +227,25 @@ Run these checks before declaring the overhaul complete.
 - [ ] Free user → chat → usage tracking → hit limit → upgrade prompt
 - [ ] Pro Managed → model selection → usage tracking works
 - [ ] Pro BYOK → direct API calls (bypasses proxy) → encrypted API key storage
-- [ ] LemonSqueezy webhook → WordPress tier update
-- [ ] WordPress transients rate limiting
-- [ ] HMAC request signing verification
+- [ ] LemonSqueezy webhook → Worker tier upgrade in KV → site reflects `pro_managed`
+- [ ] WordPress usage meta rate-limiting fail-fast (pre-check before proxy call)
+- [ ] Bearer token auth: valid token → 200, invalid token → 401, stale token clears and re-registers
 
 ---
 
 ## Cloudflare Worker Endpoints
 
-| Method | Path | Auth | Phase |
-|--------|------|------|-------|
-| POST | `/v1/chat` | HMAC signed requests from WordPress | 2 |
+| Method | Path | Auth | Phase | Status |
+|--------|------|------|-------|--------|
+| POST | `/register` | None (rate-limited by IP) | 2.1 | ✅ Live |
+| POST | `/webhook` | LemonSqueezy HMAC (`X-Signature`) | 2.1 | ✅ Live |
+| POST | `/v1/chat` | Bearer site token (`Authorization: Bearer <token>`) | 2.1 | ✅ Live |
 
 ## WordPress REST Endpoints
 
-| Method | Path | Auth | Phase |
-|--------|------|------|-------|
-| POST | `/wp-json/wp-ai-mind/v1/webhook` | LemonSqueezy HMAC | 1 |
+| Method | Path | Auth | Phase | Status |
+|--------|------|------|-------|--------|
+| POST | `/wp-json/wp-ai-mind/v1/webhook` | LemonSqueezy HMAC | 1 | ⛔ Disabled (Phase 2.1 — webhook moved to Worker) |
 
 ---
 
@@ -235,3 +255,4 @@ Run these checks before declaring the overhaul complete.
 |------|--------|--------|
 | 2026-04-17 | Niklas Johansson | Initial plan created |
 | 2026-04-17 | Claude | Added `pro_managed` tier; tier-config module as single source of truth; architecture principles (KISS, SRP, module-based, provider-agnostic, reuse-first); code reuse policy; updated phase summaries |
+| 2026-04-20 | Claude | Added Phase 2.1; replaced HMAC auth with Bearer site-token model; moved LS webhook to Worker; updated tier model (trial 30d), design decisions, endpoints tables, phase summaries |

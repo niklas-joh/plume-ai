@@ -1,5 +1,11 @@
 # Phase 2: Minimal Cloudflare Proxy
 
+> ⚠️ **SUPERSEDED.** This plan describes the original HMAC shared-secret design. It was partially implemented and then replaced by **[Phase 2.1](phase-2.1-licence-auth-overhaul.md)** (Bearer site-token auth, zero-friction registration, LemonSqueezy webhook in Worker). Keep this file for historical reference only — do not implement it.
+>
+> **Status: ✅ Complete (superseded by Phase 2.1)**
+
+---
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A minimal Cloudflare Worker (~200 lines) that protects API keys for Free/Trial/Pro Managed users. WordPress signs requests; proxy validates signatures and forwards to Anthropic. Enables Free/Trial/Pro Managed tiers to function.

@@ -41,13 +41,20 @@ class NJ_Site_Registration {
 	 * Idempotent — skips silently if a token is already stored.
 	 * Hooked to `init` in Plugin.php.
 	 */
+	private const TRANSIENT_BACKOFF = 'wp_ai_mind_reg_backoff';
+
 	public static function maybe_register(): void {
 		if ( self::is_registered() ) {
 			return;
 		}
 
+		if ( get_transient( self::TRANSIENT_BACKOFF ) ) {
+			return;
+		}
+
 		$result = self::register();
 		if ( is_wp_error( $result ) ) {
+			set_transient( self::TRANSIENT_BACKOFF, 1, 5 * MINUTE_IN_SECONDS );
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log( '[WP AI Mind] Site registration failed: ' . $result->get_error_message() );
 		}

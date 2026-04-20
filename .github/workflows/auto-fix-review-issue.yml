@@ -94,11 +94,36 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
 
-      - uses: anthropics/claude-code-action@aee99972d0cfa0c47a4563e6fca42d7a5a0cb9bd  # v1
+      # Pre-flight: checkout the target branch and install all dependencies so
+      # Claude's turn budget is spent on the actual fix, not infrastructure.
+      # For OPEN PRs we switch to the PR's head branch so Claude can commit
+      # directly. For CLOSED/MERGED PRs we stay on the base branch (main) so
+      # Claude can create a new fix branch from the correct base.
+      - name: Prepare workspace
+        id: workspace
         if: |
           steps.guard.outputs.skip != 'true' &&
           steps.parse.outputs.pr_number != '' &&
           steps.pr_state.outcome == 'success'
+        run: |
+          if [[ "${{ steps.pr_state.outputs.state }}" == "OPEN" ]]; then
+            git fetch origin ${{ steps.pr_state.outputs.head }}
+            git checkout ${{ steps.pr_state.outputs.head }}
+          else
+            git pull origin ${{ steps.parse.outputs.base_branch }}
+          fi
+          npm ci
+          composer install --no-interaction --prefer-dist
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      - uses: anthropics/claude-code-action@aee99972d0cfa0c47a4563e6fca42d7a5a0cb9bd  # v1
+        id: claude
+        if: |
+          steps.guard.outputs.skip != 'true' &&
+          steps.parse.outputs.pr_number != '' &&
+          steps.pr_state.outcome == 'success' &&
+          steps.workspace.outcome == 'success'
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
@@ -107,11 +132,14 @@ jobs:
 
             Read /tmp/issue-body.txt for the full description of what needs to be fixed.
 
-            **Context — already resolved, no further lookups needed:**
+            **Already done — no further lookups needed:**
             - Source PR: #${{ steps.parse.outputs.pr_number }}
             - PR state: **${{ steps.pr_state.outputs.state }}**
             - Head branch: `${{ steps.pr_state.outputs.head }}`
             - Base branch: `${{ steps.parse.outputs.base_branch }}`
+            - `node_modules/` and PHP vendor dependencies are already installed.
+            - **OPEN PR:** branch `${{ steps.pr_state.outputs.head }}` is already checked out — go directly to Step 2.
+            - **CLOSED/MERGED PR:** base branch `${{ steps.parse.outputs.base_branch }}` is checked out and up to date — create your fix branch in Step 2.
 
             ---
 
@@ -121,26 +149,26 @@ jobs:
 
               cat /tmp/issue-body.txt
 
+            **Important — stop early if the fix is ambiguous:** If you cannot determine
+            the correct fix purely from the codebase (e.g. the required value is an
+            external secret, account ID, variant ID, API key, or a business decision),
+            do NOT guess. Instead:
+            1. Post a comment on the issue explaining what specific information is needed.
+            2. Close the issue with: `gh issue close ${{ github.event.issue.number }} --comment "⚠️ Manual fix required: <one sentence explaining what information is needed>" --repo ${{ github.repository }}`
+            3. Stop — do not attempt to commit or push.
+
             ### Step 2 — Prepare the working branch
 
-            **If PR state is `OPEN`:**
-
-                git fetch origin ${{ steps.pr_state.outputs.head }} && \
-                  git checkout ${{ steps.pr_state.outputs.head }}
+            **If PR state is `OPEN`:** you are already on branch `${{ steps.pr_state.outputs.head }}` — skip to Step 3.
 
             **If PR state is `CLOSED` or `MERGED`:**
 
-                git fetch origin ${{ steps.parse.outputs.base_branch }}
-                git checkout ${{ steps.parse.outputs.base_branch }}
-                git pull origin ${{ steps.parse.outputs.base_branch }}
                 # Slugify the issue title: lowercase, spaces/slashes → hyphens, max 40 chars
                 git checkout -b fix/issue-${{ github.event.issue.number }}-<slug>
 
             ### Step 3 — Fix the problem
 
             Read the relevant source files and make the minimal change described in the issue.
-            Before committing, run `npm ci` if `node_modules/` is absent (required by the
-            pre-commit build hook which runs `npm run build` on every commit to `src/`).
 
             Commit:
 
@@ -183,4 +211,24 @@ jobs:
             - Do NOT bump version numbers, modify `composer.lock`, or change `package-lock.json`.
             - Do NOT open more than one PR per issue.
 
-          claude_args: "--max-turns 20 --allowedTools Bash(git:*),Bash(gh:*),Bash(composer:*),Bash(npm:*),Bash(npx:*),Bash(./vendor/bin/phpcs:*),Bash(./vendor/bin/phpunit:*),Read,Edit,MultiEdit,Write,Glob,Grep,LS"
+          claude_args: "--max-turns 25 --allowedTools Bash(git:*),Bash(gh:*),Bash(composer:*),Bash(npm:*),Bash(npx:*),Bash(./vendor/bin/phpcs:*),Bash(./vendor/bin/phpunit:*),Read,Edit,MultiEdit,Write,Glob,Grep,LS"
+
+      # Surface the actual failure reason when Claude hits max turns or errors out.
+      # The action's default error chain ("Execution failed: Action failed with error:
+      # Claude execution failed: Process completed with exit code 1") loses the
+      # meaningful subtype. We parse the execution log and post a clear issue comment.
+      - name: Report execution failure
+        if: failure() && steps.claude.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          LOG="/home/runner/work/_temp/claude-execution-output.json"
+          MSG="❌ Auto-fix failed for issue #${{ github.event.issue.number }}. Please fix manually."
+          if [[ -f "$LOG" ]] && grep -q 'error_max_turns' "$LOG"; then
+            TURNS=$(grep -oP '"num_turns":\s*\K\d+' "$LOG" | tail -1)
+            COST=$(grep -oP '"total_cost_usd":\s*\K[0-9.]+' "$LOG" | tail -1)
+            MSG="❌ Auto-fix hit the turn limit (${TURNS} turns used, cost: \$${COST}). The fix may be too complex or require information not available in the codebase. Please fix manually."
+          fi
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "$MSG" \
+            --repo ${{ github.repository }}

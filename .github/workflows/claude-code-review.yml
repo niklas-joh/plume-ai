@@ -105,8 +105,12 @@ jobs:
 
             Do NOT apply the `auto-fix` label yourself. A subsequent workflow step applies
             it via a PAT outside this action, which guarantees the `issues: labeled` webhook
-            fires correctly and triggers the auto-fix workflow. Just append each created
-            issue number (one per line) to /tmp/auto-fix-issues.txt.
+            fires correctly and triggers the auto-fix workflow. Only append an issue number
+            to /tmp/auto-fix-issues.txt if the fix is **self-contained** — i.e. Claude can
+            determine the correct fix purely from the codebase, without needing external
+            values such as API keys, account IDs, variant IDs, secrets, or business
+            decisions. Issues requiring such information must be fixed manually: create the
+            issue but do NOT write its number to /tmp/auto-fix-issues.txt.
 
             Capture the URL returned by each `gh issue create` call.
 

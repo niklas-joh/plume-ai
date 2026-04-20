@@ -113,12 +113,20 @@ class NJTierManagerTest extends TestCase {
 		$this->assertTrue( NJ_Tier_Manager::is_trial_active( 6 ) );
 	}
 
-	public function test_is_trial_active_returns_false_after_seven_days(): void {
-		$started = time() - ( 8 * DAY_IN_SECONDS );
+	public function test_is_trial_active_returns_false_after_thirty_days(): void {
+		$started = time() - ( 31 * DAY_IN_SECONDS );
 		Functions\expect( 'get_user_meta' )->once()->with( 6, 'wp_ai_mind_tier', true )->andReturn( 'trial' );
 		Functions\expect( 'get_user_meta' )->once()->with( 6, 'wp_ai_mind_trial_started', true )->andReturn( (string) $started );
 
 		$this->assertFalse( NJ_Tier_Manager::is_trial_active( 6 ) );
+	}
+
+	public function test_is_trial_active_returns_true_within_thirty_days(): void {
+		$started = time() - ( 29 * DAY_IN_SECONDS );
+		Functions\expect( 'get_user_meta' )->once()->with( 6, 'wp_ai_mind_tier', true )->andReturn( 'trial' );
+		Functions\expect( 'get_user_meta' )->once()->with( 6, 'wp_ai_mind_trial_started', true )->andReturn( (string) $started );
+
+		$this->assertTrue( NJ_Tier_Manager::is_trial_active( 6 ) );
 	}
 
 	public function test_tier_config_has_four_tiers(): void {

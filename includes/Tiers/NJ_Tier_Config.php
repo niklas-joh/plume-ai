@@ -43,7 +43,9 @@ class NJ_Tier_Config {
 		'pro_byok'    => null,
 	];
 
-	const TRIAL_DAYS = 7;
+	const TRIAL_DAYS = 30;
+
+	const PROXY_URL = 'https://wp-ai-mind-proxy.wp-ai-mind.workers.dev';
 
 	public static function get_valid_tiers(): array {
 		return self::TIERS;

@@ -41,12 +41,12 @@ class NJ_Usage_Widget {
 		echo '<div class="wp-ai-mind-usage-widget">';
 		echo '<p><strong>' . esc_html( $tier_label ) . ' ' . esc_html__( 'Plan', 'wp-ai-mind' ) . '</strong></p>';
 
-		if ( isset ( $usage['limit'] ) && $usage['limit'] > 0 ) {
-			$color_danger   = '#d63638';
-			$color_warning  = '#dba617';
-			$color_success  = '#00a32a';
-			$color_track_bg = '#e0e0e0';
-			$color_label    = '#666';
+		if ( isset( $usage['limit'] ) && $usage['limit'] > 0 ) {
+			$color_danger   = 'var(--color-error, #d63638)';
+			$color_warning  = 'var(--color-warning, #dba617)';
+			$color_success  = 'var(--color-success, #00a32a)';
+			$color_track_bg = 'var(--color-border-subtle, #e0e0e0)';
+			$color_label    = 'var(--color-text-muted, #666)';
 
 			$pct   = min( 100, (int) round( ( $usage['used'] / $usage['limit'] ) * 100 ) );
 			$color = $pct > 80 ? $color_danger : ( $pct > 60 ? $color_warning : $color_success );

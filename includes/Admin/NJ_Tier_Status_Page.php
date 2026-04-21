@@ -52,9 +52,9 @@ class NJ_Tier_Status_Page {
 					<th scope="row"><?php esc_html_e( 'Proxy connection', 'wp-ai-mind' ); ?></th>
 					<td>
 						<?php if ( $registered ) : ?>
-							<span style="color:#00a32a">&#10003; <?php esc_html_e( 'Connected', 'wp-ai-mind' ); ?></span>
+							<span style="color:var(--color-success, #00a32a)">&#10003; <?php esc_html_e( 'Connected', 'wp-ai-mind' ); ?></span>
 						<?php else : ?>
-							<span style="color:#d63638"><?php esc_html_e( 'Not connected — will auto-connect on next page load', 'wp-ai-mind' ); ?></span>
+							<span style="color:var(--color-error, #d63638)"><?php esc_html_e( 'Not connected — will auto-connect on next page load', 'wp-ai-mind' ); ?></span>
 						<?php endif; ?>
 					</td>
 				</tr>

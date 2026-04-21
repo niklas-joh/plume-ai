@@ -1,1 +1,5 @@
-../../.agents/profiles/wordpress/roles/README.md
+- `task-orchestrator.md`
+- `wordpress-coder.md`
+- `wordpress-planner.md`
+- `wordpress-reviewer.md`
+- `wordpress-standards-validator.md`

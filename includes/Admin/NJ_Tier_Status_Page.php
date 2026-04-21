@@ -37,7 +37,7 @@ class NJ_Tier_Status_Page {
 			'pro_managed' => __( 'Pro Managed', 'wp-ai-mind' ),
 			'pro_byok'    => __( 'Pro BYOK', 'wp-ai-mind' ),
 		];
-		$tier_label  = $tier_labels[ $tier ] ?? esc_html( $tier );
+		$tier_label  = $tier_labels[ $tier ] ?? ucwords( str_replace( '_', ' ', $tier ) );
 		$registered  = NJ_Site_Registration::is_registered();
 		?>
 		<div class="wrap">
@@ -91,19 +91,17 @@ class NJ_Tier_Status_Page {
 			<div class="card" style="max-width:600px;margin-top:1rem;">
 				<h2><?php esc_html_e( 'Upgrade your plan', 'wp-ai-mind' ); ?></h2>
 				<p><?php esc_html_e( 'Pro Managed gives you 2M tokens/month with model selection. Pro BYOK gives you unlimited usage with your own API key.', 'wp-ai-mind' ); ?></p>
-				<p>
+				<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem">
 					<a href="<?php echo esc_url( NJ_Site_Registration::checkout_url( NJ_Site_Registration::PLAN_PRO_MANAGED_MONTHLY ) ); ?>" class="button button-primary">
 						<?php esc_html_e( 'Pro Managed — Monthly', 'wp-ai-mind' ); ?>
 					</a>
-					&nbsp;
 					<a href="<?php echo esc_url( NJ_Site_Registration::checkout_url( NJ_Site_Registration::PLAN_PRO_MANAGED_ANNUAL ) ); ?>" class="button button-primary">
 						<?php esc_html_e( 'Pro Managed — Annual', 'wp-ai-mind' ); ?>
 					</a>
-					&nbsp;
 					<a href="<?php echo esc_url( NJ_Site_Registration::checkout_url( NJ_Site_Registration::PLAN_PRO_BYOK_ONETIME ) ); ?>" class="button">
 						<?php esc_html_e( 'Pro BYOK — One-time', 'wp-ai-mind' ); ?>
 					</a>
-				</p>
+				</div>
 			</div>
 			<?php endif; ?>
 			<?php if ( 'pro_byok' === $tier ) : ?>

@@ -41,6 +41,7 @@ class NJ_Usage_Widget_Test extends TestCase {
 	public function test_add_dashboard_widget_registers_widget_with_correct_id(): void {
 		$registered_id = null;
 
+		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\expect( '__' )->andReturnFirstArg();
 		Functions\when( 'wp_add_dashboard_widget' )->alias(
 			function ( string $id ) use ( &$registered_id ): void {
@@ -51,6 +52,21 @@ class NJ_Usage_Widget_Test extends TestCase {
 		NJ_Usage_Widget::add_dashboard_widget();
 
 		$this->assertSame( 'wp_ai_mind_usage', $registered_id );
+	}
+
+	public function test_add_dashboard_widget_skipped_without_manage_options(): void {
+		$widget_registered = false;
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_add_dashboard_widget' )->alias(
+			function () use ( &$widget_registered ): void {
+				$widget_registered = true;
+			}
+		);
+
+		NJ_Usage_Widget::add_dashboard_widget();
+
+		$this->assertFalse( $widget_registered, 'Widget must not be registered for users without manage_options' );
 	}
 
 	// ── render() — limited tier (free) ───────────────────────────────────────

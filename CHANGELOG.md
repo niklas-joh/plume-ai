@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.1.0...v1.2.0) (2026-04-21)
+
+
+### Features
+
+* **workflow:** consolidate PR review nits into single issue ([#220](https://github.com/niklas-joh/wp-ai-mind/issues/220)) ([acc6b52](https://github.com/niklas-joh/wp-ai-mind/commit/acc6b5274ff833060c4051ecd245fcd3f997fe02)), closes [#d4c5f9](https://github.com/niklas-joh/wp-ai-mind/issues/d4c5f9) [#N](https://github.com/niklas-joh/wp-ai-mind/issues/N)
+
 # [1.1.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.0.3...v1.1.0) (2026-04-14)
 
 

@@ -79,17 +79,17 @@ jobs:
               gh label create "code-review" --color "#0075ca" --description "Found during code review" --repo ${{ github.repository }} 2>/dev/null || true
               gh label create "blocking"    --color "#b60205" --description "Blocking issue"            --repo ${{ github.repository }} 2>/dev/null || true
               gh label create "enhancement" --color "#a2eeef" --description "Improvement or suggestion"  --repo ${{ github.repository }} 2>/dev/null || true
+              gh label create "nits"        --color "#d4c5f9" --description "Style and minor nits"     --repo ${{ github.repository }} 2>/dev/null || true
               gh label create "auto-fix"    --color "#e4e669" --description "Claude will auto-fix this"  --repo ${{ github.repository }} 2>/dev/null || true
 
             ### Step 1 — Create issues for follow-up items (do this FIRST to capture URLs)
 
-            For any finding that warrants independent follow-up (bug, non-trivial improvement,
-            security concern, missing test coverage), create a GitHub issue.
+            For any finding that warrants independent follow-up, create a GitHub issue.
 
             Classify each finding:
-            - **blocking** (bug, security flaw, data loss risk) → labels: `code-review,blocking`
-            - **improvement** (non-trivial refactor, missing tests, performance) → labels: `code-review,enhancement`
-            - **nit/style** → no issue, PR comment only
+            - **blocking** (bug, security flaw, data loss risk) → labels: `code-review,blocking`, auto-fixable → add to /tmp/auto-fix-issues.txt
+            - **improvement** (non-trivial refactor, missing tests, performance) → labels: `code-review,enhancement`, auto-fixable → add to /tmp/auto-fix-issues.txt
+            - **nits/style** → collect in memory, create ONE consolidated issue at the end with labels: `code-review,nits`, auto-fixable → add to /tmp/auto-fix-issues.txt
 
             Example command for a blocking issue (use this exact body format — the auto-fix
             workflow parses it to find the PR number and base branch):
@@ -102,6 +102,17 @@ jobs:
                 --repo ${{ github.repository }})
               ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
               echo "$ISSUE_NUMBER" >> /tmp/auto-fix-issues.txt
+
+            **For nits:** Collect all nit findings in a single structured list (e.g. in memory or temp file),
+            then create ONE consolidated issue with all of them at the end of Step 1:
+
+              NITS_ISSUE=$(gh issue create \
+                --title "Review nits: style and minor improvements from PR #${{ github.event.pull_request.number }}" \
+                --body $'Found during review of PR #${{ github.event.pull_request.number }}\n\n**PR:** ${{ github.event.pull_request.html_url }}\n**Base branch:** ${{ github.event.pull_request.base.ref }}\n\n## Nits to address\n\n- [nit 1]\n- [nit 2]\n- [nit 3]' \
+                --label "code-review,nits" \
+                --repo ${{ github.repository }})
+              NITS_NUMBER=$(echo "$NITS_ISSUE" | grep -oE '[0-9]+$')
+              echo "$NITS_NUMBER" >> /tmp/auto-fix-issues.txt
 
             Do NOT apply the `auto-fix` label yourself. A subsequent workflow step applies
             it via a PAT outside this action, which guarantees the `issues: labeled` webhook
@@ -124,8 +135,11 @@ jobs:
 
             Structure the comment as:
             1. **Summary** — 1–3 sentence overview of the PR
-            2. **Findings** — grouped by severity (bugs → improvements → nits). For any finding that
-               has an associated issue, include the issue URL inline, e.g. "See #42 for tracking."
+            2. **Findings** — grouped by severity (bugs → improvements → nits):
+               - For bugs and improvements: include the issue URL inline, e.g. "See #42 for tracking."
+               - **For nits:** Provide the **full verbose explanation** of each nit as you normally would.
+                 Then, at the end of the nits section, add: "All nits are tracked in #N for auto-fix."
+                 This keeps the detailed feedback visible in the PR while also referencing the consolidated issue.
             3. **Verdict** — Approved / Needs changes / Needs discussion
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md

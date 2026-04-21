@@ -16,6 +16,9 @@ class NJ_Usage_Widget {
 	}
 
 	public static function add_dashboard_widget(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
 		wp_add_dashboard_widget(
 			'wp_ai_mind_usage',
 			__( 'AI Mind Usage', 'wp-ai-mind' ),

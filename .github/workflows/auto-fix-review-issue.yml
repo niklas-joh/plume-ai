@@ -157,6 +157,10 @@ jobs:
             2. Close the issue with: `gh issue close ${{ github.event.issue.number }} --comment "⚠️ Manual fix required: <one sentence explaining what information is needed>" --repo ${{ github.repository }}`
             3. Stop — do not attempt to commit or push.
 
+            **Note — consolidated nits issue:** If this issue has the "nits" label, it contains
+            a consolidated list of multiple style/minor improvements collected from the review.
+            Apply all of them in a single commit to keep the PR history clean.
+
             ### Step 2 — Prepare the working branch
 
             **If PR state is `OPEN`:** you are already on branch `${{ steps.pr_state.outputs.head }}` — skip to Step 3.
@@ -168,7 +172,9 @@ jobs:
 
             ### Step 3 — Fix the problem
 
-            Read the relevant source files and make the minimal change described in the issue.
+            Read the relevant source files and make the minimal changes described in the issue.
+
+            If this is a nits issue with multiple items, apply all of them in one commit.
 
             Commit:
 

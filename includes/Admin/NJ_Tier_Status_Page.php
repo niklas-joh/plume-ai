@@ -108,7 +108,7 @@ class NJ_Tier_Status_Page {
 			<?php endif; ?>
 			<?php if ( 'pro_byok' === $tier ) : ?>
 			<p>
-				<a href="<?php echo esc_url( admin_url( 'options.php?page=wp-ai-mind-api-keys' ) ); ?>">
+				<a href="<?php echo esc_url( admin_url( 'options-general.php?page=wp-ai-mind-api-keys' ) ); ?>">
 					<?php esc_html_e( 'Manage your API keys →', 'wp-ai-mind' ); ?>
 				</a>
 			</p>

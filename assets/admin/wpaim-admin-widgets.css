@@ -1,0 +1,40 @@
+/*
+ * WP AI Mind — Admin widget and tier-status styles.
+ *
+ * Enqueued on relevant admin pages by NJ_Usage_Widget and NJ_Tier_Status_Page.
+ * Uses the same CSS custom-property tokens as assets/admin/index.css so colours
+ * stay consistent across the whole plugin UI. The :root block in index.css defines
+ * --color-success, --color-error, --color-warning, --color-text-muted, and
+ * --color-border; hard-coded hex values here are fallbacks only for edge-cases
+ * where the admin bundle is not loaded.
+ */
+
+/* ---- Progress bar ---- */
+
+.wpaim-progress-track {
+	background: var(--color-border, #e0e1e6);
+	border-radius: 3px;
+	height: 10px;
+	overflow: hidden;
+}
+
+.wpaim-progress-bar {
+	border-radius: 3px;
+	height: 100%;
+	transition: width 0.3s ease;
+}
+
+.wpaim-progress-bar--success { background: var(--color-success, #16a34a); }
+.wpaim-progress-bar--warning { background: var(--color-warning, #d97706); }
+.wpaim-progress-bar--danger  { background: var(--color-error,   #dc2626); }
+.wpaim-progress-bar--neutral { background: var(--color-border,  #e0e1e6); }
+
+.wpaim-meta-text {
+	color: var(--color-text-muted, #787c82);
+	font-size: 12px;
+}
+
+/* ---- Tier / subscription status indicator ---- */
+
+.wpaim-status--active  { color: var(--color-success, #16a34a); }
+.wpaim-status--expired { color: var(--color-error,   #dc2626); }

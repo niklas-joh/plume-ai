@@ -36,6 +36,7 @@ class NJ_Tier_Status_Page_Test extends TestCase {
 		Functions\when( 'number_format_i18n' )->alias( fn( $n ) => (string) number_format( (int) $n ) );
 		Functions\when( 'get_admin_page_title' )->justReturn( 'WP AI Mind — Plan &amp; Usage' );
 		Functions\when( 'admin_url' )->alias( fn( $path ) => 'http://example.com/wp-admin/' . ltrim( $path, '/' ) );
+		Functions\when( 'current_user_can' )->justReturn( true );
 	}
 
 	/**
@@ -51,7 +52,7 @@ class NJ_Tier_Status_Page_Test extends TestCase {
 
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
-			function ( int $user_id, string $key, bool $single = false ) use ( $tier, $month_key, $used ): string {
+			function ( int $user_id, string $key, bool $single = false ) use ( $tier, $month_key, $used ): mixed {
 				if ( 'wp_ai_mind_tier' === $key ) {
 					return $tier;
 				}

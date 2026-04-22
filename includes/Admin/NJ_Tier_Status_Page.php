@@ -41,6 +41,10 @@ class NJ_Tier_Status_Page {
 	}
 
 	public static function render(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
 		$tier  = NJ_Tier_Manager::get_user_tier();
 		$usage = NJ_Usage_Tracker::get_usage();
 

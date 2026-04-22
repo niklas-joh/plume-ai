@@ -40,8 +40,8 @@ class NJ_Usage_Widget {
 
 	public static function render(): void {
 		$user_id = get_current_user_id();
-		$usage = NJ_Usage_Tracker::get_usage( $user_id );
-		$tier  = $usage['tier'];
+		$usage   = NJ_Usage_Tracker::get_usage( $user_id );
+		$tier    = $usage['tier'];
 
 		$tier_labels = [
 			'free'        => __( 'Free', 'wp-ai-mind' ),
@@ -51,7 +51,7 @@ class NJ_Usage_Widget {
 		];
 		$tier_label  = $tier_labels[ $tier ] ?? ucwords( str_replace( '_', ' ', $tier ) );
 
-		echo '<div class="wp-ai-mind-usage-widget">';
+		echo '<div class="nj-usage-widget">';
 		echo '<p><strong>' . esc_html( $tier_label ) . ' ' . esc_html__( 'Plan', 'wp-ai-mind' ) . '</strong></p>';
 
 		if ( null !== $usage['limit'] && $usage['limit'] > 0 ) {
@@ -66,7 +66,7 @@ class NJ_Usage_Widget {
 			}
 
 			printf(
-				'<div class="wpaim-progress-track"><div class="wpaim-progress-bar wpaim-progress-bar--%s" style="width:%d%%"></div></div>',
+				'<div class="wpaim-progress-track"><div class="wpaim-progress-bar wpaim-progress-bar--%s" data-pct="%d"></div></div>',
 				esc_attr( $bar_modifier ),
 				absint( $pct )
 			);
@@ -85,6 +85,7 @@ class NJ_Usage_Widget {
 			echo '<p>' . esc_html__( 'Unlimited — using your own API key.', 'wp-ai-mind' ) . '</p>';
 		}
 
+		echo '<script>(function(){document.querySelectorAll(".wpaim-progress-bar[data-pct]").forEach(function(el){el.style.width=el.dataset.pct+"%";});})();</script>';
 		echo '</div>';
 	}
 }

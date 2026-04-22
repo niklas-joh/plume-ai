@@ -15,7 +15,10 @@ class NJ_Usage_Widget {
 		add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_styles' ] );
 	}
 
-	public static function enqueue_styles(): void {
+	public static function enqueue_styles( string $hook ): void {
+		if ( 'index.php' !== $hook ) {
+			return;
+		}
 		wp_enqueue_style(
 			'wpaim-admin-widgets',
 			WP_AI_MIND_URL . 'assets/admin/wpaim-admin-widgets.css',
@@ -51,12 +54,16 @@ class NJ_Usage_Widget {
 		echo '<div class="wp-ai-mind-usage-widget">';
 		echo '<p><strong>' . esc_html( $tier_label ) . ' ' . esc_html__( 'Plan', 'wp-ai-mind' ) . '</strong></p>';
 
-		if ( isset( $usage['limit'] ) && $usage['limit'] > 0 ) {
+		if ( null !== $usage['limit'] && $usage['limit'] > 0 ) {
 			$pct = min( 100, (int) round( ( $usage['used'] / $usage['limit'] ) * 100 ) );
 
-			if ( $pct > 80 )     $bar_modifier = 'danger';
-			elseif ( $pct > 60 ) $bar_modifier = 'warning';
-			else                 $bar_modifier = 'success';
+			if ( $pct > 80 ) {
+				$bar_modifier = 'danger';
+			} elseif ( $pct > 60 ) {
+				$bar_modifier = 'warning';
+			} else {
+				$bar_modifier = 'success';
+			}
 
 			printf(
 				'<div class="wpaim-progress-track"><div class="wpaim-progress-bar wpaim-progress-bar--%s" style="width:%d%%"></div></div>',

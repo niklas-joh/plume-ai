@@ -51,7 +51,7 @@ class NJ_Tier_Status_Page_Test extends TestCase {
 
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
-			function ( int $user_id, string $key ) use ( $tier, $month_key, $used ): string {
+			function ( int $user_id, string $key, bool $single = false ) use ( $tier, $month_key, $used ): string {
 				if ( 'wp_ai_mind_tier' === $key ) {
 					return $tier;
 				}

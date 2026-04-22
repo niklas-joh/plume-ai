@@ -18,7 +18,10 @@ class NJ_Tier_Status_Page {
 		add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_styles' ] );
 	}
 
-	public static function enqueue_styles(): void {
+	public static function enqueue_styles( string $hook ): void {
+		if ( 'settings_page_wp-ai-mind-tier-status' !== $hook ) {
+			return;
+		}
 		wp_enqueue_style(
 			'wpaim-admin-widgets',
 			WP_AI_MIND_URL . 'assets/admin/wpaim-admin-widgets.css',

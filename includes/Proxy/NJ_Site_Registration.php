@@ -21,6 +21,10 @@ class NJ_Site_Registration {
 
 	private const OPTION_TOKEN = 'wp_ai_mind_site_token';
 
+	public const PLAN_PRO_MANAGED_MONTHLY = '1550505';
+	public const PLAN_PRO_MANAGED_ANNUAL  = '1550477';
+	public const PLAN_PRO_BYOK_ONETIME    = '1550517';
+
 	/**
 	 * Return the stored site token, or an empty string if not yet registered.
 	 */

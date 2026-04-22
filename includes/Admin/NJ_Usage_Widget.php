@@ -2,7 +2,6 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Admin;
 
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -13,6 +12,16 @@ class NJ_Usage_Widget {
 
 	public static function register_hooks(): void {
 		add_action( 'wp_dashboard_setup', [ self::class, 'add_dashboard_widget' ] );
+		add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_styles' ] );
+	}
+
+	public static function enqueue_styles(): void {
+		wp_enqueue_style(
+			'wpaim-admin-widgets',
+			WP_AI_MIND_URL . 'assets/admin/wpaim-admin-widgets.css',
+			[],
+			WP_AI_MIND_VERSION
+		);
 	}
 
 	public static function add_dashboard_widget(): void {
@@ -28,8 +37,8 @@ class NJ_Usage_Widget {
 
 	public static function render(): void {
 		$user_id = get_current_user_id();
-		$usage   = NJ_Usage_Tracker::get_usage( $user_id );
-		$tier    = NJ_Tier_Manager::get_user_tier( $user_id );
+		$usage = NJ_Usage_Tracker::get_usage( $user_id );
+		$tier  = $usage['tier'];
 
 		$tier_labels = [
 			'free'        => __( 'Free', 'wp-ai-mind' ),
@@ -42,24 +51,20 @@ class NJ_Usage_Widget {
 		echo '<div class="wp-ai-mind-usage-widget">';
 		echo '<p><strong>' . esc_html( $tier_label ) . ' ' . esc_html__( 'Plan', 'wp-ai-mind' ) . '</strong></p>';
 
-		if ( isset ( $usage['limit'] ) && $usage['limit'] > 0 ) {
-			$color_danger   = '#d63638';
-			$color_warning  = '#dba617';
-			$color_success  = '#00a32a';
-			$color_track_bg = '#e0e0e0';
-			$color_label    = '#666';
+		if ( isset( $usage['limit'] ) && $usage['limit'] > 0 ) {
+			$pct = min( 100, (int) round( ( $usage['used'] / $usage['limit'] ) * 100 ) );
 
-			$pct   = min( 100, (int) round( ( $usage['used'] / $usage['limit'] ) * 100 ) );
-			$color = $pct > 80 ? $color_danger : ( $pct > 60 ? $color_warning : $color_success );
+			if ( $pct > 80 )     $bar_modifier = 'danger';
+			elseif ( $pct > 60 ) $bar_modifier = 'warning';
+			else                 $bar_modifier = 'success';
+
 			printf(
-				'<div style="background:%s;height:10px;border-radius:5px;margin:8px 0"><div style="width:%d%%;background:%s;height:100%%;border-radius:5px"></div></div>',
-				esc_attr( $color_track_bg ),
-				absint( $pct ),
-				esc_attr( $color )
+				'<div class="wpaim-progress-track"><div class="wpaim-progress-bar wpaim-progress-bar--%s" style="width:%d%%"></div></div>',
+				esc_attr( $bar_modifier ),
+				absint( $pct )
 			);
 			printf(
-				'<p style="font-size:12px;color:%s">%s / %s %s (%s %s)</p>',
-				esc_attr( $color_label ),
+				'<p class="wpaim-meta-text">%s / %s %s (%s %s)</p>',
 				esc_html( number_format_i18n( (int) $usage['used'] ) ),
 				esc_html( number_format_i18n( (int) $usage['limit'] ) ),
 				esc_html__( 'tokens', 'wp-ai-mind' ),
@@ -67,7 +72,7 @@ class NJ_Usage_Widget {
 				esc_html__( 'remaining', 'wp-ai-mind' )
 			);
 			if ( $pct > 80 ) {
-				echo '<p class="notice notice-warning inline">' . esc_html__( 'Over 80% of monthly tokens used. Consider upgrading.', 'wp-ai-mind' ) . '</p>';
+				echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Over 80% of monthly tokens used. Consider upgrading.', 'wp-ai-mind' ) . '</p></div>';
 			}
 		} else {
 			echo '<p>' . esc_html__( 'Unlimited — using your own API key.', 'wp-ai-mind' ) . '</p>';

@@ -54,9 +54,13 @@ class NJ_Usage_Widget {
 		if ( isset( $usage['limit'] ) && $usage['limit'] > 0 ) {
 			$pct = min( 100, (int) round( ( $usage['used'] / $usage['limit'] ) * 100 ) );
 
-			if ( $pct > 80 )     $bar_modifier = 'danger';
-			elseif ( $pct > 60 ) $bar_modifier = 'warning';
-			else                 $bar_modifier = 'success';
+			if ( $pct > 80 ) {
+				$bar_modifier = 'danger';
+			} elseif ( $pct > 60 ) {
+				$bar_modifier = 'warning';
+			} else {
+				$bar_modifier = 'success';
+			}
 
 			printf(
 				'<div class="wpaim-progress-track"><div class="wpaim-progress-bar wpaim-progress-bar--%s" style="width:%d%%"></div></div>',

@@ -52,6 +52,7 @@ class Plugin {
 		// add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Payments\NJ_LemonSqueezy_Webhook::class, 'register_routes' ] );
 		\WP_AI_Mind\Admin\NJ_Tier_Status_Page::register_hooks();
 		\WP_AI_Mind\Admin\NJ_Api_Key_Settings::register_hooks();
+		\WP_AI_Mind\Admin\NJ_Usage_Widget::register_hooks();
 		\WP_AI_Mind\Admin\ActivationNotice::register();
 		if ( $this->modules->is_enabled( 'chat' ) ) {
 			add_action( 'plugins_loaded', [ \WP_AI_Mind\Modules\Chat\ChatModule::class, 'register' ], 20 );

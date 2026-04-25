@@ -36,6 +36,7 @@ class SettingsRestControllerTest extends TestCase {
     public function test_get_settings_returns_masked_keys_when_set(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
+        Functions\when( 'wp_ai_mind_is_pro' )->justReturn( false );
         Functions\when( 'get_option' )->alias( function( $key, $default = '' ) {
             $map = [
                 'wp_ai_mind_default_provider' => 'claude',
@@ -85,6 +86,7 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'wp_ai_mind_is_pro' )->justReturn( false );
 
         $controller = new class extends SettingsRestController {
             protected function make_provider_settings(): \WP_AI_Mind\Settings\ProviderSettings {
@@ -104,6 +106,65 @@ class SettingsRestControllerTest extends TestCase {
         $this->assertSame( '', $data['api_keys']['claude'] );
         $this->assertSame( '', $data['api_keys']['openai'] );
         $this->assertSame( '', $data['api_keys']['gemini'] );
+    }
+
+    // ── GET /settings — is_pro field ─────────────────────────────────────────
+
+    private function make_controller_with_is_pro( bool $is_pro ): SettingsRestController {
+        $controller = new class( $is_pro ) extends SettingsRestController {
+            private bool $is_pro;
+            public function __construct( bool $is_pro ) { $this->is_pro = $is_pro; }
+            protected function make_provider_settings(): \WP_AI_Mind\Settings\ProviderSettings {
+                $stub = new class extends \WP_AI_Mind\Settings\ProviderSettings {
+                    public function __construct() {}
+                    public function has_key( string $provider ): bool { return false; }
+                    public function get_api_key( string $provider ): string { return ''; }
+                };
+                return $stub;
+            }
+        };
+
+        // Wrap the controller so wp_ai_mind_is_pro() is available as a mocked function.
+        Functions\when( 'wp_ai_mind_is_pro' )->justReturn( $is_pro );
+
+        return $controller;
+    }
+
+    public function test_get_settings_is_pro_field_is_present(): void {
+        Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'get_post_types' )->justReturn( [] );
+
+        $controller = $this->make_controller_with_is_pro( false );
+
+        $response = $controller->get_settings( new \WP_REST_Request() );
+        $this->assertArrayHasKey( 'is_pro', $response->data );
+    }
+
+    public function test_get_settings_is_pro_is_always_boolean(): void {
+        Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'get_post_types' )->justReturn( [] );
+
+        foreach ( [ false, true ] as $value ) {
+            $controller = $this->make_controller_with_is_pro( $value );
+            $response   = $controller->get_settings( new \WP_REST_Request() );
+            $this->assertIsBool( $response->data['is_pro'], 'is_pro must be a bool, got ' . gettype( $response->data['is_pro'] ) );
+        }
+    }
+
+    public function test_get_settings_is_pro_reflects_wp_ai_mind_is_pro(): void {
+        Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'get_post_types' )->justReturn( [] );
+
+        $controller_free = $this->make_controller_with_is_pro( false );
+        $response_free   = $controller_free->get_settings( new \WP_REST_Request() );
+        $this->assertFalse( $response_free->data['is_pro'] );
+
+        Functions\when( 'wp_ai_mind_is_pro' )->justReturn( true );
+        $response_pro = $controller_free->get_settings( new \WP_REST_Request() );
+        $this->assertTrue( $response_pro->data['is_pro'] );
     }
 
     // ── POST /settings — saves options ────────────────────────────────────────
@@ -191,6 +252,7 @@ class SettingsRestControllerTest extends TestCase {
             return is_array( $default ) ? $default : '';
         } );
         Functions\when( 'get_post_types' )->justReturn( [] );
+        Functions\when( 'wp_ai_mind_is_pro' )->justReturn( false );
 
         $controller = new class extends SettingsRestController {
             protected function make_provider_settings(): \WP_AI_Mind\Settings\ProviderSettings {
@@ -216,6 +278,7 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'get_option' )->alias( function( $key, $default = '' ) {
             return is_array( $default ) ? $default : '';
         } );
+        Functions\when( 'wp_ai_mind_is_pro' )->justReturn( false );
 
         // Build fake WP post type objects.
         $fake_post  = new \stdClass();

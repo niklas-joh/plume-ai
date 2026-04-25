@@ -69,7 +69,7 @@ class SettingsRestController {
 			'allowed_post_types'   => \get_option( 'wp_ai_mind_allowed_post_types', [ 'post', 'page' ] ),
 			'available_post_types' => $this->get_public_post_types(),
 			'enable_write_tools'   => (bool) \get_option( 'wp_ai_mind_enable_write_tools', false ),
-			'is_pro'               => \wp_ai_mind_is_pro(),
+			'is_pro'               => (bool) \wp_ai_mind_is_pro(),
 		];
 
 		return rest_ensure_response( $data );

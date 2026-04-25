@@ -24,6 +24,18 @@ class AdminMenu {
 		add_submenu_page( 'wp-ai-mind', __( 'Images', 'wp-ai-mind' ), __( 'Images', 'wp-ai-mind' ), 'edit_posts', 'wp-ai-mind-images', [ ImagesPage::class, 'render' ] );
 		add_submenu_page( 'wp-ai-mind', __( 'Usage', 'wp-ai-mind' ), __( 'Usage &amp; Cost', 'wp-ai-mind' ), 'manage_options', 'wp-ai-mind-usage', [ UsagePage::class, 'render' ] );
 		add_submenu_page( 'wp-ai-mind', __( 'Settings', 'wp-ai-mind' ), __( 'Settings', 'wp-ai-mind' ), 'manage_options', 'wp-ai-mind-settings', [ SettingsPage::class, 'render' ] );
+
+		$tier = \WP_AI_Mind\Tiers\NJ_Tier_Manager::get_user_tier();
+		if ( in_array( $tier, [ 'free', 'trial' ], true ) ) {
+			add_submenu_page(
+				'wp-ai-mind',
+				__( 'Upgrade', 'wp-ai-mind' ),
+				__( 'Upgrade ✦', 'wp-ai-mind' ),
+				'edit_posts',
+				'wp-ai-mind-upgrade',
+				[ \WP_AI_Mind\Admin\NJ_Tier_Status_Page::class, 'render' ]
+			);
+		}
 	}
 
 	/** Inline SVG — Lucide `sparkles` icon, zinc-400 (#a1a1aa). */

@@ -5,6 +5,7 @@ declare( strict_types=1 );
 namespace WP_AI_Mind\Modules\Chat;
 
 use WP_AI_Mind\Settings\ProviderSettings;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
 /**
  * REST controller for plugin settings.
@@ -86,11 +87,17 @@ class SettingsRestController {
 		// Scalar options.
 		$default_provider = $request->get_param( 'default_provider' );
 		if ( null !== $default_provider ) {
+			if ( ! NJ_Tier_Manager::user_can( 'model_selection' ) ) {
+				return new \WP_REST_Response( [ 'error' => 'model_selection not available on current plan' ], 403 );
+			}
 			update_option( 'wp_ai_mind_default_provider', sanitize_text_field( (string) $default_provider ) );
 		}
 
 		$image_provider = $request->get_param( 'image_provider' );
 		if ( null !== $image_provider ) {
+			if ( ! NJ_Tier_Manager::user_can( 'model_selection' ) ) {
+				return new \WP_REST_Response( [ 'error' => 'model_selection not available on current plan' ], 403 );
+			}
 			update_option( 'wp_ai_mind_image_provider', sanitize_text_field( (string) $image_provider ) );
 		}
 

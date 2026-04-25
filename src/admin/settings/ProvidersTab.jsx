@@ -1,5 +1,6 @@
 import { useState } from '@wordpress/element';
 import { SelectControl, TextControl, Button } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 
 const API_KEY_PROVIDERS = [
 	{ id: 'claude', label: 'Claude (Anthropic)' },
@@ -20,6 +21,8 @@ const IMAGE_PROVIDER_OPTIONS = [
 ];
 
 export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
+	const features = window.wpAiMindData?.features ?? {};
+	const upgradeUrl = window.wpAiMindData?.upgradeUrl ?? 'admin.php?page=wp-ai-mind-upgrade';
 	const apiKeys = settings?.api_keys ?? {};
 	const [ dirty, setDirty ] = useState( {} ); // { [provider]: string }
 
@@ -59,30 +62,48 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 					Default Providers
 				</h3>
 
-				<SelectControl
-					label="Default AI Provider"
-					options={ PROVIDER_OPTIONS }
-					value={ settings?.default_provider ?? '' }
-					onChange={ ( val ) =>
-						saveSettings( { default_provider: val } )
-					}
-					__nextHasNoMarginBottom
-				/>
+				{ ! features.model_selection && (
+					<p className="wpaim-upgrade-notice">
+						{ __( 'Model selection is available on the Pro plan.', 'wp-ai-mind' ) }
+						{ ' ' }
+						<a href={ upgradeUrl }>{ __( 'Upgrade →', 'wp-ai-mind' ) }</a>
+					</p>
+				) }
 
-				<SelectControl
-					label="Image Provider"
-					options={ IMAGE_PROVIDER_OPTIONS }
-					value={ settings?.image_provider ?? '' }
-					onChange={ ( val ) =>
-						saveSettings( { image_provider: val } )
-					}
-					__nextHasNoMarginBottom
-				/>
+				<fieldset disabled={ ! features.model_selection }>
+					<SelectControl
+						label={ __( 'Default AI Provider', 'wp-ai-mind' ) }
+						options={ PROVIDER_OPTIONS }
+						value={ settings?.default_provider ?? '' }
+						onChange={ ( val ) =>
+							saveSettings( { default_provider: val } )
+						}
+						__nextHasNoMarginBottom
+					/>
+
+					<SelectControl
+						label={ __( 'Image Provider', 'wp-ai-mind' ) }
+						options={ IMAGE_PROVIDER_OPTIONS }
+						value={ settings?.image_provider ?? '' }
+						onChange={ ( val ) =>
+							saveSettings( { image_provider: val } )
+						}
+						__nextHasNoMarginBottom
+					/>
+				</fieldset>
 			</section>
 
 			{ /* API key inputs */ }
 			<section className="wpaim-settings-section">
 				<h3 className="wpaim-settings-section-title">API Keys</h3>
+
+				{ ! features.own_api_key && (
+					<p className="wpaim-upgrade-notice">
+						{ __( 'API key management is available on the Pro BYOK plan.', 'wp-ai-mind' ) }
+						{ ' ' }
+						<a href={ upgradeUrl }>{ __( 'Upgrade →', 'wp-ai-mind' ) }</a>
+					</p>
+				) }
 
 				{ API_KEY_PROVIDERS.map( ( { id, label } ) => (
 					<div
@@ -104,11 +125,12 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 								}
 								autoComplete="new-password"
 								__nextHasNoMarginBottom
+								disabled={ ! features.own_api_key }
 							/>
 							<Button
 								variant="primary"
 								disabled={
-									isSaving || dirty[ id ] === undefined
+									isSaving || dirty[ id ] === undefined || ! features.own_api_key
 								}
 								onClick={ () => handleSaveKey( id ) }
 							>

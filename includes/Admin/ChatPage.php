@@ -50,7 +50,7 @@ class ChatPage {
 				'nonce'             => wp_create_nonce( 'wp_rest' ),
 				'restUrl'           => esc_url_raw( rest_url( 'wp-ai-mind/v1' ) ),
 				'currentPostId'     => 0,
-				'isPro'             => NJ_Tier_Manager::user_can( 'generator' ),
+				'isPro'             => NJ_Tier_Manager::user_can( 'chat' ),
 				'siteTitle'         => get_bloginfo( 'name' ),
 				'defaultModelLabel' => esc_html( $default_model_label ),
 			]

@@ -8,7 +8,7 @@ import ModelSelector from '../RightPanel/ModelSelector';
 import apiFetch from '@wordpress/api-fetch';
 
 export default function ChatApp() {
-	const { isPro } = window.wpAiMindData || {};
+	const { canChat } = window.wpAiMindData || {};
 
 	const [ conversations, setConversations ] = useState( [] );
 	const [ activeConvId, setActiveConvId ] = useState( null );
@@ -221,7 +221,7 @@ export default function ChatApp() {
 					onProviderChange={ setSelectedProvider }
 					onModelChange={ setSelectedModel }
 				/>
-				<QuickActions onAction={ sendMessage } isPro={ isPro } />
+				<QuickActions onAction={ sendMessage } canChat={ canChat } />
 			</aside>
 		</div>
 	);

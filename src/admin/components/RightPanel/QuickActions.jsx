@@ -37,8 +37,8 @@ const PRO_ACTIONS = [
 	},
 ];
 
-export default function QuickActions( { onAction, isPro } ) {
-	const actions = isPro ? [ ...FREE_ACTIONS, ...PRO_ACTIONS ] : FREE_ACTIONS;
+export default function QuickActions( { onAction, canChat } ) {
+	const actions = canChat ? [ ...FREE_ACTIONS, ...PRO_ACTIONS ] : FREE_ACTIONS;
 
 	return (
 		<div className="wpaim-panel-section">
@@ -55,7 +55,7 @@ export default function QuickActions( { onAction, isPro } ) {
 						<span>{ action.label }</span>
 					</Button>
 				) ) }
-				{ ! isPro && (
+				{ ! canChat && (
 					<div className="wpaim-pro-teaser">
 						<span>More actions with Pro</span>
 					</div>

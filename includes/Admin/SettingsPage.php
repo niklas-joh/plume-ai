@@ -46,6 +46,11 @@ class SettingsPage {
 				'currentPostId' => 0,
 				'isPro'         => NJ_Tier_Manager::user_can( 'chat' ),
 				'siteTitle'     => get_bloginfo( 'name' ),
+				'tier'          => NJ_Tier_Manager::get_user_tier(),
+				'features'      => [
+					'model_selection' => NJ_Tier_Manager::user_can( 'model_selection' ),
+					'own_api_key'     => NJ_Tier_Manager::user_can( 'own_api_key' ),
+				],
 			]
 		);
 

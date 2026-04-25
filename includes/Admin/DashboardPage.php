@@ -58,8 +58,12 @@ class DashboardPage {
 		$provider_settings = new ProviderSettings();
 		$provider          = (string) get_option( 'wp_ai_mind_default_provider', '' );
 		$has_own_key       = $provider && $provider_settings->has_key( $provider );
-		$is_pro            = NJ_Tier_Manager::user_can( 'chat' );
+		$is_pro            = NJ_Tier_Manager::user_can( 'generator' );
 
+		// Suppress the upgrade banner when the user has generator access (pro_managed, pro_byok, or
+		// trial tiers all have generator = true) or when they supply their own API key. Trial users
+		// intentionally do not see the banner — they already have access and will receive a separate
+		// trial-expiry notice when their quota runs low.
 		if ( $is_pro || $has_own_key ) {
 			$banner_state = 'none';
 		} else {

@@ -44,7 +44,7 @@ class ImagesModule {
 			[
 				'nonce'    => \wp_create_nonce( 'wp_rest' ),
 				'restUrl'  => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
-				'isPro'    => NJ_Tier_Manager::user_can( 'chat' ),
+				'isPro'    => NJ_Tier_Manager::user_can( 'images' ),
 				'adminUrl' => \esc_url_raw( \admin_url() ),
 			]
 		);
@@ -64,7 +64,10 @@ class ImagesModule {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_generate' ],
-				'permission_callback' => fn() => \current_user_can( 'edit_posts' ) && NJ_Tier_Manager::user_can( 'chat' ) && NJ_Usage_Tracker::check_limit(),
+				'permission_callback' => function() {
+						$user_id = \get_current_user_id();
+						return \current_user_can( 'edit_posts' ) && NJ_Tier_Manager::user_can( 'images', $user_id ) && NJ_Usage_Tracker::check_limit( $user_id );
+					},
 				'args'                => [
 					'prompt'       => [
 						'required'          => true,

@@ -45,7 +45,7 @@ class SettingsPage {
 				'restUrl'       => esc_url_raw( rest_url( 'wp-ai-mind/v1' ) ),
 				'upgradeUrl'    => esc_url( admin_url( 'admin.php?page=wp-ai-mind-upgrade' ) ),
 				'currentPostId' => 0,
-				'isPro'         => NJ_Tier_Manager::user_can( 'chat' ),
+				'isPro'         => NJ_Tier_Manager::user_can( 'generator' ),
 				'siteTitle'     => get_bloginfo( 'name' ),
 				'tier'          => NJ_Tier_Manager::get_user_tier(),
 				'features'      => [

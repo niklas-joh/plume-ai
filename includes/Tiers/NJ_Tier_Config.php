@@ -15,21 +15,33 @@ class NJ_Tier_Config {
 	const FEATURES = [
 		'free'        => [
 			'chat'            => true,
+			'generator'       => false,
+			'seo'             => false,
+			'images'          => false,
 			'model_selection' => false,
 			'own_api_key'     => false,
 		],
 		'trial'       => [
 			'chat'            => true,
+			'generator'       => true,
+			'seo'             => true,
+			'images'          => true,
 			'model_selection' => false,
 			'own_api_key'     => false,
 		],
 		'pro_managed' => [
 			'chat'            => true,
+			'generator'       => true,
+			'seo'             => true,
+			'images'          => true,
 			'model_selection' => true,
 			'own_api_key'     => false,
 		],
 		'pro_byok'    => [
 			'chat'            => true,
+			'generator'       => true,
+			'seo'             => true,
+			'images'          => true,
 			'model_selection' => true,
 			'own_api_key'     => true,
 		],

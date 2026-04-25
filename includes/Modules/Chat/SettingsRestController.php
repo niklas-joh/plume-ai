@@ -5,6 +5,7 @@ declare( strict_types=1 );
 namespace WP_AI_Mind\Modules\Chat;
 
 use WP_AI_Mind\Settings\ProviderSettings;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
 /**
  * REST controller for plugin settings.
@@ -65,6 +66,7 @@ class SettingsRestController {
 			'allowed_post_types'   => \get_option( 'wp_ai_mind_allowed_post_types', [ 'post', 'page' ] ),
 			'available_post_types' => $this->get_public_post_types(),
 			'enable_write_tools'   => (bool) \get_option( 'wp_ai_mind_enable_write_tools', false ),
+			'is_pro'               => NJ_Tier_Manager::user_can( 'generator' ),
 		];
 
 		return rest_ensure_response( $data );

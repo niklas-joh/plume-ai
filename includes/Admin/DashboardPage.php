@@ -58,7 +58,7 @@ class DashboardPage {
 		$provider_settings = new ProviderSettings();
 		$provider          = (string) get_option( 'wp_ai_mind_default_provider', '' );
 		$has_own_key       = $provider && $provider_settings->has_key( $provider );
-		$is_pro            = NJ_Tier_Manager::user_can( 'chat' );
+		$is_pro            = NJ_Tier_Manager::user_can( 'generator' );
 
 		if ( $is_pro || $has_own_key ) {
 			$banner_state = 'none';

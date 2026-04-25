@@ -72,12 +72,42 @@ class NJTierManagerTest extends TestCase {
 	}
 
 	public function test_pro_byok_user_can_all_features(): void {
-		Functions\expect( 'get_current_user_id' )->times( 3 )->andReturn( 7 );
-		Functions\expect( 'get_user_meta' )->times( 3 )->with( 7, 'wp_ai_mind_tier', true )->andReturn( 'pro_byok' );
+		Functions\expect( 'get_current_user_id' )->times( 6 )->andReturn( 7 );
+		Functions\expect( 'get_user_meta' )->times( 6 )->with( 7, 'wp_ai_mind_tier', true )->andReturn( 'pro_byok' );
 
 		$this->assertTrue( NJ_Tier_Manager::user_can( 'chat' ) );
 		$this->assertTrue( NJ_Tier_Manager::user_can( 'model_selection' ) );
 		$this->assertTrue( NJ_Tier_Manager::user_can( 'own_api_key' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'generator' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'seo' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'images' ) );
+	}
+
+	public function test_free_user_cannot_use_content_features(): void {
+		Functions\expect( 'get_current_user_id' )->times( 3 )->andReturn( 1 );
+		Functions\expect( 'get_user_meta' )->times( 3 )->with( 1, 'wp_ai_mind_tier', true )->andReturn( 'free' );
+
+		$this->assertFalse( NJ_Tier_Manager::user_can( 'generator' ) );
+		$this->assertFalse( NJ_Tier_Manager::user_can( 'seo' ) );
+		$this->assertFalse( NJ_Tier_Manager::user_can( 'images' ) );
+	}
+
+	public function test_trial_user_can_use_content_features(): void {
+		Functions\expect( 'get_current_user_id' )->times( 3 )->andReturn( 10 );
+		Functions\expect( 'get_user_meta' )->times( 3 )->with( 10, 'wp_ai_mind_tier', true )->andReturn( 'trial' );
+
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'generator' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'seo' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'images' ) );
+	}
+
+	public function test_pro_managed_user_can_use_content_features(): void {
+		Functions\expect( 'get_current_user_id' )->times( 3 )->andReturn( 2 );
+		Functions\expect( 'get_user_meta' )->times( 3 )->with( 2, 'wp_ai_mind_tier', true )->andReturn( 'pro_managed' );
+
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'generator' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'seo' ) );
+		$this->assertTrue( NJ_Tier_Manager::user_can( 'images' ) );
 	}
 
 	public function test_get_monthly_limit_returns_null_for_pro_byok(): void {

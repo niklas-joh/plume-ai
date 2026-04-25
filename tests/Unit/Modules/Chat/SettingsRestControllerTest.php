@@ -36,6 +36,8 @@ class SettingsRestControllerTest extends TestCase {
     public function test_get_settings_returns_masked_keys_when_set(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_user_meta' )->justReturn( 'free' );
         Functions\when( 'get_option' )->alias( function( $key, $default = '' ) {
             $map = [
                 'wp_ai_mind_default_provider' => 'claude',
@@ -84,6 +86,8 @@ class SettingsRestControllerTest extends TestCase {
     public function test_get_settings_returns_empty_string_when_key_not_set(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_user_meta' )->justReturn( 'free' );
         Functions\when( 'get_option' )->justReturn( '' );
 
         $controller = new class extends SettingsRestController {
@@ -184,6 +188,8 @@ class SettingsRestControllerTest extends TestCase {
 
     public function test_get_settings_returns_allowed_post_types(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_user_meta' )->justReturn( 'free' );
         Functions\when( 'get_option' )->alias( function( $key, $default = '' ) {
             if ( 'wp_ai_mind_allowed_post_types' === $key ) {
                 return [ 'post' ];
@@ -213,6 +219,8 @@ class SettingsRestControllerTest extends TestCase {
 
     public function test_get_settings_returns_available_post_types(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_user_meta' )->justReturn( 'free' );
         Functions\when( 'get_option' )->alias( function( $key, $default = '' ) {
             return is_array( $default ) ? $default : '';
         } );
@@ -309,6 +317,62 @@ class SettingsRestControllerTest extends TestCase {
 
         $this->assertArrayHasKey( 'wp_ai_mind_enable_write_tools', $stored );
         $this->assertTrue( $stored['wp_ai_mind_enable_write_tools'] );
+    }
+
+    // ── GET /settings — is_pro field ─────────────────────────────────────────
+
+    public function test_get_settings_includes_is_pro_field(): void {
+        Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_post_types' )->justReturn( [] );
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'get_current_user_id' )->justReturn( 2 );
+        Functions\when( 'get_user_meta' )->justReturn( 'pro_managed' );
+
+        $controller = new class extends SettingsRestController {
+            protected function make_provider_settings(): \WP_AI_Mind\Settings\ProviderSettings {
+                $stub = new class extends \WP_AI_Mind\Settings\ProviderSettings {
+                    public function __construct() {}
+                    public function has_key( string $provider ): bool { return false; }
+                    public function get_api_key( string $provider ): string { return ''; }
+                };
+                return $stub;
+            }
+        };
+
+        $request  = new \WP_REST_Request();
+        $response = $controller->get_settings( $request );
+        $data     = $response->data;
+
+        $this->assertArrayHasKey( 'is_pro', $data );
+        $this->assertIsBool( $data['is_pro'] );
+        $this->assertTrue( $data['is_pro'] );
+    }
+
+    public function test_get_settings_is_pro_false_for_free_user(): void {
+        Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_post_types' )->justReturn( [] );
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_user_meta' )->justReturn( 'free' );
+
+        $controller = new class extends SettingsRestController {
+            protected function make_provider_settings(): \WP_AI_Mind\Settings\ProviderSettings {
+                $stub = new class extends \WP_AI_Mind\Settings\ProviderSettings {
+                    public function __construct() {}
+                    public function has_key( string $provider ): bool { return false; }
+                    public function get_api_key( string $provider ): string { return ''; }
+                };
+                return $stub;
+            }
+        };
+
+        $request  = new \WP_REST_Request();
+        $response = $controller->get_settings( $request );
+        $data     = $response->data;
+
+        $this->assertArrayHasKey( 'is_pro', $data );
+        $this->assertIsBool( $data['is_pro'] );
+        $this->assertFalse( $data['is_pro'] );
     }
 
     public function test_save_settings_skips_masked_api_keys(): void {

@@ -79,9 +79,9 @@ class SettingsRestController {
 	 * Saves plugin settings from the request body.
 	 *
 	 * @param \WP_REST_Request $request Incoming REST request.
-	 * @return \WP_REST_Response
+	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public function save_settings( \WP_REST_Request $request ): \WP_REST_Response {
+	public function save_settings( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		$provider_settings = $this->make_provider_settings();
 		$json_params       = $request->get_json_params();
 		$params            = ! empty( $json_params ) ? $json_params : [];
@@ -123,6 +123,14 @@ class SettingsRestController {
 		// API keys — skip any that are the mask placeholder (i.e. unchanged).
 		$api_keys = $request->get_param( 'api_keys' );
 		if ( is_array( $api_keys ) ) {
+			if ( ! NJ_Tier_Manager::user_can( 'own_api_key' ) ) {
+				return new \WP_Error(
+					'rest_plan_required',
+					__( 'API key management requires the Pro BYOK plan.', 'wp-ai-mind' ),
+					[ 'status' => 403 ]
+				);
+			}
+
 			$provider_map = [ 'claude', 'openai', 'gemini' ];
 
 			foreach ( $provider_map as $provider ) {

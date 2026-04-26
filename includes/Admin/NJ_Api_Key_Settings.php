@@ -177,7 +177,7 @@ class NJ_Api_Key_Settings {
 	}
 
 	public static function decrypt( string $ciphertext ): string|false {
-		$key  = self::derive_key();
+		$key = self::derive_key();
 		if ( false === $key ) {
 			return false;
 		}

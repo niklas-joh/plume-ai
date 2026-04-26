@@ -3,6 +3,7 @@ declare( strict_types=1 );
 namespace WP_AI_Mind\Admin;
 
 use WP_AI_Mind\Settings\ProviderSettings;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
@@ -71,6 +72,16 @@ class OnboardingRestController {
 			update_option( 'wp_ai_mind_default_provider', sanitize_text_field( $provider ) );
 		}
 		if ( $api_keys && is_array( $api_keys ) ) {
+			if ( ! NJ_Tier_Manager::user_can( 'own_api_key' ) ) {
+				return new WP_REST_Response(
+					[
+						'code'    => 'rest_plan_required',
+						'message' => __( 'API key management requires the Pro BYOK plan.', 'wp-ai-mind' ),
+					],
+					403
+				);
+			}
+
 			$valid    = [ 'openai', 'claude', 'gemini' ];
 			$settings = static::make_provider_settings();
 			foreach ( $api_keys as $p => $key ) {

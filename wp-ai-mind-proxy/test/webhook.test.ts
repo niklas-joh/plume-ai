@@ -64,9 +64,9 @@ function subscriptionCreatedPayload( variantId: string, siteToken: string ) {
 	};
 }
 
-function subscriptionCancelledPayload( licenceKey: string ) {
+function deactivationPayload( eventName: string, licenceKey: string ) {
 	return {
-		meta: { event_name: 'subscription_cancelled' },
+		meta: { event_name: eventName },
 		data: {
 			attributes: {
 				licence_key: licenceKey,
@@ -130,7 +130,11 @@ describe( 'handleWebhook', () => {
 		expect( updated?.tier ).toBe( 'pro_managed' );
 	} );
 
-	it( 'downgrades site tier to free and deletes licence record on subscription_cancelled', async () => {
+	it.each( [
+		[ 'subscription_cancelled' ],
+		[ 'subscription_expired' ],
+		[ 'subscription_paused' ],
+	] )( 'downgrades tier and deletes licence record on %s', async ( eventName ) => {
 		const env = await makePrepopulatedEnv( 'pro_managed' );
 
 		// Pre-populate a licence record linking back to the site token
@@ -141,7 +145,7 @@ describe( 'handleWebhook', () => {
 		};
 		await env.USAGE_KV.put( `licence:${ TEST_LICENCE_KEY }`, JSON.stringify( licenceRecord ) );
 
-		const payload = subscriptionCancelledPayload( TEST_LICENCE_KEY );
+		const payload = deactivationPayload( eventName, TEST_LICENCE_KEY );
 		const req = makeRequest( payload );
 		const res = await handleWebhook( req, env );
 

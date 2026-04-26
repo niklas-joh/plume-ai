@@ -19,7 +19,11 @@ class NJ_Tier_Status_Page {
 	}
 
 	public static function enqueue_styles( string $hook ): void {
-		if ( 'settings_page_wp-ai-mind-tier-status' !== $hook ) {
+		$allowed_hooks = [
+			'settings_page_wp-ai-mind-tier-status',
+			'ai-mind_page_wp-ai-mind-upgrade',
+		];
+		if ( ! in_array( $hook, $allowed_hooks, true ) ) {
 			return;
 		}
 		wp_enqueue_style(
@@ -41,6 +45,9 @@ class NJ_Tier_Status_Page {
 	}
 
 	public static function render(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
 		$tier  = NJ_Tier_Manager::get_user_tier();
 		$usage = NJ_Usage_Tracker::get_usage();
 

@@ -8,7 +8,7 @@ export function makeKV(): KVNamespace {
 			if ( opts === 'json' && raw !== null ) return JSON.parse( raw );
 			return raw;
 		},
-		async put( key: string, value: string | object ): Promise<void> {
+		async put( key: string, value: string | object, _opts?: unknown ): Promise<void> {
 			store.set( key, typeof value === 'string' ? value : JSON.stringify( value ) );
 		},
 		async delete( key: string ): Promise<void> {

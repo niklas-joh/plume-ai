@@ -88,6 +88,7 @@ async function handleDeactivation(payload: Record<string, unknown>, env: Env): P
   if (record?.site_token) {
     await downgradeSiteTier(record.site_token, env);
   }
+  await env.USAGE_KV.delete(`licence:${licenceKey}`);
 }
 
 async function handleLicenceKey(payload: Record<string, unknown>, env: Env): Promise<void> {

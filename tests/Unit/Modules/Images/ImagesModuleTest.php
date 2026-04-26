@@ -71,16 +71,17 @@ class ImagesModuleTest extends TestCase {
 		$permission_callback = $captured_args['/images/generate']['permission_callback'];
 
 		// User has permission and has tokens remaining.
+		// trial tier is required — free tier has images: false in NJ_Tier_Config.
 		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function( $user_id, $key, $single ) use ( $month_key ) {
 				if ( 'wp_ai_mind_tier' === $key ) {
-					return 'free';
+					return 'trial';
 				}
 				if ( $month_key === $key ) {
-					return '0'; // well under 50k limit
+					return '0'; // well under 300k trial limit
 				}
 				return '';
 			}

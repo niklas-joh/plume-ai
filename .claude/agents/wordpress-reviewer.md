@@ -155,6 +155,9 @@ See `.agents/_shared/file-hygiene.md` for full conventions.
 - Adherence to WordPress PHP Coding Standards
 - Proper use of `nj_` function prefixes
 - British English in all content
+- All newly added or modified public PHP methods and classes have PHPDoc (`@param`, `@return`, `@since`, `@throws` if raised)
+- All newly added or modified exported React components have JSDoc (`@param` per prop, `@returns`; shared/reusable components also require `@example`)
+- Inline comments explain `why` — flag any comment that merely restates what the code does
 - Correct hook usage and plugin compatibility
 - Database schema integrity
 - No hardcoded values; use constants, options, or WordPress functions/settings/REST API instead

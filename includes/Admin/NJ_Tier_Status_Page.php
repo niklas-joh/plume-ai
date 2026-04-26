@@ -13,17 +13,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Read-only display: current tier and monthly usage meter.
 class NJ_Tier_Status_Page {
 
+	private const STYLE_HOOKS = [
+		'settings_page_wp-ai-mind-tier-status',
+		'ai-mind_page_wp-ai-mind-upgrade',
+	];
+
 	public static function register_hooks(): void {
 		add_action( 'admin_menu', [ self::class, 'add_menu_page' ] );
 		add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_styles' ] );
 	}
 
 	public static function enqueue_styles( string $hook ): void {
-		$allowed_hooks = [
-			'settings_page_wp-ai-mind-tier-status',
-			'ai-mind_page_wp-ai-mind-upgrade',
-		];
-		if ( ! in_array( $hook, $allowed_hooks, true ) ) {
+		if ( ! in_array( $hook, self::STYLE_HOOKS, true ) ) {
 			return;
 		}
 		wp_enqueue_style(

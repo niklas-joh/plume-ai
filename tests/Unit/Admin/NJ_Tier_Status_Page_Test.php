@@ -27,7 +27,6 @@ class NJ_Tier_Status_Page_Test extends TestCase {
 	 * Stub all WP display functions used by render().
 	 */
 	private function stub_display_functions(): void {
-		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
@@ -50,6 +49,7 @@ class NJ_Tier_Status_Page_Test extends TestCase {
 		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
 		$token     = $registered ? 'test-site-token' : '';
 
+		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key, bool $single = false ) use ( $tier, $month_key, $used ): string {

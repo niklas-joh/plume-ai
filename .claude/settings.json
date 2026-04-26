@@ -13,18 +13,5 @@
       "mcp__github__search_issues",
       "mcp__github__create_pull_request"
     ]
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "mcp__github__create_pull_request",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use-pr-base-check.sh"
-          }
-        ]
-      }
-    ]
   }
 }

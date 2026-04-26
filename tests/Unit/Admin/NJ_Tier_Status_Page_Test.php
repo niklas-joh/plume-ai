@@ -72,6 +72,19 @@ class NJ_Tier_Status_Page_Test extends TestCase {
 		);
 	}
 
+	// ── Capability guard ─────────────────────────────────────────────────────
+
+	public function test_render_produces_no_output_when_user_lacks_manage_options(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		// No display stubs needed — render() must exit before any output.
+
+		ob_start();
+		NJ_Tier_Status_Page::render();
+		$output = ob_get_clean();
+
+		$this->assertSame( '', $output );
+	}
+
 	// ── Proxy connection status row ───────────────────────────────────────────
 
 	public function test_render_shows_connected_status_when_registered(): void {

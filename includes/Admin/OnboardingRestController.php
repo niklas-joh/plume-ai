@@ -14,6 +14,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class OnboardingRestController {
 
+	/**
+	 * Registers the onboarding REST route.
+	 *
+	 * @since 1.0.0
+	 * @return void
+	 */
 	public static function register_routes(): void {
 		register_rest_route(
 			'wp-ai-mind/v1',
@@ -57,6 +63,17 @@ class OnboardingRestController {
 		);
 	}
 
+	/**
+	 * Handles the onboarding POST endpoint.
+	 *
+	 * Saves provider, API keys, and onboarding-seen state from the request.
+	 * Returns 403 if the current user's tier does not include the own_api_key feature
+	 * and api_keys are present in the payload.
+	 *
+	 * @since 1.0.0
+	 * @param WP_REST_Request $request Incoming REST request.
+	 * @return WP_REST_Response 200 on success; 403 if tier gate fails.
+	 */
 	public static function save( WP_REST_Request $request ): WP_REST_Response {
 		$seen = $request->get_param( 'seen' );
 

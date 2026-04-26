@@ -49,6 +49,7 @@ class NJ_Tier_Status_Page_Test extends TestCase {
 		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
 		$token     = $registered ? 'test-site-token' : '';
 
+		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key, bool $single = false ) use ( $tier, $month_key, $used ): string {
@@ -69,6 +70,19 @@ class NJ_Tier_Status_Page_Test extends TestCase {
 				return $default;
 			}
 		);
+	}
+
+	// ── Capability guard ─────────────────────────────────────────────────────
+
+	public function test_render_produces_no_output_when_user_lacks_manage_options(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		// No display stubs needed — render() must exit before any output.
+
+		ob_start();
+		NJ_Tier_Status_Page::render();
+		$output = ob_get_clean();
+
+		$this->assertSame( '', $output );
 	}
 
 	// ── Proxy connection status row ───────────────────────────────────────────

@@ -1,0 +1,162 @@
+name: Batch Auto-fix Code Review Issues
+
+# Triggered by claude-code-review.yml via repository_dispatch once per PR —
+# one Claude session fixes all auto-fixable issues instead of one session per
+# issue, eliminating (N-1) redundant cold-start costs per PR.
+on:
+  repository_dispatch:
+    types: [batch-auto-fix]
+
+jobs:
+  batch-autofix:
+    name: Claude Batch Auto-fix
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+        with:
+          # Open PRs only need the latest commit — full history is not required.
+          fetch-depth: 1
+
+      - name: Fetch and checkout PR head branch
+        run: |
+          git fetch origin "$HEAD_BRANCH"
+          git checkout "$HEAD_BRANCH"
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          HEAD_BRANCH: ${{ github.event.client_payload.head_branch }}
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          composer install --no-interaction --prefer-dist
+
+      - name: Write issue bodies to files
+        # Pre-fetch all issue bodies so Claude can cat them without extra gh calls.
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          ISSUES_JSON: ${{ toJson(github.event.client_payload.issue_numbers) }}
+        run: |
+          for issue_number in $(echo "$ISSUES_JSON" | jq -r '.[]'); do
+            gh issue view "$issue_number" \
+              --repo "${{ github.repository }}" \
+              --json body --jq '.body' \
+              > "/tmp/issue-${issue_number}-body.txt"
+            echo "Wrote body for issue #${issue_number}"
+          done
+
+      - name: Calculate max turns
+        id: turns
+        env:
+          ISSUES_JSON: ${{ toJson(github.event.client_payload.issue_numbers) }}
+        run: |
+          NUM=$(echo "$ISSUES_JSON" | jq 'length')
+          # 10 base turns + 8 per issue, uncapped — user preference is no turn limit.
+          TURNS=$(( 10 + NUM * 8 ))
+          echo "value=$TURNS" >> "$GITHUB_OUTPUT"
+          echo "Max turns for $NUM issues: $TURNS"
+
+      - name: Run Claude batch auto-fix
+        id: claude
+        uses: anthropics/claude-code-action@aee99972d0cfa0c47a4563e6fca42d7a5a0cb9bd  # v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          prompt: |
+            You are fixing a batch of code-review issues found in PR #${{ github.event.client_payload.pr_number }}.
+
+            **Already done — no further lookups needed:**
+            - Source PR: #${{ github.event.client_payload.pr_number }} (${{ github.event.client_payload.pr_url }})
+            - PR state: OPEN
+            - Head branch: `${{ github.event.client_payload.head_branch }}` is already checked out
+            - Base branch: `${{ github.event.client_payload.base_branch }}`
+            - `node_modules/` and PHP vendor dependencies are already installed
+            - Each issue body has been pre-fetched to `/tmp/issue-<N>-body.txt`
+
+            **Issues to fix (process all of them):**
+            ${{ join(github.event.client_payload.issue_numbers, ', ') }}
+
+            ---
+
+            ## Your task
+
+            Work through each issue number listed above **in order**. For each:
+
+            ### A — Read the issue body
+            ```
+            cat /tmp/issue-<N>-body.txt
+            ```
+            The body contains a `## Context` section with the exact source lines to change —
+            use it to go straight to editing without a separate file-read step.
+
+            ### B — Decide: fix or skip
+            - Fix it if the correct change is clear from the codebase alone.
+            - If it requires an external value (API key, secret, account ID, business decision):
+              post a comment explaining exactly what information is needed, then continue to the next issue.
+              Do NOT stop — always process every issue in the list.
+
+            ### C — Apply the minimal fix
+            Read only the files mentioned in the issue. Make the smallest correct change.
+            If this issue has the `nits` label, apply ALL listed nit items in a single commit.
+
+            ### D — Commit
+            ```bash
+            git commit -m "fix: <concise description> (closes #<N>)"
+            ```
+
+            ### E — Close the issue
+            ```bash
+            gh issue close <N> \
+              --comment "✅ Fixed in $(git rev-parse --short HEAD). <One sentence summary.>" \
+              --repo ${{ github.repository }}
+            ```
+
+            ### F — Move to the next issue immediately
+            Do not pause between issues. Process all issues before pushing.
+
+            ---
+
+            ## After all issues are processed
+
+            Push all commits at once:
+            ```bash
+            git push origin ${{ github.event.client_payload.head_branch }}
+            ```
+
+            Then post a single summary comment on the PR listing which issues were fixed
+            and which (if any) were skipped and why:
+            ```bash
+            gh pr comment ${{ github.event.client_payload.pr_number }} \
+              --body "🔧 Batch auto-fix complete. Fixed: #N, #M. Skipped: #P (reason)." \
+              --repo ${{ github.repository }}
+            ```
+
+            ---
+
+            ## Constraints
+            - PHP: follow WordPress Coding Standards (PHPCS ruleset in `phpcs.xml.dist`).
+              Prefix functions with `nj_` or use `WP_AI_Mind\` namespace.
+            - JS/CSS: fix only what is reported — do not reformat unrelated code.
+            - PHPUnit: fix the code under test, not the tests, unless the assertion is clearly wrong.
+            - Do NOT bump version numbers, modify `composer.lock`, or change `package-lock.json`.
+            - Do NOT open new PRs — push all fixes directly to the head branch.
+            - Do NOT open more than one PR per issue.
+
+          claude_args: "--max-turns ${{ steps.turns.outputs.value }} --allowedTools Bash(git:*),Bash(gh:*),Bash(composer:*),Bash(npm:*),Bash(npx:*),Bash(./vendor/bin/phpcs:*),Bash(./vendor/bin/phpunit:*),Read,Edit,MultiEdit,Write,Glob,Grep,LS"
+
+      - name: Report execution failure
+        if: failure() && steps.claude.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          ISSUES_JSON: ${{ toJson(github.event.client_payload.issue_numbers) }}
+        run: |
+          MSG="❌ Batch auto-fix failed for issues ${ISSUES_JSON}. Please fix manually, or re-trigger per-issue auto-fix by re-applying the \`auto-fix\` label to each issue individually."
+          gh pr comment "${{ github.event.client_payload.pr_number }}" \
+            --body "$MSG" \
+            --repo "${{ github.repository }}"

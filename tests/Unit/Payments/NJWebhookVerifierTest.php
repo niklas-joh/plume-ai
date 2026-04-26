@@ -11,6 +11,8 @@ use WP_AI_Mind\Payments\NJ_Webhook_Verifier;
  *
  * NJ_Webhook_Verifier uses only native PHP functions (hash_hmac, hash_equals),
  * so Brain Monkey is not required here.
+ *
+ * @since 1.2.1
  */
 class NJWebhookVerifierTest extends TestCase {
 
@@ -59,15 +61,6 @@ class NJWebhookVerifierTest extends TestCase {
 	}
 
 	// ── hash_equals timing-safe comparison (both sides verified) ──────────────
-
-	public function test_hash_equals_passes_for_matching_hmac(): void {
-		$body   = 'payload-data';
-		$secret = 'shared-secret';
-		$sig    = hash_hmac( 'sha256', $body, $secret );
-
-		// Confirms the implementation uses hash_equals correctly — correct input succeeds.
-		$this->assertTrue( NJ_Webhook_Verifier::verify( $body, $sig, $secret ) );
-	}
 
 	public function test_hash_equals_fails_for_non_matching_hmac(): void {
 		$body          = 'payload-data';

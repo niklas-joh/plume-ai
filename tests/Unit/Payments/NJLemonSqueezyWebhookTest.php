@@ -21,18 +21,44 @@ class FakeWebhookRequest extends \WP_REST_Request {
 	/** @var array<string, string> */
 	private array $headers = [];
 
+	/**
+	 * Sets the raw request body.
+	 *
+	 * @since 1.2.1
+	 * @param string $body Raw request body string.
+	 */
 	public function set_body( string $body ): void {
 		$this->body = $body;
 	}
 
+	/**
+	 * Returns the raw request body.
+	 *
+	 * @since 1.2.1
+	 * @return string Raw request body string.
+	 */
 	public function get_body(): string {
 		return $this->body;
 	}
 
+	/**
+	 * Sets a request header, normalised to lowercase.
+	 *
+	 * @since 1.2.1
+	 * @param string $key   Header name.
+	 * @param string $value Header value.
+	 */
 	public function set_header( string $key, string $value ): void {
 		$this->headers[ strtolower( $key ) ] = $value;
 	}
 
+	/**
+	 * Returns a request header value, or null if not set.
+	 *
+	 * @since 1.2.1
+	 * @param  string $key Header name.
+	 * @return string|null Header value, or null if absent.
+	 */
 	public function get_header( string $key ): ?string {
 		return $this->headers[ strtolower( $key ) ] ?? null;
 	}
@@ -40,6 +66,8 @@ class FakeWebhookRequest extends \WP_REST_Request {
 
 /**
  * Tests for NJ_LemonSqueezy_Webhook.
+ *
+ * @since 1.2.1
  */
 class NJLemonSqueezyWebhookTest extends TestCase {
 

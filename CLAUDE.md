@@ -118,6 +118,57 @@ Use WordPress admin color variables in wp-admin UI.
 - Prefix globals if necessary.
 - Follow Block Editor `@wordpress/blocks` standards for custom Gutenberg blocks.
 
+## Code Documentation Standards
+
+### PHP (PHPDoc)
+- ALL public methods and class declarations MUST have a PHPDoc block (`/** ... */`).
+- Include `@since x.y.z` (WordPress convention — version the method was introduced).
+- Include `@param` for every parameter, `@return` for return type, `@throws` where relevant.
+- Describe *why* any non-obvious constraint applies in the block summary line — not what.
+
+```php
+/**
+ * Adds a message to a conversation thread.
+ *
+ * $role must be 'user' or 'assistant'. $model is empty for user turns.
+ *
+ * @since 1.0.0
+ * @param int    $conversation_id  The conversation record ID.
+ * @param string $role             Message author: 'user' or 'assistant'.
+ * @param string $content          Sanitised message text.
+ * @param string $model            Model slug (e.g. 'claude-opus-4-6'); empty for user turns.
+ * @param int    $tokens           Token count for usage tracking; 0 if unknown.
+ * @return int   Inserted message row ID.
+ */
+```
+
+### JavaScript/React (JSDoc)
+- ALL exported React components MUST have a JSDoc block above the function.
+- Use `@param {Object} props` with one `@param` sub-entry per prop (type + description).
+- Use `@returns {ReactElement}`.
+- Use `@throws {Error}` for async functions or hooks that can throw; omit for synchronous components that never throw.
+- Shared/reusable components MUST include a `@example`.
+
+```jsx
+/**
+ * Shared data table with tab filtering and pagination.
+ *
+ * @param {Object}   props
+ * @param {Array}    props.tabs      Tab definitions: `[{ id, label, filter }]`.
+ * @param {Function} props.WorkArea  Component rendered in the expanded row area.
+ * @param {Array}    props.columns   Column definitions: `[{ label, render, width? }]`.
+ * @returns {ReactElement}
+ *
+ * @example
+ * <PostListTable tabs={SEO_TABS} WorkArea={SeoWorkArea} columns={SEO_COLUMNS} />
+ */
+```
+
+### Inline comments — "why", never "what"
+- Only add an inline comment when the reason is non-obvious: a hidden constraint, a subtle
+  invariant, a non-obvious API quirk, or a deliberate workaround.
+- Never describe *what* the code does; well-named identifiers already do that.
+- British English. Single line where possible.
 
 ---
 

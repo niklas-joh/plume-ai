@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/niklas-joh/wp-ai-mind/compare/v1.2.0...v1.2.1) (2026-04-25)
+
+
+### Bug Fixes
+
+* **settings:** restore isPro field — revert erroneous canChat rename ([#249](https://github.com/niklas-joh/wp-ai-mind/issues/249)) ([d089509](https://github.com/niklas-joh/wp-ai-mind/commit/d089509a69489eaba912eed8159e86011abbb381))
+
 # [1.2.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.1.0...v1.2.0) (2026-04-21)
 
 

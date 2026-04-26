@@ -151,6 +151,9 @@ If any match is found inside HTML content (not inside a `<!-- wp:... -->` commen
 - Escape ALL output: `esc_html()`, `esc_attr()`, `esc_url()`
 - Sanitize ALL input: `sanitize_text_field()`, `absint()`
 - Follow WordPress PHP Coding Standards
+- Write PHPDoc for ALL public PHP methods and classes (see documentation standards in `CLAUDE.md`)
+- Write JSDoc for ALL exported React components (see documentation standards in `CLAUDE.md`)
+- Add inline "why" comments only where the reason is non-obvious — never describe what the code does
 - Use proper WordPress hooks and filters
 - Ensure accessibility compliance
 - Write secure, performant code

@@ -24,7 +24,16 @@ export async function handleWebhook(
 		return new Response( 'Method not allowed', { status: 405 } );
 	}
 
+	const MAX_WEBHOOK_BYTES = 524_288; // 512 KB — LemonSqueezy payloads are small
+	const contentLength = Number( request.headers.get( 'Content-Length' ) ?? 0 );
+	if ( contentLength > MAX_WEBHOOK_BYTES ) {
+		return new Response( 'Payload too large', { status: 413 } );
+	}
+
 	const bodyText = await request.text();
+	if ( new TextEncoder().encode( bodyText ).length > MAX_WEBHOOK_BYTES ) {
+		return new Response( 'Payload too large', { status: 413 } );
+	}
 	const signature = request.headers.get( 'X-Signature' ) ?? '';
 
 	if ( ! ( await verifyLsSignature( bodyText, signature, env ) ) ) {

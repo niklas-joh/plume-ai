@@ -22,7 +22,8 @@ const IMAGE_PROVIDER_OPTIONS = [
 
 export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 	const features = window.wpAiMindData?.features ?? {};
-	const upgradeUrl = window.wpAiMindData?.upgradeUrl ?? 'admin.php?page=wp-ai-mind-upgrade';
+	const upgradeUrl =
+		window.wpAiMindData?.upgradeUrl ?? 'admin.php?page=wp-ai-mind-upgrade';
 	const apiKeys = settings?.api_keys ?? {};
 	const [ dirty, setDirty ] = useState( {} ); // { [provider]: string }
 
@@ -64,9 +65,13 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 
 				{ ! features.model_selection && (
 					<p className="wpaim-upgrade-notice">
-						{ __( 'Model selection is available on the Pro plan.', 'wp-ai-mind' ) }
-						{ ' ' }
-						<a href={ upgradeUrl }>{ __( 'Upgrade →', 'wp-ai-mind' ) }</a>
+						{ __(
+							'Model selection is available on the Pro plan.',
+							'wp-ai-mind'
+						) }{ ' ' }
+						<a href={ upgradeUrl }>
+							{ __( 'Upgrade →', 'wp-ai-mind' ) }
+						</a>
 					</p>
 				) }
 
@@ -99,9 +104,13 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 
 				{ ! features.own_api_key && (
 					<p className="wpaim-upgrade-notice">
-						{ __( 'API key management is available on the Pro BYOK plan.', 'wp-ai-mind' ) }
-						{ ' ' }
-						<a href={ upgradeUrl }>{ __( 'Upgrade →', 'wp-ai-mind' ) }</a>
+						{ __(
+							'API key management is available on the Pro BYOK plan.',
+							'wp-ai-mind'
+						) }{ ' ' }
+						<a href={ upgradeUrl }>
+							{ __( 'Upgrade →', 'wp-ai-mind' ) }
+						</a>
 					</p>
 				) }
 
@@ -130,7 +139,9 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 							<Button
 								variant="primary"
 								disabled={
-									isSaving || dirty[ id ] === undefined || ! features.own_api_key
+									isSaving ||
+									dirty[ id ] === undefined ||
+									! features.own_api_key
 								}
 								onClick={ () => handleSaveKey( id ) }
 							>

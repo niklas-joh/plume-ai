@@ -137,6 +137,8 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( '' );
         Functions\when( 'get_post_types' )->justReturn( [] );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'wp_ai_mind_tier' ? 'free' : null );
 
         $controller = $this->make_controller_with_is_pro( false );
 
@@ -148,6 +150,8 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( '' );
         Functions\when( 'get_post_types' )->justReturn( [] );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'wp_ai_mind_tier' ? 'free' : null );
 
         foreach ( [ false, true ] as $value ) {
             $controller = $this->make_controller_with_is_pro( $value );
@@ -156,18 +160,26 @@ class SettingsRestControllerTest extends TestCase {
         }
     }
 
-    public function test_get_settings_is_pro_reflects_wp_ai_mind_is_pro(): void {
+    public function test_get_settings_is_pro_reflects_tier(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( '' );
         Functions\when( 'get_post_types' )->justReturn( [] );
+        Functions\when( 'wp_ai_mind_is_pro' )->justReturn( false );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
-        $controller_free = $this->make_controller_with_is_pro( false );
-        $response_free   = $controller_free->get_settings( new \WP_REST_Request() );
-        $this->assertFalse( $response_free->data['is_pro'] );
+        // Use a reference so the same mock returns different tiers on subsequent calls.
+        $tier = 'free';
+        Functions\when( 'get_user_meta' )->alias( function( $uid, $key, $single ) use ( &$tier ) {
+            return $key === 'wp_ai_mind_tier' ? $tier : null;
+        } );
 
-        Functions\when( 'wp_ai_mind_is_pro' )->justReturn( true );
-        $response_pro = $controller_free->get_settings( new \WP_REST_Request() );
-        $this->assertTrue( $response_pro->data['is_pro'] );
+        $controller   = new SettingsRestController();
+        $response_free = $controller->get_settings( new \WP_REST_Request() );
+        $this->assertFalse( $response_free->data['is_pro'], 'free tier should report is_pro: false' );
+
+        $tier          = 'pro_managed';
+        $response_pro  = $controller->get_settings( new \WP_REST_Request() );
+        $this->assertTrue( $response_pro->data['is_pro'], 'pro_managed tier should report is_pro: true' );
     }
 
     // ── POST /settings — saves options ────────────────────────────────────────

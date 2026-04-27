@@ -68,10 +68,10 @@ class SeoModule {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_generate' ],
-				'permission_callback' => function() {
+				'permission_callback' => function () {
 						$user_id = \get_current_user_id();
 						return \current_user_can( 'edit_posts' ) && NJ_Tier_Manager::user_can( 'seo', $user_id ) && NJ_Usage_Tracker::check_limit( $user_id );
-					},
+				},
 				'args'                => [
 					'post_id' => [
 						'required'          => true,
@@ -88,10 +88,10 @@ class SeoModule {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_apply' ],
-				'permission_callback' => function() {
+				'permission_callback' => function () {
 						$user_id = \get_current_user_id();
 						return \current_user_can( 'edit_posts' ) && NJ_Tier_Manager::user_can( 'seo', $user_id ) && NJ_Usage_Tracker::check_limit( $user_id );
-					},
+				},
 				'args'                => [
 					'post_id'        => [
 						'required'          => true,

@@ -34,6 +34,7 @@ export async function handleWebhook(
 	if ( new TextEncoder().encode( bodyText ).length > MAX_WEBHOOK_BYTES ) {
 		return new Response( 'Payload too large', { status: 413 } );
 	}
+
 	const signature = request.headers.get( 'X-Signature' ) ?? '';
 
 	if ( ! ( await verifyLsSignature( bodyText, signature, env ) ) ) {
@@ -91,11 +92,12 @@ async function handleActivation(
 
 	const data = payload.data as Record< string, unknown > | undefined;
 	const attrs = data?.attributes as Record< string, unknown > | undefined;
-	const orderItem = attrs?.first_order_item as
+	// first_order_item is an object on order_created events; extract its variant_id.
+	const firstOrderItem = attrs?.first_order_item as
 		| Record< string, unknown >
 		| undefined;
 	const variantId = String(
-		orderItem?.variant_id ?? attrs?.variant_id ?? ''
+		( ( firstOrderItem?.variant_id ?? attrs?.variant_id ) as unknown ) ?? ''
 	);
 	const tier = buildVariantTierMap( env )[ variantId ] ?? null;
 	if ( ! tier ) {

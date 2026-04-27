@@ -8,13 +8,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Dashboard widget showing the current user's tier and token usage.
+ *
+ * @since 1.2.0
+ */
 class NJ_Usage_Widget {
 
+	/**
+	 * Register WordPress hooks for this widget.
+	 *
+	 * @since 1.2.0
+	 * @return void
+	 */
 	public static function register_hooks(): void {
 		add_action( 'wp_dashboard_setup', [ self::class, 'add_dashboard_widget' ] );
 		add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_styles' ] );
 	}
 
+	/**
+	 * Enqueue the widget stylesheet on the dashboard only.
+	 *
+	 * @since 1.2.0
+	 * @param string $hook Current admin page hook suffix.
+	 * @return void
+	 */
 	public static function enqueue_styles( string $hook ): void {
 		if ( 'index.php' !== $hook ) {
 			return;
@@ -27,6 +45,12 @@ class NJ_Usage_Widget {
 		);
 	}
 
+	/**
+	 * Register the AI Mind Usage dashboard widget.
+	 *
+	 * @since 1.2.0
+	 * @return void
+	 */
 	public static function add_dashboard_widget(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -38,6 +62,12 @@ class NJ_Usage_Widget {
 		);
 	}
 
+	/**
+	 * Render the widget HTML showing tier label, progress bar, and token counts.
+	 *
+	 * @since 1.2.0
+	 * @return void
+	 */
 	public static function render(): void {
 		$user_id = get_current_user_id();
 		$usage = NJ_Usage_Tracker::get_usage( $user_id );

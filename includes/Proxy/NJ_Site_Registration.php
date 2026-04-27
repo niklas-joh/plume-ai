@@ -133,7 +133,7 @@ class NJ_Site_Registration {
 	 * @param string $variant_id The LemonSqueezy product variant ID.
 	 * @return string The fully-formed checkout URL.
 	 */
-	public static function checkout_url( string $variant_id ): string {
+	private static function checkout_url( string $variant_id ): string {
 		$token = self::get_site_token();
 		$url   = 'https://wp-ai-mind.lemonsqueezy.com/checkout/buy/' . rawurlencode( $variant_id );
 		if ( $token ) {

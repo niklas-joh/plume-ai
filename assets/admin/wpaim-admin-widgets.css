@@ -3,7 +3,7 @@
  *
  * Enqueued on relevant admin pages by NJ_Usage_Widget and NJ_Tier_Status_Page.
  * Tokens match those defined in :root within assets/admin/index.css; hex
- * fallbacks apply only when the main admin bundle is absent on a given page.
+ * values are fallbacks for when the CSS custom properties are not yet defined.
  */
 
 /* ---- Progress bar ---- */
@@ -40,7 +40,8 @@
 
 .wpaim-usage-meter {
 	display: block;
-	width: 300px;
+	width: 100%;
+	max-width: 300px;
 }
 
 /* ---- Upgrade card ---- */

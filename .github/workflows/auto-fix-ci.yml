@@ -61,4 +61,4 @@ jobs:
             - PHPUnit: fix the code under test, not the tests themselves, unless the test assertion is clearly wrong.
             - Do NOT bump version numbers, modify composer.lock, or change package-lock.json.
 
-          claude_args: "--max-turns 15 --allowedTools Bash(git:*),Bash(gh:*),Bash(composer:*),Bash(npm:*),Bash(npx:*),Bash(./vendor/bin/phpcs:*),Bash(./vendor/bin/phpunit:*),Read,Edit,MultiEdit,Write,Glob,Grep,LS"
+          claude_args: "--allowedTools Bash(git:*),Bash(gh:*),Bash(composer:*),Bash(npm:*),Bash(npx:*),Bash(./vendor/bin/phpcs:*),Bash(./vendor/bin/phpunit:*),Read,Edit,MultiEdit,Write,Glob,Grep,LS"

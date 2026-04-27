@@ -217,7 +217,7 @@ jobs:
             - Do NOT bump version numbers, modify `composer.lock`, or change `package-lock.json`.
             - Do NOT open more than one PR per issue.
 
-          claude_args: "--max-turns 25 --allowedTools Bash(git:*),Bash(gh:*),Bash(composer:*),Bash(npm:*),Bash(npx:*),Bash(./vendor/bin/phpcs:*),Bash(./vendor/bin/phpunit:*),Read,Edit,MultiEdit,Write,Glob,Grep,LS"
+          claude_args: "--allowedTools Bash(git:*),Bash(gh:*),Bash(composer:*),Bash(npm:*),Bash(npx:*),Bash(./vendor/bin/phpcs:*),Bash(./vendor/bin/phpunit:*),Read,Edit,MultiEdit,Write,Glob,Grep,LS"
 
       # Surface the actual failure reason when Claude hits max turns or errors out.
       # The action's default error chain ("Execution failed: Action failed with error:

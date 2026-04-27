@@ -52,8 +52,8 @@ jobs:
         uses: anthropics/claude-code-action@aee99972d0cfa0c47a4563e6fca42d7a5a0cb9bd  # v1
         env:
           # Use a PAT for all gh calls inside Claude (issue/label creation).
-          # The actual auto-fix label is applied in the dedicated step below,
-          # which also uses this PAT to fire the issues:labeled webhook event.
+          # Issue numbers are collected after this step and trigger batch auto-fix
+          # via a single repository_dispatch event (not per-issue label webhooks).
           GH_TOKEN: ${{ secrets.GH_PAT }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -97,11 +97,16 @@ jobs:
               # Use $'...' quoting so \n is interpreted as real newlines by bash (double quotes do not expand \n).
               ISSUE_URL=$(gh issue create \
                 --title "<concise title for the finding>" \
-                --body $'Found during review of PR #${{ github.event.pull_request.number }}\n\n**PR:** ${{ github.event.pull_request.html_url }}\n**Base branch:** ${{ github.event.pull_request.base.ref }}\n\n## Description\n\n<details>' \
+                --body $'Found during review of PR #${{ github.event.pull_request.number }}\n\n**PR:** ${{ github.event.pull_request.html_url }}\n**Base branch:** ${{ github.event.pull_request.base.ref }}\n\n## Description\n\n<details>\n\n## Context\n\n**File:** `path/to/file.php`, lines N–M\n\n```php\n// paste the relevant ≤25 lines here so the auto-fix session\n// can locate and edit the code without an extra file-read turn\n```' \
                 --label "code-review,blocking" \
                 --repo ${{ github.repository }})
               ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
               echo "$ISSUE_NUMBER" >> /tmp/auto-fix-issues.txt
+
+            **Always include a `## Context` section** in every issue body (blocking, enhancement, and nits).
+            Paste the exact lines from the source file that need changing (≤ 25 lines, fenced code block
+            with the correct language identifier). This allows the auto-fix session to skip a file-read
+            turn and go straight to editing.
 
             **For nits:** Collect all nit findings in a single structured list (e.g. in memory or temp file),
             then create ONE consolidated issue with all of them at the end of Step 1:
@@ -114,10 +119,11 @@ jobs:
               NITS_NUMBER=$(echo "$NITS_ISSUE" | grep -oE '[0-9]+$')
               echo "$NITS_NUMBER" >> /tmp/auto-fix-issues.txt
 
-            Do NOT apply the `auto-fix` label yourself. A subsequent workflow step applies
-            it via a PAT outside this action, which guarantees the `issues: labeled` webhook
-            fires correctly and triggers the auto-fix workflow. Only append an issue number
-            to /tmp/auto-fix-issues.txt if the fix is **self-contained** — i.e. Claude can
+            Do NOT apply the `auto-fix` label yourself. A subsequent workflow step collects
+            all issue numbers from /tmp/auto-fix-issues.txt and triggers a single batch
+            auto-fix session via repository_dispatch — one Claude session fixes all issues
+            instead of one session per issue. Only append an issue number to
+            /tmp/auto-fix-issues.txt if the fix is **self-contained** — i.e. Claude can
             determine the correct fix purely from the codebase, without needing external
             values such as API keys, account IDs, variant IDs, secrets, or business
             decisions. Issues requiring such information must be fixed manually: create the
@@ -146,22 +152,40 @@ jobs:
           # or https://docs.claude.com/en/docs/claude-code/sdk#command-line for available options
           claude_args: "--allowedTools Bash(gh:*),Read,Glob,Grep"
 
-      - name: Apply auto-fix labels via PAT
+      - name: Collect auto-fix issue numbers
+        id: collect
         if: steps.guard.outputs.skip != 'true'
-        env:
-          # Explicit PAT ensures gh fires a real issues:labeled webhook event.
-          # GITHUB_TOKEN is silently blocked from triggering new workflow runs
-          # (GitHub anti-loop protection), so the auto-fix workflow would never
-          # start if we used it here.
-          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           if [[ ! -f /tmp/auto-fix-issues.txt ]]; then
-            echo "No issues created — nothing to label."
+            echo "No issues created — nothing to auto-fix."
+            echo "issues=[]" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          while IFS= read -r issue_number; do
-            [[ -z "$issue_number" ]] && continue
-            gh issue edit "$issue_number" --add-label "auto-fix" \
-              --repo ${{ github.repository }}
-            echo "Applied auto-fix label to issue #$issue_number"
-          done < /tmp/auto-fix-issues.txt
+          # Build a compact JSON array of integers, e.g. [274, 275]
+          ISSUES=$(grep -v '^[[:space:]]*$' /tmp/auto-fix-issues.txt \
+            | jq -R 'tonumber' | jq -s -c '.')
+          echo "issues=${ISSUES}" >> "$GITHUB_OUTPUT"
+          echo "Collected issues for batch auto-fix: ${ISSUES}"
+
+      - name: Trigger batch auto-fix via repository_dispatch
+        # Fire ONE event carrying all issue numbers — a single Claude session
+        # fixes them all, saving (N-1) cold-start session costs per PR.
+        if: |
+          steps.guard.outputs.skip != 'true' &&
+          steps.collect.outputs.issues != '[]' &&
+          steps.collect.outputs.issues != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          # Use --input so issue_numbers is sent as a real JSON array, not a string.
+          printf '%s' '{
+            "event_type": "batch-auto-fix",
+            "client_payload": {
+              "issue_numbers": ${{ steps.collect.outputs.issues }},
+              "pr_number": ${{ github.event.pull_request.number }},
+              "pr_url": "${{ github.event.pull_request.html_url }}",
+              "base_branch": "${{ github.event.pull_request.base.ref }}",
+              "head_branch": "${{ github.event.pull_request.head.ref }}"
+            }
+          }' | gh api "repos/${{ github.repository }}/dispatches" --method POST --input -
+          echo "Dispatched batch-auto-fix for issues: ${{ steps.collect.outputs.issues }}"

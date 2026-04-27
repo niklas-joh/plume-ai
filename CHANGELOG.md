@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.2.1...v1.3.0) (2026-04-27)
+
+
+### Features
+
+* **ci:** batch auto-fix — one Claude session per PR, remove max-turns limits ([#296](https://github.com/niklas-joh/wp-ai-mind/issues/296)) ([52b049e](https://github.com/niklas-joh/wp-ai-mind/commit/52b049e9f34f83c2907fe631ae1b2f922d6c3142))
+
 ## [1.2.1](https://github.com/niklas-joh/wp-ai-mind/compare/v1.2.0...v1.2.1) (2026-04-25)
 
 

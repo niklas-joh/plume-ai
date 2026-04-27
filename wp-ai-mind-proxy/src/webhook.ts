@@ -91,8 +91,11 @@ async function handleActivation(
 
 	const data = payload.data as Record< string, unknown > | undefined;
 	const attrs = data?.attributes as Record< string, unknown > | undefined;
+	const orderItem = attrs?.first_order_item as
+		| Record< string, unknown >
+		| undefined;
 	const variantId = String(
-		( ( attrs?.first_order_item ?? attrs?.variant_id ) as unknown ) ?? ''
+		orderItem?.variant_id ?? attrs?.variant_id ?? ''
 	);
 	const tier = buildVariantTierMap( env )[ variantId ] ?? null;
 	if ( ! tier ) {

@@ -72,7 +72,7 @@ class NJ_Tier_Config {
 	 * @return string Base URL without trailing slash.
 	 */
 	public static function get_proxy_url(): string {
-		return defined( 'WP_AI_MIND_PROXY_URL' ) ? WP_AI_MIND_PROXY_URL : 'https://wp-ai-mind-proxy.wp-ai-mind.workers.dev';
+		return rtrim( defined( 'WP_AI_MIND_PROXY_URL' ) ? WP_AI_MIND_PROXY_URL : 'https://wp-ai-mind-proxy.wp-ai-mind.workers.dev', '/' );
 	}
 
 	/**

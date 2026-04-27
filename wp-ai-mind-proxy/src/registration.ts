@@ -40,6 +40,10 @@ export async function handleRegistration(
 	}
 
 	// Rate-limit new registrations by IP to prevent KV exhaustion.
+	// Non-atomic read-modify-write: under burst load the counter can under-count,
+	// allowing up to REGISTRATION_RATE_LIMIT concurrent bursts instead of exactly
+	// REGISTRATION_RATE_LIMIT. Acceptable for registration (low-frequency); tracked
+	// in issue #309 alongside the usage-tracking race in index.ts.
 	const ip = request.headers.get( 'CF-Connecting-IP' ) ?? 'unknown';
 	const rateLimitKey = `reg_ip:${ ip }:${ getCurrentHour() }`;
 	const attempts = parseInt(

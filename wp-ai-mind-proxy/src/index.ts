@@ -100,6 +100,9 @@ async function handleChatProxy(
 			unknown
 		>;
 
+		// Tokens are only tracked for successful (2xx) responses. A non-2xx
+		// Anthropic response with a usage block (e.g. 429 with partial tokens)
+		// is intentionally not counted to avoid billing complexity.
 		if ( anthropicResponse.ok && result.usage ) {
 			const usage = result.usage as {
 				input_tokens: number;
@@ -156,8 +159,8 @@ async function updateUsage(
 	// KV does not support atomic increments, so concurrent requests perform a
 	// non-atomic read-modify-write. Under burst load this can under-count tokens,
 	// meaning at most one extra request per concurrent burst slips past the monthly
-	// limit. Acceptable for current phase; replace with a Durable Object counter
-	// in Phase 3 to make enforcement fully atomic.
+	// limit. Replace with a Durable Object counter (tracked in issue #312) to make
+	// enforcement fully atomic.
 	const current = parseInt( ( await env.USAGE_KV.get( key ) ) ?? '0', 10 );
 	await env.USAGE_KV.put( key, String( current + tokens ), {
 		expirationTtl: getSecondsUntilNextMonth(),

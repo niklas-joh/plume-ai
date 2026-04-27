@@ -120,8 +120,9 @@ class NJ_Site_Registration {
 			return new WP_Error( 'registration_failed', "Proxy registration returned HTTP {$code}" );
 		}
 
-		update_option( self::OPTION_TOKEN, sanitize_text_field( $body['token'] ) );
-		return $body['token'];
+		$token = sanitize_text_field( $body['token'] );
+		update_option( self::OPTION_TOKEN, $token );
+		return $token;
 	}
 
 	/**

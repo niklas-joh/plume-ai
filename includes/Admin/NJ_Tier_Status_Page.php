@@ -10,7 +10,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Read-only display: current tier and monthly usage meter.
+/**
+ * Admin page displaying the site's current plan and monthly token usage.
+ *
+ * @since 1.2.0
+ */
 class NJ_Tier_Status_Page {
 
 	private const STYLE_HOOKS = [
@@ -18,11 +22,24 @@ class NJ_Tier_Status_Page {
 		'ai-mind_page_wp-ai-mind-upgrade',
 	];
 
+	/**
+	 * Register WordPress hooks for the tier status page.
+	 *
+	 * @since 1.2.0
+	 * @return void
+	 */
 	public static function register_hooks(): void {
 		add_action( 'admin_menu', [ self::class, 'add_menu_page' ] );
 		add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_styles' ] );
 	}
 
+	/**
+	 * Enqueue the admin stylesheet on the tier status and upgrade pages only.
+	 *
+	 * @since 1.2.0
+	 * @param string $hook Current admin page hook suffix.
+	 * @return void
+	 */
 	public static function enqueue_styles( string $hook ): void {
 		if ( ! in_array( $hook, self::STYLE_HOOKS, true ) ) {
 			return;
@@ -35,6 +52,12 @@ class NJ_Tier_Status_Page {
 		);
 	}
 
+	/**
+	 * Register the Plan & Usage submenu page under Settings.
+	 *
+	 * @since 1.2.0
+	 * @return void
+	 */
 	public static function add_menu_page(): void {
 		add_options_page(
 			__( 'WP AI Mind — Plan & Usage', 'wp-ai-mind' ),
@@ -45,6 +68,12 @@ class NJ_Tier_Status_Page {
 		);
 	}
 
+	/**
+	 * Render the Plan & Usage page for administrators.
+	 *
+	 * @since 1.2.0
+	 * @return void
+	 */
 	public static function render(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;

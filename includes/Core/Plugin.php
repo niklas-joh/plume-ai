@@ -5,6 +5,11 @@ namespace WP_AI_Mind\Core;
 use WP_AI_Mind\DB\Schema;
 use WP_AI_Mind\Proxy\NJ_Site_Registration;
 
+/**
+ * Plugin bootstrap singleton — wires hooks and owns the module registry.
+ *
+ * @since 1.0.0
+ */
 class Plugin {
 
 	private static ?self $instance = null;
@@ -16,6 +21,12 @@ class Plugin {
 		$this->init_hooks();
 	}
 
+	/**
+	 * Return (or create) the single Plugin instance.
+	 *
+	 * @since 1.0.0
+	 * @return self
+	 */
 	public static function instance(): self {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
@@ -26,6 +37,13 @@ class Plugin {
 	// Prevent cloning/serialisation of singleton.
 	private function __clone() {}
 
+	/**
+	 * Block unserialisation to enforce the singleton invariant.
+	 *
+	 * @since 1.0.0
+	 * @throws \RuntimeException Always.
+	 * @return void
+	 */
 	public function __wakeup(): void {
 		throw new \RuntimeException( 'Cannot unserialise singleton.' );
 	}
@@ -73,6 +91,12 @@ class Plugin {
 		\WP_AI_Mind\Modules\Images\ImagesModule::register();
 	}
 
+	/**
+	 * Load the plugin text domain for translations.
+	 *
+	 * @since 1.0.0
+	 * @return void
+	 */
 	public function load_textdomain(): void {
 		load_plugin_textdomain(
 			'wp-ai-mind',
@@ -81,17 +105,35 @@ class Plugin {
 		);
 	}
 
+	/**
+	 * Dispatch the admin menu registration action.
+	 *
+	 * @since 1.0.0
+	 * @return void
+	 */
 	public function register_admin_menu(): void {
 		// Registered fully in Admin\AdminMenu — hooked in P3.
 		do_action( 'wp_ai_mind_register_menu' );
 	}
 
+	/**
+	 * Dispatch the REST routes registration action.
+	 *
+	 * @since 1.0.0
+	 * @return void
+	 */
 	public function register_rest_routes(): void {
 		do_action( 'wp_ai_mind_register_rest_routes' );
 	}
 
 	// ── Activation / deactivation ─────────────────────────────────────────────
 
+	/**
+	 * Run on plugin activation: create DB tables and schedule cron events.
+	 *
+	 * @since 1.0.0
+	 * @return void
+	 */
 	public static function activate(): void {
 		Schema::create_tables();
 		update_option( 'wp_ai_mind_just_activated', true );
@@ -101,6 +143,12 @@ class Plugin {
 		flush_rewrite_rules();
 	}
 
+	/**
+	 * Run on plugin deactivation: clear scheduled cron events.
+	 *
+	 * @since 1.0.0
+	 * @return void
+	 */
 	public static function deactivate(): void {
 		wp_clear_scheduled_hook( 'wp_ai_mind_trial_check' );
 		flush_rewrite_rules();
@@ -108,6 +156,12 @@ class Plugin {
 
 	// ── Accessors ─────────────────────────────────────────────────────────────
 
+	/**
+	 * Return the module registry for this plugin instance.
+	 *
+	 * @since 1.0.0
+	 * @return ModuleRegistry
+	 */
 	public function modules(): ModuleRegistry {
 		return $this->modules;
 	}

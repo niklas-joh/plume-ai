@@ -63,6 +63,14 @@ class NJ_Tier_Config {
 
 	const TRIAL_DAYS = 30;
 
+	/**
+	 * Return the base URL of the Cloudflare Worker proxy.
+	 *
+	 * Can be overridden via the WP_AI_MIND_PROXY_URL constant for local dev or staging.
+	 *
+	 * @since 1.2.0
+	 * @return string Base URL without trailing slash.
+	 */
 	public static function get_proxy_url(): string {
 		return defined( 'WP_AI_MIND_PROXY_URL' ) ? WP_AI_MIND_PROXY_URL : 'https://wp-ai-mind-proxy.wp-ai-mind.workers.dev';
 	}

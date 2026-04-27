@@ -13,6 +13,7 @@ class ClaudeProvider extends AbstractProvider {
 	private const API_VERSION   = '2023-06-01';
 	private const DEFAULT_MODEL = 'claude-sonnet-4-6';
 
+	// Mirrors TIER_MODELS in wp-ai-mind-proxy/src/index.ts — update both when adding models.
 	private const MODELS = [
 		'claude-opus-4-6'           => 'Claude Opus 4.6',
 		'claude-sonnet-4-6'         => 'Claude Sonnet 4.6',

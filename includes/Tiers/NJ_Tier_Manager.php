@@ -121,8 +121,10 @@ class NJ_Tier_Manager {
 	 */
 	public static function maybe_demote_expired_trials(): void {
 		$batch_size = 200;
-		$offset     = 0;
 
+		// No offset — each demotion removes the user from the 'trial' result set,
+		// so the next query always fetches from the new front of the list.
+		// An advancing offset would skip users as the set shrinks mid-loop.
 		do {
 			$users = get_users(
 				[
@@ -130,7 +132,6 @@ class NJ_Tier_Manager {
 					'meta_value' => 'trial',
 					'fields'     => 'ID',
 					'number'     => $batch_size,
-					'offset'     => $offset,
 				]
 			);
 			$found = count( $users );
@@ -139,7 +140,6 @@ class NJ_Tier_Manager {
 					self::set_user_tier( 'free', (int) $user_id );
 				}
 			}
-			$offset += $batch_size;
 		} while ( $found === $batch_size );
 	}
 }

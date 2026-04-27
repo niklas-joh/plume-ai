@@ -16,43 +16,43 @@ if ( ! defined( 'ABSPATH' ) ) {
  * On first activation the site sends its home URL to the /register endpoint
  * and stores the returned token in wp_options. Subsequent requests use
  * this token for Bearer authentication.
+ *
+ * @since 1.2.0
  */
 class NJ_Site_Registration {
 
 	public const OPTION_TOKEN = 'wp_ai_mind_site_token';
 
-	private const PLAN_PRO_MANAGED_MONTHLY = '1550505';
-	private const PLAN_PRO_MANAGED_ANNUAL  = '1550477';
-	private const PLAN_PRO_BYOK_ONETIME    = '1550517';
+	private const TRANSIENT_BACKOFF = 'wp_ai_mind_reg_backoff';
 
 	/**
 	 * Return the checkout URL for the Pro Managed Monthly plan.
 	 *
-	 * @since 1.0.0
+	 * @since 1.2.0
 	 * @return string Fully-formed checkout URL.
 	 */
 	public static function checkout_url_pro_managed_monthly(): string {
-		return self::checkout_url( self::PLAN_PRO_MANAGED_MONTHLY );
+		return self::checkout_url( self::plan_id( 'monthly' ) );
 	}
 
 	/**
 	 * Return the checkout URL for the Pro Managed Annual plan.
 	 *
-	 * @since 1.0.0
+	 * @since 1.2.0
 	 * @return string Fully-formed checkout URL.
 	 */
 	public static function checkout_url_pro_managed_annual(): string {
-		return self::checkout_url( self::PLAN_PRO_MANAGED_ANNUAL );
+		return self::checkout_url( self::plan_id( 'annual' ) );
 	}
 
 	/**
 	 * Return the checkout URL for the Pro BYOK One-time plan.
 	 *
-	 * @since 1.0.0
+	 * @since 1.2.0
 	 * @return string Fully-formed checkout URL.
 	 */
 	public static function checkout_url_pro_byok_onetime(): string {
-		return self::checkout_url( self::PLAN_PRO_BYOK_ONETIME );
+		return self::checkout_url( self::plan_id( 'byok' ) );
 	}
 
 	/**
@@ -75,8 +75,6 @@ class NJ_Site_Registration {
 	 * Idempotent — skips silently if a token is already stored.
 	 * Hooked to `init` in Plugin.php.
 	 */
-	private const TRANSIENT_BACKOFF = 'wp_ai_mind_reg_backoff';
-
 	public static function maybe_register(): void {
 		if ( self::is_registered() ) {
 			return;
@@ -131,7 +129,7 @@ class NJ_Site_Registration {
 	 * Embeds the site token as a custom checkout field so the Worker can
 	 * associate the purchase with this installation automatically.
 	 *
-	 * @since 1.0.0
+	 * @since 1.2.0
 	 * @param string $variant_id The LemonSqueezy product variant ID.
 	 * @return string The fully-formed checkout URL.
 	 */
@@ -142,5 +140,25 @@ class NJ_Site_Registration {
 			$url .= '?checkout[custom][site_token]=' . rawurlencode( $token );
 		}
 		return $url;
+	}
+
+	/**
+	 * Return the LemonSqueezy variant ID for a plan, with wp-config.php override support.
+	 *
+	 * Defaults match the live store. Override via WP_AI_MIND_LS_MONTHLY_ID,
+	 * WP_AI_MIND_LS_ANNUAL_ID, or WP_AI_MIND_LS_BYOK_ID in wp-config.php to
+	 * change variant IDs without a plugin release (e.g. after a store migration).
+	 *
+	 * @since 1.2.0
+	 * @param string $plan One of 'monthly', 'annual', 'byok'.
+	 * @return string LemonSqueezy variant ID.
+	 */
+	private static function plan_id( string $plan ): string {
+		$map = [
+			'monthly' => defined( 'WP_AI_MIND_LS_MONTHLY_ID' ) ? WP_AI_MIND_LS_MONTHLY_ID : '1550505',
+			'annual'  => defined( 'WP_AI_MIND_LS_ANNUAL_ID' )  ? WP_AI_MIND_LS_ANNUAL_ID  : '1550477',
+			'byok'    => defined( 'WP_AI_MIND_LS_BYOK_ID' )    ? WP_AI_MIND_LS_BYOK_ID    : '1550517',
+		];
+		return $map[ $plan ];
 	}
 }

@@ -22,7 +22,7 @@ class NJSiteRegistrationTest extends TestCase {
 
 	public function test_get_site_token_returns_stored_token(): void {
 		Functions\expect( 'get_option' )
-			->with( 'wp_ai_mind_site_token', '' )
+			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
 			->andReturn( 'abc123' );
 
 		$this->assertSame( 'abc123', NJ_Site_Registration::get_site_token() );
@@ -30,7 +30,7 @@ class NJSiteRegistrationTest extends TestCase {
 
 	public function test_get_site_token_returns_empty_string_when_not_registered(): void {
 		Functions\expect( 'get_option' )
-			->with( 'wp_ai_mind_site_token', '' )
+			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
 			->andReturn( '' );
 
 		$this->assertSame( '', NJ_Site_Registration::get_site_token() );
@@ -38,7 +38,7 @@ class NJSiteRegistrationTest extends TestCase {
 
 	public function test_is_registered_returns_true_when_token_exists(): void {
 		Functions\expect( 'get_option' )
-			->with( 'wp_ai_mind_site_token', '' )
+			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
 			->andReturn( 'some-token' );
 
 		$this->assertTrue( NJ_Site_Registration::is_registered() );
@@ -46,7 +46,7 @@ class NJSiteRegistrationTest extends TestCase {
 
 	public function test_is_registered_returns_false_when_no_token(): void {
 		Functions\expect( 'get_option' )
-			->with( 'wp_ai_mind_site_token', '' )
+			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
 			->andReturn( '' );
 
 		$this->assertFalse( NJ_Site_Registration::is_registered() );
@@ -54,7 +54,7 @@ class NJSiteRegistrationTest extends TestCase {
 
 	public function test_checkout_url_embeds_site_token(): void {
 		Functions\expect( 'get_option' )
-			->with( 'wp_ai_mind_site_token', '' )
+			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
 			->andReturn( 'mytoken' );
 
 		$url = NJ_Site_Registration::checkout_url_pro_managed_monthly();

@@ -192,16 +192,27 @@ class NJ_Api_Key_Settings {
 	}
 
 	/**
-	 * Derive a 32-byte AES-256 key from WordPress AUTH_KEY via SHA-256.
-	 * Returns false when AUTH_KEY is not defined so callers can bail early.
+	 * Return (or create) the stable 32-byte AES-256 encryption key stored in wp_options.
 	 *
-	 * @return string|false 32-byte binary key, or false if AUTH_KEY is absent.
+	 * Unlike deriving from AUTH_KEY, this key survives WordPress salt rotations.
+	 * Rotating AUTH_KEY (e.g. via `wp config shuffle-salts`) would silently make all
+	 * stored BYOK API keys unrecoverable; a stored key is immune to that.
+	 *
+	 * @since 1.2.0
+	 * @return string|false 32-byte binary key, or false if random_bytes() is unavailable.
 	 */
 	private static function derive_key(): string|false {
-		if ( ! defined( 'AUTH_KEY' ) || '' === AUTH_KEY ) {
+		$stored = get_option( 'wp_ai_mind_enc_key' );
+		if ( $stored ) {
+			return base64_decode( $stored ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+		}
+		try {
+			$raw = random_bytes( 32 );
+		} catch ( \Exception $e ) {
 			return false;
 		}
-		return hash( 'sha256', AUTH_KEY, true );
+		update_option( 'wp_ai_mind_enc_key', base64_encode( $raw ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+		return $raw;
 	}
 
 	/**

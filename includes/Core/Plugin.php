@@ -66,8 +66,6 @@ class Plugin {
 		add_action( 'wp_ai_mind_register_menu', [ \WP_AI_Mind\Admin\AdminMenu::class, 'register' ] );
 		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\OnboardingRestController::class, 'register_routes' ] );
 		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\TestKeyRestController::class, 'register_routes' ] );
-		// Deprecated in Phase 2.1: LemonSqueezy webhook is now handled by the Cloudflare Worker.
-		// add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Payments\NJ_LemonSqueezy_Webhook::class, 'register_routes' ] );
 		\WP_AI_Mind\Admin\NJ_Tier_Status_Page::register_hooks();
 		\WP_AI_Mind\Admin\NJ_Api_Key_Settings::register_hooks();
 		\WP_AI_Mind\Admin\NJ_Usage_Widget::register_hooks();

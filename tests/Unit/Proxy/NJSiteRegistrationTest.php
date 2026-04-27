@@ -57,9 +57,9 @@ class NJSiteRegistrationTest extends TestCase {
 			->with( 'wp_ai_mind_site_token', '' )
 			->andReturn( 'mytoken' );
 
-		$url = NJ_Site_Registration::checkout_url( 'variant-abc' );
+		$url = NJ_Site_Registration::checkout_url_pro_managed_monthly();
 
-		$this->assertStringContainsString( 'variant-abc', $url );
+		$this->assertStringContainsString( 'lemonsqueezy.com', $url );
 		$this->assertStringContainsString( 'mytoken', $url );
 	}
 }

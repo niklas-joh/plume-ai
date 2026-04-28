@@ -1,3 +1,15 @@
+/**
+ * Contextual status banner shown at the top of the dashboard.
+ *
+ * Renders nothing when `bannerState` is `'none'`. Shows a warning when the
+ * site is on the free Plugin API, or an error when the stored API key is
+ * invalid. Each state surfaces the appropriate CTA links.
+ *
+ * @param {Object} props
+ * @param {string} props.bannerState  Current banner variant: `'none'`, `'free_tier'`, or `'invalid_key'`.
+ * @param {Object} props.urls         URL map with at least `settings` and `upgrade` keys.
+ * @return {ReactElement|null}
+ */
 export default function StatusBanner( { bannerState, urls } ) {
 	if ( bannerState === 'none' ) {
 		return null;

@@ -3,6 +3,21 @@ import { Button } from '@wordpress/components';
 import { CornerDownLeft, Loader2, Paperclip, FileText, X } from 'lucide-react';
 import ContextPicker from './ContextPicker';
 
+/**
+ * Message composer with optional post-context attachment.
+ *
+ * Submits on Enter (without Shift) or Send button click. Shows a ContextPicker
+ * popover when the attach button is clicked, and renders an attachment pill
+ * while a post is attached.
+ *
+ * @param {Object}        props
+ * @param {Function}      props.onSend       Called with the trimmed message string when submitted.
+ * @param {boolean}       props.isLoading    Disables the input and shows a spinner while true.
+ * @param {Object|null}   props.attachedPost Currently attached post object (`{ id, title }`) or null.
+ * @param {Function}      props.onAttach     Called with the selected post object when context is chosen.
+ * @param {Function}      props.onDetach     Called when the attachment pill dismiss button is clicked.
+ * @return {ReactElement}
+ */
 export default function Composer( {
 	onSend,
 	isLoading,

@@ -25,6 +25,13 @@ const TILES = [
 	},
 ];
 
+/**
+ * Grid of quick-start action tiles on the dashboard.
+ *
+ * @param {Object} props
+ * @param {Object} props.urls  URL map keyed by tile `urlKey` values (e.g. `generator`, `chat`).
+ * @return {ReactElement}
+ */
 export default function StartTiles( { urls } ) {
 	return (
 		<div>

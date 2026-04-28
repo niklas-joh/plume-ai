@@ -23,6 +23,15 @@ const IMAGES_COLUMNS = [
 	},
 ];
 
+/**
+ * Root page component for the AI Images admin screen (Pro only).
+ *
+ * Shows a Pro-gate placeholder for free-tier users. Pro users see a
+ * PostListTable filtered by featured-image presence, with ImagesWorkArea
+ * as the expanded row work area.
+ *
+ * @return {ReactElement}
+ */
 export default function ImagesApp() {
 	if ( ! isPro ) {
 		return (

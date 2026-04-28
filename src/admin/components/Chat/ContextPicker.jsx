@@ -2,6 +2,17 @@ import { useState, useEffect, useRef } from '@wordpress/element';
 import { Search } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 
+/**
+ * Debounced search popover for attaching a post as chat context.
+ *
+ * Queries /wp-ai-mind/v1/search-posts after 300 ms of inactivity.
+ * Closes on Escape key. Minimum 2 characters before a search is triggered.
+ *
+ * @param {Object}   props
+ * @param {Function} props.onSelect Called with the selected post object when a result is clicked.
+ * @param {Function} props.onClose  Called when the picker should be dismissed without a selection.
+ * @return {ReactElement}
+ */
 export default function ContextPicker( { onSelect, onClose } ) {
 	const [ query, setQuery ] = useState( '' );
 	const [ results, setResults ] = useState( [] );

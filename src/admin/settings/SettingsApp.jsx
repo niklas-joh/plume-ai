@@ -12,6 +12,15 @@ const TABS = [
 	{ name: 'features', title: 'Features' },
 ];
 
+/**
+ * Root settings application with tabbed navigation (Providers, Voice, Features).
+ *
+ * Loads settings from the REST API on mount and passes a saveSettings function
+ * down to each tab, which applies a partial patch to the settings state and
+ * persists it via POST.
+ *
+ * @return {ReactElement}
+ */
 export default function SettingsApp() {
 	const [ settings, setSettings ] = useState( null );
 	const [ isSaving, setIsSaving ] = useState( false );

@@ -12,6 +12,20 @@ const EMPTY_FIELDS = {
 	alt_text: '',
 };
 
+/**
+ * Expanded work area for generating and applying SEO metadata to a post.
+ *
+ * Generates meta title, OG description, excerpt, and alt text in one request.
+ * A re-generate guard (`confirmReplace`) prevents accidental overwrites of
+ * already-generated fields. On apply, the work area closes and the parent
+ * table row is patched with updated `wpaim_seo_status` values.
+ *
+ * @param {Object}   props
+ * @param {Object}   props.post      WordPress post object; must include `wpaim_seo_status`.
+ * @param {Function} props.onClose   Called when the work area should be dismissed.
+ * @param {Function} props.onUpdate  Called with a partial post patch after SEO fields are applied.
+ * @return {ReactElement}
+ */
 export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 	const [ fields, setFields ] = useState( EMPTY_FIELDS );
 	const [ hasGenerated, setHasGenerated ] = useState( false );

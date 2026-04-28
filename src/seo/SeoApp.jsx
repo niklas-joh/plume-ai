@@ -32,6 +32,15 @@ const SEO_COLUMNS = [
 	},
 ];
 
+/**
+ * Root page component for the AI SEO admin screen (Pro only).
+ *
+ * Shows a Pro-gate placeholder for free-tier users. Pro users see a
+ * PostListTable filtered by SEO completion status, with SeoWorkArea
+ * as the expanded row work area.
+ *
+ * @return {ReactElement}
+ */
 export default function SeoApp() {
 	if ( ! isPro ) {
 		return (

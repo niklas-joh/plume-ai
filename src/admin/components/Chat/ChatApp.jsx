@@ -7,6 +7,14 @@ import QuickActions from '../RightPanel/QuickActions';
 import ModelSelector from '../RightPanel/ModelSelector';
 import apiFetch from '@wordpress/api-fetch';
 
+/**
+ * Root chat application: conversation list, message thread, and composer.
+ *
+ * Manages the full chat session including conversation CRUD, provider/model
+ * selection, and the context-post attachment flow.
+ *
+ * @return {ReactElement}
+ */
 export default function ChatApp() {
 	const { isPro } = window.wpAiMindData || {};
 
@@ -227,6 +235,11 @@ export default function ChatApp() {
 	);
 }
 
+/**
+ * Placeholder displayed when no messages have been sent yet.
+ *
+ * @return {ReactElement}
+ */
 function EmptyState() {
 	return (
 		<div className="wpaim-empty">

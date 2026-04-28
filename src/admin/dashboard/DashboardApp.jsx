@@ -5,6 +5,15 @@ import PageFooter from './PageFooter';
 import OnboardingPage from './OnboardingPage';
 import './dashboard.css';
 
+/**
+ * Root dashboard application shown on the main WP AI Mind admin page.
+ *
+ * Reads all page data from the `wpAiMindDashboard` global injected by PHP.
+ * Renders the onboarding wizard in place of the normal dashboard when
+ * `onboardingSeen` is false, so first-time users are guided through setup.
+ *
+ * @return {ReactElement}
+ */
 export default function DashboardApp() {
 	const data = window.wpAiMindDashboard ?? {};
 	const {

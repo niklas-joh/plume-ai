@@ -23,6 +23,18 @@ const ACTIONS = [
 	},
 ];
 
+/**
+ * AI action buttons (rewrite, shorten, elaborate) for the currently selected block.
+ *
+ * Reads the selected block's text content from `core/block-editor` and sends it
+ * to the AI via the messages REST endpoint. A new conversation is created lazily
+ * on the first action if `convId` is not provided.
+ *
+ * @param {Object}        props
+ * @param {number|null}   props.convId    Existing conversation ID to append to, or null to create one.
+ * @param {Function}      props.onResult  Called with `(content, clientId)` after a successful AI response.
+ * @return {ReactElement}
+ */
 export default function BlockActions( { convId, onResult } ) {
 	const selectedBlock = useSelect( ( select ) =>
 		select( 'core/block-editor' ).getSelectedBlock()

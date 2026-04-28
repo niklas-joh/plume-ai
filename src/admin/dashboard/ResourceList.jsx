@@ -21,6 +21,17 @@ const RESOURCES = [
 	},
 ];
 
+/**
+ * List of external documentation and resource links shown on the dashboard.
+ *
+ * The changelog entry uses `version` to build a dynamic description when
+ * the static `desc` field is null.
+ *
+ * @param {Object} props
+ * @param {Object} props.resourceUrls  URL map keyed by resource `urlKey` values.
+ * @param {string} props.version       Current plugin version string (e.g. `'1.2.0'`).
+ * @return {ReactElement}
+ */
 export default function ResourceList( { resourceUrls, version } ) {
 	return (
 		<div>

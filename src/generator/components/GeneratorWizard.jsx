@@ -16,6 +16,15 @@ const LENGTHS = [
 	{ value: 'long', label: 'Long (1200–1800 words)' },
 ];
 
+/**
+ * Multi-step wizard for AI-assisted full post generation.
+ *
+ * Manages a three-state machine: step 1 (brief form) → step 2 (generating
+ * spinner) → step 3 (success screen with preview). On success, the generated
+ * post already exists in WordPress and the user is given a direct edit link.
+ *
+ * @return {ReactElement}
+ */
 export default function GeneratorWizard() {
 	const [ step, setStep ] = useState( 1 ); // 1=brief, 2=generating, 3=done
 	const [ form, setForm ] = useState( {

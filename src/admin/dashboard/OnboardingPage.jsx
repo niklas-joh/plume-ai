@@ -49,6 +49,17 @@ const IMAGE_PROVIDERS = [
 
 // ── Step 1 ────────────────────────────────────────────────────────────────────
 
+/**
+ * First onboarding step — choose between Plugin API, own API key, or Pro.
+ *
+ * @param {Object}   props
+ * @param {string}   props.selection   Currently selected connection type: `'plugin'`, `'own_key'`, or `'pro'`.
+ * @param {Function} props.onSelect    Called with the new selection string when a choice card is clicked.
+ * @param {Function} props.onContinue  Called when the user clicks "Get started".
+ * @param {Function} props.onSkip      Called when the user skips setup entirely.
+ * @param {string}   props.upgradeUrl  URL for the Pro upgrade page (used when `selection === 'pro'`).
+ * @return {ReactElement}
+ */
 function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 	const choices = [
 		{
@@ -158,6 +169,20 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 
 // ── Step 2 ────────────────────────────────────────────────────────────────────
 
+/**
+ * Second onboarding step — select text and image AI providers and enter API keys.
+ *
+ * Supports inline key validation via the /test-key REST endpoint. The image
+ * provider section is optional and collapsible. A separate key input is only
+ * shown when the chosen image provider differs from the text provider.
+ *
+ * @param {Object}   props
+ * @param {Function} props.onBack     Called when the user navigates back to step 1.
+ * @param {Function} props.onFinish   Called with `{ provider, apiKeys, imageProvider }` on completion.
+ * @param {string}   props.nonce      WordPress REST nonce for authenticated requests.
+ * @param {string}   props.restUrl    Base URL for the plugin's REST API.
+ * @return {ReactElement}
+ */
 function Step2( { onBack, onFinish, nonce, restUrl } ) {
 	const [ selectedProvider, setSelectedProvider ] = useState( null );
 	const [ apiKeys, setApiKeys ] = useState( {} );
@@ -521,6 +546,14 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 
 // ── Done screen ───────────────────────────────────────────────────────────────
 
+/**
+ * Final onboarding screen confirming that setup is complete.
+ *
+ * @param {Object} props
+ * @param {string} props.apiTierLabel  Human-readable label describing the chosen API tier.
+ * @param {Object} props.urls          URL map with at least a `chat` key for the CTA link.
+ * @return {ReactElement}
+ */
 function DoneScreen( { apiTierLabel, urls } ) {
 	return (
 		<>
@@ -570,6 +603,19 @@ function DoneScreen( { apiTierLabel, urls } ) {
 
 // ── Root page ─────────────────────────────────────────────────────────────────
 
+/**
+ * Multi-step onboarding wizard rendered in place of the dashboard on first visit.
+ *
+ * Manages a three-state machine: `step1` → `step2` (own-key path only) → `done`.
+ * Each transition persists progress to the /onboarding REST endpoint so the
+ * wizard does not re-appear after completion.
+ *
+ * @param {Object} props
+ * @param {string} props.nonce    WordPress REST nonce for authenticated requests.
+ * @param {string} props.restUrl  Base URL for the plugin's REST API.
+ * @param {Object} props.urls     URL map passed through to child steps (e.g. `upgrade`, `chat`).
+ * @return {ReactElement}
+ */
 export default function OnboardingPage( { nonce, restUrl, urls } ) {
 	const [ step, setStep ] = useState( 'step1' ); // 'step1' | 'step2' | 'done'
 	const [ connection, setConnection ] = useState( 'plugin' ); // 'plugin' | 'own_key' | 'pro'

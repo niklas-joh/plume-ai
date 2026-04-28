@@ -2,6 +2,15 @@ import { useState, useEffect } from '@wordpress/element';
 import { BarChart2, Zap, Loader2 } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 
+/**
+ * Admin page showing token/request usage stats fetched from the REST API.
+ *
+ * Displays used, remaining, and monthly limit counts with a proportional
+ * progress bar. When no limit applies (unlimited tier), the bar is hidden
+ * and remaining shows ∞. The bar turns red when the limit is exhausted.
+ *
+ * @return {ReactElement}
+ */
 export default function UsageDashboard() {
 	const [ data, setData ] = useState( null );
 	const [ isLoading, setIsLoading ] = useState( true );

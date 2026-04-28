@@ -42,6 +42,15 @@ function scoreItem( label, pass, tip ) {
 	);
 }
 
+/**
+ * Live SEO checklist panel in the Block Editor sidebar (Pro only).
+ *
+ * Reads title, content, and excerpt live from `core/editor` state so scores
+ * update as the user types without requiring a save. Renders a locked
+ * placeholder for free-tier users.
+ *
+ * @return {ReactElement}
+ */
 export default function SeoPanel() {
 	const { title, content, excerpt } = useSelect( ( select ) => {
 		const editor = select( 'core/editor' );

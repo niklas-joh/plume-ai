@@ -10,6 +10,21 @@ const PROVIDER_LABELS = {
 	ollama: 'Ollama',
 };
 
+/**
+ * Provider and model selector with a simple/advanced toggle.
+ *
+ * In simple mode, shows the plugin's configured default model label.
+ * In advanced mode, exposes provider and per-provider model dropdowns.
+ * The advanced state is persisted to localStorage.
+ *
+ * @param {Object}   props
+ * @param {Array}    props.providers         Array of provider objects from the /providers endpoint.
+ * @param {string}   props.selectedProvider  Currently selected provider slug.
+ * @param {string}   props.selectedModel     Currently selected model ID, or empty for the provider default.
+ * @param {Function} props.onProviderChange  Called with the new provider slug when changed.
+ * @param {Function} props.onModelChange     Called with the new model ID when changed.
+ * @return {ReactElement}
+ */
 export default function ModelSelector( {
 	providers,
 	selectedProvider,

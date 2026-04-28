@@ -3,6 +3,18 @@ import { Send, Loader2 } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 import MarkdownContent from '../../shared/MarkdownContent';
 
+/**
+ * Compact chat interface embedded in the Block Editor plugin sidebar.
+ *
+ * Creates a conversation lazily on the first message, associating it with the
+ * current post via `post_id`. The conversation ID is kept in local state so
+ * subsequent messages append to the same thread without a second POST to
+ * /conversations.
+ *
+ * @param {Object}      props
+ * @param {number|null} props.postId  Current post ID from `core/editor`, passed to the conversation endpoint.
+ * @return {ReactElement}
+ */
 export default function MiniChat( { postId } ) {
 	const [ messages, setMessages ] = useState( [] );
 	const [ input, setInput ] = useState( '' );

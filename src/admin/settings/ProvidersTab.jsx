@@ -20,6 +20,19 @@ const IMAGE_PROVIDER_OPTIONS = [
 	{ value: 'gemini', label: 'Google Gemini' },
 ];
 
+/**
+ * Settings tab for configuring AI providers, API keys, and the Ollama endpoint.
+ *
+ * API keys are stored per-provider in a dirty-state map and only persisted
+ * when the user explicitly clicks Save, preventing accidental overwrites.
+ * Pro feature gates (model_selection, own_api_key) are read from wpAiMindData.
+ *
+ * @param {Object}   props
+ * @param {Object}   props.settings      Full settings object from the REST API.
+ * @param {Function} props.saveSettings  Persists a partial settings patch via POST.
+ * @param {boolean}  props.isSaving      True while a save request is in flight.
+ * @return {ReactElement}
+ */
 export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 	const features = window.wpAiMindData?.features ?? {};
 	const upgradeUrl =

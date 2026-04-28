@@ -9,6 +9,15 @@ import SeoPanel from './SeoPanel';
 import '../../styles/tokens.css';
 import '../editor.css';
 
+/**
+ * Block Editor plugin sidebar containing the mini chat, block actions, and SEO panels.
+ *
+ * Registered via `registerPlugin` so it appears in the editor's plugin sidebar
+ * list. Block content updates are dispatched through `core/block-editor` rather
+ * than returned to the component to avoid a React re-render cycle.
+ *
+ * @return {ReactElement}
+ */
 function WpAiMindSidebar() {
 	const postId = useSelect( ( select ) =>
 		select( 'core/editor' ).getCurrentPostId()

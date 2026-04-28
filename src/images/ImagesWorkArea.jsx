@@ -7,6 +7,20 @@ const { nonce, restUrl, adminUrl = '/wp-admin/' } = window.wpAiMindData ?? {};
 
 const ASPECT_RATIOS = [ '16:9', '1:1', '4:3', '9:16' ];
 
+/**
+ * Expanded work area for generating and setting a featured image on a post.
+ *
+ * Sends a generation request to the /images/generate endpoint and renders a
+ * selectable grid of results. On confirmation, sets the chosen image as the
+ * post's featured media via the post's own REST self-link so the correct
+ * post-type endpoint is used regardless of post type.
+ *
+ * @param {Object}   props
+ * @param {Object}   props.post      WordPress post object with `_links.self` populated.
+ * @param {Function} props.onClose   Called when the work area should be dismissed.
+ * @param {Function} props.onUpdate  Called with a partial post patch after the featured image is set.
+ * @return {ReactElement}
+ */
 export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 	const [ prompt, setPrompt ] = useState( '' );
 	const [ aspectRatio, setAspectRatio ] = useState( '16:9' );

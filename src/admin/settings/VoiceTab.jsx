@@ -4,6 +4,19 @@ import { Mic } from 'lucide-react';
 
 const MAX_CHARS = 2000;
 
+/**
+ * Settings tab for defining the site-wide AI writing voice and persona.
+ *
+ * Tracks local dirty state so the textarea is responsive while the REST
+ * save is in flight. Enforces a 2 000-character hard limit and shows a
+ * live character counter that turns red when exceeded.
+ *
+ * @param {Object}   props
+ * @param {Object}   props.settings      Full settings object from the REST API.
+ * @param {Function} props.saveSettings  Persists a partial settings patch via POST.
+ * @param {boolean}  props.isSaving      True while a save request is in flight.
+ * @return {ReactElement}
+ */
 export default function VoiceTab( { settings, saveSettings, isSaving } ) {
 	const [ value, setValue ] = useState( settings?.site_voice ?? '' );
 	const [ isDirty, setIsDirty ] = useState( false );

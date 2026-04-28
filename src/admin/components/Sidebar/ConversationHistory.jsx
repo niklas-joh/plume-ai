@@ -2,6 +2,20 @@
 import { useState } from '@wordpress/element';
 import { Trash2, Check, X } from 'lucide-react';
 
+/**
+ * Sidebar list of past conversations with inline delete confirmation.
+ *
+ * Shows an empty state when there are no conversations. Delete uses a
+ * two-step confirm flow (click → confirm/cancel) to prevent accidental deletion.
+ *
+ * @param {Object}  props
+ * @param {Array}   props.conversations       Array of conversation objects: `{ id, title, updated_at }`.
+ * @param {number|null} props.activeId        ID of the currently open conversation, or null.
+ * @param {Function}    props.onSelect        Called with the conversation ID when a row is clicked.
+ * @param {Function}    props.onDelete        Called with the conversation ID to trigger deletion.
+ * @param {Set}         [props.deletingIds]   Set of conversation IDs currently being deleted (shows disabled state).
+ * @return {ReactElement}
+ */
 export default function ConversationHistory( {
 	conversations,
 	activeId,

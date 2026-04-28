@@ -54,6 +54,18 @@ const MODULES = [
 	},
 ];
 
+/**
+ * Settings tab for toggling AI modules and configuring post-type access.
+ *
+ * Pro-locked modules render as disabled cards; toggling them is a no-op
+ * so no Pro-gate error needs to be surfaced separately. Post-type changes
+ * and the write-tools toggle are persisted immediately on change.
+ *
+ * @param {Object}   props
+ * @param {Object}   props.settings      Full settings object from the REST API.
+ * @param {Function} props.saveSettings  Persists a partial settings patch via POST.
+ * @return {ReactElement}
+ */
 export default function FeaturesTab( { settings, saveSettings } ) {
 	const enabledModules = settings?.enabled_modules ?? [];
 	const isPro = settings?.is_pro ?? false;

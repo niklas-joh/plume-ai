@@ -5,6 +5,23 @@ import DOMPurify from 'dompurify';
 
 const PER_PAGE = 20;
 
+/**
+ * Shared data table with tab filtering, search, and pagination.
+ *
+ * Fetches all published posts and pages on mount (all pages, not just the
+ * first REST page) and merges them into a single sorted list. Consumer
+ * provides tab definitions, an expandable work area component, and optional
+ * extra column definitions.
+ *
+ * @param {Object}   props
+ * @param {Array}    props.tabs      Tab definitions: `[{ id, label, filter }]` where `filter` is a predicate on a post object.
+ * @param {Function} props.WorkArea  Component rendered in the expanded work-area row; receives `{ post, onClose, onUpdate }`.
+ * @param {Array}    [props.columns] Optional extra column definitions: `[{ label, render, width? }]`.
+ * @return {ReactElement}
+ *
+ * @example
+ * <PostListTable tabs={ SEO_TABS } WorkArea={ SeoWorkArea } columns={ SEO_COLUMNS } />
+ */
 export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 	const [ posts, setPosts ] = useState( [] );
 	const [ loading, setLoading ] = useState( true );
@@ -211,6 +228,19 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 	);
 }
 
+/**
+ * Single row in the post list table, with an optional expandable work area.
+ *
+ * @param {Object}   props
+ * @param {Object}   props.post      WordPress post object from the REST API.
+ * @param {Array}    props.columns   Extra column definitions: `[{ label, render }]`.
+ * @param {boolean}  props.expanded  Whether the work-area row is currently open.
+ * @param {Function} props.onExpand  Called when the expand/collapse button is clicked.
+ * @param {Function} props.onClose   Called to close the work-area row without expanding another.
+ * @param {Function} props.onUpdate  Called with partial post fields after an in-row update.
+ * @param {Function} props.WorkArea  Component to render in the expanded row.
+ * @return {ReactElement}
+ */
 function PostRow( {
 	post,
 	columns,

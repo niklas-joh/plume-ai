@@ -5,6 +5,15 @@ import MarkdownContent from '../shared/MarkdownContent';
 
 const { currentPostId, siteTitle } = window.wpAiMindData || {};
 
+/**
+ * Floating chat widget rendered on the public-facing site via a shortcode.
+ *
+ * Toggled open/closed with a fixed-position button. Conversations are created
+ * lazily on the first message and associated with the current post ID when
+ * available. Network errors show an inline error bubble rather than crashing.
+ *
+ * @return {ReactElement}
+ */
 export default function FrontendWidget() {
 	const [ open, setOpen ] = useState( false );
 	const [ messages, setMessages ] = useState( [] );

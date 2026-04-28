@@ -131,7 +131,7 @@ class NJ_Api_Key_Settings {
 			return;
 		}
 		// Register a handle with no external file — the script is added inline below.
-		wp_register_script( 'wp-ai-mind-api-keys', false, [], false, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+		wp_register_script( 'wp-ai-mind-api-keys', false, [], false, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion,WordPress.WP.EnqueuedResourceParameters.NoExplicitVersion
 		wp_enqueue_script( 'wp-ai-mind-api-keys' );
 		wp_localize_script(
 			'wp-ai-mind-api-keys',

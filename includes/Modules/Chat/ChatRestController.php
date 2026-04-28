@@ -421,7 +421,7 @@ class ChatRestController {
 			return new \WP_Error( 'forbidden', __( 'You cannot update this conversation.', 'wp-ai-mind' ), [ 'status' => 403 ] );
 		}
 
-		$store->update_title( $conv_id, $request->get_param( 'title' ) );
+		$store->update_title( $conv_id, sanitize_text_field( $request->get_param( 'title' ) ) );
 		return rest_ensure_response( [ 'updated' => true ] );
 	}
 

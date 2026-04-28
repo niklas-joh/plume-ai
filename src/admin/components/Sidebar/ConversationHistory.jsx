@@ -7,6 +7,7 @@ import { Trash2, Check, X } from 'lucide-react';
  *
  * Shows an empty state when there are no conversations. Delete uses a
  * two-step confirm flow (click → confirm/cancel) to prevent accidental deletion.
+ * Delete errors are shown inline beneath the affected conversation row.
  *
  * @param {Object}  props
  * @param {Array}   props.conversations       Array of conversation objects: `{ id, title, updated_at }`.
@@ -14,6 +15,7 @@ import { Trash2, Check, X } from 'lucide-react';
  * @param {Function}    props.onSelect        Called with the conversation ID when a row is clicked.
  * @param {Function}    props.onDelete        Called with the conversation ID to trigger deletion.
  * @param {Set}         [props.deletingIds]   Set of conversation IDs currently being deleted (shows disabled state).
+ * @param {Object}      [props.deleteErrors]  Map of conversation ID → error string for failed deletes.
  * @return {ReactElement}
  */
 export default function ConversationHistory( {
@@ -22,6 +24,7 @@ export default function ConversationHistory( {
 	onSelect,
 	onDelete,
 	deletingIds = new Set(),
+	deleteErrors = {},
 } ) {
 	const [ confirmingId, setConfirmingId ] = useState( null );
 
@@ -61,6 +64,11 @@ export default function ConversationHistory( {
 								: '—' }
 						</span>
 					</button>
+					{ deleteErrors[ conv.id ] && (
+						<p className="wpaim-conv-item__error">
+							{ deleteErrors[ conv.id ] }
+						</p>
+					) }
 					{ confirmingId === conv.id ? (
 						<span className="wpaim-conv-item__confirm">
 							<button

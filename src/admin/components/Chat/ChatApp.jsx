@@ -27,7 +27,7 @@ export default function ChatApp() {
 	const [ providers, setProviders ] = useState( [] );
 	const [ attachedPost, setAttachedPost ] = useState( null );
 	const [ deletingIds, setDeletingIds ] = useState( new Set() );
-	const [ deleteError, setDeleteError ] = useState( null );
+	const [ deleteErrors, setDeleteErrors ] = useState( {} );
 	const skipLoadRef = useRef( false );
 
 	useEffect( () => {
@@ -61,7 +61,9 @@ export default function ChatApp() {
 			const data = await apiFetch( { path: '/wp-ai-mind/v1/providers' } );
 			setProviders( data );
 			if ( data.length > 0 ) {
-				setSelectedProvider( data[ 0 ].slug );
+				const storedDefault = window.wpAiMindData?.defaultProvider;
+				const match = data.find( ( p ) => p.slug === storedDefault );
+				setSelectedProvider( ( match ?? data[ 0 ] ).slug );
 			}
 		} catch ( e ) {
 			// Provider list is best-effort — don't crash if unavailable.
@@ -98,7 +100,11 @@ export default function ChatApp() {
 		if ( deletingIds.has( convId ) ) {
 			return;
 		}
-		setDeleteError( null );
+		setDeleteErrors( ( prev ) => {
+			const next = { ...prev };
+			delete next[ convId ];
+			return next;
+		} );
 		setDeletingIds( ( prev ) => new Set( [ ...prev, convId ] ) );
 		try {
 			await apiFetch( {
@@ -113,9 +119,10 @@ export default function ChatApp() {
 			} else {
 				// eslint-disable-next-line no-console
 				console.error( 'Failed to delete conversation:', e );
-				setDeleteError(
-					'Failed to delete conversation. Please try again.'
-				);
+				setDeleteErrors( ( prev ) => ( {
+					...prev,
+					[ convId ]: 'Failed to delete. Please try again.',
+				} ) );
 			}
 		} finally {
 			setDeletingIds( ( prev ) => {
@@ -129,6 +136,12 @@ export default function ChatApp() {
 	async function sendMessage( content ) {
 		// Resolve conversation ID — create one if none active.
 		let convId = activeConvId;
+		// Capture whether a pre-existing conversation needs a title update.
+		const needsTitleUpdate = ! convId
+			? false
+			: conversations.find( ( c ) => c.id === convId )?.title ===
+			  'New conversation';
+
 		if ( ! convId ) {
 			const conv = await apiFetch( {
 				path: '/wp-ai-mind/v1/conversations',
@@ -164,6 +177,22 @@ export default function ChatApp() {
 					tokens: res.tokens,
 				},
 			] );
+			if ( needsTitleUpdate ) {
+				const newTitle = content.slice( 0, 60 );
+				apiFetch( {
+					path: `/wp-ai-mind/v1/conversations/${ convId }`,
+					method: 'PATCH',
+					data: { title: newTitle },
+				} )
+					.then( () => {
+						setConversations( ( prev ) =>
+							prev.map( ( c ) =>
+								c.id === convId ? { ...c, title: newTitle } : c
+							)
+						);
+					} )
+					.catch( () => {} ); // Background update — ignore failures.
+			}
 		} catch ( err ) {
 			const errorText =
 				err?.message ?? 'Something went wrong. Please try again.';
@@ -191,15 +220,13 @@ export default function ChatApp() {
 						<Plus size={ 14 } strokeWidth={ 1.5 } />
 					</button>
 				</div>
-				{ deleteError && (
-					<div className="wpaim-sidebar__error">{ deleteError }</div>
-				) }
 				<ConversationHistory
 					conversations={ conversations }
 					activeId={ activeConvId }
 					onSelect={ setActiveConvId }
 					onDelete={ deleteConversation }
 					deletingIds={ deletingIds }
+					deleteErrors={ deleteErrors }
 				/>
 			</aside>
 
@@ -228,6 +255,7 @@ export default function ChatApp() {
 					selectedModel={ selectedModel }
 					onProviderChange={ setSelectedProvider }
 					onModelChange={ setSelectedModel }
+					isPro={ isPro }
 				/>
 				<QuickActions onAction={ sendMessage } isPro={ isPro } />
 			</aside>

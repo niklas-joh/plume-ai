@@ -15,7 +15,8 @@ const PROVIDER_LABELS = {
  *
  * In simple mode, shows the plugin's configured default model label.
  * In advanced mode, exposes provider and per-provider model dropdowns.
- * The advanced state is persisted to localStorage.
+ * The advanced state is persisted to localStorage. The Advanced toggle is
+ * disabled for non-Pro users with a tooltip explaining the restriction.
  *
  * @param {Object}   props
  * @param {Array}    props.providers         Array of provider objects from the /providers endpoint.
@@ -23,6 +24,7 @@ const PROVIDER_LABELS = {
  * @param {string}   props.selectedModel     Currently selected model ID, or empty for the provider default.
  * @param {Function} props.onProviderChange  Called with the new provider slug when changed.
  * @param {Function} props.onModelChange     Called with the new model ID when changed.
+ * @param {boolean}  [props.isPro]           Whether the current user has a Pro tier.
  * @return {ReactElement}
  */
 export default function ModelSelector( {
@@ -31,6 +33,7 @@ export default function ModelSelector( {
 	selectedModel,
 	onProviderChange,
 	onModelChange,
+	isPro = false,
 } ) {
 	const { defaultModelLabel = 'AI' } = window.wpAiMindData || {};
 
@@ -65,7 +68,13 @@ export default function ModelSelector( {
 					<button
 						className="wpaim-model-advanced-toggle"
 						type="button"
-						onClick={ () => toggleAdvanced( true ) }
+						onClick={ () => isPro && toggleAdvanced( true ) }
+						disabled={ ! isPro }
+						title={
+							isPro
+								? undefined
+								: 'Upgrade to Pro to select providers and models'
+						}
 					>
 						Advanced{ ' ' }
 						<ChevronRight size={ 11 } strokeWidth={ 1.5 } />

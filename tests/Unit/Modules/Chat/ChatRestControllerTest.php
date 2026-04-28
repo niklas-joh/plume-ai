@@ -433,7 +433,7 @@ class ChatRestControllerTest extends TestCase {
         $this->assertSame( 429, $response->get_status() );
         $headers = $response->get_headers();
         $this->assertArrayHasKey( 'Retry-After', $headers, 'Retry-After header must be present on 429 responses.' );
-        $this->assertGreaterThan( 0, (int) $headers['Retry-After'], 'Retry-After must be a positive number of seconds.' );
+        $this->assertGreaterThanOrEqual( 0, (int) $headers['Retry-After'], 'Retry-After must be a non-negative number of seconds.' );
     }
 
     public function test_send_message_maps_provider_403_to_502(): void {

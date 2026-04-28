@@ -148,8 +148,9 @@ class NJ_Tier_Manager {
 			$demoted = 0;
 			foreach ( $users as $user_id ) {
 				if ( ! self::is_trial_active( (int) $user_id ) ) {
-					self::set_user_tier( 'free', (int) $user_id );
-					++$demoted;
+					if ( self::set_user_tier( 'free', (int) $user_id ) ) {
+						++$demoted;
+					}
 				}
 			}
 		} while ( $found === $batch_size && $demoted > 0 );

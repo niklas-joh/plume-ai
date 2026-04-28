@@ -16,8 +16,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Single source of truth for tier capabilities and limits.
  *
- * Contains only constants — no WordPress function calls — so it is safe
- * to load before `init`.
+ * The constants and any methods that do not call WordPress i18n functions are
+ * safe to load before `init`. Methods that call `__()` (such as
+ * `get_tier_labels()`) must only be invoked after `init` when translations
+ * are available.
  *
  * @since 1.2.0
  */

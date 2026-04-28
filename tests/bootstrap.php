@@ -72,8 +72,15 @@ if ( ! class_exists( 'WP_REST_Request' ) ) {
 
 if ( ! class_exists( 'WP_REST_Response' ) ) {
 	class WP_REST_Response {
+		private array $headers = [];
 		public function __construct( public mixed $data = null, public int $status = 200 ) {}
 		public function get_status(): int { return $this->status; }
+		public function header( string $key, string $value, bool $replace = true ): void {
+			if ( $replace || ! isset( $this->headers[ $key ] ) ) {
+				$this->headers[ $key ] = $value;
+			}
+		}
+		public function get_headers(): array { return $this->headers; }
 	}
 }
 

@@ -383,7 +383,12 @@ class ChatRestController {
 			} else {
 				$status = $provider_status;
 			}
-			return new \WP_REST_Response( [ 'message' => $e->getMessage() ], $status );
+			$response = new \WP_REST_Response( [ 'message' => $e->getMessage() ], $status );
+			if ( 429 === $status ) {
+				$next_month = new \DateTime( 'first day of next month midnight' );
+				$response->header( 'Retry-After', (string) max( 0, $next_month->getTimestamp() - time() ) );
+			}
+			return $response;
 		}
 	}
 

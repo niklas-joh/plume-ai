@@ -143,20 +143,27 @@ class NJ_Api_Key_Settings {
 		);
 		wp_add_inline_script(
 			'wp-ai-mind-api-keys',
-			"document.querySelectorAll('.wp-ai-mind-save-api-key').forEach(function(btn){
-	btn.addEventListener('click',function(){
-		var provider=btn.dataset.provider;
-		var input=document.getElementById('api-key-'+provider);
-		fetch(btn.dataset.endpoint,{
-			method:'POST',
-			headers:{'Content-Type':'application/json','X-WP-Nonce':btn.dataset.nonce},
-			body:JSON.stringify({provider:provider,api_key:input.value})
-		}).then(function(r){return r.json();}).then(function(data){
-			input.value='';
-			input.placeholder=data.saved?wpAiMindApiKeys.saved:wpAiMindApiKeys.error;
-		});
-	});
-});"
+			"document.querySelectorAll( '.wp-ai-mind-save-api-key' ).forEach( function( btn ) {
+	btn.addEventListener( 'click', function() {
+		var provider = btn.dataset.provider;
+		var input    = document.getElementById( 'api-key-' + provider );
+		fetch( btn.dataset.endpoint, {
+			method:  'POST',
+			headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': btn.dataset.nonce },
+			body:    JSON.stringify( { provider: provider, api_key: input.value } )
+		} ).then( function( r ) {
+			if ( ! r.ok ) {
+				throw new Error( 'HTTP ' + r.status );
+			}
+			return r.json();
+		} ).then( function( data ) {
+			input.value       = '';
+			input.placeholder = data.saved ? wpAiMindApiKeys.saved : wpAiMindApiKeys.error;
+		} ).catch( function() {
+			input.placeholder = wpAiMindApiKeys.error;
+		} );
+	} );
+} );"
 		);
 	}
 

@@ -63,6 +63,9 @@ class NJ_Site_Registration {
 
 	/**
 	 * Return the stored site token, or an empty string if not yet registered.
+	 *
+	 * @since 1.2.0
+	 * @return string Stored site token, or empty string when not yet registered.
 	 */
 	public static function get_site_token(): string {
 		return (string) get_option( self::OPTION_TOKEN, '' );
@@ -70,6 +73,9 @@ class NJ_Site_Registration {
 
 	/**
 	 * Return true when a site token is present.
+	 *
+	 * @since 1.2.0
+	 * @return bool True when a site token is stored in wp_options.
 	 */
 	public static function is_registered(): bool {
 		return '' !== self::get_site_token();
@@ -80,6 +86,9 @@ class NJ_Site_Registration {
 	 *
 	 * Idempotent — skips silently if a token is already stored.
 	 * Hooked to `init` in Plugin.php.
+	 *
+	 * @since 1.2.0
+	 * @return void
 	 */
 	public static function maybe_register(): void {
 		if ( self::is_registered() ) {
@@ -101,6 +110,7 @@ class NJ_Site_Registration {
 	/**
 	 * Send a registration request to the proxy Worker.
 	 *
+	 * @since 1.2.0
 	 * @return string|WP_Error The stored site token on success, or a WP_Error on failure.
 	 */
 	public static function register(): string|WP_Error {
@@ -158,6 +168,7 @@ class NJ_Site_Registration {
 	 * @since 1.2.0
 	 * @param string $plan One of 'monthly', 'annual', 'byok'.
 	 * @return string LemonSqueezy variant ID.
+	 * @throws \InvalidArgumentException When an unrecognised plan key is passed.
 	 */
 	private static function plan_id( string $plan ): string {
 		$map = [
@@ -165,6 +176,10 @@ class NJ_Site_Registration {
 			'annual'  => defined( 'WP_AI_MIND_LS_ANNUAL_ID' ) ? WP_AI_MIND_LS_ANNUAL_ID : '1550477',
 			'byok'    => defined( 'WP_AI_MIND_LS_BYOK_ID' ) ? WP_AI_MIND_LS_BYOK_ID : '1550517',
 		];
+		if ( ! array_key_exists( $plan, $map ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal developer error, not user-facing output.
+			throw new \InvalidArgumentException( "Unknown plan key: '{$plan}'" );
+		}
 		return $map[ $plan ];
 	}
 }

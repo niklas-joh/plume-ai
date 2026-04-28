@@ -21,7 +21,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @internal Intentionally unused until a PHP webhook route is introduced.
  * @since 1.2.0
- * @internal
  */
 class NJ_Webhook_Verifier {
 

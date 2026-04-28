@@ -16,8 +16,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Single source of truth for tier capabilities and limits.
  *
- * Contains only constants — no WordPress function calls — so it is safe
- * to load before `init`.
+ * The constants and any methods that do not call WordPress i18n functions are
+ * safe to load before `init`. Methods that call `__()` (such as
+ * `get_tier_labels()`) must only be invoked after `init` when translations
+ * are available.
  *
  * @since 1.2.0
  */
@@ -102,6 +104,24 @@ class NJ_Tier_Config {
 	 */
 	public static function get_feature( string $tier, string $feature ): bool {
 		return (bool) ( self::FEATURES[ $tier ][ $feature ] ?? false );
+	}
+
+	/**
+	 * Returns translatable human-readable labels for all tier slugs.
+	 *
+	 * Centralised here so NJ_Tier_Status_Page and NJ_Usage_Widget share
+	 * the same strings and cannot drift out of sync.
+	 *
+	 * @since 1.2.0
+	 * @return array<string, string> Map of tier slug → display label.
+	 */
+	public static function get_tier_labels(): array {
+		return [
+			'free'        => __( 'Free', 'wp-ai-mind' ),
+			'trial'       => __( 'Trial', 'wp-ai-mind' ),
+			'pro_managed' => __( 'Pro Managed', 'wp-ai-mind' ),
+			'pro_byok'    => __( 'Pro BYOK', 'wp-ai-mind' ),
+		];
 	}
 
 	/**

@@ -8,6 +8,7 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Admin;
 
+use WP_AI_Mind\Tiers\NJ_Tier_Config;
 use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -79,12 +80,7 @@ class NJ_Usage_Widget {
 		$usage   = NJ_Usage_Tracker::get_usage( $user_id );
 		$tier    = $usage['tier'];
 
-		$tier_labels = [
-			'free'        => __( 'Free', 'wp-ai-mind' ),
-			'trial'       => __( 'Trial', 'wp-ai-mind' ),
-			'pro_managed' => __( 'Pro Managed', 'wp-ai-mind' ),
-			'pro_byok'    => __( 'Pro BYOK', 'wp-ai-mind' ),
-		];
+		$tier_labels = NJ_Tier_Config::get_tier_labels();
 		$tier_label  = $tier_labels[ $tier ] ?? ucwords( str_replace( '_', ' ', $tier ) );
 
 		echo '<div class="wp-ai-mind-usage-widget">';

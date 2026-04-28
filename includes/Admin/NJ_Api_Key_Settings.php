@@ -37,6 +37,7 @@ class NJ_Api_Key_Settings {
 	public static function register_hooks(): void {
 		add_action( 'admin_menu', [ self::class, 'add_menu_page' ] );
 		add_action( 'rest_api_init', [ self::class, 'register_routes' ] );
+		add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_scripts' ] );
 	}
 
 	/**
@@ -117,6 +118,56 @@ class NJ_Api_Key_Settings {
 	}
 
 	/**
+	 * Registers and enqueues the save-key inline script on the API keys settings page.
+	 *
+	 * Only loads on the correct admin page to avoid polluting other screens.
+	 *
+	 * @since 1.2.0
+	 * @param string $hook Current admin page hook suffix.
+	 * @return void
+	 */
+	public static function enqueue_scripts( string $hook ): void {
+		if ( 'settings_page_wp-ai-mind-api-keys' !== $hook ) {
+			return;
+		}
+		// Register a handle with no external file — the script is added inline below.
+		wp_register_script( 'wp-ai-mind-api-keys', false, [], false, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion,WordPress.WP.EnqueuedResourceParameters.NoExplicitVersion
+		wp_enqueue_script( 'wp-ai-mind-api-keys' );
+		wp_localize_script(
+			'wp-ai-mind-api-keys',
+			'wpAiMindApiKeys',
+			[
+				'saved' => __( 'Saved', 'wp-ai-mind' ),
+				'error' => __( 'Error', 'wp-ai-mind' ),
+			]
+		);
+		wp_add_inline_script(
+			'wp-ai-mind-api-keys',
+			"document.querySelectorAll( '.wp-ai-mind-save-api-key' ).forEach( function( btn ) {
+	btn.addEventListener( 'click', function() {
+		var provider = btn.dataset.provider;
+		var input    = document.getElementById( 'api-key-' + provider );
+		fetch( btn.dataset.endpoint, {
+			method:  'POST',
+			headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': btn.dataset.nonce },
+			body:    JSON.stringify( { provider: provider, api_key: input.value } )
+		} ).then( function( r ) {
+			if ( ! r.ok ) {
+				throw new Error( 'HTTP ' + r.status );
+			}
+			return r.json();
+		} ).then( function( data ) {
+			input.value       = '';
+			input.placeholder = data.saved ? wpAiMindApiKeys.saved : wpAiMindApiKeys.error;
+		} ).catch( function() {
+			input.placeholder = wpAiMindApiKeys.error;
+		} );
+	} );
+} );"
+		);
+	}
+
+	/**
 	 * Outputs the API keys settings page HTML.
 	 *
 	 * Calls wp_die() when the current user's tier does not include 'own_api_key'.
@@ -166,28 +217,6 @@ class NJ_Api_Key_Settings {
 				</tr>
 				<?php endforeach; ?>
 			</table>
-
-			<script>
-			document.querySelectorAll('.wp-ai-mind-save-api-key').forEach(function(btn) {
-				btn.addEventListener('click', function() {
-					var provider = btn.dataset.provider;
-					var input    = document.getElementById('api-key-' + provider);
-					fetch(btn.dataset.endpoint, {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							'X-WP-Nonce':   btn.dataset.nonce
-						},
-						body: JSON.stringify({ provider: provider, api_key: input.value })
-					})
-					.then(function(r) { return r.json(); })
-					.then(function(data) {
-						input.value       = '';
-						input.placeholder = data.saved ? '<?php echo esc_js( __( 'Saved', 'wp-ai-mind' ) ); ?>' : '<?php echo esc_js( __( 'Error', 'wp-ai-mind' ) ); ?>';
-					});
-				});
-			});
-			</script>
 		</div>
 		<?php
 	}

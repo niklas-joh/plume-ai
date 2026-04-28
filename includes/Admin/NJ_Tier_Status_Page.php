@@ -9,6 +9,7 @@ declare( strict_types=1 );
 namespace WP_AI_Mind\Admin;
 
 use WP_AI_Mind\Proxy\NJ_Site_Registration;
+use WP_AI_Mind\Tiers\NJ_Tier_Config;
 use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 
@@ -89,12 +90,7 @@ class NJ_Tier_Status_Page {
 		$tier  = NJ_Tier_Manager::get_user_tier();
 		$usage = NJ_Usage_Tracker::get_usage();
 
-		$tier_labels = [
-			'free'        => __( 'Free', 'wp-ai-mind' ),
-			'trial'       => __( 'Trial', 'wp-ai-mind' ),
-			'pro_managed' => __( 'Pro Managed', 'wp-ai-mind' ),
-			'pro_byok'    => __( 'Pro BYOK', 'wp-ai-mind' ),
-		];
+		$tier_labels = NJ_Tier_Config::get_tier_labels();
 		$tier_label  = $tier_labels[ $tier ] ?? ucwords( str_replace( '_', ' ', $tier ) );
 		$registered  = NJ_Site_Registration::is_registered();
 		?>

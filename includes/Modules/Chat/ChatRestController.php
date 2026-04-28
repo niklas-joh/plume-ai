@@ -231,7 +231,10 @@ class ChatRestController {
 	 *
 	 * @since 1.0.0
 	 * @param \WP_REST_Request $request Incoming REST request.
-	 * @return \WP_REST_Response
+	 * @return \WP_REST_Response 201 on success; 403 if the conversation is not owned by the caller;
+	 *                           429 with a `Retry-After` header (seconds until next month UTC) on
+	 *                           provider rate-limit; 502 when the provider returns 401/403; 500 on
+	 *                           other provider errors or iteration-limit breach.
 	 */
 	public function send_message( \WP_REST_Request $request ): \WP_REST_Response {
 		$conv_id        = (int) $request->get_param( 'id' );
@@ -383,7 +386,12 @@ class ChatRestController {
 			} else {
 				$status = $provider_status;
 			}
-			return new \WP_REST_Response( [ 'message' => $e->getMessage() ], $status );
+			$response = new \WP_REST_Response( [ 'message' => $e->getMessage() ], $status );
+			if ( 429 === $status ) {
+				$next_month = new \DateTimeImmutable( 'first day of next month midnight UTC' );
+				$response->header( 'Retry-After', (string) max( 0, $next_month->getTimestamp() - time() ) );
+			}
+			return $response;
 		}
 	}
 

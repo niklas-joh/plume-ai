@@ -22,6 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Free/Trial/Pro Managed users are routed through this class.
  * Pro BYOK tier bypasses this class entirely and routes via ClaudeProvider.
+ *
+ * @since 1.2.0
  */
 class NJ_Proxy_Client {
 

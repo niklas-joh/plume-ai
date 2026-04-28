@@ -61,4 +61,33 @@ describe( 'authenticateRequest', () => {
 		expect( result.site_token ).toBe( TEST_TOKEN );
 		expect( result.tier ).toBe( 'pro_managed' );
 	} );
+
+	it( 'returns tier: trial for a trial-registered site', async () => {
+		const env = await makeEnvWithSiteToken( 'trial' );
+		const result = await authenticateRequest(
+			makeRequest( { Authorization: `Bearer ${ TEST_TOKEN }` } ),
+			env
+		);
+		expect( result.authenticated ).toBe( true );
+		expect( result.tier ).toBe( 'trial' );
+	} );
+
+	it( 'returns tier: free for a free-tier site', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		const result = await authenticateRequest(
+			makeRequest( { Authorization: `Bearer ${ TEST_TOKEN }` } ),
+			env
+		);
+		expect( result.authenticated ).toBe( true );
+		expect( result.tier ).toBe( 'free' );
+	} );
+
+	it( 'returns authenticated: false when Bearer token is empty string', async () => {
+		const env = makeEnv();
+		const result = await authenticateRequest(
+			makeRequest( { Authorization: 'Bearer ' } ),
+			env
+		);
+		expect( result.authenticated ).toBe( false );
+	} );
 } );

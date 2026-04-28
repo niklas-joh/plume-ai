@@ -13,11 +13,11 @@ export interface Env {
 export type ProxyTier = 'free' | 'trial' | 'pro_managed';
 
 /** All possible tier values a site JWT may carry. */
-export type AnyTier = ProxyTier | 'pro_byok';
+export type SiteTier = ProxyTier | 'pro_byok';
 
 export interface SiteRecord {
 	site_url: string;
-	tier: AnyTier;
+	tier: SiteTier;
 	created_at: number;
 	ls_licence_key?: string;
 }

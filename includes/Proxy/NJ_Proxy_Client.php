@@ -90,7 +90,7 @@ class NJ_Proxy_Client {
 		if ( 401 === $code ) {
 			// Token may be stale — clear it so maybe_register() re-issues on next admin_init.
 			// Re-registration is async; the current request cannot be retried transparently.
-			// TODO(#326): inline register() + retry once to avoid user-visible auth errors.
+			// TODO #326: inline register() + retry once to avoid user-visible auth errors.
 			delete_option( NJ_Site_Registration::OPTION_TOKEN );
 			return new WP_Error( 'proxy_auth_failed', __( 'Proxy authentication failed. Please reload the page and try again.', 'wp-ai-mind' ) );
 		}

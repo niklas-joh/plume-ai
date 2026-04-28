@@ -55,6 +55,14 @@ async function handleChatProxy(
 		const { messages, model, max_tokens: maxTokens, system } = body;
 		const { site_token: siteToken, tier } = auth;
 
+		// BYOK sites call Anthropic directly via ClaudeProvider and must never reach here.
+		if ( tier === 'pro_byok' ) {
+			return jsonResponse(
+				{ error: 'BYOK tier must call Anthropic directly' },
+				403
+			);
+		}
+
 		const rateLimitCheck = await checkRateLimit( siteToken, tier, env );
 		if ( ! rateLimitCheck.allowed ) {
 			return jsonResponse(

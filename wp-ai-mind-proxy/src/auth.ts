@@ -1,11 +1,11 @@
 // src/auth.ts
 
-import { Env, SiteRecord, ProxyTier } from './types';
+import { Env, SiteRecord, AnyTier } from './types';
 
 export interface AuthResult {
 	authenticated: boolean;
 	site_token?: string;
-	tier?: ProxyTier;
+	tier?: AnyTier;
 	site_url?: string;
 }
 

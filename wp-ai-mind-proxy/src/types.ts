@@ -9,11 +9,15 @@ export interface Env {
 	// PROXY_SIGNATURE_SECRET intentionally removed — replaced by site token Bearer auth.
 }
 
+/** Tiers handled by this proxy (rate-limited and counted). */
 export type ProxyTier = 'free' | 'trial' | 'pro_managed';
+
+/** All possible tier values a site JWT may carry. */
+export type AnyTier = ProxyTier | 'pro_byok';
 
 export interface SiteRecord {
 	site_url: string;
-	tier: ProxyTier;
+	tier: AnyTier;
 	created_at: number;
 	ls_licence_key?: string;
 }

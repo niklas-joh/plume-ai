@@ -124,7 +124,10 @@ export default function ChatApp() {
 				console.error( 'Failed to delete conversation:', e );
 				setDeleteErrors( ( prev ) => ( {
 					...prev,
-					[ convId ]: __( 'Failed to delete. Please try again.', 'wp-ai-mind' ),
+					[ convId ]: __(
+						'Failed to delete. Please try again.',
+						'wp-ai-mind'
+					),
 				} ) );
 			}
 		} finally {

@@ -74,7 +74,10 @@ export default function ModelSelector( {
 						title={
 							isPro
 								? undefined
-								: __( 'Upgrade to Pro to select providers and models', 'wp-ai-mind' )
+								: __(
+										'Upgrade to Pro to select providers and models',
+										'wp-ai-mind'
+								  )
 						}
 					>
 						Advanced{ ' ' }

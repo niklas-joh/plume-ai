@@ -385,7 +385,7 @@ class ChatRestController {
 			}
 			$response = new \WP_REST_Response( [ 'message' => $e->getMessage() ], $status );
 			if ( 429 === $status ) {
-				$next_month = new \DateTime( 'first day of next month midnight' );
+				$next_month = new \DateTimeImmutable( 'first day of next month midnight UTC' );
 				$response->header( 'Retry-After', (string) max( 0, $next_month->getTimestamp() - time() ) );
 			}
 			return $response;

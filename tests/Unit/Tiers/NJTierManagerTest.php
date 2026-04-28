@@ -215,6 +215,47 @@ class NJTierManagerTest extends TestCase {
 		$this->addToAssertionCount( 1 );
 	}
 
+	/**
+	 * Verifies that the loop continues when a full batch contains a mix of expired and active
+	 * trials, and terminates once a subsequent batch is smaller than the batch size.
+	 *
+	 * @since 1.1.0
+	 */
+	public function test_maybe_demote_expired_trials_continues_while_partial_batch_demoted(): void {
+		$expired_start = time() - ( 31 * DAY_IN_SECONDS );
+		$active_start  = (string) time();
+
+		// First batch: 200 users — 100 expired, 100 active.
+		// Second batch: fewer than 200 users → loop terminates.
+		Functions\expect( 'get_users' )
+			->twice()
+			->andReturn( range( 1, 200 ), range( 201, 210 ) );
+
+		// Users 1–100 are expired; 101–200 are active.
+		// Second batch (201–210) are all expired.
+		Functions\expect( 'get_user_meta' )
+			->andReturnUsing(
+				function ( $uid, $key ) use ( $expired_start, $active_start ) {
+					if ( 'wp_ai_mind_tier' === $key ) {
+						return 'trial';
+					}
+					// Users 101–200 are still within their trial window.
+					if ( $uid >= 101 && $uid <= 200 ) {
+						return $active_start;
+					}
+					return (string) $expired_start;
+				}
+			);
+
+		// update_user_meta called once per expired user: 100 from batch 1 + 10 from batch 2.
+		Functions\expect( 'update_user_meta' )
+			->times( 110 )
+			->andReturn( true );
+
+		NJ_Tier_Manager::maybe_demote_expired_trials();
+		$this->addToAssertionCount( 1 ); // loop terminated without infinite loop
+	}
+
 	public function test_tier_config_has_four_tiers(): void {
 		$this->assertContains( 'free', NJ_Tier_Config::get_valid_tiers() );
 		$this->assertContains( 'trial', NJ_Tier_Config::get_valid_tiers() );

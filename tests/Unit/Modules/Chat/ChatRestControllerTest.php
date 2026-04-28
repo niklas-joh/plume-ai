@@ -353,6 +353,7 @@ class ChatRestControllerTest extends TestCase {
         $controller->register_routes();
 
         $this->assertContains( 'wp-ai-mind/v1/conversations', $registered );
+        $this->assertContains( 'wp-ai-mind/v1/conversations/(?P<id>\\d+)', $registered, 'PATCH /conversations/{id} route must be registered.' );
         $this->assertContains( 'wp-ai-mind/v1/conversations/(?P<id>\\d+)/messages', $registered );
         $this->assertContains( 'wp-ai-mind/v1/providers', $registered );
     }

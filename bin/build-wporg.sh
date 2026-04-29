@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 # bin/build-wporg.sh — produce a WP.org-ready zip of the plugin.
-# Usage: ./bin/build-wporg.sh [--version 1.2.3]
+# Usage: ./bin/build-wporg.sh [--version 1.2.3] [--skip-build]
+#   --skip-build  Skip npm and composer steps (use when CI has already run them).
 set -euo pipefail
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN_SLUG="wp-ai-mind"
-VERSION="${1:-}"
+VERSION=""
+SKIP_BUILD=false
 
-# Parse --version flag
 while [[ $# -gt 0 ]]; do
     case $1 in
         --version) VERSION="$2"; shift 2 ;;
+        --skip-build) SKIP_BUILD=true; shift ;;
         *) shift ;;
     esac
 done
@@ -30,13 +32,13 @@ echo "Building ${PLUGIN_SLUG} v${VERSION}..."
 rm -rf "${DIST_DIR}"
 mkdir -p "${BUILD_DIR}"
 
-# Run JS build
-echo "Running npm build..."
-cd "${PLUGIN_DIR}" && npm run build
+if [[ "$SKIP_BUILD" == "false" ]]; then
+    echo "Running npm build..."
+    cd "${PLUGIN_DIR}" && npm run build
 
-# Install production PHP dependencies
-echo "Installing PHP dependencies..."
-cd "${PLUGIN_DIR}" && composer install --no-dev --optimize-autoloader --no-interaction
+    echo "Installing PHP dependencies..."
+    cd "${PLUGIN_DIR}" && composer install --no-dev --optimize-autoloader --no-interaction
+fi
 
 # Copy only production files (allowlist — safe by default, new dev tooling never leaks in)
 rsync -a \

@@ -77,11 +77,32 @@ Semantic-release will cut a patch release automatically on merge.
 
 ## WP.org SVN submission
 
-Stable releases (non-pre-release) still require a manual SVN push to WordPress.org.
-Download the zip from the GitHub Release and submit via SVN as usual.
+Stable release deployment to WordPress.org is automated via `wporg-deploy.yml`.
+It fires automatically on every stable (non-pre-release) GitHub Release.
 
 Pre-release tags (`v0.3.0-beta.1`) publish a GitHub Release marked as pre-release
-and are not submitted to WP.org.
+and are **not** deployed to WordPress.org.
+
+### First-time setup
+
+The plugin must be approved on WordPress.org before automated deployment can work.
+Initial submission is manual: upload the ZIP from the GitHub Release via
+https://wordpress.org/plugins/developers/add/
+
+Once approved, add these two repository secrets (Settings → Secrets → Actions):
+
+| Secret | Value |
+|---|---|
+| `WPORG_USERNAME` | Your WordPress.org committer username |
+| `WPORG_PASSWORD` | A WordPress.org application password (generate at `profiles.wordpress.org/<user>/profile/applications/`) |
+
+After the secrets are configured, every subsequent stable release is deployed
+automatically — no manual SVN steps needed.
+
+### Manual deploy / testing
+
+You can trigger a deployment manually via the Actions tab:
+select **WordPress.org Deploy** → **Run workflow** → supply the release tag (e.g. `v1.3.3`).
 
 ---
 
@@ -91,6 +112,7 @@ and are not submitted to WP.org.
 |---|---|---|
 | `ci.yml` | PR to `main` | PHPCS, PHPUnit, JS lint, commitlint |
 | `release.yml` | Push to `main` | Full semantic-release pipeline |
+| `wporg-deploy.yml` | Stable release published | Deploy ZIP to WordPress.org SVN |
 | `claude-code-review.yml` | PR opened/updated | Automated code review |
 | `auto-fix-ci.yml` | CI failure | Auto-fix lint issues |
 | `auto-fix-review-issue.yml` | Issue labelled | Auto-fix code review issues |

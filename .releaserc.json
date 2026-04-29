@@ -24,7 +24,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "sed -i 's/ \\* Version:.*/ * Version:           ${nextRelease.version}/' wp-ai-mind.php && sed -i \"s/define( 'WP_AI_MIND_VERSION', '[^']*' )/define( 'WP_AI_MIND_VERSION', '${nextRelease.version}' )/\" wp-ai-mind.php && sed -i 's/^Stable tag:.*/Stable tag: ${nextRelease.version}/' readme.txt && mkdir -p dist && REPO_DIR=$(pwd) && PLUGIN_TMP=$(mktemp -d) && mkdir -p \"$PLUGIN_TMP/wp-ai-mind\" && cp wp-ai-mind.php uninstall.php readme.txt \"$PLUGIN_TMP/wp-ai-mind/\" && cp -r assets includes languages vendor \"$PLUGIN_TMP/wp-ai-mind/\" && (cd \"$PLUGIN_TMP\" && zip -r \"$REPO_DIR/dist/wp-ai-mind-${nextRelease.version}.zip\" wp-ai-mind/) && rm -rf \"$PLUGIN_TMP\""
+        "prepareCmd": "sed -i 's/ \\* Version:.*/ * Version:           ${nextRelease.version}/' wp-ai-mind.php && sed -i \"s/define( 'WP_AI_MIND_VERSION', '[^']*' )/define( 'WP_AI_MIND_VERSION', '${nextRelease.version}' )/\" wp-ai-mind.php && sed -i 's/^Stable tag:.*/Stable tag: ${nextRelease.version}/' readme.txt && ./bin/build-wporg.sh --version ${nextRelease.version} --skip-build"
       }
     ],
     [

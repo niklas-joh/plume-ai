@@ -165,7 +165,8 @@ export default function ChatApp() {
 		// Inline-created conversations always start with NEW_CONVERSATION_TITLE and need
 		// a PATCH after the assistant replies. The ref guard prevents a second PATCH if
 		// the user sends again before state settles.
-		const needsTitleUpdate = ! titlePatchedConvsRef.current.has( convId ) &&
+		const needsTitleUpdate =
+			! titlePatchedConvsRef.current.has( convId ) &&
 			( inlineCreated ||
 				conversations.find( ( c ) => c.id === convId )?.title ===
 					NEW_CONVERSATION_TITLE );

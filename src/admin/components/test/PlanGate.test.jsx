@@ -58,8 +58,12 @@ describe( 'PlanGate', () => {
 		} );
 
 		expect( container.querySelector( '.wpaim-plan-gate' ) ).toBeNull();
-		expect( container.querySelector( '.wpaim-plan-gate__overlay' ) ).toBeNull();
-		expect( container.querySelector( '[data-testid="child"]' ) ).not.toBeNull();
+		expect(
+			container.querySelector( '.wpaim-plan-gate__overlay' )
+		).toBeNull();
+		expect(
+			container.querySelector( '[data-testid="child"]' )
+		).not.toBeNull();
 	} );
 
 	it( 'wraps children in aria-hidden inert div when allowed is false', () => {

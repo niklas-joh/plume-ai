@@ -34,7 +34,11 @@ export default function PlanGate( {
 	return (
 		<div className="wpaim-plan-gate">
 			{ /* inert="" disables all keyboard/pointer/AT interaction in React 18. */ }
-			<div className="wpaim-plan-gate__content" aria-hidden="true" inert="">
+			<div
+				className="wpaim-plan-gate__content"
+				aria-hidden="true"
+				inert=""
+			>
 				{ children }
 			</div>
 			<div

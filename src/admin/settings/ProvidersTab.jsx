@@ -106,7 +106,9 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 
 			{ /* API key inputs */ }
 			<section className="wpaim-settings-section">
-				<h3 className="wpaim-settings-section-title">{ __( 'API Keys', 'wp-ai-mind' ) }</h3>
+				<h3 className="wpaim-settings-section-title">
+					{ __( 'API Keys', 'wp-ai-mind' ) }
+				</h3>
 
 				<PlanGate
 					allowed={ features.own_api_key }

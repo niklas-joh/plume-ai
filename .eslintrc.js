@@ -48,4 +48,23 @@ module.exports = {
 		// Allow nested prop paths (e.g. @param {string} props.message.role).
 		'jsdoc/check-param-names': 'off',
 	},
+	overrides: [
+		{
+			// Jest test files use globals (describe, it, expect, jest, etc.) and
+			// may import from react/react-dom directly. Both are provided at runtime
+			// by @wordpress/jest-preset-default but are not listed as direct deps.
+			files: [
+				'**/*.test.js',
+				'**/*.test.jsx',
+				'**/*.spec.js',
+				'**/*.spec.jsx',
+			],
+			env: { jest: true },
+			rules: {
+				'import/no-extraneous-dependencies': 'off',
+				// Test helpers are not public API and do not need JSDoc.
+				'jsdoc/require-jsdoc': 'off',
+			},
+		},
+	],
 };

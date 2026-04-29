@@ -1,6 +1,7 @@
 import { useState } from '@wordpress/element';
 import { SelectControl, TextControl, Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import PlanGate from '../components/PlanGate';
 
 const API_KEY_PROVIDERS = [
 	{ id: 'claude', label: 'Claude (Anthropic)' },
@@ -76,19 +77,11 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 					Default Providers
 				</h3>
 
-				{ ! features.model_selection && (
-					<p className="wpaim-upgrade-notice">
-						{ __(
-							'Model selection is available on the Pro plan.',
-							'wp-ai-mind'
-						) }{ ' ' }
-						<a href={ upgradeUrl }>
-							{ __( 'Upgrade →', 'wp-ai-mind' ) }
-						</a>
-					</p>
-				) }
-
-				<fieldset disabled={ ! features.model_selection }>
+				<PlanGate
+					allowed={ features.model_selection }
+					requiredPlan="Pro"
+					upgradeUrl={ upgradeUrl }
+				>
 					<SelectControl
 						label={ __( 'Default AI Provider', 'wp-ai-mind' ) }
 						options={ PROVIDER_OPTIONS }
@@ -108,61 +101,52 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 						}
 						__nextHasNoMarginBottom
 					/>
-				</fieldset>
+				</PlanGate>
 			</section>
 
 			{ /* API key inputs */ }
 			<section className="wpaim-settings-section">
 				<h3 className="wpaim-settings-section-title">API Keys</h3>
 
-				{ ! features.own_api_key && (
-					<p className="wpaim-upgrade-notice">
-						{ __(
-							'API key management is available on the Pro BYOK plan.',
-							'wp-ai-mind'
-						) }{ ' ' }
-						<a href={ upgradeUrl }>
-							{ __( 'Upgrade →', 'wp-ai-mind' ) }
-						</a>
-					</p>
-				) }
-
-				{ API_KEY_PROVIDERS.map( ( { id, label } ) => (
-					<div
-						key={ id }
-						className="wpaim-field-row wpaim-field-row--key"
-					>
-						<div className="wpaim-field-input-group">
-							<TextControl
-								label={ label }
-								type="password"
-								value={ dirty[ id ] ?? '' }
-								placeholder={
-									apiKeys[ id ]
-										? '••••••••••••'
-										: 'Enter API key…'
-								}
-								onChange={ ( val ) =>
-									handleKeyChange( id, val )
-								}
-								autoComplete="new-password"
-								__nextHasNoMarginBottom
-								disabled={ ! features.own_api_key }
-							/>
-							<Button
-								variant="primary"
-								disabled={
-									isSaving ||
-									dirty[ id ] === undefined ||
-									! features.own_api_key
-								}
-								onClick={ () => handleSaveKey( id ) }
-							>
-								{ isSaving ? 'Saving…' : 'Save' }
-							</Button>
+				<PlanGate
+					allowed={ features.own_api_key }
+					requiredPlan="Pro BYOK"
+					upgradeUrl={ upgradeUrl }
+				>
+					{ API_KEY_PROVIDERS.map( ( { id, label } ) => (
+						<div
+							key={ id }
+							className="wpaim-field-row wpaim-field-row--key"
+						>
+							<div className="wpaim-field-input-group">
+								<TextControl
+									label={ label }
+									type="password"
+									value={ dirty[ id ] ?? '' }
+									placeholder={
+										apiKeys[ id ]
+											? '••••••••••••'
+											: 'Enter API key…'
+									}
+									onChange={ ( val ) =>
+										handleKeyChange( id, val )
+									}
+									autoComplete="new-password"
+									__nextHasNoMarginBottom
+								/>
+								<Button
+									variant="primary"
+									disabled={
+										isSaving || dirty[ id ] === undefined
+									}
+									onClick={ () => handleSaveKey( id ) }
+								>
+									{ isSaving ? 'Saving…' : 'Save' }
+								</Button>
+							</div>
 						</div>
-					</div>
-				) ) }
+					) ) }
+				</PlanGate>
 			</section>
 
 			{ /* Ollama URL */ }

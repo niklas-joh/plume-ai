@@ -74,7 +74,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 			{ /* Default & image provider selects */ }
 			<section className="wpaim-settings-section">
 				<h3 className="wpaim-settings-section-title">
-					Default Providers
+					{ __( 'Default Providers', 'wp-ai-mind' ) }
 				</h3>
 
 				<PlanGate
@@ -106,7 +106,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 
 			{ /* API key inputs */ }
 			<section className="wpaim-settings-section">
-				<h3 className="wpaim-settings-section-title">API Keys</h3>
+				<h3 className="wpaim-settings-section-title">{ __( 'API Keys', 'wp-ai-mind' ) }</h3>
 
 				<PlanGate
 					allowed={ features.own_api_key }
@@ -152,7 +152,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 			{ /* Ollama URL */ }
 			<section className="wpaim-settings-section">
 				<h3 className="wpaim-settings-section-title">
-					Ollama (Self-hosted)
+					{ __( 'Ollama (Self-hosted)', 'wp-ai-mind' ) }
 				</h3>
 
 				<div className="wpaim-field-row wpaim-field-row--key">

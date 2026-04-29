@@ -490,6 +490,23 @@
 
 /* Shared base for any remaining raw <button> elements
    (attachment dismiss, etc.) */
+.wpaim-btn--primary {
+	font-size: 0.75rem;
+	font-weight: 500;
+	padding: var(--space-1) var(--space-3);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+	font-family: inherit;
+	border: 1px solid transparent;
+	background: var(--wp-admin-theme-color);
+	color: #fff;
+	transition: opacity 0.12s;
+}
+
+.wpaim-btn--primary:hover {
+	opacity: 0.85;
+}
+
 .wpaim-btn--ghost {
 	background: transparent;
 	color: var(--color-text-secondary);

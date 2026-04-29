@@ -50,7 +50,7 @@ export default function MiniChat( { postId } ) {
 			const res = await apiFetch( {
 				path: `/wp-ai-mind/v1/conversations/${ cid }/messages`,
 				method: 'POST',
-				data: { content: text },
+				data: { content: text, context_post_id: postId },
 			} );
 			setMessages( ( prev ) => [
 				...prev,

@@ -128,7 +128,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 									placeholder={
 										apiKeys[ id ]
 											? '••••••••••••'
-											: 'Enter API key…'
+											: __( 'Enter API key…', 'wp-ai-mind' )
 									}
 									onChange={ ( val ) =>
 										handleKeyChange( id, val )
@@ -143,7 +143,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 									}
 									onClick={ () => handleSaveKey( id ) }
 								>
-									{ isSaving ? 'Saving…' : 'Save' }
+									{ isSaving ? __( 'Saving…', 'wp-ai-mind' ) : __( 'Save', 'wp-ai-mind' ) }
 								</Button>
 							</div>
 						</div>
@@ -160,7 +160,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 				<div className="wpaim-field-row wpaim-field-row--key">
 					<div className="wpaim-field-input-group">
 						<TextControl
-							label="Ollama URL"
+							label={ __( 'Ollama URL', 'wp-ai-mind' ) }
 							type="url"
 							value={ dirty.ollama_url ?? '' }
 							placeholder={
@@ -176,7 +176,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 							}
 							onClick={ handleSaveUrl }
 						>
-							{ isSaving ? 'Saving…' : 'Save' }
+							{ isSaving ? __( 'Saving…', 'wp-ai-mind' ) : __( 'Save', 'wp-ai-mind' ) }
 						</Button>
 					</div>
 				</div>

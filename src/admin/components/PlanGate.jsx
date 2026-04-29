@@ -14,14 +14,19 @@ import { __ } from '@wordpress/i18n';
  * @param {string}       props.requiredPlan Human-readable plan name (e.g. 'Pro BYOK').
  * @param {string}       props.upgradeUrl   URL of the upgrade page.
  * @param {ReactElement} props.children     Section content to gate.
- * @returns {ReactElement}
+ * @return {ReactElement}
  *
  * @example
  * <PlanGate allowed={features.own_api_key} requiredPlan="Pro BYOK" upgradeUrl={upgradeUrl}>
  *   <ApiKeySection />
  * </PlanGate>
  */
-export default function PlanGate( { allowed, requiredPlan, upgradeUrl, children } ) {
+export default function PlanGate( {
+	allowed,
+	requiredPlan,
+	upgradeUrl,
+	children,
+} ) {
 	if ( allowed ) {
 		return children;
 	}

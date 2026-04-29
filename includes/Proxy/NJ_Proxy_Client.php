@@ -30,6 +30,11 @@ class NJ_Proxy_Client {
 	/**
 	 * Send a chat request through the Cloudflare proxy.
 	 *
+	 * On an HTTP 401 response the stored site token is deleted and the site is
+	 * re-registered inline; the request is then retried once with the new token.
+	 * If re-registration itself fails, the auth error is returned to the caller.
+	 *
+	 * @since 1.2.0
 	 * @param array<array{role: string, content: string}> $messages Chat message history.
 	 * @param array<string, mixed>                        $options  Supports 'model', 'max_tokens', 'system'.
 	 * @return array<string, mixed>|WP_Error
@@ -82,19 +87,34 @@ class NJ_Proxy_Client {
 			return $response;
 		}
 
-		$code = (int) wp_remote_retrieve_response_code( $response );
-		$body = json_decode( wp_remote_retrieve_body( $response ), true ) ?? [];
+		[ 'code' => $code, 'body' => $body ] = self::parse_response( $response );
 
 		if ( 429 === $code ) {
 			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'wp-ai-mind' ) );
 		}
 
 		if ( 401 === $code ) {
-			// Token may be stale — clear it so maybe_register() re-issues on next admin_init.
-			// Re-registration is async; the current request cannot be retried transparently.
-			// TODO #326: inline register() + retry once to avoid user-visible auth errors.
+			// Token is stale — re-register inline and retry the request once.
 			delete_option( NJ_Site_Registration::OPTION_TOKEN );
-			return new WP_Error( 'proxy_auth_failed', __( 'Proxy authentication failed. Please reload the page and try again.', 'wp-ai-mind' ) );
+			$new_token = NJ_Site_Registration::register();
+			if ( is_wp_error( $new_token ) ) {
+				return new WP_Error( 'proxy_auth_failed', __( 'Proxy authentication failed. Please reload the page and try again.', 'wp-ai-mind' ) );
+			}
+			$retry = wp_remote_post(
+				NJ_Tier_Config::get_proxy_url() . '/v1/chat',
+				[
+					'headers' => [
+						'Content-Type'  => 'application/json',
+						'Authorization' => 'Bearer ' . $new_token,
+					],
+					'body'    => $body_json,
+					'timeout' => 60,
+				]
+			);
+			if ( is_wp_error( $retry ) ) {
+				return $retry;
+			}
+			[ 'code' => $code, 'body' => $body ] = self::parse_response( $retry );
 		}
 
 		if ( $code < 200 || $code >= 300 ) {
@@ -108,5 +128,19 @@ class NJ_Proxy_Client {
 		}
 
 		return $body;
+	}
+
+	/**
+	 * Extract HTTP status code and decoded JSON body from a wp_remote_post() response.
+	 *
+	 * @since 1.3.6
+	 * @param array<string, mixed> $raw Raw response array from wp_remote_post().
+	 * @return array{code: int, body: array<string, mixed>}
+	 */
+	private static function parse_response( array $raw ): array {
+		return [
+			'code' => (int) wp_remote_retrieve_response_code( $raw ),
+			'body' => json_decode( wp_remote_retrieve_body( $raw ), true ) ?? [],
+		];
 	}
 }

@@ -24,9 +24,10 @@ class SeoModuleTest extends TestCase {
 
 	public function test_generate_for_post_returns_error_when_post_not_found(): void {
 		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 
-		$result = SeoModule::generate_for_post( 999 );
+		$result = SeoModule::generate_for_post( 999, 1 );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'not_found', $result->get_error_code() );
@@ -55,6 +56,7 @@ class SeoModuleTest extends TestCase {
 			}
 		);
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'sanitize_key' )->alias( fn( $v ) => $v );
 		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
@@ -68,7 +70,7 @@ class SeoModuleTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
 
 		putenv( 'CLAUDE_API_KEY=sk-ant-test' );
-		$result = SeoModule::generate_for_post( 1 );
+		$result = SeoModule::generate_for_post( 1, 1 );
 		putenv( 'CLAUDE_API_KEY=' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -98,6 +100,7 @@ class SeoModuleTest extends TestCase {
 			}
 		);
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'sanitize_key' )->alias( fn( $v ) => $v );
 		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
@@ -116,7 +119,7 @@ class SeoModuleTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
 
 		putenv( 'CLAUDE_API_KEY=sk-ant-test' );
-		$result = SeoModule::generate_for_post( 1 );
+		$result = SeoModule::generate_for_post( 1, 1 );
 		putenv( 'CLAUDE_API_KEY=' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -146,6 +149,7 @@ class SeoModuleTest extends TestCase {
 			}
 		);
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'sanitize_key' )->alias( fn( $v ) => $v );
 		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
@@ -170,7 +174,7 @@ class SeoModuleTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
 
 		putenv( 'CLAUDE_API_KEY=sk-ant-test' );
-		$result = SeoModule::generate_for_post( 1 );
+		$result = SeoModule::generate_for_post( 1, 1 );
 		putenv( 'CLAUDE_API_KEY=' );
 
 		$this->assertIsArray( $result );

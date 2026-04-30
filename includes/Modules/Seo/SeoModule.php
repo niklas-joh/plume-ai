@@ -159,6 +159,12 @@ class SeoModule {
 	 * Returns an associative array with keys meta_title, og_description, excerpt,
 	 * alt_text, and tokens_used. Returns WP_Error on provider or parsing failure.
 	 *
+	 * **Authorization:** This method does not perform any capability check.
+	 * Callers MUST verify that the acting user holds 'edit_post' permission for
+	 * $post_id before invoking it. The REST path enforces this via
+	 * handle_generate(); the chat path enforces it via ToolExecutor::generate_seo_meta().
+	 * Any future caller must supply its own guard.
+	 *
 	 * @since 1.0.0
 	 * @param int $post_id Post ID to generate metadata for.
 	 * @return array<string,mixed>|\WP_Error

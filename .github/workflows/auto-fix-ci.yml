@@ -10,7 +10,8 @@ jobs:
     name: Claude CI Auto-fix
     if: |
       github.event.workflow_run.conclusion == 'failure' &&
-      !startsWith(github.event.workflow_run.head_branch, 'claude-auto-fix-ci-')
+      github.event.workflow_run.head_branch != 'main' &&
+      !contains(github.event.workflow_run.head_commit.message, '[skip auto-fix]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -51,9 +52,24 @@ jobs:
             1. Run `gh run view ${{ steps.sanitize.outputs.id }} --log-failed --repo ${{ github.repository }}` to read the exact error output.
             2. Identify the root cause (PHPCS violation, PHPUnit failure, or JS/CSS lint error).
             3. Fix only the failing code — do not refactor unrelated areas.
-            4. Slugify the source branch name and commit your changes to a new branch named
-               `claude-auto-fix-ci-<slugified-branch>` (replace `/` with `-`, truncate to 50 chars).
-            5. Open a pull request against `${{ steps.sanitize.outputs.head_branch }}` with a clear description of what failed and what was changed.
+            4. Fetch and check out the original branch so you can push directly to it:
+               ```bash
+               git fetch origin "${{ steps.sanitize.outputs.head_branch }}"
+               git checkout "${{ steps.sanitize.outputs.head_branch }}"
+               ```
+            5. Commit the fix with a descriptive message that includes `[skip auto-fix]` in the
+               subject line to prevent this workflow from re-triggering if the commit itself
+               causes another CI run:
+               ```bash
+               git commit -m "fix(ci): <description> [skip auto-fix]"
+               ```
+               Then push directly to the original branch:
+               ```bash
+               git push origin "${{ steps.sanitize.outputs.head_branch }}"
+               ```
+               Do NOT create a new branch. Do NOT open a new pull request.
+               The fix must land on `${{ steps.sanitize.outputs.head_branch }}` itself so it
+               is immediately visible in the existing PR without any additional review step.
 
             Constraints:
             - PHP: follow WordPress Coding Standards (PHPCS ruleset in phpcs.xml.dist). Prefix functions with `nj_` or use `WP_AI_Mind\` namespace.

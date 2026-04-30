@@ -5,6 +5,13 @@
 
 * **dashboard:** fold usage widget into Dashboard, show percentage display ([#402](https://github.com/niklas-joh/wp-ai-mind/issues/402)) ([4dd9bab](https://github.com/niklas-joh/wp-ai-mind/commit/4dd9babcb239c5419b0097c1968003b455aa888c))
 
+# [1.4.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.3.6...v1.4.0) (2026-04-30)
+
+
+### Features
+
+* **dashboard:** fold usage widget into Dashboard, show percentage display ([#402](https://github.com/niklas-joh/wp-ai-mind/issues/402)) ([4dd9bab](https://github.com/niklas-joh/wp-ai-mind/commit/4dd9babcb239c5419b0097c1968003b455aa888c))
+
 ## [1.3.6](https://github.com/niklas-joh/wp-ai-mind/compare/v1.3.5...v1.3.6) (2026-04-30)
 
 

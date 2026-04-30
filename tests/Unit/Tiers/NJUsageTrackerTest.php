@@ -16,7 +16,7 @@ class NJUsageTrackerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		// Restore the bootstrap $wpdb stub so subsequent tests can call log_usage() safely.
+		// Restore a valid $wpdb baseline so log_usage() does not crash in later test classes.
 		global $wpdb;
 		$wpdb = WpdbStubFactory::create(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 		Monkey\tearDown();

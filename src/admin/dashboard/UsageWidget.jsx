@@ -50,7 +50,7 @@ export default function UsageWidget( { usage } ) {
 							: ' wpaim-usage-widget__value--limit-reached'
 					}` }
 				>
-					{ hasLimit ? usedPct + '%' : 'Unlimited' }
+					{ hasLimit ? usedPct + '%' : __( 'Unlimited', 'wp-ai-mind' ) }
 				</span>
 				{ hasLimit && (
 					<span className="wpaim-usage-widget__sub-label">
@@ -61,8 +61,12 @@ export default function UsageWidget( { usage } ) {
 
 			{ hasLimit && (
 				<div className="wpaim-usage-widget__token-count">
-					{ used.toLocaleString() } / { limit.toLocaleString() }{ ' ' }
-					tokens
+					{ sprintf(
+						/* translators: 1: used tokens, 2: limit tokens */
+						__( '%1$s / %2$s tokens', 'wp-ai-mind' ),
+						used.toLocaleString(),
+						limit.toLocaleString()
+					) }
 				</div>
 			) }
 

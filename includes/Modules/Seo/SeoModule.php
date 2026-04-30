@@ -173,14 +173,9 @@ class SeoModule {
 	 *
 	 * @since 1.0.0
 	 * @param int $post_id Post ID to generate metadata for.
-	 * @param int $user_id WordPress user ID requesting generation; checked against edit_post capability.
 	 * @return array<string,mixed>|\WP_Error
 	 */
-	public static function generate_for_post( int $post_id, int $user_id ): array|\WP_Error {
-		if ( ! \user_can( $user_id, 'edit_post', $post_id ) ) {
-			return new \WP_Error( 'forbidden', __( 'Forbidden.', 'wp-ai-mind' ) );
-		}
-
+	public static function generate_for_post( int $post_id ): array|\WP_Error {
 		$post = \get_post( $post_id );
 
 		if ( ! $post ) {

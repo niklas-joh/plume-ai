@@ -50,7 +50,9 @@ export default function UsageWidget( { usage } ) {
 							: ' wpaim-usage-widget__value--limit-reached'
 					}` }
 				>
-					{ hasLimit ? usedPct + '%' : __( 'Unlimited', 'wp-ai-mind' ) }
+					{ hasLimit
+						? usedPct + '%'
+						: __( 'Unlimited', 'wp-ai-mind' ) }
 				</span>
 				{ hasLimit && (
 					<span className="wpaim-usage-widget__sub-label">

@@ -47,6 +47,34 @@ jobs:
       - name: Build assets
         run: npm run build
 
+      - name: Reconcile orphaned version tags
+        # semantic-release determines the last release by finding the highest
+        # vX.Y.Z tag that is a git ancestor of HEAD. If the branch history ever
+        # diverges from the tagged history (e.g. after a force-push), those tags
+        # become unreachable from HEAD. semantic-release then falls back to an
+        # older tag, re-computes the same next version, and fails when it tries
+        # to create a tag that already exists — AFTER already pushing a release
+        # commit to main. This step detects any such orphaned tags and moves
+        # them to HEAD so semantic-release treats them as already released.
+        run: |
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          moved=""
+          for tag in $(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V); do
+            if ! git merge-base --is-ancestor "$tag" HEAD 2>/dev/null; then
+              echo "Orphaned tag $tag is not on this branch — moving to HEAD"
+              git tag -f "$tag" HEAD
+              git push -f origin "refs/tags/$tag"
+              moved="$moved $tag"
+            fi
+          done
+          if [ -n "$moved" ]; then
+            echo "::warning::Moved orphaned version tags to HEAD:$moved. Branch history likely diverged from tag history."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Release
         run: npx semantic-release
         env:

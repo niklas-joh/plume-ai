@@ -15,9 +15,14 @@ class NJUsageTrackerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		// Reset $wpdb mock between tests.
+		// Restore the bootstrap $wpdb stub so subsequent tests can call log_usage() safely.
 		global $wpdb;
-		$wpdb = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$wpdb = new class() { // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			public string $usermeta      = 'wp_usermeta';
+			public int    $rows_affected = 1;
+			public function prepare( string $sql, ...$args ): string { return $sql; }
+			public function query( string $sql ): int { return 1; }
+		};
 		Monkey\tearDown();
 		parent::tearDown();
 	}

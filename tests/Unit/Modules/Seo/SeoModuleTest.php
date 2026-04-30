@@ -78,6 +78,15 @@ class SeoModuleTest extends TestCase {
 	}
 
 	public function test_generate_for_post_returns_error_on_invalid_json_response(): void {
+		// Stub $wpdb so AbstractProvider::maybe_log() → log_usage() doesn't crash.
+		global $wpdb;
+		$wpdb = new class() { // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			public string $usermeta      = 'wp_usermeta';
+			public int    $rows_affected = 1;
+			public function prepare( string $sql, ...$args ): string { return $sql; }
+			public function query( string $sql ): int { return 1; }
+		};
+
 		$post               = new \stdClass();
 		$post->ID           = 1;
 		$post->post_title   = 'Test';
@@ -127,6 +136,15 @@ class SeoModuleTest extends TestCase {
 	}
 
 	public function test_generate_for_post_returns_sanitised_array_on_success(): void {
+		// Stub $wpdb so AbstractProvider::maybe_log() → log_usage() doesn't crash.
+		global $wpdb;
+		$wpdb = new class() { // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			public string $usermeta      = 'wp_usermeta';
+			public int    $rows_affected = 1;
+			public function prepare( string $sql, ...$args ): string { return $sql; }
+			public function query( string $sql ): int { return 1; }
+		};
+
 		$post               = new \stdClass();
 		$post->ID           = 1;
 		$post->post_title   = 'Great Post';

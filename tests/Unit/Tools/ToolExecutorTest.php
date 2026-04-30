@@ -191,6 +191,7 @@ class ToolExecutorTest extends TestCase {
 		Functions\when( 'get_user_meta' )->justReturn( 'free' );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'wp_strip_all_tags' )->alias( fn( $s ) => $s );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
 
 		$executor = $this->make_executor();
 		$result   = $executor->execute( 'generate_seo_meta', [ 'post_id' => 5 ], 1 );
@@ -211,6 +212,7 @@ class ToolExecutorTest extends TestCase {
 		Functions\when( 'get_post' )->justReturn( $post );
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
 		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
 		// Return 'pro_managed' for the tier key and a huge usage count for the month key.
 		Functions\when( 'get_user_meta' )->alias(

@@ -651,6 +651,123 @@ class ChatRestControllerTest extends TestCase {
         $this->assertStringContainsString( 'limit', $response->data['message'] );
     }
 
+    // ── context_post_id system-prompt injection ───────────────────────────────
+
+    /**
+     * @covers \WP_AI_Mind\Modules\Chat\ChatRestController::send_message
+     */
+    public function test_send_message_augments_system_prompt_with_post_title_when_authorised(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+        Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
+        Functions\when( 'esc_attr' )->alias( fn( $v ) => $v );
+
+        $post           = new \WP_Post();
+        $post->ID       = 5;
+        $post->post_title = 'My Test Post';
+        Functions\when( 'get_post' )->justReturn( $post );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [] );
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+
+        $captured_system = null;
+        $provider_mock   = $this->createMock( \WP_AI_Mind\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( false );
+        $provider_mock->method( 'complete' )->willReturnCallback(
+            function ( $req ) use ( &$captured_system ) {
+                $captured_system = $req->system;
+                return new CompletionResponse(
+                    content:           'done',
+                    model:             'claude',
+                    prompt_tokens:     1,
+                    completion_tokens: 1,
+                );
+            }
+        );
+
+        $factory_mock = $this->createMock( \WP_AI_Mind\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \WP_AI_Mind\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '10' ] );
+        $request->set_body_params( [ 'content' => 'Finish it', 'provider' => 'claude', 'model' => '', 'context_post_id' => '5' ] );
+
+        $controller->send_message( $request );
+
+        $this->assertNotNull( $captured_system );
+        $this->assertStringContainsString( 'My Test Post', $captured_system );
+        $this->assertStringContainsString( '5', $captured_system );
+    }
+
+    /**
+     * @covers \WP_AI_Mind\Modules\Chat\ChatRestController::send_message
+     */
+    public function test_send_message_does_not_augment_system_prompt_when_user_lacks_read_post(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+        Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
+
+        $post           = new \WP_Post();
+        $post->ID       = 5;
+        $post->post_title = 'Private Post';
+        Functions\when( 'get_post' )->justReturn( $post );
+        // User lacks read_post capability — prompt must not be augmented.
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [] );
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+
+        $captured_system = null;
+        $provider_mock   = $this->createMock( \WP_AI_Mind\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( false );
+        $provider_mock->method( 'complete' )->willReturnCallback(
+            function ( $req ) use ( &$captured_system ) {
+                $captured_system = $req->system;
+                return new CompletionResponse(
+                    content:           'done',
+                    model:             'claude',
+                    prompt_tokens:     1,
+                    completion_tokens: 1,
+                );
+            }
+        );
+
+        $factory_mock = $this->createMock( \WP_AI_Mind\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \WP_AI_Mind\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '10' ] );
+        $request->set_body_params( [ 'content' => 'Finish it', 'provider' => 'claude', 'model' => '', 'context_post_id' => '5' ] );
+
+        $controller->send_message( $request );
+
+        // System prompt must not contain post title — no privilege escalation.
+        $this->assertStringNotContainsString( 'Private Post', $captured_system ?? '' );
+    }
+
     private function make_controller(
         \WP_AI_Mind\DB\ConversationStore $store,
         \WP_AI_Mind\Providers\ProviderFactory $factory,

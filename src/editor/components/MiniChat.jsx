@@ -12,7 +12,7 @@ import MarkdownContent from '../../shared/MarkdownContent';
  * /conversations.
  *
  * @param {Object}      props
- * @param {number|null} props.postId  Current post ID from `core/editor`, passed to the conversation endpoint.
+ * @param {number|null} props.postId  Current post ID from `core/editor`; passed as `post_id` when creating a conversation and as `context_post_id` on every message to enable post-aware AI responses.
  * @return {ReactElement}
  */
 export default function MiniChat( { postId } ) {
@@ -50,7 +50,7 @@ export default function MiniChat( { postId } ) {
 			const res = await apiFetch( {
 				path: `/wp-ai-mind/v1/conversations/${ cid }/messages`,
 				method: 'POST',
-				data: { content: text, context_post_id: postId },
+				data: { content: text, context_post_id: postId ?? 0 },
 			} );
 			setMessages( ( prev ) => [
 				...prev,

@@ -165,6 +165,11 @@ class SeoModule {
 	 * handle_generate(); the chat path enforces it via ToolExecutor::generate_seo_meta().
 	 * Any future caller must supply its own guard.
 	 *
+	 * **Side effects:** On success this method fires a live AI provider request
+	 * and records token consumption via NJ_Usage_Tracker::log_usage(). Callers
+	 * are responsible for checking usage limits before invoking this method;
+	 * the token spend is not reversible if the result is discarded.
+	 *
 	 * @since 1.0.0
 	 * @param int $post_id Post ID to generate metadata for.
 	 * @return array<string,mixed>|\WP_Error

@@ -1,5 +1,6 @@
 import StatusBanner from './StatusBanner';
 import StartTiles from './StartTiles';
+import UsageWidget from './UsageWidget';
 import ResourceList from './ResourceList';
 import PageFooter from './PageFooter';
 import OnboardingPage from './OnboardingPage';
@@ -19,6 +20,7 @@ export default function DashboardApp() {
 	const {
 		bannerState = 'none',
 		onboardingSeen = true,
+		usage = null,
 		version = '',
 		nonce = '',
 		restUrl = '',
@@ -50,6 +52,7 @@ export default function DashboardApp() {
 
 			<div className="wpaim-dash-body">
 				<StartTiles urls={ urls } />
+				<UsageWidget usage={ usage } />
 				<ResourceList
 					resourceUrls={ resourceUrls }
 					version={ version }

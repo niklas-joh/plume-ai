@@ -48,10 +48,14 @@ export default function UsageDashboard() {
 		);
 	}
 
-	const { tier, used, limit, remaining, canUse: canUse } = data;
+	const { tier, used, limit, canUse: canUse } = data;
 
 	const hasLimit = limit !== null && limit !== undefined;
 	const usedPct = hasLimit ? Math.min( 100, ( used / limit ) * 100 ) : 0;
+	// Round once so both cards derive from the same value and always sum to 100.
+	const usedPctRounded = hasLimit
+		? Math.min( 100, Math.round( usedPct ) )
+		: 0;
 
 	return (
 		<div className="wpaim-usage">
@@ -82,9 +86,9 @@ export default function UsageDashboard() {
 						} }
 					/>
 					<div className="wpaim-usage__stat-value">
-						{ used.toLocaleString() }
+						{ hasLimit ? usedPctRounded + '%' : '∞' }
 					</div>
-					<div className="wpaim-usage__stat-label">Requests used</div>
+					<div className="wpaim-usage__stat-label">of quota used</div>
 				</div>
 				<div className="wpaim-usage__stat-card">
 					<BarChart2
@@ -95,9 +99,9 @@ export default function UsageDashboard() {
 						} }
 					/>
 					<div className="wpaim-usage__stat-value">
-						{ hasLimit ? remaining.toLocaleString() : '∞' }
+						{ hasLimit ? 100 - usedPctRounded + '%' : '∞' }
 					</div>
-					<div className="wpaim-usage__stat-label">Remaining</div>
+					<div className="wpaim-usage__stat-label">remaining</div>
 				</div>
 				<div className="wpaim-usage__stat-card">
 					<BarChart2

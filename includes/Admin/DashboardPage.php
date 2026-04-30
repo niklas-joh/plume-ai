@@ -10,6 +10,7 @@ namespace WP_AI_Mind\Admin;
 
 use WP_AI_Mind\Settings\ProviderSettings;
 use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 
 /**
  * Renders the WP AI Mind dashboard admin page.
@@ -107,6 +108,7 @@ class DashboardPage {
 			'bannerState'    => $banner_state,
 			'onboardingSeen' => (bool) get_option( 'wp_ai_mind_onboarding_seen', false ),
 			'isPro'          => $is_pro,
+			'usage'          => current_user_can( 'manage_options' ) ? NJ_Usage_Tracker::get_usage() : null,
 			'version'        => WP_AI_MIND_VERSION,
 			'nonce'          => wp_create_nonce( 'wp_rest' ),
 			'restUrl'        => esc_url_raw( rest_url( 'wp-ai-mind/v1' ) ),

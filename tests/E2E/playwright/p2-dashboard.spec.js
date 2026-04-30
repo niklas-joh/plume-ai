@@ -21,6 +21,13 @@ test.describe('P2 — Dashboard landing page', () => {
         await expect(page.locator('.wpaim-dash-footer')).toBeVisible();
     });
 
+    test('usage widget is visible for administrator', async ({ page }) => {
+        await page.goto('/wp-admin/admin.php?page=wp-ai-mind');
+        await page.waitForSelector('.wpaim-dash-title', { timeout: 10000 });
+        // Widget is rendered only when PHP localises usage data for manage_options users.
+        await expect(page.locator('.wpaim-usage-widget')).toBeVisible();
+    });
+
     test('Chat sub-menu navigates to Chat page', async ({ page }) => {
         await page.goto('/wp-admin/admin.php?page=wp-ai-mind');
         await page.click('text=Chat');

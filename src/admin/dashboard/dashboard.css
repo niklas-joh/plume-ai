@@ -758,8 +758,8 @@
 /* ── Usage widget ──────────────────────────────────────────────────────────── */
 
 .wpaim-usage-widget {
-	background: #f8f9fa;
-	border: 1px solid #e0e1e6;
+	background: var(--color-surface);
+	border: 1px solid var(--color-border-subtle);
 	border-radius: var(--radius);
 	padding: var(--space-4);
 }
@@ -775,8 +775,8 @@
 	font-size: 0.625rem;
 	padding: 2px 6px;
 	border-radius: 3px;
-	background: #e0e1e6;
-	color: #787c82;
+	background: var(--color-border-subtle);
+	color: var(--color-text-muted);
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;

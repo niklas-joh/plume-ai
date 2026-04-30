@@ -17,6 +17,9 @@ class SeoModuleTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		// Restore a valid $wpdb baseline so log_usage() does not crash in later test classes.
+		global $wpdb;
+		$wpdb = WpdbStubFactory::create(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional test stub.
 		Monkey\tearDown();
 		parent::tearDown();
 	}

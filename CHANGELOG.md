@@ -1,3 +1,10 @@
+## [1.3.6](https://github.com/niklas-joh/wp-ai-mind/compare/v1.3.5...v1.3.6) (2026-04-30)
+
+
+### Bug Fixes
+
+* **editor:** pass context_post_id when sending messages from MiniChat ([#365](https://github.com/niklas-joh/wp-ai-mind/issues/365)) ([1cdea17](https://github.com/niklas-joh/wp-ai-mind/commit/1cdea17170366e96a2567c146bfa0aad2ea5be1b))
+
 ## [1.3.5](https://github.com/niklas-joh/wp-ai-mind/compare/v1.3.4...v1.3.5) (2026-04-29)
 
 

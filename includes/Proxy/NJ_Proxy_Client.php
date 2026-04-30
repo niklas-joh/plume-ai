@@ -115,6 +115,9 @@ class NJ_Proxy_Client {
 				return $retry;
 			}
 			[ 'code' => $code, 'body' => $body ] = self::parse_response( $retry );
+			if ( 429 === $code ) {
+				return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'wp-ai-mind' ) );
+			}
 		}
 
 		if ( $code < 200 || $code >= 300 ) {

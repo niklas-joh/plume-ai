@@ -144,6 +144,163 @@ class NJProxyClientTest extends TestCase {
 		$this->assertArrayHasKey( 'content', $result );
 	}
 
+	/**
+	 * @covers \WP_AI_Mind\Proxy\NJ_Proxy_Client::chat
+	 */
+	public function test_chat_returns_rate_limit_error_when_retry_returns_429(): void {
+		Functions\expect( 'get_option' )
+			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->andReturn( 'stale-token' );
+		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
+		Functions\when( 'get_user_meta' )->alias(
+			function ( $user_id, $key ) {
+				if ( 'wp_ai_mind_tier' === $key ) {
+					return 'free';
+				}
+				return 0;
+			}
+		);
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_remote_post' )->justReturn( [] );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+
+		// Sequence: initial chat → 401, register → 201, retry chat → 429.
+		$codes = [ 401, 201, 429 ];
+		$idx   = 0;
+		Functions\when( 'wp_remote_retrieve_response_code' )->alias(
+			function () use ( &$codes, &$idx ) {
+				return $codes[ $idx++ ] ?? 200;
+			}
+		);
+
+		$bodies = [ '{}', json_encode( [ 'token' => 'new-token' ] ), '{}' ];
+		$bidx   = 0;
+		Functions\when( 'wp_remote_retrieve_body' )->alias(
+			function () use ( &$bodies, &$bidx ) {
+				return $bodies[ $bidx++ ] ?? '{}';
+			}
+		);
+
+		Functions\expect( 'delete_option' )->once()->with( NJ_Site_Registration::OPTION_TOKEN );
+		Functions\expect( 'update_option' )->once()->with( NJ_Site_Registration::OPTION_TOKEN, 'new-token' );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$result = NJ_Proxy_Client::chat( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
+	}
+
+	/**
+	 * @covers \WP_AI_Mind\Proxy\NJ_Proxy_Client::chat
+	 */
+	public function test_chat_returns_proxy_error_when_retry_returns_500(): void {
+		Functions\expect( 'get_option' )
+			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->andReturn( 'stale-token' );
+		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
+		Functions\when( 'get_user_meta' )->alias(
+			function ( $user_id, $key ) {
+				if ( 'wp_ai_mind_tier' === $key ) {
+					return 'free';
+				}
+				return 0;
+			}
+		);
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_remote_post' )->justReturn( [] );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+
+		// Sequence: initial chat → 401, register → 201, retry chat → 500.
+		$codes = [ 401, 201, 500 ];
+		$idx   = 0;
+		Functions\when( 'wp_remote_retrieve_response_code' )->alias(
+			function () use ( &$codes, &$idx ) {
+				return $codes[ $idx++ ] ?? 200;
+			}
+		);
+
+		$bodies = [ '{}', json_encode( [ 'token' => 'new-token' ] ), json_encode( [ 'error' => 'Internal Server Error' ] ) ];
+		$bidx   = 0;
+		Functions\when( 'wp_remote_retrieve_body' )->alias(
+			function () use ( &$bodies, &$bidx ) {
+				return $bodies[ $bidx++ ] ?? '{}';
+			}
+		);
+
+		Functions\expect( 'delete_option' )->once()->with( NJ_Site_Registration::OPTION_TOKEN );
+		Functions\expect( 'update_option' )->once()->with( NJ_Site_Registration::OPTION_TOKEN, 'new-token' );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$result = NJ_Proxy_Client::chat( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'proxy_error', $result->get_error_code() );
+	}
+
+	/**
+	 * @covers \WP_AI_Mind\Proxy\NJ_Proxy_Client::chat
+	 */
+	public function test_chat_propagates_wp_error_when_retry_network_fails(): void {
+		Functions\expect( 'get_option' )
+			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->andReturn( 'stale-token' );
+		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
+		Functions\when( 'get_user_meta' )->alias(
+			function ( $user_id, $key ) {
+				if ( 'wp_ai_mind_tier' === $key ) {
+					return 'free';
+				}
+				return 0;
+			}
+		);
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+
+		$network_error = new \WP_Error( 'http_request_failed', 'Connection timed out.' );
+
+		// Sequence: initial chat → 401, register → 201, retry chat → WP_Error.
+		$calls = 0;
+		Functions\when( 'wp_remote_post' )->alias(
+			function () use ( &$calls, $network_error ) {
+				++$calls;
+				// Third wp_remote_post call is the retry; return a network error.
+				return $calls >= 3 ? $network_error : [];
+			}
+		);
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+
+		$codes = [ 401, 201 ];
+		$idx   = 0;
+		Functions\when( 'wp_remote_retrieve_response_code' )->alias(
+			function () use ( &$codes, &$idx ) {
+				return $codes[ $idx++ ] ?? 200;
+			}
+		);
+
+		$bodies = [ '{}', json_encode( [ 'token' => 'new-token' ] ) ];
+		$bidx   = 0;
+		Functions\when( 'wp_remote_retrieve_body' )->alias(
+			function () use ( &$bodies, &$bidx ) {
+				return $bodies[ $bidx++ ] ?? '{}';
+			}
+		);
+
+		Functions\expect( 'delete_option' )->once()->with( NJ_Site_Registration::OPTION_TOKEN );
+		Functions\expect( 'update_option' )->once()->with( NJ_Site_Registration::OPTION_TOKEN, 'new-token' );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$result = NJ_Proxy_Client::chat( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'http_request_failed', $result->get_error_code() );
+	}
+
 	public function test_chat_returns_rate_limit_error_on_429(): void {
 		Functions\expect( 'get_option' )
 			->with( NJ_Site_Registration::OPTION_TOKEN, '' )

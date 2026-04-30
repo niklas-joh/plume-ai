@@ -100,11 +100,6 @@ if ( ! function_exists( 'rest_ensure_response' ) ) {
 // that don't set up their own $wpdb mock (e.g. provider tests).
 global $wpdb;
 if ( null === $wpdb ) {
-	$wpdb               = new class() {
-		public string $usermeta      = 'wp_usermeta';
-		public int    $rows_affected = 1;
-		public function prepare( string $sql, ...$args ): string { return $sql; }
-		public function query( string $sql ): int { return 1; }
-	};
+	$wpdb = \WP_AI_Mind\Tests\Helpers\WpdbStubFactory::create();
 }
 

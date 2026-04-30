@@ -6,6 +6,7 @@ namespace WP_AI_Mind\Tests\Unit\Modules\Seo;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use WP_AI_Mind\Modules\Seo\SeoModule;
+use WP_AI_Mind\Tests\Helpers\WpdbStubFactory;
 use PHPUnit\Framework\TestCase;
 
 class SeoModuleTest extends TestCase {
@@ -78,14 +79,9 @@ class SeoModuleTest extends TestCase {
 	}
 
 	public function test_generate_for_post_returns_error_on_invalid_json_response(): void {
-		// Stub $wpdb so AbstractProvider::maybe_log() → log_usage() doesn't crash.
+		// Stub $wpdb so AbstractProvider::maybe_log() -> log_usage() doesn't crash.
 		global $wpdb;
-		$wpdb = new class() { // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			public string $usermeta      = 'wp_usermeta';
-			public int    $rows_affected = 1;
-			public function prepare( string $sql, ...$args ): string { return $sql; }
-			public function query( string $sql ): int { return 1; }
-		};
+		$wpdb = WpdbStubFactory::create(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional test stub.
 
 		$post               = new \stdClass();
 		$post->ID           = 1;
@@ -136,14 +132,9 @@ class SeoModuleTest extends TestCase {
 	}
 
 	public function test_generate_for_post_returns_sanitised_array_on_success(): void {
-		// Stub $wpdb so AbstractProvider::maybe_log() → log_usage() doesn't crash.
+		// Stub $wpdb so AbstractProvider::maybe_log() -> log_usage() doesn't crash.
 		global $wpdb;
-		$wpdb = new class() { // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			public string $usermeta      = 'wp_usermeta';
-			public int    $rows_affected = 1;
-			public function prepare( string $sql, ...$args ): string { return $sql; }
-			public function query( string $sql ): int { return 1; }
-		};
+		$wpdb = WpdbStubFactory::create(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional test stub.
 
 		$post               = new \stdClass();
 		$post->ID           = 1;

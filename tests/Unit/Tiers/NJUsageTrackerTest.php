@@ -5,6 +5,7 @@ namespace WP_AI_Mind\Tests\Unit\Tiers;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
+use WP_AI_Mind\Tests\Helpers\WpdbStubFactory;
 use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 
 class NJUsageTrackerTest extends TestCase {
@@ -17,12 +18,7 @@ class NJUsageTrackerTest extends TestCase {
 	protected function tearDown(): void {
 		// Restore the bootstrap $wpdb stub so subsequent tests can call log_usage() safely.
 		global $wpdb;
-		$wpdb = new class() { // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			public string $usermeta      = 'wp_usermeta';
-			public int    $rows_affected = 1;
-			public function prepare( string $sql, ...$args ): string { return $sql; }
-			public function query( string $sql ): int { return 1; }
-		};
+		$wpdb = WpdbStubFactory::create(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 		Monkey\tearDown();
 		parent::tearDown();
 	}

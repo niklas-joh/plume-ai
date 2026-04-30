@@ -132,6 +132,107 @@ class ToolExecutorTest extends TestCase {
 	}
 
 	// -------------------------------------------------------------------------
+	// generate_seo_meta
+	// -------------------------------------------------------------------------
+
+	public function test_generate_seo_meta_returns_error_for_invalid_post_id(): void {
+		Functions\when( 'absint' )->justReturn( 0 );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute( 'generate_seo_meta', [ 'post_id' => 0 ], 1 );
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertStringContainsString( 'post_id', $result['error'] );
+	}
+
+	public function test_generate_seo_meta_returns_error_when_post_not_found(): void {
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute( 'generate_seo_meta', [ 'post_id' => 5 ], 1 );
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertStringContainsString( 'not found', strtolower( $result['error'] ) );
+	}
+
+	public function test_generate_seo_meta_returns_error_without_edit_post_cap(): void {
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+
+		$post               = new \stdClass();
+		$post->ID           = 5;
+		$post->post_title   = 'Test Post';
+		$post->post_content = 'Content';
+
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\when( 'user_can' )->justReturn( false );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute( 'generate_seo_meta', [ 'post_id' => 5 ], 1 );
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertStringContainsString( 'permissions', strtolower( $result['error'] ) );
+	}
+
+	public function test_generate_seo_meta_returns_post_snippet_for_free_tier(): void {
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+
+		$post               = new \stdClass();
+		$post->ID           = 5;
+		$post->post_title   = 'Great Post';
+		$post->post_content = 'The post body content here.';
+
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\when( 'user_can' )->justReturn( true );
+		// Return 'free' tier → NJ_Tier_Manager::user_can('seo') = false.
+		Functions\when( 'get_user_meta' )->justReturn( 'free' );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'wp_strip_all_tags' )->alias( fn( $s ) => $s );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute( 'generate_seo_meta', [ 'post_id' => 5 ], 1 );
+
+		$this->assertArrayHasKey( 'seo_access', $result );
+		$this->assertFalse( $result['seo_access'] );
+		$this->assertArrayHasKey( 'post_content_snippet', $result );
+	}
+
+	public function test_generate_seo_meta_returns_error_when_usage_limit_exceeded(): void {
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+
+		$post               = new \stdClass();
+		$post->ID           = 5;
+		$post->post_title   = 'Great Post';
+		$post->post_content = 'The post body content here.';
+
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		// Return 'pro_managed' for the tier key and a huge usage count for the month key.
+		Functions\when( 'get_user_meta' )->alias(
+			function ( int $user_id, string $key, bool $single ) use ( $month_key ): mixed {
+				if ( 'wp_ai_mind_tier' === $key ) {
+					return 'pro_managed';
+				}
+				if ( $month_key === $key ) {
+					return '3000000'; // Exceeds the 2 000 000 pro_managed limit.
+				}
+				return '';
+			}
+		);
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute( 'generate_seo_meta', [ 'post_id' => 5 ], 1 );
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertStringContainsString( 'limit', strtolower( $result['error'] ) );
+	}
+
+	// -------------------------------------------------------------------------
 	// update_post
 	// -------------------------------------------------------------------------
 

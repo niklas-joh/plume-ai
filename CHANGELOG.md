@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.4.1...v1.5.0) (2026-04-30)
+
+
+### Features
+
+* **chat:** add generate_seo_meta tool for chat SEO optimisation ([#407](https://github.com/niklas-joh/wp-ai-mind/issues/407)) ([2b2df4d](https://github.com/niklas-joh/wp-ai-mind/commit/2b2df4d2e396b5244a84dec3498ebcc93cf4c342))
+
 # [1.4.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.3.6...v1.4.0) (2026-04-30)
 
 

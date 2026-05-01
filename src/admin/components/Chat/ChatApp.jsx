@@ -157,7 +157,7 @@ export default function ChatApp() {
 		}
 	}
 
-	async function sendMessage( content ) {
+	async function sendMessage( content, contextPostId = null ) {
 		// Resolve conversation ID — create one if none active.
 		let convId = activeConvId;
 		// Track whether an inline conversation was just created so needsTitleUpdate is set correctly.
@@ -197,7 +197,7 @@ export default function ChatApp() {
 					content,
 					provider: selectedProvider,
 					model: selectedModel,
-					context_post_id: attachedPost?.id ?? 0,
+					context_post_id: contextPostId ?? attachedPost?.id ?? 0,
 				},
 			} );
 			setMessages( ( prev ) => [
@@ -256,7 +256,7 @@ export default function ChatApp() {
 		if ( pendingQuickAction ) {
 			const toSend = pendingQuickAction;
 			setPendingQuickAction( null );
-			sendMessage( toSend );
+			sendMessage( toSend, post.id );
 		}
 	}
 

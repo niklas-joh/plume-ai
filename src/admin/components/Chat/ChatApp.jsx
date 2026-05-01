@@ -41,7 +41,9 @@ export default function ChatApp() {
 	const [ selectedProvider, setSelectedProvider ] = useState( '' );
 	const [ selectedModel, setSelectedModel ] = useState( '' );
 	const [ providers, setProviders ] = useState( [] );
-	const [ isSidebarCollapsed, setIsSidebarCollapsed ] = useState( false );
+	const [ isSidebarCollapsed, setIsSidebarCollapsed ] = useState(
+		() => localStorage.getItem( 'wpaim-sidebar-collapsed' ) === '1'
+	);
 	const [ attachedPost, setAttachedPost ] = useState( null );
 	const [ deletingIds, setDeletingIds ] = useState( new Set() );
 	const [ deleteErrors, setDeleteErrors ] = useState( {} );
@@ -276,7 +278,14 @@ export default function ChatApp() {
 					<button
 						className="wpaim-btn wpaim-btn--ghost wpaim-btn--icon wpaim-sidebar__toggle"
 						onClick={ () =>
-							setIsSidebarCollapsed( ( prev ) => ! prev )
+							setIsSidebarCollapsed( ( prev ) => {
+								const next = ! prev;
+								localStorage.setItem(
+									'wpaim-sidebar-collapsed',
+									next ? '1' : '0'
+								);
+								return next;
+							} )
 						}
 						title={
 							isSidebarCollapsed

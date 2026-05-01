@@ -1,5 +1,19 @@
 @import "../styles/tokens.css";
 
+/* ── WP admin viewport fix ──
+   WordPress wraps admin page callbacks in #wpbody-content (padding-bottom: 65px)
+   and #wpbody. Without these overrides the shell overflows the viewport and
+   creates a vertical scrollbar. The 32px subtraction accounts for #wpadminbar. */
+.toplevel_page_wp-ai-mind #wpbody {
+	height: calc(100vh - 32px);
+	overflow: hidden;
+}
+
+.toplevel_page_wp-ai-mind #wpbody-content {
+	padding-bottom: 0;
+	overflow: hidden;
+}
+
 /* ── Shell layout ── */
 .wpaim-shell {
 	display: grid;

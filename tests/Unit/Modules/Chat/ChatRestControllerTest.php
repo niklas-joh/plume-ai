@@ -709,6 +709,8 @@ class ChatRestControllerTest extends TestCase {
         $this->assertNotNull( $captured_system );
         $this->assertStringContainsString( 'My Test Post', $captured_system );
         $this->assertStringContainsString( '5', $captured_system );
+        $this->assertStringContainsString( 'MUST call get_post_content', $captured_system );
+        $this->assertStringContainsString( 'post_id=5', $captured_system );
     }
 
     /**

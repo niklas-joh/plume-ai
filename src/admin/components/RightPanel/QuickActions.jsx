@@ -15,7 +15,12 @@ import { FREE_ACTIONS, PRO_ACTIONS } from '../Chat/actions';
  * @param {Function}    props.onRequestAttach Called with the pending prompt when a post is required but missing.
  * @return {ReactElement}
  */
-export default function QuickActions( { onAction, isPro, attachedPost, onRequestAttach } ) {
+export default function QuickActions( {
+	onAction,
+	isPro,
+	attachedPost,
+	onRequestAttach,
+} ) {
 	const actions = isPro ? [ ...FREE_ACTIONS, ...PRO_ACTIONS ] : FREE_ACTIONS;
 
 	function handleClick( action ) {

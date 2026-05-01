@@ -160,11 +160,11 @@ class SeoModule {
 	 * alt_text, and tokens_used. Returns WP_Error on provider or parsing failure.
 	 * Token usage is NOT logged here — callers must call NJ_Usage_Tracker::log_usage() after a successful return.
 	 *
-	 * **Authorization:** This method does not perform any capability check.
-	 * Callers MUST verify that the acting user holds 'edit_post' permission for
-	 * $post_id before invoking it. The REST path enforces this via
-	 * handle_generate(); the chat path enforces it via ToolExecutor::generate_seo_meta().
-	 * Any future caller must supply its own guard.
+	 * **Authorization:** This method performs a post-level capability check.
+	 * It verifies that $user_id holds 'edit_post' for $post_id and returns a
+	 * 'forbidden' WP_Error if not. Both direct callers (handle_generate, ToolExecutor)
+	 * also enforce this upstream as defence-in-depth; any future caller should
+	 * do the same.
 	 *
 	 * **Side effects:** On success this method fires a live AI provider request
 	 * and records token consumption via NJ_Usage_Tracker::log_usage(). Callers

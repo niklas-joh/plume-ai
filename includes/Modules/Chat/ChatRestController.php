@@ -287,7 +287,7 @@ class ChatRestController {
 			if ( $context_post instanceof \WP_Post && \current_user_can( 'read_post', $context_post_id ) ) {
 				$system .= "\n\nCurrent context: You are working on a WordPress post titled '"
 					. esc_attr( $context_post->post_title )
-					. "' (ID: {$context_post_id}). Use the get_post_content tool with ID {$context_post_id} to read its full content when needed.";
+					. "' (ID: {$context_post_id}). You MUST call get_post_content with post_id={$context_post_id} to retrieve the full content before answering any question about this post\'s body, text, or details beyond its title.";
 			}
 		}
 

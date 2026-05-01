@@ -48,6 +48,7 @@ export default function ConversationHistory( {
 						className="wpaim-conv-item__body"
 						onClick={ () => onSelect( conv.id ) }
 						type="button"
+						title={ conv.title || 'Untitled' }
 					>
 						<span className="wpaim-conv-item__title">
 							{ conv.title || 'Untitled' }

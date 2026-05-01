@@ -260,11 +260,15 @@ export default function ChatApp() {
 		}
 	}
 
+	function guardedQuickAction( prompt ) {
+		setPendingQuickAction( prompt );
+		setForcePickerOpen( true );
+	}
+
 	// Called by suggestion chips (prompt, requiresPost).
 	function handleQuickAction( prompt, requiresPost = false ) {
 		if ( requiresPost && ! attachedPost ) {
-			setPendingQuickAction( prompt );
-			setForcePickerOpen( true );
+			guardedQuickAction( prompt );
 			return;
 		}
 		sendMessage( prompt );
@@ -272,8 +276,7 @@ export default function ChatApp() {
 
 	// Called by QuickActions when a post-required action fires but no post is attached.
 	function requestPostAttach( prompt ) {
-		setPendingQuickAction( prompt );
-		setForcePickerOpen( true );
+		guardedQuickAction( prompt );
 	}
 
 	function handlePickerClose() {

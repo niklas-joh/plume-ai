@@ -251,6 +251,10 @@ export default function ChatApp() {
 		}
 	}
 
+	const toggleLabel = isSidebarCollapsed
+		? __( 'Expand sidebar', 'wp-ai-mind' )
+		: __( 'Collapse sidebar', 'wp-ai-mind' );
+
 	return (
 		<div
 			className={ `wpaim-shell${
@@ -287,16 +291,8 @@ export default function ChatApp() {
 								return next;
 							} )
 						}
-						title={
-							isSidebarCollapsed
-								? __( 'Expand sidebar', 'wp-ai-mind' )
-								: __( 'Collapse sidebar', 'wp-ai-mind' )
-						}
-						aria-label={
-							isSidebarCollapsed
-								? __( 'Expand sidebar', 'wp-ai-mind' )
-								: __( 'Collapse sidebar', 'wp-ai-mind' )
-						}
+						title={ toggleLabel }
+						aria-label={ toggleLabel }
 						aria-expanded={ ! isSidebarCollapsed }
 						type="button"
 					>

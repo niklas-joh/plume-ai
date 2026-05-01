@@ -1,5 +1,10 @@
 @import "../styles/tokens.css";
 
+:root {
+	--wpaim-sidebar-width: 220px;
+	--wpaim-sidebar-collapsed-width: 40px;
+}
+
 /* ── WP admin viewport fix ──
    WordPress wraps admin page callbacks in #wpbody-content (padding-bottom: 65px)
    and #wpbody. Without these overrides the shell overflows the viewport and
@@ -19,7 +24,7 @@
 /* ── Shell layout ── */
 .wpaim-shell {
 	display: grid;
-	grid-template-columns: 220px 1fr 240px;
+	grid-template-columns: var(--wpaim-sidebar-width) 1fr 240px;
 	height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
 	background: #fff;
 	color: #1d2327;
@@ -30,7 +35,7 @@
 }
 
 .wpaim-shell--sidebar-collapsed {
-	grid-template-columns: 40px 1fr 240px;
+	grid-template-columns: var(--wpaim-sidebar-collapsed-width) 1fr 240px;
 }
 
 /* ── Sidebar ── */
@@ -48,10 +53,6 @@
 	align-items: center;
 	justify-content: center;
 	color: var(--color-text-muted);
-}
-
-.wpaim-sidebar__toggle:hover {
-	color: var(--color-text-primary);
 }
 
 .wpaim-sidebar__header {

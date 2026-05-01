@@ -7,23 +7,14 @@ import Composer from './Composer';
 import QuickActions from '../RightPanel/QuickActions';
 import ModelSelector from '../RightPanel/ModelSelector';
 import apiFetch from '@wordpress/api-fetch';
+import { LAUNCH_ACTIONS } from './actions';
 
 const NEW_CONVERSATION_TITLE = __( 'New conversation', 'wp-ai-mind' );
 
-const LAUNCH_SUGGESTIONS = [
-	{
-		label: __( 'Summarise this post', 'wp-ai-mind' ),
-		prompt: 'Please summarise the current post in 2-3 sentences.',
-	},
-	{
-		label: __( 'Improve readability', 'wp-ai-mind' ),
-		prompt: 'Review this content and suggest readability improvements.',
-	},
-	{
-		label: __( 'Write a post', 'wp-ai-mind' ),
-		prompt: 'Help me write a new blog post. What topic should we start with?',
-	},
-];
+const LAUNCH_SUGGESTIONS = LAUNCH_ACTIONS.map( ( a ) => ( {
+	...a,
+	label: __( a.label, 'wp-ai-mind' ),
+} ) );
 
 /**
  * Root chat application: conversation list, message thread, and composer.

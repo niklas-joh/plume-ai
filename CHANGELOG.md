@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.5.0...v1.6.0) (2026-05-01)
+
+
+### Features
+
+* **chat:** centre input and add suggestion chips on launch ([#431](https://github.com/niklas-joh/wp-ai-mind/issues/431)) ([61ea5d3](https://github.com/niklas-joh/wp-ai-mind/commit/61ea5d3a601e10a729ad2fc79034a6950a87d0ac))
+
 # [1.5.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.4.1...v1.5.0) (2026-04-30)
 
 

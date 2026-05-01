@@ -42,6 +42,8 @@ export default function ChatApp() {
 	const [ selectedModel, setSelectedModel ] = useState( '' );
 	const [ providers, setProviders ] = useState( [] );
 	const [ attachedPost, setAttachedPost ] = useState( null );
+	const [ pendingQuickAction, setPendingQuickAction ] = useState( null );
+	const [ forcePickerOpen, setForcePickerOpen ] = useState( false );
 	const [ deletingIds, setDeletingIds ] = useState( new Set() );
 	const [ deleteErrors, setDeleteErrors ] = useState( {} );
 	const skipLoadRef = useRef( false );
@@ -248,6 +250,37 @@ export default function ChatApp() {
 		}
 	}
 
+	function handleAttach( post ) {
+		setAttachedPost( post );
+		setForcePickerOpen( false );
+		if ( pendingQuickAction ) {
+			const toSend = pendingQuickAction;
+			setPendingQuickAction( null );
+			sendMessage( toSend );
+		}
+	}
+
+	// Called by suggestion chips (prompt, requiresPost).
+	function handleQuickAction( prompt, requiresPost = false ) {
+		if ( requiresPost && ! attachedPost ) {
+			setPendingQuickAction( prompt );
+			setForcePickerOpen( true );
+			return;
+		}
+		sendMessage( prompt );
+	}
+
+	// Called by QuickActions when a post-required action fires but no post is attached.
+	function requestPostAttach( prompt ) {
+		setPendingQuickAction( prompt );
+		setForcePickerOpen( true );
+	}
+
+	function handlePickerClose() {
+		setForcePickerOpen( false );
+		setPendingQuickAction( null );
+	}
+
 	return (
 		<div className="wpaim-shell">
 			<aside className="wpaim-sidebar">
@@ -277,11 +310,13 @@ export default function ChatApp() {
 				{ messages.length === 0 && ! isLoading ? (
 					<CenteredLaunch
 						suggestions={ LAUNCH_SUGGESTIONS }
-						onSend={ sendMessage }
+						onSend={ handleQuickAction }
 						isLoading={ isLoading }
 						attachedPost={ attachedPost }
-						onAttach={ setAttachedPost }
+						onAttach={ handleAttach }
 						onDetach={ () => setAttachedPost( null ) }
+						forcePickerOpen={ forcePickerOpen }
+						onPickerClose={ handlePickerClose }
 					/>
 				) : (
 					<>
@@ -293,8 +328,10 @@ export default function ChatApp() {
 							onSend={ sendMessage }
 							isLoading={ isLoading }
 							attachedPost={ attachedPost }
-							onAttach={ setAttachedPost }
+							onAttach={ handleAttach }
 							onDetach={ () => setAttachedPost( null ) }
+							forcePickerOpen={ forcePickerOpen }
+							onPickerClose={ handlePickerClose }
 						/>
 					</>
 				) }
@@ -309,7 +346,12 @@ export default function ChatApp() {
 					onModelChange={ setSelectedModel }
 					isPro={ isPro }
 				/>
-				<QuickActions onAction={ sendMessage } isPro={ isPro } />
+				<QuickActions
+					onAction={ sendMessage }
+					isPro={ isPro }
+					attachedPost={ attachedPost }
+					onRequestAttach={ requestPostAttach }
+				/>
 			</aside>
 		</div>
 	);
@@ -322,12 +364,14 @@ export default function ChatApp() {
  * in the main column. Clicking a chip auto-submits that prompt.
  *
  * @param {Object}      props
- * @param {Array}       props.suggestions  Array of {label, prompt} objects.
- * @param {Function}    props.onSend       Forwarded to Composer and chip clicks.
- * @param {boolean}     props.isLoading    Forwarded to Composer.
- * @param {Object|null} props.attachedPost Forwarded to Composer.
- * @param {Function}    props.onAttach     Forwarded to Composer.
- * @param {Function}    props.onDetach     Forwarded to Composer.
+ * @param {Array}       props.suggestions      Array of {label, prompt, requiresPost} objects.
+ * @param {Function}    props.onSend           Forwarded to chip clicks: called with (prompt, requiresPost).
+ * @param {boolean}     props.isLoading        Forwarded to Composer.
+ * @param {Object|null} props.attachedPost     Forwarded to Composer.
+ * @param {Function}    props.onAttach         Forwarded to Composer.
+ * @param {Function}    props.onDetach         Forwarded to Composer.
+ * @param {boolean}     props.forcePickerOpen  Forwarded to Composer to open the context picker externally.
+ * @param {Function}    props.onPickerClose    Forwarded to Composer; called when the picker is dismissed.
  * @return {ReactElement}
  */
 function CenteredLaunch( {
@@ -337,6 +381,8 @@ function CenteredLaunch( {
 	attachedPost,
 	onAttach,
 	onDetach,
+	forcePickerOpen,
+	onPickerClose,
 } ) {
 	return (
 		<div className="wpaim-launch">
@@ -350,18 +396,20 @@ function CenteredLaunch( {
 							key={ s.id }
 							className="wpaim-suggestion-chip"
 							type="button"
-							onClick={ () => onSend( s.prompt ) }
+							onClick={ () => onSend( s.prompt, s.requiresPost ) }
 						>
 							{ s.label }
 						</button>
 					) ) }
 				</div>
 				<Composer
-					onSend={ onSend }
+					onSend={ ( text ) => onSend( text ) }
 					isLoading={ isLoading }
 					attachedPost={ attachedPost }
 					onAttach={ onAttach }
 					onDetach={ onDetach }
+					forcePickerOpen={ forcePickerOpen }
+					onPickerClose={ onPickerClose }
 					borderless
 				/>
 			</div>

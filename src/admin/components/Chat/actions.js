@@ -13,12 +13,14 @@ export const FREE_ACTIONS = [
 		label: 'Summarise this post',
 		prompt: 'Please summarise the current post in 2-3 sentences.',
 		icon: FilePenLine,
+		requiresPost: true,
 	},
 	{
 		id: 'readability',
 		label: 'Improve readability',
 		prompt: 'Review this content and suggest readability improvements.',
 		icon: FilePenLine,
+		requiresPost: true,
 	},
 ];
 
@@ -28,24 +30,28 @@ export const PRO_ACTIONS = [
 		label: 'Write a post',
 		prompt: 'Help me write a new blog post. What topic should we start with?',
 		icon: FilePenLine,
+		requiresPost: false,
 	},
 	{
 		id: 'seo-title',
 		label: 'Generate SEO title',
 		prompt: 'Generate an optimised SEO title for this post.',
 		icon: Search,
+		requiresPost: true,
 	},
 	{
 		id: 'meta-description',
 		label: 'Write meta description',
 		prompt: 'Write a compelling 155-character meta description for this post.',
 		icon: Search,
+		requiresPost: true,
 	},
 	{
 		id: 'featured-image',
 		label: 'Create featured image',
 		prompt: 'Generate a featured image for this post.',
 		icon: Image,
+		requiresPost: true,
 	},
 ];
 

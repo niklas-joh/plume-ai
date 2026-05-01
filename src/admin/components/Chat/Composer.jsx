@@ -1,4 +1,4 @@
-import { useState } from '@wordpress/element';
+import { useState, useEffect } from '@wordpress/element';
 import { Button } from '@wordpress/components';
 import { CornerDownLeft, Loader2, Paperclip, FileText, X } from 'lucide-react';
 import ContextPicker from './ContextPicker';
@@ -11,12 +11,14 @@ import ContextPicker from './ContextPicker';
  * while a post is attached.
  *
  * @param {Object}        props
- * @param {Function}      props.onSend         Called with the trimmed message string when submitted.
- * @param {boolean}       props.isLoading      Disables the input and shows a spinner while true.
- * @param {Object|null}   props.attachedPost   Currently attached post object (`{ id, title }`) or null.
- * @param {Function}      props.onAttach       Called with the selected post object when context is chosen.
- * @param {Function}      props.onDetach       Called when the attachment pill dismiss button is clicked.
- * @param {boolean}       [props.borderless]   When true, removes the top border (used in the centred launch view).
+ * @param {Function}      props.onSend           Called with the trimmed message string when submitted.
+ * @param {boolean}       props.isLoading        Disables the input and shows a spinner while true.
+ * @param {Object|null}   props.attachedPost     Currently attached post object (`{ id, title }`) or null.
+ * @param {Function}      props.onAttach         Called with the selected post object when context is chosen.
+ * @param {Function}      props.onDetach         Called when the attachment pill dismiss button is clicked.
+ * @param {boolean}       [props.borderless]     When true, removes the top border (used in the centred launch view).
+ * @param {boolean}       [props.forcePickerOpen] When flipped to true, opens the context picker immediately.
+ * @param {Function}      [props.onPickerClose]  Called when the picker is dismissed (allows parent to reset the force flag).
  * @return {ReactElement}
  */
 export default function Composer( {
@@ -26,9 +28,19 @@ export default function Composer( {
 	onAttach,
 	onDetach,
 	borderless,
+	forcePickerOpen,
+	onPickerClose,
 } ) {
 	const [ value, setValue ] = useState( '' );
 	const [ showPicker, setShowPicker ] = useState( false );
+
+	// Allow a parent to imperatively open the picker (e.g. when a quick action
+	// fires but no post is yet attached).
+	useEffect( () => {
+		if ( forcePickerOpen ) {
+			setShowPicker( true );
+		}
+	}, [ forcePickerOpen ] );
 
 	function handleKeyDown( e ) {
 		if ( e.key === 'Enter' && ! e.shiftKey ) {
@@ -58,7 +70,10 @@ export default function Composer( {
 						onAttach( post );
 						setShowPicker( false );
 					} }
-					onClose={ () => setShowPicker( false ) }
+					onClose={ () => {
+						setShowPicker( false );
+						onPickerClose?.();
+					} }
 				/>
 			) }
 			{ attachedPost && (

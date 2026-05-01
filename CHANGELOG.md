@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.6.0...v1.7.0) (2026-05-01)
+
+
+### Features
+
+* **chat:** layout improvements — collapsible sidebar, height fix, title tooltips ([#437](https://github.com/niklas-joh/wp-ai-mind/issues/437)) ([1cd2164](https://github.com/niklas-joh/wp-ai-mind/commit/1cd21645d14e8a31b5649ec9c17f4ef5261a9d10))
+
 # [1.6.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.5.0...v1.6.0) (2026-05-01)
 
 

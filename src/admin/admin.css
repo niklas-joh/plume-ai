@@ -1,15 +1,41 @@
 @import "../styles/tokens.css";
 
+:root {
+	--wpaim-sidebar-width: 220px;
+	--wpaim-sidebar-collapsed-width: 40px;
+}
+
+/* ── WP admin viewport fix ──
+   WordPress wraps admin page callbacks in #wpbody-content (padding-bottom: 65px)
+   and #wpbody. Without these overrides the shell overflows the viewport and
+   creates a vertical scrollbar. The 32px subtraction accounts for #wpadminbar. */
+/* stylelint-disable-next-line selector-class-pattern */
+.toplevel_page_wp-ai-mind #wpbody {
+	height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
+	overflow: hidden;
+}
+
+/* stylelint-disable-next-line selector-class-pattern */
+.toplevel_page_wp-ai-mind #wpbody-content {
+	padding-bottom: 0;
+	overflow: hidden;
+}
+
 /* ── Shell layout ── */
 .wpaim-shell {
 	display: grid;
-	grid-template-columns: 220px 1fr 240px;
-	height: calc(100vh - 32px);
+	grid-template-columns: var(--wpaim-sidebar-width) 1fr 240px;
+	height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
 	background: #fff;
 	color: #1d2327;
 	font-family: var(--font-sans);
 	font-size: var(--text-base);
 	overflow: hidden;
+	transition: grid-template-columns 0.15s ease;
+}
+
+.wpaim-shell--sidebar-collapsed {
+	grid-template-columns: var(--wpaim-sidebar-collapsed-width) 1fr 240px;
 }
 
 /* ── Sidebar ── */
@@ -19,6 +45,14 @@
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+}
+
+.wpaim-sidebar__toggle {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--color-text-muted);
 }
 
 .wpaim-sidebar__header {
@@ -57,6 +91,19 @@
 	flex: 1;
 	overflow-y: auto;
 	padding: var(--space-2);
+}
+
+/* Collapsed sidebar: hide list and title, centre the toggle.
+   Placed after all base selectors to satisfy no-descending-specificity. */
+.wpaim-shell--sidebar-collapsed .wpaim-sidebar__title,
+.wpaim-shell--sidebar-collapsed .wpaim-conv-list,
+.wpaim-shell--sidebar-collapsed .wpaim-sidebar__empty {
+	display: none;
+}
+
+.wpaim-shell--sidebar-collapsed .wpaim-sidebar__header {
+	justify-content: center;
+	padding: var(--space-4) var(--space-2) var(--space-3);
 }
 
 .wpaim-conv-item {

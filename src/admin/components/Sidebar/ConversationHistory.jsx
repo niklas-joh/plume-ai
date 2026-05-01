@@ -1,5 +1,6 @@
 /* global navigator */
 import { useState } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import { Trash2, Check, X } from 'lucide-react';
 
 /**
@@ -48,6 +49,7 @@ export default function ConversationHistory( {
 						className="wpaim-conv-item__body"
 						onClick={ () => onSelect( conv.id ) }
 						type="button"
+						title={ conv.title || __( 'Untitled', 'wp-ai-mind' ) }
 					>
 						<span className="wpaim-conv-item__title">
 							{ conv.title || 'Untitled' }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { Plus } from 'lucide-react';
+import { Plus, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import ConversationHistory from '../Sidebar/ConversationHistory';
 import MessageList from './MessageList';
 import Composer from './Composer';
@@ -41,6 +41,9 @@ export default function ChatApp() {
 	const [ selectedProvider, setSelectedProvider ] = useState( '' );
 	const [ selectedModel, setSelectedModel ] = useState( '' );
 	const [ providers, setProviders ] = useState( [] );
+	const [ isSidebarCollapsed, setIsSidebarCollapsed ] = useState(
+		() => window.localStorage.getItem( 'wpaim-sidebar-collapsed' ) === '1'
+	);
 	const [ attachedPost, setAttachedPost ] = useState( null );
 	const [ pendingQuickAction, setPendingQuickAction ] = useState( null );
 	const [ forcePickerOpen, setForcePickerOpen ] = useState( false );
@@ -284,19 +287,56 @@ export default function ChatApp() {
 		setPendingQuickAction( null );
 	}
 
+	const toggleLabel = isSidebarCollapsed
+		? __( 'Expand sidebar', 'wp-ai-mind' )
+		: __( 'Collapse sidebar', 'wp-ai-mind' );
+
 	return (
-		<div className="wpaim-shell">
+		<div
+			className={ `wpaim-shell${
+				isSidebarCollapsed ? ' wpaim-shell--sidebar-collapsed' : ''
+			}` }
+		>
 			<aside className="wpaim-sidebar">
 				<div className="wpaim-sidebar__header">
-					<span className="wpaim-sidebar__title">Conversations</span>
+					{ ! isSidebarCollapsed && (
+						<span className="wpaim-sidebar__title">
+							{ __( 'Conversations', 'wp-ai-mind' ) }
+						</span>
+					) }
+					{ ! isSidebarCollapsed && (
+						<button
+							className="wpaim-btn wpaim-btn--ghost wpaim-btn--icon"
+							onClick={ newConversation }
+							title={ NEW_CONVERSATION_TITLE }
+							aria-label={ NEW_CONVERSATION_TITLE }
+							type="button"
+						>
+							<Plus size={ 14 } strokeWidth={ 1.5 } />
+						</button>
+					) }
 					<button
-						className="wpaim-btn wpaim-btn--ghost wpaim-btn--icon"
-						onClick={ newConversation }
-						title={ NEW_CONVERSATION_TITLE }
-						aria-label={ NEW_CONVERSATION_TITLE }
+						className="wpaim-btn wpaim-btn--ghost wpaim-btn--icon wpaim-sidebar__toggle"
+						onClick={ () =>
+							setIsSidebarCollapsed( ( prev ) => {
+								const next = ! prev;
+								window.localStorage.setItem(
+									'wpaim-sidebar-collapsed',
+									next ? '1' : '0'
+								);
+								return next;
+							} )
+						}
+						title={ toggleLabel }
+						aria-label={ toggleLabel }
+						aria-expanded={ ! isSidebarCollapsed }
 						type="button"
 					>
-						<Plus size={ 14 } strokeWidth={ 1.5 } />
+						{ isSidebarCollapsed ? (
+							<PanelLeftOpen size={ 14 } strokeWidth={ 1.5 } />
+						) : (
+							<PanelLeftClose size={ 14 } strokeWidth={ 1.5 } />
+						) }
 					</button>
 				</div>
 				<ConversationHistory

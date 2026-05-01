@@ -535,8 +535,6 @@
 	margin-top: var(--space-1);
 }
 
-/* ── Empty state ── */
-
 /* ── Centred launch state ── */
 .wpaim-launch {
 	flex: 1;

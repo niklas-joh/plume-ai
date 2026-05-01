@@ -340,7 +340,7 @@ function CenteredLaunch( {
 				<div className="wpaim-launch__suggestions">
 					{ suggestions.map( ( s ) => (
 						<button
-							key={ s.label }
+							key={ s.id }
 							className="wpaim-suggestion-chip"
 							type="button"
 							onClick={ () => onSend( s.prompt ) }
@@ -355,7 +355,7 @@ function CenteredLaunch( {
 					attachedPost={ attachedPost }
 					onAttach={ onAttach }
 					onDetach={ onDetach }
-					noBorderTop
+					borderless
 				/>
 			</div>
 		</div>

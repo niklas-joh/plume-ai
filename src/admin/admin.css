@@ -24,6 +24,11 @@
 	font-family: var(--font-sans);
 	font-size: var(--text-base);
 	overflow: hidden;
+	transition: grid-template-columns 0.15s ease;
+}
+
+.wpaim-shell--sidebar-collapsed {
+	grid-template-columns: 40px 1fr 240px;
 }
 
 /* ── Sidebar ── */
@@ -33,6 +38,30 @@
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+}
+
+/* Collapsed sidebar: hide list and title, centre the toggle */
+.wpaim-shell--sidebar-collapsed .wpaim-sidebar__title,
+.wpaim-shell--sidebar-collapsed .wpaim-conv-list,
+.wpaim-shell--sidebar-collapsed .wpaim-sidebar__empty {
+	display: none;
+}
+
+.wpaim-shell--sidebar-collapsed .wpaim-sidebar__header {
+	justify-content: center;
+	padding: var(--space-4) var(--space-2) var(--space-3);
+}
+
+.wpaim-sidebar__toggle {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--color-text-muted);
+}
+
+.wpaim-sidebar__toggle:hover {
+	color: var(--color-text-primary);
 }
 
 .wpaim-sidebar__header {

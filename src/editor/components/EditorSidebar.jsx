@@ -37,22 +37,6 @@ function WpAiMindSidebar() {
 		}
 	}
 
-	const panelHeadingStyle = {
-		fontSize: 'var(--text-sm)',
-		fontWeight: 600,
-		color: 'var(--color-text-muted)',
-		textTransform: 'uppercase',
-		letterSpacing: '0.05em',
-		marginBottom: 'var(--space-2)',
-		margin: `0 0 var(--space-2) 0`,
-	};
-
-	const dividerPanelStyle = {
-		borderTop: '1px solid var(--color-border)',
-		paddingTop: 'var(--space-3)',
-		marginTop: 'var(--space-3)',
-	};
-
 	return (
 		<>
 			<PluginSidebarMoreMenuItem target="wp-ai-mind-sidebar">
@@ -65,24 +49,18 @@ function WpAiMindSidebar() {
 			>
 				<div className="wpaim-editor-sidebar">
 					<div className="wpaim-editor-panel">
-						<h3 style={ panelHeadingStyle }>Chat</h3>
+						<h3 className="wpaim-panel__heading">Chat</h3>
 						<MiniChat postId={ postId } />
 					</div>
-					<div
-						className="wpaim-editor-panel"
-						style={ dividerPanelStyle }
-					>
-						<h3 style={ panelHeadingStyle }>Block Actions</h3>
+					<div className="wpaim-editor-panel">
+						<h3 className="wpaim-panel__heading">Block Actions</h3>
 						<BlockActions
 							convId={ convId }
 							onResult={ handleBlockResult }
 						/>
 					</div>
-					<div
-						className="wpaim-editor-panel"
-						style={ dividerPanelStyle }
-					>
-						<h3 style={ panelHeadingStyle }>SEO</h3>
+					<div className="wpaim-editor-panel">
+						<h3 className="wpaim-panel__heading">SEO</h3>
 						<SeoPanel />
 					</div>
 				</div>

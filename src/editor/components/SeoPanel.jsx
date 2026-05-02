@@ -23,16 +23,11 @@ function scoreItem( label, pass, tip ) {
 
 	return (
 		<div key={ label } className="wpaim-seo-panel__item">
-			<Icon size={ 14 } style={ { color, flexShrink: 0 } } />
+			<Icon size={ 14 } style={ { color } } />
 			<span>
 				{ label }
 				{ tip && (
-					<span
-						style={ {
-							color: 'var(--color-text-muted)',
-							fontSize: 'var(--text-xs)',
-						} }
-					>
+					<span className="wpaim-seo-panel__item-tip">
 						{ ' — ' }
 						{ tip }
 					</span>
@@ -63,21 +58,12 @@ export default function SeoPanel() {
 
 	if ( ! isPro ) {
 		return (
-			<div
-				className="wpaim-seo-panel"
-				style={ { textAlign: 'center', padding: 'var(--space-4)' } }
-			>
+			<div className="wpaim-seo-panel wpaim-seo-panel--locked">
 				<Lock
 					size={ 20 }
 					style={ { color: 'var(--color-text-muted)' } }
 				/>
-				<p
-					style={ {
-						color: 'var(--color-text-muted)',
-						fontSize: 'var(--text-sm)',
-						marginTop: 'var(--space-2)',
-					} }
-				>
+				<p className="wpaim-seo-panel__locked-text">
 					SEO analysis requires WP AI Mind Pro.
 				</p>
 			</div>
@@ -105,31 +91,14 @@ export default function SeoPanel() {
 
 	return (
 		<div className="wpaim-seo-panel">
-			<div
-				style={ {
-					display: 'flex',
-					alignItems: 'center',
-					gap: 'var(--space-2)',
-					marginBottom: 'var(--space-3)',
-				} }
-			>
+			<div className="wpaim-seo-panel__score-row">
 				<span
 					className="wpaim-seo-panel__score"
-					style={ {
-						background: scoreColor,
-						color: '#fff',
-						padding: '2px 8px',
-						fontWeight: 600,
-					} }
+					style={ { background: scoreColor } }
 				>
 					{ score }/3
 				</span>
-				<span
-					style={ {
-						fontSize: 'var(--text-sm)',
-						color: 'var(--color-text-muted)',
-					} }
-				>
+				<span className="wpaim-seo-panel__word-count">
 					{ wordCount } words
 				</span>
 			</div>

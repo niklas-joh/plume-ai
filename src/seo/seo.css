@@ -4,14 +4,14 @@
 .wpaim-seo-fields-grid {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
-	gap: 12px;
-	margin-bottom: 4px;
+	gap: var(--space-3);
+	margin-bottom: var(--space-2);
 }
 
 .wpaim-field {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: var(--space-2);
 }
 
 .wpaim-field--full {
@@ -38,7 +38,7 @@
 
 .wpaim-field-input {
 	width: 100%;
-	padding: 6px 8px;
+	padding: var(--space-2) var(--space-2);
 	font-size: 13px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-sm);

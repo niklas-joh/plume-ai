@@ -12,29 +12,16 @@
 .wpaim-page-header h1 {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--space-2);
 	font-size: 23px;
 	font-weight: 400;
 	color: var(--color-text-primary);
-	margin: 0 0 4px;
+	margin: 0 0 var(--space-1);
 }
 
 .wpaim-page-header p {
 	color: var(--color-text-secondary);
 	margin: 0;
-}
-
-/* Pro badge */
-.wpaim-pro-badge {
-	display: inline-block;
-	padding: 1px 6px;
-	border-radius: 3px;
-	font-size: 10px;
-	font-weight: 700;
-	background: rgba(var(--wp-admin-theme-color--rgb, 0, 115, 170), 0.12);
-	color: var(--wp-admin-theme-color);
-	letter-spacing: 0.05em;
-	vertical-align: middle;
 }
 
 /* Pro gate (lock screen) */
@@ -65,7 +52,7 @@
 /* Status badges */
 .wpaim-badge {
 	display: inline-block;
-	padding: 1px 8px;
+	padding: var(--space-0-5) var(--space-2);
 	border-radius: 99px;
 	font-size: 11px;
 	font-weight: 600;
@@ -91,8 +78,8 @@
 /* Type badge (post / page) */
 .wpaim-type-badge {
 	display: inline-block;
-	padding: 1px 6px;
-	border-radius: 3px;
+	padding: var(--space-0-5) var(--space-2);
+	border-radius: var(--radius-sm);
 	font-size: 10px;
 	font-family: var(--font-mono);
 	background: var(--color-surface-2);
@@ -103,19 +90,19 @@
 .wpaim-list-toolbar {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	margin-bottom: 8px;
+	gap: var(--space-3);
+	margin-bottom: var(--space-2);
 	flex-wrap: wrap;
 }
 
 .wpaim-list-tabs {
 	display: flex;
-	gap: 2px;
+	gap: var(--space-1);
 }
 
 .wpaim-tab {
-	padding: 4px 12px;
-	border-radius: 4px;
+	padding: var(--space-1) var(--space-3);
+	border-radius: var(--radius-sm);
 	font-size: 13px;
 	font-weight: 400;
 	cursor: pointer;
@@ -137,9 +124,9 @@
 }
 
 .wpaim-list-search {
-	padding: 4px 8px;
+	padding: var(--space-1) var(--space-2);
 	border: 1px solid var(--color-border);
-	border-radius: 4px;
+	border-radius: var(--radius-sm);
 	font-size: 13px;
 	color: var(--color-text-primary);
 	background: #fff;
@@ -157,8 +144,8 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-top: 12px;
-	padding-top: 10px;
+	margin-top: var(--space-3);
+	padding-top: var(--space-3);
 	border-top: 1px solid var(--color-border);
 }
 
@@ -169,20 +156,20 @@
 
 .wpaim-list-page-btns {
 	display: flex;
-	gap: 6px;
+	gap: var(--space-2);
 }
 
 /* Work area base */
 .wpaim-work-area {
-	padding: 16px 20px;
+	padding: var(--space-4) var(--space-5);
 	background: var(--color-surface);
 }
 
 .wpaim-work-header {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	margin-bottom: 16px;
+	gap: var(--space-3);
+	margin-bottom: var(--space-4);
 }
 
 .wpaim-work-title {
@@ -195,10 +182,10 @@
 .wpaim-work-actions {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--space-2);
 	justify-content: flex-end;
-	margin-top: 12px;
-	padding-top: 12px;
+	margin-top: var(--space-3);
+	padding-top: var(--space-3);
 	border-top: 1px solid var(--color-border);
 }
 
@@ -215,16 +202,16 @@
 .wpaim-work-error {
 	color: var(--color-error);
 	font-size: 12px;
-	margin: 8px 0 0;
+	margin: var(--space-2) 0 0;
 }
 
 .wpaim-work-warning {
 	color: var(--color-warning);
 	font-size: 12px;
-	margin: 8px 0 0;
+	margin: var(--space-2) 0 0;
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--space-2);
 }
 
 .wpaim-dismiss {
@@ -248,7 +235,7 @@
 	animation: wpaim-spin 0.7s linear infinite;
 	display: inline-block;
 	vertical-align: middle;
-	margin-right: 4px;
+	margin-right: var(--space-1);
 }
 
 .wpaim-list-loading,

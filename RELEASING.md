@@ -11,7 +11,7 @@ from your commit messages.
 ```
 feature/* ──PR──▶ main
                     │
-                    ▼ (on every merge)
+                    ▼ (batched — see "Triggering a release" below)
              release.yml runs
                     │
            reads conventional commits
@@ -33,6 +33,29 @@ feature/* ──PR──▶ main
 ```
 
 **You never touch versions, tags, or changelogs.**
+
+---
+
+## Triggering a release
+
+Releases are **not triggered automatically on every merge to `main`**. Instead:
+
+| Trigger | When | How |
+|---|---|---|
+| Scheduled | Every Friday at 10:00 UTC | Automatic — bundles the week's merged PRs |
+| Manual | Any time | Actions tab → **Release** → **Run workflow** |
+
+The scheduled run exits cleanly if there are no releasable commits since the last tag —
+no release is created and no version is bumped.
+
+### Out-of-band (hotfix) release
+
+If a critical fix needs to ship before Friday:
+
+1. Merge the `fix(scope):` PR to `main` as normal.
+2. Go to **Actions → Release → Run workflow** and click **Run workflow**.
+3. Semantic-release reads all commits since the last tag (including the hotfix) and cuts
+   a patch release.
 
 ---
 
@@ -111,7 +134,7 @@ select **WordPress.org Deploy** → **Run workflow** → supply the release tag 
 | File | Trigger | Purpose |
 |---|---|---|
 | `ci.yml` | PR to `main` | PHPCS, PHPUnit, JS lint, commitlint |
-| `release.yml` | Push to `main` | Full semantic-release pipeline |
+| `release.yml` | Weekly schedule (Fri 10:00 UTC) or `workflow_dispatch` | Full semantic-release pipeline |
 | `wporg-deploy.yml` | Stable release published | Deploy ZIP to WordPress.org SVN |
 | `claude-code-review.yml` | PR opened/updated | Automated code review |
 | `auto-fix-ci.yml` | CI failure | Auto-fix lint issues |

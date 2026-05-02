@@ -1,8 +1,9 @@
 name: Release
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 10 * * 5'   # every Friday at 10:00 UTC
 
 # Prevent concurrent releases (e.g. two fast merges)
 concurrency:

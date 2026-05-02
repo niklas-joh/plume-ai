@@ -19,7 +19,26 @@
         ]
       }
     ],
-    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            {"type": "feat",     "section": "New Features",             "hidden": false},
+            {"type": "fix",      "section": "Bug Fixes",                "hidden": false},
+            {"type": "perf",     "section": "Performance Improvements", "hidden": false},
+            {"type": "refactor", "section": "Code Refactors",           "hidden": false},
+            {"type": "docs",     "section": "Documentation",            "hidden": false},
+            {"type": "test",     "section": "Tests",                    "hidden": true},
+            {"type": "style",    "section": "Style",                    "hidden": true},
+            {"type": "build",    "section": "Build System",             "hidden": true},
+            {"type": "ci",       "section": "Continuous Integration",   "hidden": true},
+            {"type": "chore",    "section": "Chores",                   "hidden": true}
+          ]
+        }
+      }
+    ],
     "@semantic-release/changelog",
     [
       "@semantic-release/exec",

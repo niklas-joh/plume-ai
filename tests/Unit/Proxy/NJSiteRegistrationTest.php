@@ -110,7 +110,7 @@ class NJSiteRegistrationTest extends TestCase {
 		// Challenge fetch succeeds.
 		Functions\when( 'wp_remote_get' )->justReturn( [] );
 		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '{"challenge":"' . $challenge . '"}' );
-		Functions\when( 'sanitize_text_field' )->alias( fn( $s ) => $s );
+		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'home_url' )->justReturn( 'https://mysite.example.com' );
 		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
@@ -133,7 +133,6 @@ class NJSiteRegistrationTest extends TestCase {
 		Functions\when( 'wp_remote_get' )->justReturn( [] );
 		Functions\when( 'wp_remote_post' )->justReturn( [] );
 		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
 		// First body call returns the challenge, second returns the registration failure.
 		Functions\when( 'wp_remote_retrieve_body' )->alias(
 			( function () use ( $challenge ) {
@@ -146,15 +145,12 @@ class NJSiteRegistrationTest extends TestCase {
 				};
 			} )()
 		);
-		Functions\when( 'sanitize_text_field' )->alias( fn( $s ) => $s );
+		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'home_url' )->justReturn( 'https://mysite.example.com' );
 		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
 
-		// Registration returns 403 from the worker.
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
-
-		// Override: first call 200 (challenge), second call 403 (register).
+		// First call 200 (challenge), second call 403 (register).
 		$callNum = 0;
 		Functions\when( 'wp_remote_retrieve_response_code' )->alias(
 			function () use ( &$callNum ): int {
@@ -198,7 +194,7 @@ class NJSiteRegistrationTest extends TestCase {
 					: '{"token":"' . $token . '","tier":"trial"}';
 			}
 		);
-		Functions\when( 'sanitize_text_field' )->alias( fn( $s ) => $s );
+		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'home_url' )->justReturn( 'https://mysite.example.com' );
 		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );

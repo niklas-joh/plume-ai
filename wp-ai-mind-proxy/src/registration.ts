@@ -95,16 +95,16 @@ export async function handleRegistration(
 		'/wp-json/wp-ai-mind/v1/activation-verify' +
 		'?challenge=' +
 		encodeURIComponent( challengeToken );
-	let callbackOk = false;
+	let siteVerified = false;
 	try {
 		const cbRes = await fetch( verifyUrl, {
 			signal: AbortSignal.timeout( 10_000 ),
 		} );
-		callbackOk = cbRes.ok;
+		siteVerified = cbRes.ok;
 	} catch {
-		callbackOk = false;
+		siteVerified = false;
 	}
-	if ( ! callbackOk ) {
+	if ( ! siteVerified ) {
 		return jsonResponse( { error: 'Site verification failed' }, 403 );
 	}
 	// Consume the challenge only after a successful callback so a transient

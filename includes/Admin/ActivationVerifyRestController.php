@@ -32,9 +32,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ActivationVerifyRestController {
 
-	private const NAMESPACE  = 'wp-ai-mind/v1';
-	private const ROUTE      = '/activation-verify';
-	private const TRANSIENT  = 'wp_ai_mind_challenge_';
+	private const NAMESPACE     = 'wp-ai-mind/v1';
+	private const ROUTE         = '/activation-verify';
+	private const TRANSIENT     = 'wp_ai_mind_challenge_';
 	private const CHALLENGE_TTL = 300; // Seconds — must match worker CHALLENGE_TTL.
 
 	/**
@@ -78,6 +78,7 @@ class ActivationVerifyRestController {
 		$challenge = $request->get_param( 'challenge' );
 
 		if ( get_transient( self::TRANSIENT . $challenge ) ) {
+			delete_transient( self::TRANSIENT . $challenge );
 			return new WP_REST_Response( [ 'verified' => true ], 200 );
 		}
 

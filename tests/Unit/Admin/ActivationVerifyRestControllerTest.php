@@ -60,6 +60,7 @@ class ActivationVerifyRestControllerTest extends TestCase {
 
 	public function test_handle_returns_200_when_challenge_transient_exists(): void {
 		Functions\when( 'get_transient' )->justReturn( 1 );
+		Functions\when( 'delete_transient' )->justReturn( true );
 
 		$request = new \WP_REST_Request( 'GET' );
 		$request->set_param( 'challenge', str_repeat( 'a', 64 ) );
@@ -69,6 +70,25 @@ class ActivationVerifyRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_REST_Response::class, $response );
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertTrue( $response->data['verified'] );
+	}
+
+	public function test_handle_deletes_transient_after_successful_verification(): void {
+		$challenge    = str_repeat( 'a', 64 );
+		$deleted_key  = null;
+
+		Functions\when( 'get_transient' )->justReturn( 1 );
+		Functions\when( 'delete_transient' )->alias(
+			function ( string $key ) use ( &$deleted_key ) {
+				$deleted_key = $key;
+			}
+		);
+
+		$request = new \WP_REST_Request( 'GET' );
+		$request->set_param( 'challenge', $challenge );
+
+		ActivationVerifyRestController::handle( $request );
+
+		$this->assertSame( 'wp_ai_mind_challenge_' . $challenge, $deleted_key );
 	}
 
 	// ── handle — challenge missing ──────────────────────────────────────────────
@@ -98,6 +118,7 @@ class ActivationVerifyRestControllerTest extends TestCase {
 				return 1;
 			}
 		);
+		Functions\when( 'delete_transient' )->justReturn( true );
 
 		$request = new \WP_REST_Request( 'GET' );
 		$request->set_param( 'challenge', $challenge );

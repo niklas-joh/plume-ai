@@ -1,4 +1,5 @@
 /* WP AI Mind — Editor Sidebar Styles */
+@import "../styles/animations.css";
 
 /* ── Sidebar container ──────────────────────────────────────────────── */
 .wpaim-editor-sidebar {
@@ -123,19 +124,9 @@
 	background: var(--wp-admin-theme-color-darker-10);
 }
 
-/* Spinning animation for Loader2 icon */
-/* Note: @keyframes wpaim-spin is also defined in admin.css.
-   Both files compile to separate bundles, so there is no runtime conflict,
-   but both definitions must be kept in sync. */
+/* Spinning animation for Loader2 icon — keyframe defined in styles/animations.css */
 .wpaim-spin {
 	animation: wpaim-spin 1s linear infinite;
-}
-
-@keyframes wpaim-spin {
-
-	to {
-		transform: rotate(360deg);
-	}
 }
 
 /* ── Block Actions ──────────────────────────────────────────────────── */

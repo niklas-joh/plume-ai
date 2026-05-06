@@ -16,7 +16,7 @@ afterEach( () => {
 async function makeEnvWithChallenge(
 	challenge: string,
 	callbackOk = true
-): ReturnType< typeof makeEnv > & Promise< ReturnType< typeof makeEnv > > {
+): Promise< ReturnType< typeof makeEnv > > {
 	const env = makeEnv();
 	await env.USAGE_KV.put( `challenge:${ challenge }`, '1' );
 	vi.stubGlobal(

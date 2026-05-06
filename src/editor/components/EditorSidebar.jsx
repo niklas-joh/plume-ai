@@ -1,7 +1,6 @@
 import { registerPlugin } from '@wordpress/plugins';
 import { PluginSidebar, PluginSidebarMoreMenuItem } from '@wordpress/edit-post';
 import { useSelect } from '@wordpress/data';
-import { useState } from '@wordpress/element';
 import { Sparkles } from 'lucide-react';
 import MiniChat from './MiniChat';
 import BlockActions from './BlockActions';
@@ -22,7 +21,7 @@ function WpAiMindSidebar() {
 	const postId = useSelect( ( select ) =>
 		select( 'core/editor' ).getCurrentPostId()
 	);
-	const [ convId ] = useState( null );
+	const convId = null; // always creates a new conversation per block action
 
 	function handleBlockResult( content, clientId ) {
 		if ( ! clientId || ! content ) {

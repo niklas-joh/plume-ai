@@ -75,10 +75,9 @@ async function handleChatProxy(
 		// Lazily downgrade expired trials to free without blocking the request.
 		let effectiveTier = tier as ProxyTier;
 		if ( effectiveTier === 'trial' && auth.record ) {
-			if (
-				Date.now() - auth.record.trial_started_at >
-				THIRTY_DAYS_MS
-			) {
+			const startedAt =
+				auth.record.trial_started_at ?? auth.record.created_at;
+			if ( Date.now() - startedAt > THIRTY_DAYS_MS ) {
 				const demoted: SiteRecord = { ...auth.record, tier: 'free' };
 				await env.USAGE_KV.put(
 					`site:${ siteToken }`,

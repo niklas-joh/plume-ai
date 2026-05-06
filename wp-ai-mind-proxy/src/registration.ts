@@ -101,9 +101,10 @@ export async function handleRegistration(
 		);
 		if ( record ) {
 			const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+			const startedAt = record.trial_started_at ?? record.created_at;
 			if (
 				record.tier === 'trial' &&
-				Date.now() - record.trial_started_at > THIRTY_DAYS_MS
+				Date.now() - startedAt > THIRTY_DAYS_MS
 			) {
 				const demoted: SiteRecord = { ...record, tier: 'free' };
 				await env.USAGE_KV.put(

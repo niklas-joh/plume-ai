@@ -19,7 +19,7 @@ export interface SiteRecord {
 	site_url: string;
 	tier: SiteTier;
 	created_at: number;
-	trial_started_at: number;
+	trial_started_at?: number;
 	ls_licence_key?: string;
 }
 

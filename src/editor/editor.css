@@ -188,6 +188,10 @@
 	padding: var(--space-4);
 }
 
+.wpaim-seo-panel--locked > svg {
+	color: var(--color-text-muted);
+}
+
 .wpaim-seo-panel__locked-text {
 	color: var(--color-text-muted);
 	font-size: var(--text-sm);
@@ -203,7 +207,7 @@
 
 .wpaim-seo-panel__score {
 	display: inline-block;
-	border-radius: var(--radius-lg, 9999px);
+	border-radius: var(--radius-lg, 12px);
 	font-size: var(--text-xs);
 	font-weight: 600;
 	line-height: 1;

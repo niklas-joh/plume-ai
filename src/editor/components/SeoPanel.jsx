@@ -61,7 +61,6 @@ export default function SeoPanel() {
 			<div className="wpaim-seo-panel wpaim-seo-panel--locked">
 				<Lock
 					size={ 20 }
-					style={ { color: 'var(--color-text-muted)' } }
 				/>
 				<p className="wpaim-seo-panel__locked-text">
 					SEO analysis requires WP AI Mind Pro.

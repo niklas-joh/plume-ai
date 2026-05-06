@@ -10,10 +10,7 @@
 }
 
 /* ── Panel section ──────────────────────────────────────────────────── */
-.wpaim-editor-panel {
-	/* layout handled by sibling divider rule below */
-}
-
+/* layout handled entirely by the sibling divider rule below */
 .wpaim-editor-panel + .wpaim-editor-panel {
 	border-top: 1px solid var(--color-border);
 	padding-top: var(--space-3);
@@ -198,7 +195,7 @@
 
 .wpaim-seo-panel__score {
 	display: inline-block;
-	border-radius: var(--radius-lg, 12px);
+	border-radius: var(--radius-lg, 9999px);
 	font-size: var(--text-xs);
 	font-weight: 600;
 	line-height: 1;

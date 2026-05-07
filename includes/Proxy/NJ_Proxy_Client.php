@@ -30,6 +30,7 @@ class NJ_Proxy_Client {
 	/**
 	 * Send a chat request through the Cloudflare proxy.
 	 *
+	 * @since 1.2.0
 	 * @param array<array{role: string, content: string}> $messages Chat message history.
 	 * @param array<string, mixed>                        $options  Supports 'model', 'max_tokens', 'system', 'tools'.
 	 * @return array<string, mixed>|WP_Error

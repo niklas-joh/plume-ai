@@ -233,24 +233,13 @@ class ClaudeProviderTest extends TestCase {
 	}
 
 	public function test_complete_via_proxy_forwards_tools(): void {
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		// 'free' for NJ_Tier_Manager::get_user_tier(); cast to int 0 for usage key → within limit.
+		// Sets up $wpdb, get_current_user_id, sanitize_key, sanitize_text_field (defaults get_user_meta to 'pro_byok').
+		$this->mock_wpdb();
+		// Override to 'free' so routing goes via proxy instead of direct.
 		Functions\when( 'get_user_meta' )->justReturn( 'free' );
 		// NJ_Site_Registration::get_site_token() reads this option.
 		Functions\when( 'get_option' )->justReturn( 'mock-site-token' );
-		Functions\when( 'sanitize_key' )->alias( fn( $v ) => $v );
-		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
 		Functions\stubs( [ '__' => fn( $str ) => $str ] );
-
-		global $wpdb;
-		$wpdb = new class extends \stdClass {
-			public string $usermeta      = 'wp_usermeta';
-			public int    $rows_affected = 1;
-			public string $prefix        = 'wpaim_';
-			public function prepare( string $sql, ...$args ): string { return $sql; }
-			public function query( string $sql ): int { return 1; }
-			public function insert(): int { return 1; }
-		};
 
 		$captured_body = null;
 		Functions\when( 'wp_remote_post' )->alias( function ( $url, $args ) use ( &$captured_body ) {
@@ -282,6 +271,7 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertNotNull( $captured_body );
 		$this->assertArrayHasKey( 'tools', $captured_body );
 		$this->assertSame( 'get_post_content', $captured_body['tools'][0]['name'] );
+		$this->assertSame( $tools, $captured_body['tools'] );
 	}
 
 	public function test_tools_injected_in_request_body(): void {

@@ -1,0 +1,7 @@
+/* Shared keyframe animations — imported by admin.css and editor.css. */
+@keyframes wpaim-spin {
+
+	to {
+		transform: rotate(360deg);
+	}
+}

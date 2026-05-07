@@ -4,7 +4,7 @@
 .wpaim-image-badge-cell {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--space-2);
 }
 
 .wpaim-list-thumb {
@@ -19,14 +19,14 @@
 /* Prompt + controls layout */
 .wpaim-images-prompt-row {
 	display: flex;
-	gap: 12px;
-	margin-bottom: 12px;
+	gap: var(--space-3);
+	margin-bottom: var(--space-3);
 	align-items: flex-start;
 }
 
 .wpaim-prompt-input {
 	flex: 1;
-	padding: 8px 10px;
+	padding: var(--space-2) var(--space-3);
 	font-size: 13px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-sm);
@@ -48,13 +48,13 @@
 	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: var(--space-3);
 }
 
 .wpaim-control {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: var(--space-2);
 }
 
 .wpaim-field-label {
@@ -66,7 +66,7 @@
 }
 
 .wpaim-field-input {
-	padding: 4px 6px;
+	padding: var(--space-1) var(--space-2);
 	font-size: 13px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-sm);
@@ -79,12 +79,12 @@
 /* Count pills */
 .wpaim-count-pills {
 	display: flex;
-	gap: 4px;
+	gap: var(--space-1);
 }
 
 .wpaim-pill {
 	flex: 1;
-	padding: 3px 0;
+	padding: var(--space-1) 0;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-sm);
 	background: #fff;
@@ -104,8 +104,8 @@
 .wpaim-image-grid {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
-	gap: 10px;
-	margin: 12px 0;
+	gap: var(--space-3);
+	margin: var(--space-3) 0;
 }
 
 .wpaim-image-card {
@@ -134,19 +134,19 @@
 
 .wpaim-selected-badge {
 	position: absolute;
-	top: 6px;
-	right: 6px;
+	top: var(--space-2);
+	right: var(--space-2);
 	background: var(--wp-admin-theme-color);
 	color: #fff;
 	border-radius: 99px;
-	padding: 1px 8px;
+	padding: var(--space-0-5) var(--space-2);
 	font-size: 10px;
 	font-weight: 700;
 }
 
 .wpaim-image-footer {
 	background: var(--color-surface);
-	padding: 4px 8px;
+	padding: var(--space-1) var(--space-2);
 	font-size: 11px;
 	text-align: right;
 }

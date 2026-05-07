@@ -20,6 +20,7 @@
 	--color-error: #dc2626;   /* red-600 */
 
 	/* Spacing */
+	--space-0-5: 2px;
 	--space-1: 4px;
 	--space-2: 8px;
 	--space-3: 12px;

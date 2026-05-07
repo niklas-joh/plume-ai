@@ -72,12 +72,7 @@ export default function BlockActions( { convId, onResult } ) {
 
 	if ( ! blockText ) {
 		return (
-			<p
-				style={ {
-					color: 'var(--color-text-muted)',
-					fontSize: 'var(--text-sm)',
-				} }
-			>
+			<p className="wpaim-block-actions__empty">
 				Select a text block to use AI actions.
 			</p>
 		);
@@ -91,11 +86,7 @@ export default function BlockActions( { convId, onResult } ) {
 					className="wpaim-block-actions__btn"
 					onClick={ () => runAction( action ) }
 				>
-					<action.icon
-						size={ 14 }
-						strokeWidth={ 1.5 }
-						style={ { marginRight: 'var(--space-2)' } }
-					/>
+					<action.icon size={ 14 } strokeWidth={ 1.5 } />
 					{ action.label }
 				</button>
 			) ) }

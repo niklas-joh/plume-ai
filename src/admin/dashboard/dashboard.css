@@ -30,13 +30,13 @@
 .wpaim-dash-subtitle {
 	font-size: 0.75rem;
 	color: var(--color-text-secondary);
-	margin-top: 2px;
+	margin-top: var(--space-0-5);
 }
 
 .wpaim-dash-version {
 	font-family: var(--font-mono, monospace);
 	font-size: 0.625rem;
-	padding: 3px 8px;
+	padding: var(--space-1) var(--space-2);
 	border-radius: var(--radius-sm);
 	background: #f8f9fa;
 	border: 1px solid #dcdcde;
@@ -297,7 +297,7 @@
 .wpaim-dash-btn {
 	font-size: 0.6875rem;
 	font-weight: 600;
-	padding: 5px 10px;
+	padding: var(--space-1) var(--space-3);
 	border-radius: var(--radius-sm);
 	cursor: pointer;
 	font-family: inherit;
@@ -411,7 +411,7 @@
 	font-size: 0.9375rem;
 	font-weight: 700;
 	color: var(--color-text-primary);
-	margin-bottom: 3px;
+	margin-bottom: var(--space-1);
 }
 
 .wpaim-ob-sub {
@@ -492,7 +492,7 @@
 	font-size: 0.75rem;
 	font-weight: 600;
 	color: var(--color-text-primary);
-	margin-bottom: 2px;
+	margin-bottom: var(--space-0-5);
 }
 
 .wpaim-ob-choice__desc {
@@ -526,7 +526,7 @@
 	cursor: pointer;
 	display: flex;
 	flex-direction: column;
-	gap: 3px;
+	gap: var(--space-1);
 	position: relative;
 	transition: border-color 0.12s, background 0.12s;
 }
@@ -543,8 +543,8 @@
 .wpaim-ob-provider__check {
 	display: none;
 	position: absolute;
-	top: 6px;
-	right: 6px;
+	top: var(--space-1);
+	right: var(--space-1);
 	width: 14px;
 	height: 14px;
 	border-radius: 50%;
@@ -571,7 +571,7 @@
 	text-decoration: none;
 	display: flex;
 	align-items: center;
-	gap: 2px;
+	gap: var(--space-0-5);
 }
 
 .wpaim-ob-provider__link:hover {
@@ -639,8 +639,8 @@
 .wpaim-ob-optional__tag {
 	font-size: 0.5625rem;
 	font-weight: 600;
-	padding: 2px 6px;
-	border-radius: 3px;
+	padding: var(--space-0-5) var(--space-2);
+	border-radius: var(--radius-sm);
 	background: #e0e1e6;
 	color: #787c82;
 	text-transform: uppercase;
@@ -689,8 +689,8 @@
 
 .wpaim-ob-devnote code {
 	background: rgba(0, 0, 0, 0.08);
-	padding: 1px 4px;
-	border-radius: 3px;
+	padding: var(--space-0-5) var(--space-1);
+	border-radius: var(--radius-sm);
 	font-size: 0.5625rem;
 }
 
@@ -773,8 +773,8 @@
 
 .wpaim-usage-widget__tier-badge {
 	font-size: 0.625rem;
-	padding: 2px 6px;
-	border-radius: 3px;
+	padding: var(--space-0-5) var(--space-2);
+	border-radius: var(--radius-sm);
 	background: var(--color-border-subtle);
 	color: var(--color-text-muted);
 	font-weight: 600;
@@ -807,13 +807,13 @@
 .wpaim-usage-widget__token-count {
 	font-size: 0.625rem;
 	color: var(--color-text-muted);
-	margin-top: 2px;
+	margin-top: var(--space-0-5);
 	margin-bottom: var(--space-2);
 }
 
 .wpaim-usage-widget__bar-track {
 	background: var(--color-border, #ddd);
-	border-radius: 4px;
+	border-radius: var(--radius-sm);
 	height: 6px;
 	overflow: hidden;
 	margin-top: var(--space-2);

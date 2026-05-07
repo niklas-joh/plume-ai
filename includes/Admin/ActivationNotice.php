@@ -26,7 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ActivationNotice {
 
-	private const OPTION = 'wp_ai_mind_just_activated';
+	private const OPTION         = 'wp_ai_mind_just_activated';
+	private const LEARN_MORE_URL = 'https://wpaimind.com/privacy-policy';
 
 	/**
 	 * Register the admin_notices hook.
@@ -55,7 +56,6 @@ class ActivationNotice {
 		// Delete before rendering — single-use flag, prevents re-display on reload.
 		\delete_option( self::OPTION );
 
-		$learn_more_url = 'https://wpaimind.com/privacy-policy';
 		?>
 		<div class="notice notice-info is-dismissible">
 			<p>
@@ -72,7 +72,7 @@ class ActivationNotice {
 				echo wp_kses(
 					sprintf(
 						' <a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
-						\esc_url( $learn_more_url ),
+						\esc_url( self::LEARN_MORE_URL ),
 						\esc_html__( 'Learn more', 'wp-ai-mind' )
 					),
 					[

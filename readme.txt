@@ -71,9 +71,11 @@ to any other server.
 
 = Is this plugin GDPR-compliant? =
 
-The plugin transmits content you submit to the AI provider you have configured. You are
-responsible for ensuring that transmission is compliant with your applicable data protection
-regulations. Consider adding your chosen provider's data processing agreement to your
+The plugin transmits content you submit to the WP AI Mind proxy service and/or the AI
+provider you have configured (Anthropic Claude, OpenAI, Google Gemini). Both the proxy and
+the AI provider receive your chat messages. You are responsible for ensuring that
+transmission is compliant with your applicable data protection regulations. Consider adding
+the WP AI Mind privacy policy and your chosen provider's data processing agreement to your
 privacy documentation.
 
 = What WordPress roles can use the AI features? =

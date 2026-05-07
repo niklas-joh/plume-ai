@@ -29,11 +29,22 @@ export interface LicenceRecord {
 	activated_at: number;
 }
 
+export interface ToolParam {
+	name: string;
+	description: string;
+	input_schema: {
+		type: 'object';
+		properties: Record< string, unknown >;
+		required?: string[];
+	};
+}
+
 export interface ProxyRequest {
 	messages: MessageParam[];
 	model?: string;
 	max_tokens?: number;
 	system?: string;
+	tools?: ToolParam[];
 }
 
 export interface MessageParam {

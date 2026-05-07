@@ -3,7 +3,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import worker from '../src/index';
 import { makeEnv } from './helpers/kv-mock';
-import type { SiteRecord } from '../src/types';
+import type { SiteRecord, ToolParam } from '../src/types';
 
 afterEach( () => {
 	vi.restoreAllMocks();
@@ -78,6 +78,57 @@ describe( 'handleChatProxy', () => {
 			'json'
 		) as SiteRecord;
 		expect( updated.tier ).toBe( 'free' );
+	} );
+
+	it( 'forwards tools to the Anthropic API', async () => {
+		const env = await makeEnvWithSiteToken( 'trial' );
+
+		const mockTool: ToolParam = {
+			name: 'get_post_content',
+			description: 'Get post content',
+			input_schema: {
+				type: 'object',
+				properties: { post_id: { type: 'integer' } },
+				required: [ 'post_id' ],
+			},
+		};
+
+		let capturedBody: Record< string, unknown > | null = null;
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async ( _url: string, init: RequestInit ) => {
+				capturedBody = JSON.parse( init.body as string );
+				return new Response(
+					JSON.stringify( {
+						content: [ { type: 'text', text: 'Summary' } ],
+						model: 'claude-haiku-4-5-20251001',
+						usage: { input_tokens: 10, output_tokens: 5 },
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Summarise post 140' } ],
+			tools: [ mockTool ],
+		} );
+
+		const req = new Request( 'https://worker.example.com/v1/chat', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${ TEST_TOKEN }`,
+				'Content-Type': 'application/json',
+			},
+			body,
+		} );
+
+		const response = await worker.fetch( req, env );
+		expect( response.status ).toBe( 200 );
+		expect( capturedBody ).not.toBeNull();
+		expect( ( capturedBody as Record< string, unknown > ).tools ).toEqual( [
+			mockTool,
+		] );
 	} );
 
 	it( 'does not demote an active trial (< 30 days)', async () => {

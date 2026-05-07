@@ -165,17 +165,16 @@ class ClaudeProvider extends AbstractProvider {
 	 * @throws ProviderException When the proxy returns a WP_Error.
 	 */
 	private function complete_via_proxy( CompletionRequest $request ): CompletionResponse {
-		$result = NJ_Proxy_Client::chat(
-			$request->messages,
-			array_filter(
-				[
-					'model'      => ! empty( $request->model ) ? $request->model : null,
-					'max_tokens' => $request->max_tokens,
-					'system'     => '' !== $request->system ? $request->system : null,
-				],
-				fn( $v ) => null !== $v
-			)
-		);
+		$raw_options = [
+			'model'      => ! empty( $request->model ) ? $request->model : null,
+			'max_tokens' => $request->max_tokens,
+			'system'     => '' !== $request->system ? $request->system : null,
+		];
+		$options     = array_filter( $raw_options, fn( $v ) => null !== $v );
+		if ( ! empty( $request->tools ) ) {
+			$options['tools'] = $request->tools;
+		}
+		$result = NJ_Proxy_Client::chat( $request->messages, $options );
 
 		if ( is_wp_error( $result ) ) {
 			throw new ProviderException( $result->get_error_message(), 'claude' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped

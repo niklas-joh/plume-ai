@@ -30,8 +30,9 @@ class NJ_Proxy_Client {
 	/**
 	 * Send a chat request through the Cloudflare proxy.
 	 *
+	 * @since 1.2.0
 	 * @param array<array{role: string, content: string}> $messages Chat message history.
-	 * @param array<string, mixed>                        $options  Supports 'model', 'max_tokens', 'system'.
+	 * @param array<string, mixed>                        $options  Supports 'model', 'max_tokens', 'system', 'tools'.
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function chat( array $messages, array $options = [] ): array|WP_Error {
@@ -59,6 +60,9 @@ class NJ_Proxy_Client {
 		}
 		if ( isset( $options['system'] ) ) {
 			$payload['system'] = $options['system'];
+		}
+		if ( ! empty( $options['tools'] ) ) {
+			$payload['tools'] = $options['tools'];
 		}
 
 		$body_json = wp_json_encode( $payload );

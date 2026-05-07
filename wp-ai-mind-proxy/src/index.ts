@@ -61,7 +61,7 @@ async function handleChatProxy(
 		}
 
 		const body = JSON.parse( bodyText ) as ProxyRequest;
-		const { messages, model, max_tokens: maxTokens, system } = body;
+		const { messages, model, max_tokens: maxTokens, system, tools } = body;
 		const { site_token: siteToken, tier } = auth;
 
 		// BYOK sites call Anthropic directly via ClaudeProvider and must never reach here.
@@ -112,6 +112,9 @@ async function handleChatProxy(
 		};
 		if ( system ) {
 			anthropicBody.system = system;
+		}
+		if ( tools && tools.length > 0 ) {
+			anthropicBody.tools = tools;
 		}
 
 		const anthropicResponse = await fetch(

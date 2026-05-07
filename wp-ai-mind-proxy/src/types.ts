@@ -35,7 +35,7 @@ export interface ToolParam {
 	input_schema: {
 		type: 'object';
 		properties: Record< string, unknown >;
-		required: string[];
+		required?: string[];
 	};
 }
 

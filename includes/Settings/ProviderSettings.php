@@ -8,6 +8,10 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Settings;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Stores and retrieves encrypted API keys for AI providers.
  *

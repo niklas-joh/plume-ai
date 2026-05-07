@@ -8,6 +8,10 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Providers;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use WP_AI_Mind\Settings\ProviderSettings;
 
 /**

@@ -9,6 +9,10 @@ declare( strict_types=1 );
 
 namespace WP_AI_Mind\Providers;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Captures content, token counts, cost, and optional tool-call data from a provider response.
  *

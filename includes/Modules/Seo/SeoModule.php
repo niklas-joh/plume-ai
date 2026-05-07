@@ -9,6 +9,10 @@ declare( strict_types=1 );
 
 namespace WP_AI_Mind\Modules\Seo;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use WP_AI_Mind\Providers\ProviderFactory;
 use WP_AI_Mind\Providers\CompletionRequest;
 use WP_AI_Mind\Providers\ProviderException;

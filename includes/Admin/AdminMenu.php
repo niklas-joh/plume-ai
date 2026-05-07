@@ -8,6 +8,10 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Admin;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Registers the top-level WP AI Mind admin menu and all sub-menu pages.
  *

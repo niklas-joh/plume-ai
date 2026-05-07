@@ -8,6 +8,10 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Providers;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Handles completions via a local Ollama instance.
  *

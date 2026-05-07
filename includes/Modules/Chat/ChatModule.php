@@ -8,6 +8,10 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Modules\Chat;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use WP_AI_Mind\Tools\ToolRegistry;
 use WP_AI_Mind\Tools\ToolExecutor;
 

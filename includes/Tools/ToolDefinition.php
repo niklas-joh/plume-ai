@@ -9,6 +9,10 @@ declare( strict_types=1 );
 
 namespace WP_AI_Mind\Tools;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Immutable value object describing a single AI tool.
  */

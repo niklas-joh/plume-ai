@@ -8,6 +8,10 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\DB;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Data-access layer for conversations and their messages.
  *

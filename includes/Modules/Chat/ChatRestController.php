@@ -8,6 +8,10 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Modules\Chat;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use WP_AI_Mind\DB\ConversationStore;
 use WP_AI_Mind\Providers\ProviderFactory;
 use WP_AI_Mind\Providers\CompletionRequest;

@@ -9,6 +9,10 @@ declare( strict_types=1 );
 
 namespace WP_AI_Mind\Providers;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Captures all parameters required to make an AI completion request.
  *

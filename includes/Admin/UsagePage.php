@@ -9,6 +9,10 @@ declare( strict_types=1 );
 
 namespace WP_AI_Mind\Admin;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Renders the WP AI Mind usage & cost admin page.
  *

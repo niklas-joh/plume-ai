@@ -8,6 +8,10 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\Providers;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use WP_AI_Mind\Proxy\NJ_Proxy_Client;
 use WP_AI_Mind\Proxy\NJ_Site_Registration;
 use WP_AI_Mind\Tiers\NJ_Tier_Manager;

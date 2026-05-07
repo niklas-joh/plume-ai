@@ -1,6 +1,6 @@
 === WP AI Mind ===
 Contributors: njohansson
-Tags: ai, content, seo, chatbot, openai, claude, gemini
+Tags: ai, chatbot, openai, claude, content
 Requires at least: 6.4
 Tested up to: 6.8
 Stable tag: 1.7.1
@@ -23,6 +23,13 @@ into your WordPress dashboard, giving you AI assistance without leaving the edit
 * **Frontend widget** — Embeddable chat widget via `[wp_ai_mind_chat]` shortcode
 * **Gutenberg integration** — Direct editor sidebar tools
 
+**Free vs Pro:**
+
+* **Free** — Chat assistant (50,000 tokens/month via WP AI Mind proxy, Claude only)
+* **Trial** — All features for 30 days (300,000 tokens/month via proxy)
+* **Pro Managed** — All features, 2,000,000 tokens/month via proxy
+* **Pro BYOK** — All features, unlimited tokens, your own API key sent direct to provider
+
 **Supported AI providers:** Anthropic Claude, OpenAI (GPT-4+), Google Gemini, Ollama (local/self-hosted)
 
 **External services:** This plugin sends content you submit to the AI provider of your choice
@@ -33,12 +40,16 @@ chosen provider. Review each provider's privacy policy and terms of service befo
 * OpenAI: https://openai.com/policies/privacy-policy
 * Google Gemini: https://policies.google.com/privacy
 * Ollama is self-hosted; no external transmission occurs when using Ollama.
+* **WP AI Mind Proxy** (`https://wp-ai-mind-proxy.wp-ai-mind.workers.dev`): Free and managed-pro
+  tiers route chat requests through this Cloudflare Worker service. The service receives your
+  site URL (for registration) and the chat messages you send. No messages are stored by the
+  proxy beyond the in-flight API call. See: https://wpaimind.com/privacy-policy
 
 == Installation ==
 
 1. Upload the `wp-ai-mind` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the **Plugins** menu in WordPress.
-3. Navigate to **WP AI Mind → Settings** and enter an API key for your chosen AI provider.
+3. (Optional — Pro BYOK only) Navigate to **WP AI Mind → Settings** and enter your own API key. Free and managed-plan users do not need an API key.
 4. Start using the Chat, Generator, or Usage modules from the admin menu.
 
 == Frequently Asked Questions ==
@@ -50,14 +61,21 @@ one or more providers and switch between them in the settings.
 
 = Does this plugin store my API keys securely? =
 
-API keys are stored in the WordPress database (wp_options). They are never transmitted to
-any server other than the AI provider you have chosen.
+**Free / Trial / Pro Managed tiers:** No API key is required — chat requests are routed
+through the WP AI Mind proxy (see External services above). Your messages are transmitted
+to that proxy, which forwards them to Claude (Anthropic) on your behalf.
+
+**Pro BYOK tier:** Your own API key is stored encrypted (AES-256-CBC) in the WordPress
+database and is transmitted directly to the AI provider you have chosen. It is never sent
+to any other server.
 
 = Is this plugin GDPR-compliant? =
 
-The plugin transmits content you submit to the AI provider you have configured. You are
-responsible for ensuring that transmission is compliant with your applicable data protection
-regulations. Consider adding your chosen provider's data processing agreement to your
+The plugin transmits content you submit to the WP AI Mind proxy service and/or the AI
+provider you have configured (Anthropic Claude, OpenAI, Google Gemini). Both the proxy and
+the AI provider receive your chat messages. You are responsible for ensuring that
+transmission is compliant with your applicable data protection regulations. Consider adding
+the WP AI Mind privacy policy and your chosen provider's data processing agreement to your
 privacy documentation.
 
 = What WordPress roles can use the AI features? =
@@ -67,6 +85,65 @@ content generation tools. Site settings require `manage_options` (Administrators
 
 == Changelog ==
 
+= 1.7.1 =
+* Fix chat post content not being read and add post-attach guard for quick actions.
+
+= 1.7.0 =
+* Chat layout improvements: collapsible sidebar, height fix, and title tooltips.
+
+= 1.6.0 =
+* Centre chat input and add suggestion chips on launch.
+
+= 1.5.0 =
+* Add generate_seo_meta tool for chat SEO optimisation.
+
+= 1.4.0 =
+* Fold usage widget into Dashboard and show percentage display.
+
+= 1.3.6 =
+* Fix context_post_id not being passed when sending messages from MiniChat in the editor.
+
+= 1.3.5 =
+* Sanitise conversation titles explicitly and remove unreachable database-error branch.
+
+= 1.3.4 =
+* Fix default provider selection, conversation title update, and inline delete errors.
+
+= 1.3.3 =
+* Add pro_byok guard in proxy Worker and clarify 401 error message.
+
+= 1.3.2 =
+* Prevent infinite loop in maybe_demote_expired_trials().
+
+= 1.3.1 =
+* Fix CI to push and close each auto-fix issue immediately after fixing.
+
+= 1.3.0 =
+* Batch auto-fix: one Claude session per PR, remove max-turns limits.
+
+= 1.2.1 =
+* Restore isPro field — revert erroneous canChat rename in settings.
+
+= 1.2.0 =
+* Consolidate PR review nits into a single issue per PR in the automated workflow.
+
+= 1.1.0 =
+* Add delete conversation with confirmation dialog and inline error state.
+
+= 1.0.3 =
+* Add @wordpress/element to devDependencies alongside peerDependencies.
+
+= 1.0.2 =
+* Return full conversation object on create; return HTTP 500 on DB failure.
+
+= 1.0.1 =
+* Guard putenv cleanup with try/finally in test suite.
+
+= 1.0.0 =
+* Full initial stable release: chat REST API, React UI, Gutenberg sidebar, SEO and Images pages.
+* Encrypted API key storage, provider abstraction (Claude, OpenAI, Gemini, Ollama), tool-calling loop.
+* Frontend chat widget shortcode, content generator wizard, and usage dashboard.
+
 = 0.2.0 =
 * Repo extraction, CI/CD pipeline, release workflow, and build script fix.
 
@@ -74,6 +151,9 @@ content generation tools. Site settings require `manage_options` (Administrators
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.7.1 =
+No breaking changes. Update safely.
 
 = 0.1.0 =
 Initial release. No upgrade steps required.

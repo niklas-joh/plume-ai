@@ -8,6 +8,10 @@
 declare( strict_types=1 );
 namespace WP_AI_Mind\DB;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Manages the plugin's custom database tables.
  *

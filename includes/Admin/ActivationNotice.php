@@ -69,10 +69,19 @@ class ActivationNotice {
 				);
 				?>
 				<?php
-				printf(
-					' <a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
-					\esc_url( $learn_more_url ),
-					\esc_html__( 'Learn more', 'wp-ai-mind' )
+				echo wp_kses(
+					sprintf(
+						' <a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+						\esc_url( $learn_more_url ),
+						\esc_html__( 'Learn more', 'wp-ai-mind' )
+					),
+					[
+						'a' => [
+							'href'   => true,
+							'target' => true,
+							'rel'    => true,
+						],
+					]
 				);
 				?>
 			</p>

@@ -55,8 +55,10 @@ async function getModelConfig( env: Env ): Promise< {
 		if ( raw ) {
 			const parsed = JSON.parse( raw ) as ModelConfig;
 			return {
-				tierModels:   parsed.tier_models        ?? DEFAULT_TIER_MODELS,
-				tokenWeights: parsed.model_token_weight ?? DEFAULT_MODEL_TOKEN_WEIGHT,
+				// Deep-merge so a partial KV config (e.g. only claude block) does not
+				// discard the defaults for unmentioned providers or model weights.
+				tierModels:   { ...DEFAULT_TIER_MODELS,        ...parsed.tier_models },
+				tokenWeights: { ...DEFAULT_MODEL_TOKEN_WEIGHT, ...parsed.model_token_weight },
 			};
 		}
 	} catch {

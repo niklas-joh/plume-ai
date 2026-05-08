@@ -37,9 +37,7 @@ test.describe('P3 — Chat admin page', () => {
 
     test('REST endpoint /wp-ai-mind/v1/providers responds', async ({ page }) => {
         // Hit the REST API directly via the browser (nonce not required for this check)
-        const response = await page.request.get(
-            'http://localhost:8080/wp-json/wp-ai-mind/v1/providers'
-        );
+        const response = await page.request.get( '/wp-json/wp-ai-mind/v1/providers' );
         // 200, 401, or 403 — any of these means the route is registered
         expect([200, 401, 403]).toContain(response.status());
     });

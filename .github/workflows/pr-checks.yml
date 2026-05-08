@@ -127,6 +127,7 @@ jobs:
               ${{ secrets.MAC_SSH_USER }}@${{ secrets.MAC_SSH_HOST }} \
               "bash -s" << 'REMOTE'
             set -e
+            export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
             cd /Users/niklas/Documents/Homepages/wp-ai-mind
             git fetch origin
             git checkout ${{ github.head_ref }}
@@ -177,6 +178,7 @@ jobs:
               ${{ secrets.MAC_SSH_USER }}@${{ secrets.MAC_SSH_HOST }} \
               "bash -s" << REMOTE
             set -e
+            export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
             export QIT_EMAIL="$QIT_EMAIL"
             export QIT_PASSWORD="$QIT_PASSWORD"
             cd /Users/niklas/Documents/Homepages/wp-ai-mind

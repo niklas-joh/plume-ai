@@ -153,12 +153,31 @@ async function callOpenAI(
 		throw Object.assign( new Error( 'OpenAI API error' ), { status: response.status, body: result } );
 	}
 
-	const choices = result.choices as Array< { message: { content: string } } >;
+	const choices = result.choices as Array< {
+		message: { content: string; tool_calls?: Array< { id: string; function: { name: string; arguments: string } } > };
+		finish_reason: string;
+	} >;
 	const usage = result.usage as { prompt_tokens: number; completion_tokens: number };
+	const normalizedUsage = { input_tokens: usage.prompt_tokens, output_tokens: usage.completion_tokens };
+
+	if ( choices[ 0 ]?.finish_reason === 'tool_calls' ) {
+		const tc = choices[ 0 ].message.tool_calls?.[ 0 ];
+		if ( tc ) {
+			return {
+				content: '',
+				usage: normalizedUsage,
+				tool_call: {
+					id: tc.id,
+					name: tc.function.name,
+					arguments: JSON.parse( tc.function.arguments ?? '{}' ) as Record< string, unknown >,
+				},
+			};
+		}
+	}
 
 	return {
 		content: choices[ 0 ]?.message?.content ?? '',
-		usage: { input_tokens: usage.prompt_tokens, output_tokens: usage.completion_tokens },
+		usage: normalizedUsage,
 	};
 }
 
@@ -195,12 +214,29 @@ async function callGemini(
 		throw Object.assign( new Error( 'Gemini API error' ), { status: response.status, body: result } );
 	}
 
-	const candidates = result.candidates as Array< { content: { parts: Array< { text: string } > } } >;
+	const candidates = result.candidates as Array< {
+		content: { parts: Array< { text?: string; functionCall?: { name: string; args?: Record< string, unknown > } } > };
+	} >;
 	const usageMeta = result.usageMetadata as { promptTokenCount: number; candidatesTokenCount: number };
+	const normalizedUsage = { input_tokens: usageMeta.promptTokenCount, output_tokens: usageMeta.candidatesTokenCount };
+
+	for ( const part of ( candidates[ 0 ]?.content?.parts ?? [] ) ) {
+		if ( part.functionCall ) {
+			return {
+				content: '',
+				usage: normalizedUsage,
+				tool_call: {
+					id: `gemini_${ Date.now() }`,
+					name: part.functionCall.name,
+					arguments: part.functionCall.args ?? {},
+				},
+			};
+		}
+	}
 
 	return {
 		content: candidates[ 0 ]?.content?.parts[ 0 ]?.text ?? '',
-		usage: { input_tokens: usageMeta.promptTokenCount, output_tokens: usageMeta.candidatesTokenCount },
+		usage: normalizedUsage,
 	};
 }
 

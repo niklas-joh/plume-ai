@@ -207,7 +207,27 @@ class OpenAIProvider extends AbstractProvider {
 
 		// NJ_Proxy_Client::chat() already called NJ_Usage_Tracker::log_usage() — flag to suppress parent logging.
 		$this->proxy_logged = true;
-		return $this->parse_response( $result, $model );
+
+		// Build CompletionResponse directly from the proxy's normalised shape { content, usage, tool_call? }.
+		// parse_response() expects the upstream OpenAI wire format and cannot handle the normalised response.
+		$in_tokens  = (int) ( $result['usage']['input_tokens'] ?? 0 );
+		$out_tokens = (int) ( $result['usage']['output_tokens'] ?? 0 );
+		$pricing    = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
+		$cost       = ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
+
+		if ( ! empty( $result['tool_call'] ) ) {
+			return new CompletionResponse(
+				content: '',
+				model: $model,
+				prompt_tokens: $in_tokens,
+				completion_tokens: $out_tokens,
+				cost_usd: $cost,
+				raw: $result,
+				tool_call: $result['tool_call'],
+			);
+		}
+
+		return new CompletionResponse( $result['content'] ?? '', $model, $in_tokens, $out_tokens, $cost, $result );
 	}
 
 	/**

@@ -1,0 +1,36 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Strict comparison using \\=\\=\\= between false and string will always evaluate to false\\.$#"
+			count: 1
+			path: includes/Admin/NJ_Api_Key_Settings.php
+
+		-
+			message: "#^Call to function is_wp_error\\(\\) with WP_AI_Mind\\\\Providers\\\\CompletionResponse will always evaluate to false\\.$#"
+			count: 1
+			path: includes/Modules/Chat/ChatRestController.php
+
+		-
+			message: "#^is_wp_error\\(WP_AI_Mind\\\\Providers\\\\CompletionResponse\\) will always evaluate to false\\.$#"
+			count: 1
+			path: includes/Modules/Chat/ChatRestController.php
+
+		-
+			message: "#^Class WP_AI_Mind\\\\Providers\\\\ProviderFactory constructor invoked with 0 parameters, 1 required\\.$#"
+			count: 1
+			path: includes/Modules/Generator/GeneratorModule.php
+
+		-
+			message: "#^Constant AUTH_KEY not found\\.$#"
+			count: 1
+			path: includes/Settings/ProviderSettings.php
+
+		-
+			message: "#^Constant SECURE_AUTH_KEY not found\\.$#"
+			count: 1
+			path: includes/Settings/ProviderSettings.php
+
+		-
+			message: "#^Action callback returns WP_AI_Mind\\\\Core\\\\Plugin but should not return anything\\.$#"
+			count: 1
+			path: wp-ai-mind.php

@@ -143,7 +143,7 @@ abstract class AbstractProvider implements ProviderInterface {
 				usleep( ( self::RETRY_BASE_MS * ( 2 ** $attempt ) ) * 1000 );
 			}
 		}
-		throw $last_exception; // @phpstan-ignore-line
+		throw $last_exception;
 	}
 
 	/**

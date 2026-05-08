@@ -20,8 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Sends Bearer-token-authenticated requests to the Cloudflare Worker proxy.
  *
- * Free/Trial/Pro Managed users are routed through this class.
- * Pro BYOK tier bypasses this class entirely and routes via ClaudeProvider.
+ * Free/Trial/Pro Managed users are routed through this class for all providers
+ * (Claude, OpenAI, Gemini). The Pro BYOK tier bypasses this class entirely and
+ * calls the provider's own API directly.
  *
  * @since 1.2.0
  */
@@ -31,11 +32,12 @@ class NJ_Proxy_Client {
 	 * Send a chat request through the Cloudflare proxy.
 	 *
 	 * @since 1.2.0
-	 * @param array<array{role: string, content: string}> $messages Chat message history.
-	 * @param array<string, mixed>                        $options  Supports 'model', 'max_tokens', 'system', 'tools'.
+	 * @param array<array{role: string, content: string}> $messages  Chat message history.
+	 * @param array<string, mixed>                        $options   Supports 'model', 'max_tokens', 'system', 'tools'.
+	 * @param string                                      $provider  Provider slug: 'claude', 'openai', or 'gemini'. Defaults to 'claude'.
 	 * @return array<string, mixed>|WP_Error
 	 */
-	public static function chat( array $messages, array $options = [] ): array|WP_Error {
+	public static function chat( array $messages, array $options = [], string $provider = 'claude' ): array|WP_Error {
 		$token = NJ_Site_Registration::get_site_token();
 		if ( empty( $token ) ) {
 			return new WP_Error( 'not_registered', __( 'Site not registered with AI proxy.', 'wp-ai-mind' ) );
@@ -50,6 +52,7 @@ class NJ_Proxy_Client {
 
 		$payload = [
 			'messages' => $messages,
+			'provider' => $provider,
 		];
 
 		if ( isset( $options['model'] ) ) {
@@ -105,7 +108,11 @@ class NJ_Proxy_Client {
 			return new WP_Error( 'proxy_error', $body['error'] ?? sprintf( 'Proxy returned HTTP %d', $code ) );
 		}
 
-		// Mirror usage locally for dashboard display only. KV is authoritative for enforcement.
+		// Mirror usage locally for dashboard display only — KV is authoritative for quota enforcement.
+		// The proxy stores weighted tokens (raw × model weight), so the KV quota and local counter
+		// will diverge for high-weight models (e.g. Claude Opus at ×15). This is intentional:
+		// the dashboard shows raw API tokens consumed while quota enforcement operates on
+		// weighted tokens in KV to keep billing proportional across providers and models.
 		if ( isset( $body['usage']['input_tokens'], $body['usage']['output_tokens'] ) ) {
 			$tokens = (int) $body['usage']['input_tokens'] + (int) $body['usage']['output_tokens'];
 			NJ_Usage_Tracker::log_usage( $tokens, $user_id );

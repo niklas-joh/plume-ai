@@ -24,6 +24,8 @@ class OpenAIProviderTest extends TestCase {
 			public function query( string $sql ): int { return 1; }
 		};
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		// Return 'pro_byok' so do_complete() routes direct — preserving existing test behaviour.
+		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
 		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
 	}
@@ -34,6 +36,8 @@ class OpenAIProviderTest extends TestCase {
 	}
 
 	public function test_is_available_false_without_key(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		$this->assertFalse( ( new OpenAIProvider( '' ) )->is_available() );
 	}
 
@@ -60,6 +64,8 @@ class OpenAIProviderTest extends TestCase {
 	}
 
 	public function test_complete_throws_on_api_error(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'wp_remote_post' )->justReturn( [
 			'response' => [ 'code' => 401 ],
 			'body'     => json_encode( [ 'error' => [ 'message' => 'Invalid API key' ] ] ),
@@ -116,6 +122,140 @@ class OpenAIProviderTest extends TestCase {
 		$this->assertSame( 'call_abc123', $response->tool_call['id'] );
 		$this->assertSame( [ 'count' => 5 ], $response->tool_call['arguments'] );
 		$this->assertSame( '', $response->content );
+	}
+
+	// ── Proxy path tests ─────────────────────────────────────────────────────
+
+	private function mock_free_tier_proxy(): void {
+		global $wpdb;
+		$wpdb = new class extends \stdClass {
+			public string $usermeta      = 'wp_usermeta';
+			public int    $rows_affected = 1;
+			public string $prefix        = 'wpaim_';
+			public function insert(): int { return 1; }
+			public function prepare( string $sql, ...$args ): string { return $sql; }
+			public function query( string $sql ): int { return 1; }
+		};
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_meta' )->justReturn( 'free' );
+		Functions\when( 'get_option' )->justReturn( 'test-site-token' );
+		Functions\when( 'sanitize_key' )->alias( fn( $v ) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+	}
+
+	public function test_is_available_true_for_free_tier_when_registered(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_meta' )->justReturn( 'free' );
+		Functions\when( 'get_option' )->justReturn( 'test-site-token' );
+		$this->assertTrue( ( new OpenAIProvider( '' ) )->is_available() );
+	}
+
+	public function test_complete_via_proxy_happy_path(): void {
+		$this->mock_free_tier_proxy();
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content' => 'OpenAI proxy says hi',
+				'usage'   => [ 'input_tokens' => 8, 'output_tokens' => 4 ],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+
+		$provider = new OpenAIProvider( '' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+		$response = $provider->complete( $request );
+
+		$this->assertSame( 'OpenAI proxy says hi', $response->content );
+		$this->assertSame( 8, $response->prompt_tokens );
+		$this->assertSame( 4, $response->completion_tokens );
+		$this->assertFalse( $response->is_tool_call() );
+	}
+
+	public function test_complete_via_proxy_tool_call(): void {
+		$this->mock_free_tier_proxy();
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content'   => '',
+				'usage'     => [ 'input_tokens' => 15, 'output_tokens' => 6 ],
+				'tool_call' => [ 'id' => 'call_abc123', 'name' => 'get_posts', 'arguments' => [ 'count' => 5 ] ],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+
+		$provider = new OpenAIProvider( '' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'list posts' ] ] );
+		$response = $provider->complete( $request );
+
+		$this->assertTrue( $response->is_tool_call() );
+		$this->assertSame( 'get_posts', $response->tool_call['name'] );
+		$this->assertSame( 'call_abc123', $response->tool_call['id'] );
+		$this->assertSame( [ 'count' => 5 ], $response->tool_call['arguments'] );
+	}
+
+	public function test_complete_via_proxy_wp_error_throws_provider_exception(): void {
+		global $wpdb;
+		$wpdb = new class extends \stdClass {
+			public string $usermeta      = 'wp_usermeta';
+			public int    $rows_affected = 1;
+			public string $prefix        = 'wpaim_';
+			public function insert(): int { return 1; }
+			public function prepare( string $sql, ...$args ): string { return $sql; }
+			public function query( string $sql ): int { return 1; }
+		};
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_meta' )->justReturn( 'free' );
+		Functions\when( 'get_option' )->justReturn( 'test-site-token' );
+		Functions\when( 'sanitize_key' )->alias( fn( $v ) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'wp_remote_post' )->justReturn( new \WP_Error( 'http_request_failed', 'Connection refused' ) );
+		Functions\when( 'is_wp_error' )->justReturn( true );
+
+		$provider = new OpenAIProvider( '' );
+		$this->expectException( ProviderException::class );
+		$provider->complete( new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] ) );
+	}
+
+	public function test_proxy_logged_suppresses_parent_log(): void {
+		global $wpdb;
+		$wpdb = new class extends \stdClass {
+			public string $usermeta      = 'wp_usermeta';
+			public int    $rows_affected = 1;
+			public string $prefix        = 'wpaim_';
+			public int    $query_calls   = 0;
+			public function __construct() {}
+			public function insert(): int { return 1; }
+			public function prepare( string $sql, ...$args ): string { return $sql; }
+			public function query( string $sql ): int { $this->query_calls++; return 1; }
+		};
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_meta' )->justReturn( 'free' );
+		Functions\when( 'get_option' )->justReturn( 'test-site-token' );
+		Functions\when( 'sanitize_key' )->alias( fn( $v ) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content' => 'ok',
+				'usage'   => [ 'input_tokens' => 2, 'output_tokens' => 1 ],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+
+		$provider = new OpenAIProvider( '' );
+		$provider->complete( new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] ) );
+
+		// NJ_Proxy_Client::chat() logs usage once (one wpdb->query call).
+		// proxy_logged flag must prevent parent::maybe_log() from logging a second time.
+		$this->assertSame( 1, $wpdb->query_calls );
 	}
 
 	public function test_normal_response_not_tool_call(): void {

@@ -3,6 +3,8 @@
 export interface Env {
 	USAGE_KV: KVNamespace;
 	ANTHROPIC_API_KEY: string;
+	OPENAI_API_KEY: string;
+	GEMINI_API_KEY: string;
 	LS_WEBHOOK_SECRET: string;
 	LS_PRO_MONTHLY_VARIANT_ID: string;
 	LS_PRO_ANNUAL_VARIANT_ID: string;
@@ -32,11 +34,17 @@ export interface LicenceRecord {
 export interface ToolParam {
 	name: string;
 	description: string;
-	input_schema: {
+	parameters: {
 		type: 'object';
 		properties: Record< string, unknown >;
 		required?: string[];
 	};
+}
+
+export interface NormalizedResponse {
+	content: string;
+	usage: { input_tokens: number; output_tokens: number };
+	tool_call?: { id: string; name: string; arguments: Record< string, unknown > };
 }
 
 export interface ProxyRequest {
@@ -45,9 +53,19 @@ export interface ProxyRequest {
 	max_tokens?: number;
 	system?: string;
 	tools?: ToolParam[];
+	provider?: 'claude' | 'openai' | 'gemini';
 }
 
 export interface MessageParam {
 	role: 'user' | 'assistant';
 	content: string;
+}
+
+/**
+ * Model configuration stored in USAGE_KV under the key `config:models`.
+ * Both fields are optional — absent fields fall back to the compiled defaults in index.ts.
+ */
+export interface ModelConfig {
+	tier_models?: Record< string, Record< string, string[] > >;
+	model_token_weight?: Record< string, number >;
 }

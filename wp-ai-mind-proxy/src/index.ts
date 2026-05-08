@@ -1,12 +1,258 @@
 // src/index.ts
 
-import { Env, ProxyRequest, ProxyTier, SiteRecord } from './types';
+import { Env, ModelConfig, NormalizedResponse, ProxyRequest, ProxyTier, SiteRecord, ToolParam } from './types';
 import { authenticateRequest } from './auth';
 import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
 import { TRIAL_PERIOD_MS } from './constants';
 
 const MAX_BODY_BYTES = 1_048_576; // 1 MB
+
+type Provider = 'claude' | 'openai' | 'gemini';
+
+// Fallback model lists used when no config:models entry exists in USAGE_KV.
+const DEFAULT_TIER_MODELS: Record< Provider, Record< ProxyTier, string[] > > = {
+	claude: {
+		free:        [ 'claude-haiku-4-5-20251001' ],
+		trial:       [ 'claude-haiku-4-5-20251001' ],
+		pro_managed: [ 'claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'claude-opus-4-6' ],
+	},
+	openai: {
+		free:        [ 'gpt-4o-mini' ],
+		trial:       [ 'gpt-4o-mini' ],
+		pro_managed: [ 'gpt-4o-mini', 'gpt-4o' ],
+	},
+	gemini: {
+		free:        [ 'gemini-2.5-flash' ],
+		trial:       [ 'gemini-2.5-flash' ],
+		pro_managed: [ 'gemini-2.5-flash', 'gemini-2.5-pro' ],
+	},
+};
+
+// Fallback token weights — relative cost multipliers applied to raw token counts
+// before storing in the usage KV, so quota enforcement is provider/model-agnostic.
+const DEFAULT_MODEL_TOKEN_WEIGHT: Record< string, number > = {
+	'claude-haiku-4-5-20251001': 1,
+	'claude-sonnet-4-6':          3,
+	'claude-opus-4-6':            15,
+	'gpt-4o-mini':                1,
+	'gpt-4o':                     10,
+	'gemini-2.5-flash':           1,
+	'gemini-2.5-pro':             5,
+};
+
+/**
+ * Load model config from USAGE_KV (`config:models`).
+ * Falls back to compiled defaults if the key is absent or unparseable.
+ * Both `tier_models` and `model_token_weight` can be overridden independently.
+ */
+async function getModelConfig( env: Env ): Promise< {
+	tierModels: Record< string, Record< string, string[] > >;
+	tokenWeights: Record< string, number >;
+} > {
+	try {
+		const raw = await env.USAGE_KV.get( 'config:models' );
+		if ( raw ) {
+			const parsed = JSON.parse( raw ) as ModelConfig;
+			return {
+				// Deep-merge so a partial KV config (e.g. only claude block) does not
+				// discard the defaults for unmentioned providers or model weights.
+				tierModels:   { ...DEFAULT_TIER_MODELS,        ...parsed.tier_models },
+				tokenWeights: { ...DEFAULT_MODEL_TOKEN_WEIGHT, ...parsed.model_token_weight },
+			};
+		}
+	} catch {
+		// Corrupt KV entry — fall through to defaults.
+	}
+	return { tierModels: DEFAULT_TIER_MODELS, tokenWeights: DEFAULT_MODEL_TOKEN_WEIGHT };
+}
+
+function toClaudeTools( tools: ToolParam[] ) {
+	return tools.map( t => ( { name: t.name, description: t.description, input_schema: t.parameters } ) );
+}
+
+function toOpenAITools( tools: ToolParam[] ) {
+	return tools.map( t => ( { type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } } ) );
+}
+
+function toGeminiTools( tools: ToolParam[] ) {
+	return [ {
+		functionDeclarations: tools.map( t => ( {
+			name: t.name,
+			description: t.description,
+			// Gemini requires uppercase 'OBJECT'; list each field explicitly so future
+			// additions to ToolParam.parameters do not accidentally bleed into the output.
+			parameters: {
+				type: 'OBJECT',
+				properties: t.parameters.properties,
+				required: t.parameters.required,
+			},
+		} ) ),
+	} ];
+}
+
+async function callClaude(
+	body: ProxyRequest,
+	resolvedModel: string,
+	clampedMaxTokens: number,
+	env: Env
+): Promise< NormalizedResponse > {
+	const claudeBody: Record< string, unknown > = {
+		model: resolvedModel,
+		max_tokens: clampedMaxTokens,
+		messages: body.messages,
+	};
+	if ( body.system ) {
+		claudeBody.system = body.system;
+	}
+	if ( body.tools && body.tools.length > 0 ) {
+		claudeBody.tools = toClaudeTools( body.tools );
+	}
+
+	const response = await fetch( 'https://api.anthropic.com/v1/messages', {
+		method: 'POST',
+		headers: {
+			'x-api-key': env.ANTHROPIC_API_KEY,
+			'anthropic-version': '2023-06-01',
+			'content-type': 'application/json',
+		},
+		body: JSON.stringify( claudeBody ),
+	} );
+
+	const result = ( await response.json() ) as Record< string, unknown >;
+
+	if ( ! response.ok ) {
+		throw Object.assign( new Error( 'Claude API error' ), { status: response.status, body: result } );
+	}
+
+	const contentArr = result.content as Array< { type: string; text: string } >;
+	const usage = result.usage as { input_tokens: number; output_tokens: number };
+
+	return {
+		content: contentArr[ 0 ]?.text ?? '',
+		usage: { input_tokens: usage.input_tokens, output_tokens: usage.output_tokens },
+	};
+}
+
+async function callOpenAI(
+	body: ProxyRequest,
+	resolvedModel: string,
+	clampedMaxTokens: number,
+	env: Env
+): Promise< NormalizedResponse > {
+	const messages = body.system
+		? [ { role: 'system', content: body.system }, ...body.messages ]
+		: body.messages;
+	const openaiBody: Record< string, unknown > = {
+		model: resolvedModel,
+		max_tokens: clampedMaxTokens,
+		messages,
+	};
+	if ( body.tools && body.tools.length > 0 ) {
+		openaiBody.tools = toOpenAITools( body.tools );
+	}
+
+	const response = await fetch( 'https://api.openai.com/v1/chat/completions', {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${ env.OPENAI_API_KEY }`,
+			'content-type': 'application/json',
+		},
+		body: JSON.stringify( openaiBody ),
+	} );
+
+	const result = ( await response.json() ) as Record< string, unknown >;
+
+	if ( ! response.ok ) {
+		throw Object.assign( new Error( 'OpenAI API error' ), { status: response.status, body: result } );
+	}
+
+	const choices = result.choices as Array< {
+		message: { content: string; tool_calls?: Array< { id: string; function: { name: string; arguments: string } } > };
+		finish_reason: string;
+	} >;
+	const usage = result.usage as { prompt_tokens: number; completion_tokens: number };
+	const normalizedUsage = { input_tokens: usage.prompt_tokens, output_tokens: usage.completion_tokens };
+
+	if ( choices[ 0 ]?.finish_reason === 'tool_calls' ) {
+		const tc = choices[ 0 ].message.tool_calls?.[ 0 ];
+		if ( tc ) {
+			return {
+				content: '',
+				usage: normalizedUsage,
+				tool_call: {
+					id: tc.id,
+					name: tc.function.name,
+					arguments: JSON.parse( tc.function.arguments ?? '{}' ) as Record< string, unknown >,
+				},
+			};
+		}
+	}
+
+	return {
+		content: choices[ 0 ]?.message?.content ?? '',
+		usage: normalizedUsage,
+	};
+}
+
+async function callGemini(
+	body: ProxyRequest,
+	resolvedModel: string,
+	clampedMaxTokens: number,
+	env: Env
+): Promise< NormalizedResponse > {
+	const contents = body.messages.map( m => ( { role: m.role, parts: [ { text: m.content } ] } ) );
+	const geminiBody: Record< string, unknown > = {
+		contents,
+		generationConfig: { maxOutputTokens: clampedMaxTokens },
+	};
+	if ( body.system ) {
+		geminiBody.systemInstruction = { parts: [ { text: body.system } ] };
+	}
+	if ( body.tools && body.tools.length > 0 ) {
+		geminiBody.tools = toGeminiTools( body.tools );
+	}
+
+	const response = await fetch(
+		`https://generativelanguage.googleapis.com/v1beta/models/${ resolvedModel }:generateContent?key=${ env.GEMINI_API_KEY }`,
+		{
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify( geminiBody ),
+		}
+	);
+
+	const result = ( await response.json() ) as Record< string, unknown >;
+
+	if ( ! response.ok ) {
+		throw Object.assign( new Error( 'Gemini API error' ), { status: response.status, body: result } );
+	}
+
+	const candidates = result.candidates as Array< {
+		content: { parts: Array< { text?: string; functionCall?: { name: string; args?: Record< string, unknown > } } > };
+	} >;
+	const usageMeta = result.usageMetadata as { promptTokenCount: number; candidatesTokenCount: number };
+	const normalizedUsage = { input_tokens: usageMeta.promptTokenCount, output_tokens: usageMeta.candidatesTokenCount };
+
+	for ( const part of ( candidates[ 0 ]?.content?.parts ?? [] ) ) {
+		if ( part.functionCall ) {
+			return {
+				content: '',
+				usage: normalizedUsage,
+				tool_call: {
+					id: `gemini_${ Date.now() }`,
+					name: part.functionCall.name,
+					arguments: part.functionCall.args ?? {},
+				},
+			};
+		}
+	}
+
+	return {
+		content: candidates[ 0 ]?.content?.parts[ 0 ]?.text ?? '',
+		usage: normalizedUsage,
+	};
+}
 
 export default {
 	async fetch( request: Request, env: Env ): Promise< Response > {
@@ -61,8 +307,13 @@ async function handleChatProxy(
 		}
 
 		const body = JSON.parse( bodyText ) as ProxyRequest;
-		const { messages, model, max_tokens: maxTokens, system, tools } = body;
+		const { model, max_tokens: maxTokens } = body;
 		const { site_token: siteToken, tier } = auth;
+
+		const provider: Provider = body.provider ?? 'claude';
+		if ( provider !== 'claude' && provider !== 'openai' && provider !== 'gemini' ) {
+			return jsonResponse( { error: 'Unknown provider' }, 400 );
+		}
 
 		// BYOK sites call Anthropic directly via ClaudeProvider and must never reach here.
 		if ( tier === 'pro_byok' ) {
@@ -99,61 +350,27 @@ async function handleChatProxy(
 			);
 		}
 
-		const selectedModel = getModelForTier( effectiveTier, model );
+		const { tierModels, tokenWeights } = await getModelConfig( env );
+		const selectedModel = getModelForTier( provider, effectiveTier, tierModels, model );
 		const clampedMaxTokens = Math.min(
 			maxTokens ?? ( effectiveTier === 'free' ? 1000 : 4000 ),
 			MAX_TOKENS[ effectiveTier ]
 		);
 
-		const anthropicBody: Record< string, unknown > = {
-			model: selectedModel,
-			max_tokens: clampedMaxTokens,
-			messages,
-		};
-		if ( system ) {
-			anthropicBody.system = system;
-		}
-		if ( tools && tools.length > 0 ) {
-			anthropicBody.tools = tools;
+		let normalized: NormalizedResponse;
+		if ( provider === 'claude' ) {
+			normalized = await callClaude( body, selectedModel, clampedMaxTokens, env );
+		} else if ( provider === 'openai' ) {
+			normalized = await callOpenAI( body, selectedModel, clampedMaxTokens, env );
+		} else {
+			normalized = await callGemini( body, selectedModel, clampedMaxTokens, env );
 		}
 
-		const anthropicResponse = await fetch(
-			'https://api.anthropic.com/v1/messages',
-			{
-				method: 'POST',
-				headers: {
-					'x-api-key': env.ANTHROPIC_API_KEY,
-					'anthropic-version': '2023-06-01',
-					'content-type': 'application/json',
-				},
-				body: JSON.stringify( anthropicBody ),
-			}
-		);
+		const weight = tokenWeights[ selectedModel ] ?? 1;
+		const rawTokens = normalized.usage.input_tokens + normalized.usage.output_tokens;
+		await updateUsage( siteToken, rawTokens * weight, env );
 
-		const result = ( await anthropicResponse.json() ) as Record<
-			string,
-			unknown
-		>;
-
-		// Tokens are only tracked for successful (2xx) responses. A non-2xx
-		// Anthropic response with a usage block (e.g. 429 with partial tokens)
-		// is intentionally not counted to avoid billing complexity.
-		if ( anthropicResponse.ok && result.usage ) {
-			const usage = result.usage as {
-				input_tokens: number;
-				output_tokens: number;
-			};
-			await updateUsage(
-				siteToken,
-				usage.input_tokens + usage.output_tokens,
-				env
-			);
-		}
-
-		return new Response( JSON.stringify( result ), {
-			status: anthropicResponse.status,
-			headers: { 'Content-Type': 'application/json' },
-		} );
+		return jsonResponse( { content: normalized.content, usage: normalized.usage } );
 	} catch ( error ) {
 		// eslint-disable-next-line no-console
 		console.error( 'Proxy error:', error );
@@ -202,19 +419,13 @@ async function updateUsage(
 	} );
 }
 
-// Mirrors ClaudeProvider::MODELS (PHP). Keep in sync.
-const TIER_MODELS: Record< ProxyTier, string[] > = {
-	free: [ 'claude-haiku-4-5-20251001' ],
-	trial: [ 'claude-haiku-4-5-20251001' ],
-	pro_managed: [
-		'claude-haiku-4-5-20251001',
-		'claude-sonnet-4-6',
-		'claude-opus-4-6',
-	],
-};
-
-function getModelForTier( tier: ProxyTier, requestedModel?: string ): string {
-	const allowed = TIER_MODELS[ tier ];
+function getModelForTier(
+	provider: Provider,
+	tier: ProxyTier,
+	tierModels: Record< string, Record< string, string[] > >,
+	requestedModel?: string
+): string {
+	const allowed = tierModels[ provider ]?.[ tier ] ?? DEFAULT_TIER_MODELS[ provider ][ tier ];
 	if ( requestedModel && allowed.includes( requestedModel ) ) {
 		return requestedModel;
 	}

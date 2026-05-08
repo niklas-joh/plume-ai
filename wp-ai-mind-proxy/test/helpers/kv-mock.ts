@@ -42,6 +42,8 @@ export function makeEnv( overrides: Partial< Env > = {} ): Env {
 	return {
 		USAGE_KV: makeKV(),
 		ANTHROPIC_API_KEY: 'sk-test',
+		OPENAI_API_KEY: 'sk-openai-test',
+		GEMINI_API_KEY: 'gemini-test',
 		LS_WEBHOOK_SECRET: 'test-secret',
 		LS_PRO_MONTHLY_VARIANT_ID: '1550505',
 		LS_PRO_ANNUAL_VARIANT_ID: '1550477',

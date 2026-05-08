@@ -3,7 +3,7 @@
  * Plugin Name:       WP AI Mind
  * Plugin URI:        https://njohansson.eu/wp-ai-mind/
  * Description:       AI-powered content co-pilot for WordPress.
- * Version:           1.7.1
+ * Version:           1.8.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            Niklas Johansson
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Composer autoloader — loads WP_AI_Mind classes via PSR-4.
 require_once __DIR__ . '/vendor/autoload.php';
 
-define( 'WP_AI_MIND_VERSION', '1.7.1' );
+define( 'WP_AI_MIND_VERSION', '1.8.0' );
 define( 'WP_AI_MIND_FILE', __FILE__ );
 define( 'WP_AI_MIND_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WP_AI_MIND_URL', plugin_dir_url( __FILE__ ) );

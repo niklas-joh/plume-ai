@@ -258,6 +258,7 @@ class ClaudeProviderTest extends TestCase {
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 
+		// Tools in Claude wire format (input_schema); proxy receives canonical format (parameters).
 		$tools    = [ [ 'name' => 'get_post_content', 'description' => 'Get post content.', 'input_schema' => [ 'type' => 'object', 'properties' => [ 'post_id' => [ 'type' => 'integer' ] ], 'required' => [ 'post_id' ] ] ] ];
 		$provider = new ClaudeProvider( '' ); // No API key — routes via proxy.
 		$request  = new CompletionRequest(
@@ -271,7 +272,10 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertNotNull( $captured_body );
 		$this->assertArrayHasKey( 'tools', $captured_body );
 		$this->assertSame( 'get_post_content', $captured_body['tools'][0]['name'] );
-		$this->assertSame( $tools, $captured_body['tools'] );
+		// Proxy body must carry canonical format (parameters), not Claude wire format (input_schema).
+		$this->assertArrayHasKey( 'parameters', $captured_body['tools'][0] );
+		$this->assertArrayNotHasKey( 'input_schema', $captured_body['tools'][0] );
+		$this->assertSame( $tools[0]['input_schema'], $captured_body['tools'][0]['parameters'] );
 	}
 
 	public function test_tools_injected_in_request_body(): void {

@@ -126,10 +126,13 @@ async function callOpenAI(
 	clampedMaxTokens: number,
 	env: Env
 ): Promise< NormalizedResponse > {
+	const messages = body.system
+		? [ { role: 'system', content: body.system }, ...body.messages ]
+		: body.messages;
 	const openaiBody: Record< string, unknown > = {
 		model: resolvedModel,
 		max_tokens: clampedMaxTokens,
-		messages: body.messages,
+		messages,
 	};
 	if ( body.tools && body.tools.length > 0 ) {
 		openaiBody.tools = toOpenAITools( body.tools );

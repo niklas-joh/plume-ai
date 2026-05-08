@@ -165,10 +165,17 @@ async function callOpenAI(
 async function callGemini(
 	body: ProxyRequest,
 	resolvedModel: string,
+	clampedMaxTokens: number,
 	env: Env
 ): Promise< NormalizedResponse > {
 	const contents = body.messages.map( m => ( { role: m.role, parts: [ { text: m.content } ] } ) );
-	const geminiBody: Record< string, unknown > = { contents };
+	const geminiBody: Record< string, unknown > = {
+		contents,
+		generationConfig: { maxOutputTokens: clampedMaxTokens },
+	};
+	if ( body.system ) {
+		geminiBody.systemInstruction = { parts: [ { text: body.system } ] };
+	}
 	if ( body.tools && body.tools.length > 0 ) {
 		geminiBody.tools = toGeminiTools( body.tools );
 	}
@@ -309,7 +316,7 @@ async function handleChatProxy(
 		} else if ( provider === 'openai' ) {
 			normalized = await callOpenAI( body, selectedModel, clampedMaxTokens, env );
 		} else {
-			normalized = await callGemini( body, selectedModel, env );
+			normalized = await callGemini( body, selectedModel, clampedMaxTokens, env );
 		}
 
 		const weight = tokenWeights[ selectedModel ] ?? 1;

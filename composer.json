@@ -31,8 +31,8 @@
     }
   },
   "scripts": {
-    "phpstan": "phpstan analyse",
-    "phpstan:baseline": "phpstan analyse --generate-baseline phpstan-baseline.neon",
+    "phpstan": "phpstan analyse --memory-limit=1G",
+    "phpstan:baseline": "phpstan analyse --memory-limit=1G --generate-baseline phpstan-baseline.neon",
     "qit:activation": "qit run:activation wp-ai-mind",
     "qit:phpstan": "qit run:phpstan wp-ai-mind",
     "qit:security": "qit run:security wp-ai-mind"

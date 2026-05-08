@@ -12,6 +12,8 @@ const { test, expect } = require( '@playwright/test' );
 // ---------------------------------------------------------------------------
 async function loginAsAdmin( page ) {
 	await page.goto( '/wp-login.php' );
+	// Wait for the form to be fully interactive before filling.
+	await page.waitForSelector( '#user_login', { state: 'visible' } );
 	await page.fill( '#user_login', 'nj_agent' );
 	await page.fill( '#user_pass', 'C8IcqAWJu8F3dOw6E4ndWhIe' );
 	await page.click( '#wp-submit' );
@@ -31,13 +33,13 @@ test.describe( 'P1 — Plugin activation', () => {
 
 	test( 'Chat page renders the React mount point (#wp-ai-mind-chat)', async ( { page } ) => {
 		await loginAsAdmin( page );
-		await page.goto( '/wp-admin/?page=wp-ai-mind' );
+		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-chat' );
 		await expect( page.locator( '#wp-ai-mind-chat' ) ).toBeAttached();
 	} );
 
 	test( 'Plugin page loads without PHP fatal errors', async ( { page } ) => {
 		await loginAsAdmin( page );
-		await page.goto( '/wp-admin/?page=wp-ai-mind' );
+		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind' );
 		await expect( page ).not.toHaveTitle( /Fatal error/i );
 		// Also confirm the page title is not a generic WordPress error.
 		await expect( page ).not.toHaveTitle( /Error/i );

@@ -96,6 +96,127 @@ jobs:
       - name: npm security audit
         run: npm audit --omit=dev --audit-level=high
 
+  # ── Cloud: Semgrep Security Scan ───────────────────────────────────────────
+  # Static analysis with PHP, generic security, and OWASP Top 10 rule packs.
+  # Fails on ERROR-severity findings; uploads SARIF for the GitHub Security tab.
+  semgrep:
+    name: Semgrep — Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Semgrep
+        run: pip install --upgrade semgrep
+
+      - name: Run Semgrep
+        run: |
+          semgrep scan \
+            --config=p/php \
+            --config=p/security-audit \
+            --config=p/owasp-top-ten \
+            --severity=ERROR \
+            --metrics=off \
+            --error \
+            --sarif --output=semgrep.sarif
+
+      - name: Upload SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  # ── Cloud: WP Plugin Check ─────────────────────────────────────────────────
+  # WordPress.org's official plugin auditor: catches namespace collisions,
+  # prefixing violations, escaping/sanitisation issues, deprecated APIs, i18n
+  # problems, and file-organisation issues. Excludes the plugin_repo category
+  # since this plugin is not on WordPress.org.
+  plugin-check:
+    name: WP Plugin Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Install Composer (production-only)
+        run: composer install --prefer-dist --no-interaction --no-progress --no-dev
+
+      - name: Run WP Plugin Check
+        uses: WordPress/plugin-check-action@v1
+        with:
+          build-dir: '.'
+          categories: 'general,security,performance,accessibility'
+          ignore-warnings: true
+
+  # ── Cloud: Lighthouse Performance Budget ───────────────────────────────────
+  # Front-end audit only (admin UI requires authenticated Lighthouse). Verifies
+  # the plugin doesn't break or bloat the public-facing site. Performance/SEO
+  # are warn-only; accessibility and asset-minification are enforced as errors.
+  lighthouse:
+    name: Lighthouse — Performance Budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Install Composer (production-only)
+        run: composer install --prefer-dist --no-interaction --no-progress --no-dev
+
+      - name: Install npm dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Start wp-env
+        run: npx wp-env start
+
+      - name: Wait for WordPress
+        run: |
+          for i in {1..30}; do
+            if curl -fs http://localhost:8888 > /dev/null; then
+              echo "WordPress is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::WordPress did not start within 60s"
+          exit 1
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: Stop wp-env
+        if: always()
+        run: npx wp-env stop || true
+
   # ── Mac via Tailscale SSH: E2E ──────────────────────────────────────────────
   # Uses a shared concurrency group (mac-runner) to prevent two jobs from
   # running wp-env simultaneously on the same machine.
@@ -148,65 +269,4 @@ jobs:
             EXIT=$?
             npx wp-env stop
             exit $EXIT
-          REMOTE
-
-  # ── Mac via Tailscale SSH: QIT ─────────────────────────────────────────────
-  # Single job (not matrix) to avoid concurrency-queue cancellation — GitHub
-  # only allows one pending job per concurrency group; a matrix would cancel
-  # two of the three jobs before they ever run.
-  # Non-blocking (continue-on-error) until the plugin is listed on WooCommerce.com.
-  qit-local:
-    name: QIT (Mac via Tailscale)
-    runs-on: ubuntu-latest
-    if: ${{ vars.QIT_ENABLED == 'true' }}
-    continue-on-error: true
-    concurrency:
-      group: mac-runner
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v3
-        with:
-          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
-          tags: tag:github
-
-      - name: Install SSH key
-        run: |
-          echo "${{ secrets.MAC_SSH_PRIVATE_KEY }}" > /tmp/mac_ssh_key
-          chmod 600 /tmp/mac_ssh_key
-
-      - name: Run QIT tests on Mac
-        env:
-          QIT_EMAIL: ${{ secrets.QIT_PARTNER_EMAIL }}
-          QIT_PASSWORD: ${{ secrets.QIT_PARTNER_PASSWORD }}
-        run: |
-          ssh -o StrictHostKeyChecking=no \
-              -i /tmp/mac_ssh_key \
-              ${{ secrets.MAC_SSH_USER }}@${{ secrets.MAC_SSH_HOST }} \
-              "bash -s" << REMOTE
-            set -e
-            export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
-            export QIT_EMAIL="$QIT_EMAIL"
-            export QIT_PASSWORD="$QIT_PASSWORD"
-            # Sync main plugin repo to the PR commit.
-            cd /Users/niklas/Documents/Homepages/wp-ai-mind
-            git fetch origin
-            git checkout ${{ github.head_ref }}
-            git reset --hard ${{ github.event.pull_request.head.sha }}
-            # Sync the blog submodule copy to the same commit.
-            cd /Users/niklas/Documents/Homepages/blog.njohansson.eu/wp-content/plugins/wp-ai-mind
-            git fetch origin
-            git checkout ${{ github.head_ref }}
-            git reset --hard ${{ github.event.pull_request.head.sha }}
-            cd /Users/niklas/Documents/Homepages/wp-ai-mind
-            composer install --prefer-dist --no-interaction --no-progress
-            ./vendor/bin/qit partner:add \
-              --user="\${QIT_EMAIL}" \
-              --application-password="\${QIT_PASSWORD}"
-            ./vendor/bin/qit run:activation wp-ai-mind
-            ./vendor/bin/qit run:phpstan wp-ai-mind
-            ./vendor/bin/qit run:security wp-ai-mind
           REMOTE

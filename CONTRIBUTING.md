@@ -74,14 +74,6 @@ npm run test:e2e:debug     # step-through debug mode
 npm run test:e2e:report    # open the last HTML report
 ```
 
-### QIT tests (requires WooCommerce.com credentials)
-```bash
-./vendor/bin/qit partner:add --user="your@email.com" --application-password="your-app-password"
-composer run qit:activation
-composer run qit:phpstan
-composer run qit:security
-```
-
 ## Git Hooks
 
 Hooks are installed automatically by `npm install`:
@@ -112,12 +104,14 @@ When you open a PR against `main`, two workflows run:
 - PHPStan static analysis
 - PHP compatibility matrix (8.1, 8.2, 8.3)
 - Security audit (Composer + npm)
+- Semgrep — security scan (PHP, OWASP Top 10); SARIF uploaded to Security tab
+- WP Plugin Check — WordPress.org's plugin auditor (general/security/performance/accessibility)
+- Lighthouse — front-end performance budget against a wp-env site
 - E2E Playwright tests (runs on the maintainer's Mac via Tailscale SSH)
-- QIT tests when `QIT_ENABLED=true` (runs on the maintainer's Mac)
 
 ## Required GitHub Secrets
 
-For the Tailscale SSH + QIT jobs to work, these must be set in the repo settings:
+For the Tailscale SSH E2E job to work, these must be set in the repo settings:
 
 | Secret | Description |
 |---|---|
@@ -125,10 +119,6 @@ For the Tailscale SSH + QIT jobs to work, these must be set in the repo settings
 | `MAC_SSH_HOST` | Tailscale hostname of the Mac runner |
 | `MAC_SSH_USER` | SSH username on the Mac |
 | `MAC_SSH_PRIVATE_KEY` | Private SSH key (public key in `~/.ssh/authorized_keys` on Mac) |
-| `QIT_PARTNER_EMAIL` | WooCommerce.com account email |
-| `QIT_PARTNER_PASSWORD` | WooCommerce.com application password |
-
-Set `vars.QIT_ENABLED = true` (repo variable) to enable QIT jobs.
 
 ## Release Process
 

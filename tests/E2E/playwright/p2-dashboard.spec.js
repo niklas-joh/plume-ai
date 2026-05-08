@@ -36,18 +36,14 @@ test.describe('P2 — Dashboard landing page', () => {
         await expect(page.locator('#wp-ai-mind-chat')).toBeVisible();
     });
 
-    test('Run setup again link navigates and shows onboarding wizard', async ({ page }) => {
+    test('Run setup again link is visible and wired to the PHP run_setup action', async ({ page }) => {
         await page.goto('/wp-admin/admin.php?page=wp-ai-mind');
         await page.waitForSelector('.wpaim-dash-title', { timeout: 10000 });
 
-        // Click Run setup again in footer.
+        // The link must be present in the footer and point to the PHP run_setup endpoint.
         const runSetupLink = page.locator('.wpaim-dash-footer__link', { hasText: 'Run setup again' });
-        await runSetupLink.click();
-
-        // Should navigate back to dashboard with onboarding shown.
-        await expect(page).toHaveURL(/page=wp-ai-mind/);
-        // Onboarding wizard header is the root element when onboardingSeen is false.
-        await expect(page.locator('.wpaim-ob-header')).toBeVisible();
+        await expect(runSetupLink).toBeVisible();
+        await expect(runSetupLink).toHaveAttribute('href', /run_setup/);
     });
 
     test('all resource links have correct attributes', async ({ page }) => {

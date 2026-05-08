@@ -40,6 +40,11 @@ async function globalSetup() {
 		);
 		console.log( '[E2E setup] nj_agent created.' );
 	}
+
+	// Mark onboarding as seen so the dashboard renders normally.
+	// On a fresh install the wizard blocks the dashboard and chat views.
+	wpCli( 'option set wp_ai_mind_onboarding_seen 1', { stdio: 'inherit' } );
+	console.log( '[E2E setup] Onboarding marked as seen.' );
 }
 
 module.exports = globalSetup;

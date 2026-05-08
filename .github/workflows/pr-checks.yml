@@ -134,6 +134,7 @@ jobs:
             git reset --hard ${{ github.event.pull_request.head.sha }}
             npm ci --no-audit --no-fund
             composer install --prefer-dist --no-interaction --no-progress
+            npx playwright install chromium
             npx wp-env start
             WP_BASE_URL=http://localhost:8888 CI=true npx playwright test
             EXIT=$?

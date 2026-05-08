@@ -55,6 +55,10 @@ class GeminiProvider extends AbstractProvider {
 	/**
 	 * Tracks whether the proxy handled logging so maybe_log() can skip double-logging.
 	 *
+	 * Mutable flag reset in do_complete() (pro_byok path) and maybe_log() (proxy path).
+	 * PHP does not run concurrent requests on the same instance, so there is no race risk
+	 * in practice; a future async runtime should replace this with a tagged return value.
+	 *
 	 * @var bool
 	 */
 	private bool $proxy_logged = false;
@@ -175,6 +179,8 @@ class GeminiProvider extends AbstractProvider {
 	 * @throws ProviderException When the proxy returns a WP_Error.
 	 */
 	private function complete_via_proxy( CompletionRequest $request ): CompletionResponse {
+		// The model sent here is a hint only — the Worker's getModelForTier() may override
+		// it to enforce the tier's allowed model list.
 		$model       = ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL;
 		$raw_options = [
 			'model'      => $model,

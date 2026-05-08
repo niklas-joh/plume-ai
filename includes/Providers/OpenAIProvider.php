@@ -59,6 +59,10 @@ class OpenAIProvider extends AbstractProvider {
 	/**
 	 * Tracks whether the proxy handled logging so maybe_log() can skip double-logging.
 	 *
+	 * Mutable flag reset in do_complete() (pro_byok path) and maybe_log() (proxy path).
+	 * PHP does not run concurrent requests on the same instance, so there is no race risk
+	 * in practice; a future async runtime should replace this with a tagged return value.
+	 *
 	 * @var bool
 	 */
 	private bool $proxy_logged = false;

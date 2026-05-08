@@ -76,7 +76,19 @@ function toOpenAITools( tools: ToolParam[] ) {
 }
 
 function toGeminiTools( tools: ToolParam[] ) {
-	return [ { functionDeclarations: tools.map( t => ( { name: t.name, description: t.description, parameters: { ...t.parameters, type: 'OBJECT' } } ) ) } ];
+	return [ {
+		functionDeclarations: tools.map( t => ( {
+			name: t.name,
+			description: t.description,
+			// Gemini requires uppercase 'OBJECT'; list each field explicitly so future
+			// additions to ToolParam.parameters do not accidentally bleed into the output.
+			parameters: {
+				type: 'OBJECT',
+				properties: t.parameters.properties,
+				required: t.parameters.required,
+			},
+		} ) ),
+	} ];
 }
 
 async function callClaude(
@@ -295,7 +307,7 @@ async function handleChatProxy(
 		}
 
 		const body = JSON.parse( bodyText ) as ProxyRequest;
-		const { messages, model, max_tokens: maxTokens, system, tools } = body;
+		const { model, max_tokens: maxTokens } = body;
 		const { site_token: siteToken, tier } = auth;
 
 		const provider: Provider = body.provider ?? 'claude';
@@ -344,9 +356,6 @@ async function handleChatProxy(
 			maxTokens ?? ( effectiveTier === 'free' ? 1000 : 4000 ),
 			MAX_TOKENS[ effectiveTier ]
 		);
-
-		// Suppress unused-var warnings — destructured above for validation but passed via body.
-		void messages; void system; void tools;
 
 		let normalized: NormalizedResponse;
 		if ( provider === 'claude' ) {

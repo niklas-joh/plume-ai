@@ -20,8 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Sends Bearer-token-authenticated requests to the Cloudflare Worker proxy.
  *
- * Free/Trial/Pro Managed users are routed through this class.
- * Pro BYOK tier bypasses this class entirely and routes via ClaudeProvider.
+ * Free/Trial/Pro Managed users are routed through this class for all providers
+ * (Claude, OpenAI, Gemini). The Pro BYOK tier bypasses this class entirely and
+ * calls the provider's own API directly.
  *
  * @since 1.2.0
  */

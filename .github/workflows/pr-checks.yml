@@ -206,9 +206,13 @@ jobs:
       - name: Compute diagnostic metrics
         if: always()
         id: metrics
+        # github.base_ref is user-controlled (PR target branch), so it must
+        # be passed through env to avoid run-shell-injection (Semgrep
+        # yaml.github-actions.security.run-shell-injection).
         env:
           PLUGIN_DIR: dist/wp-ai-mind
           BASE_DIR: base-checkout/dist/wp-ai-mind
+          BASE_REF: ${{ github.base_ref }}
         run: |
           if [ ! -d "$PLUGIN_DIR" ]; then
             echo "build_present=false" >> "$GITHUB_OUTPUT"
@@ -250,11 +254,11 @@ jobs:
           JS_DELTA=""
           CSS_DELTA=""
           BASE_AVAILABLE="false"
-          BASE_REF=""
+          REPORTED_BASE_REF=""
 
           if [ -d "$BASE_DIR" ]; then
             BASE_AVAILABLE="true"
-            BASE_REF="${{ github.base_ref }}"
+            REPORTED_BASE_REF="$BASE_REF"
             BUILD_SIZE_DELTA=$(fmt_size_delta "$(( $(size_bytes "$PLUGIN_DIR") - $(size_bytes "$BASE_DIR") ))")
             PHP_DELTA=$(fmt_int_delta        "$(( PHP_COUNT  - $(count_php_plugin "$BASE_DIR") ))")
             VENDOR_PHP_DELTA=$(fmt_int_delta "$(( VENDOR_PHP - $(count_php_vendor "$BASE_DIR") ))")
@@ -271,7 +275,7 @@ jobs:
             echo "js_count=$JS_COUNT"
             echo "css_count=$CSS_COUNT"
             echo "base_available=$BASE_AVAILABLE"
-            echo "base_ref=$BASE_REF"
+            echo "base_ref=$REPORTED_BASE_REF"
             echo "build_size_delta=$BUILD_SIZE_DELTA"
             echo "php_delta=$PHP_DELTA"
             echo "vendor_php_delta=$VENDOR_PHP_DELTA"

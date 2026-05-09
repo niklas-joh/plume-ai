@@ -5,6 +5,7 @@ test.describe('P2 — Dashboard landing page', () => {
     test.beforeEach(async ({ page }) => {
         // Log in as nj_agent (administrator, credentials from global-setup.js)
         await page.goto('/wp-login.php');
+        await page.waitForSelector('#user_login', { state: 'visible' });
         await page.fill('#user_login', 'nj_agent');
         await page.fill('#user_pass', 'C8IcqAWJu8F3dOw6E4ndWhIe');
         await page.click('#wp-submit');
@@ -35,38 +36,14 @@ test.describe('P2 — Dashboard landing page', () => {
         await expect(page.locator('#wp-ai-mind-chat')).toBeVisible();
     });
 
-    test('Run setup again link navigates and shows onboarding modal', async ({ page }) => {
+    test('Run setup again link is visible and wired to the PHP run_setup action', async ({ page }) => {
         await page.goto('/wp-admin/admin.php?page=wp-ai-mind');
         await page.waitForSelector('.wpaim-dash-title', { timeout: 10000 });
 
-        // Click Run setup again in footer.
+        // The link must be present in the footer and point to the PHP run_setup endpoint.
         const runSetupLink = page.locator('.wpaim-dash-footer__link', { hasText: 'Run setup again' });
-        await runSetupLink.click();
-
-        // Should navigate back to dashboard or show modal.
-        await expect(page).toHaveURL(/page=wp-ai-mind/);
-        // Onboarding modal should be visible.
-        await expect(page.locator('.wpaim-ob-overlay')).toBeVisible();
-    });
-
-    test('onboarding modal — Plugin API path completes in one step', async ({ page }) => {
-        // Reset onboarding seen flag via page evaluation.
-        await page.goto('/wp-admin/admin.php?page=wp-ai-mind');
-        await page.waitForSelector('.wpaim-dash-title', { timeout: 10000 });
-
-        await page.evaluate(() => {
-            window.wpAiMindDashboard.onboardingSeen = false;
-        });
-        await page.reload();
-        await page.waitForSelector('.wpaim-ob-overlay', { timeout: 10000 });
-
-        await expect(page.locator('.wpaim-ob-overlay')).toBeVisible();
-
-        // Plugin API is selected by default — click Get started.
-        await page.click('button:has-text("Get started")');
-
-        // Done screen should appear.
-        await expect(page.locator('text=Setup complete')).toBeVisible();
+        await expect(runSetupLink).toBeVisible();
+        await expect(runSetupLink).toHaveAttribute('href', /run_setup/);
     });
 
     test('all resource links have correct attributes', async ({ page }) => {

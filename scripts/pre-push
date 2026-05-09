@@ -1,0 +1,15 @@
+#!/bin/sh
+# Full PHPCS + PHPStan gate before pushing.
+echo "Running pre-push checks..."
+
+./vendor/bin/phpcs --standard=phpcs.xml.dist --warning-severity=0 || {
+  echo "PHPCS failed. Run: ./vendor/bin/phpcbf --standard=phpcs.xml.dist"
+  exit 1
+}
+
+./vendor/bin/phpstan analyse --no-progress --memory-limit=1G || {
+  echo "PHPStan failed. Fix type errors before pushing."
+  exit 1
+}
+
+echo "Pre-push checks passed."

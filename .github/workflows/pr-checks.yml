@@ -1,0 +1,372 @@
+name: PR Quality Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ── Cloud: PHPStan ──────────────────────────────────────────────────────────
+  phpstan:
+    name: PHPStan — Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer deps
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run PHPStan
+        run: ./vendor/bin/phpstan analyse --error-format=github --memory-limit=1G
+
+  # ── Cloud: PHP Compatibility Matrix ────────────────────────────────────────
+  php-compat:
+    name: PHP Compat — ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1', '8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run PHP Compatibility
+        run: |
+          ./vendor/bin/phpcs \
+            --standard=PHPCompatibilityWP \
+            --runtime-set testVersion ${{ matrix.php }} \
+            --extensions=php \
+            --ignore=*/vendor/*,*/node_modules/*,*/tests/* \
+            .
+
+  # ── Cloud: Security Audit ──────────────────────────────────────────────────
+  security:
+    name: Security — Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+
+      - name: Composer security audit
+        run: composer audit
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: npm security audit
+        run: npm audit --omit=dev --audit-level=high
+
+  # ── Cloud: Semgrep Security Scan ───────────────────────────────────────────
+  # Static analysis with PHP, generic security, and OWASP Top 10 rule packs.
+  # Fails on ERROR-severity findings; uploads SARIF for the GitHub Security tab.
+  semgrep:
+    name: Semgrep — Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Semgrep
+        run: pip install --upgrade semgrep
+
+      - name: Run Semgrep
+        run: |
+          semgrep scan \
+            --config=p/php \
+            --config=p/security-audit \
+            --config=p/owasp-top-ten \
+            --severity=ERROR \
+            --metrics=off \
+            --error \
+            --sarif --output=semgrep.sarif
+
+      - name: Upload SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  # ── Cloud: WP Plugin Check ─────────────────────────────────────────────────
+  # WordPress.org's official plugin auditor: catches namespace collisions,
+  # prefixing violations, escaping/sanitisation issues, deprecated APIs, i18n
+  # problems, and file-organisation issues. Excludes the plugin_repo category
+  # since this plugin is not on WordPress.org.
+  #
+  # Audits the production zip layout produced by bin/build-wporg.sh — the same
+  # allowlist used for releases — so dev-only files (docs/, src/, tests/, etc.)
+  # never reach the auditor.
+  plugin-check:
+    name: WP Plugin Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write  # for the action to post/update its PR comment
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build production plugin payload (dist/wp-ai-mind/)
+        run: bash bin/build-wporg.sh
+
+      - name: Run WP Plugin Check
+        uses: WordPress/plugin-check-action@v1
+        with:
+          build-dir: 'dist/wp-ai-mind'
+          # plugin_repo runs WP.org submission-readiness checks (readme.txt
+          # format, headers, screenshots, etc.) — useful even before listing.
+          categories: 'general,security,performance,accessibility,plugin_repo'
+          include-experimental: true
+          include-low-severity-errors: true
+          include-low-severity-warnings: true
+          ignore-warnings: true
+
+      - name: Compute diagnostic metrics
+        if: always()
+        id: metrics
+        env:
+          PLUGIN_DIR: dist/wp-ai-mind
+        run: |
+          if [ ! -d "$PLUGIN_DIR" ]; then
+            echo "build_present=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          PLUGIN_VERSION=$(grep "Version:" "$PLUGIN_DIR/wp-ai-mind.php" | head -1 | sed 's/.*Version:[[:space:]]*//' | tr -d '[:space:]')
+          BUILD_SIZE=$(du -sh "$PLUGIN_DIR" | awk '{print $1}')
+          PHP_COUNT=$(find "$PLUGIN_DIR" -name "*.php" -not -path "*/vendor/*" | wc -l | tr -d ' ')
+          VENDOR_PHP=$(find "$PLUGIN_DIR/vendor" -name "*.php" 2>/dev/null | wc -l | tr -d ' ')
+          JS_COUNT=$(find "$PLUGIN_DIR" -name "*.js" | wc -l | tr -d ' ')
+          CSS_COUNT=$(find "$PLUGIN_DIR" -name "*.css" | wc -l | tr -d ' ')
+          echo "build_present=true" >> "$GITHUB_OUTPUT"
+          echo "plugin_version=$PLUGIN_VERSION" >> "$GITHUB_OUTPUT"
+          echo "build_size=$BUILD_SIZE" >> "$GITHUB_OUTPUT"
+          echo "php_count=$PHP_COUNT" >> "$GITHUB_OUTPUT"
+          echo "vendor_php=$VENDOR_PHP" >> "$GITHUB_OUTPUT"
+          echo "js_count=$JS_COUNT" >> "$GITHUB_OUTPUT"
+          echo "css_count=$CSS_COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Post diagnostic summary (sticky — updates in place)
+        if: always() && steps.metrics.outputs.build_present == 'true'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: plugin-check-diagnostics
+          message: |
+            ## 🔍 Plugin Check — Diagnostic Summary
+
+            **Audited shipping payload** built by `bin/build-wporg.sh` → `dist/wp-ai-mind/`
+            (matches the production zip uploaded to GitHub Releases.)
+
+            | Metric | Value |
+            |---|---|
+            | Plugin version | `${{ steps.metrics.outputs.plugin_version }}` |
+            | Build size | ${{ steps.metrics.outputs.build_size }} |
+            | PHP files (plugin) | ${{ steps.metrics.outputs.php_count }} |
+            | PHP files (vendor) | ${{ steps.metrics.outputs.vendor_php }} |
+            | JS files | ${{ steps.metrics.outputs.js_count }} |
+            | CSS files | ${{ steps.metrics.outputs.css_count }} |
+
+            **Categories:** `general` · `security` · `performance` · `accessibility` · `plugin_repo`
+            **Experimental checks:** enabled
+            **Low-severity findings:** surfaced (errors + warnings)
+
+            📦 [Full results artifact (`plugin-check-results.txt`)](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts) — download from the Actions run.
+
+            <sub>Posted by the `plugin-check` job in `pr-checks.yml`. This comment updates in place on each push.</sub>
+
+  # ── Cloud: Lighthouse Performance Budget ───────────────────────────────────
+  # Front-end audit only (admin UI requires authenticated Lighthouse). Verifies
+  # the production-shape plugin doesn't break or bloat the public-facing site.
+  # Performance/SEO are warn-only; accessibility and asset-minification are
+  # enforced as errors.
+  #
+  # Tests the SHIPPING payload (bin/build-wporg.sh -> dist/wp-ai-mind/) with
+  # SCRIPT_DEBUG=false so the audit reflects what real users see, not the
+  # development-mode unminified core scripts.
+  lighthouse:
+    name: Lighthouse — Performance Budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Install npm dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build production plugin payload (dist/wp-ai-mind/)
+        run: bash bin/build-wporg.sh
+
+      - name: Override wp-env to load the built plugin in production mode
+        run: |
+          cat > .wp-env.override.json << 'EOF'
+          {
+            "plugins": ["./dist/wp-ai-mind"],
+            "config": {
+              "WP_DEBUG": false,
+              "SCRIPT_DEBUG": false
+            }
+          }
+          EOF
+
+      - name: Start wp-env
+        run: npx wp-env start
+
+      - name: Wait for WordPress
+        run: |
+          for i in {1..30}; do
+            if curl -fs http://localhost:8888 > /dev/null; then
+              echo "WordPress is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::WordPress did not start within 60s"
+          exit 1
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: Stop wp-env
+        if: always()
+        run: npx wp-env stop || true
+
+  # ── Mac via Tailscale SSH: E2E ──────────────────────────────────────────────
+  # Uses a shared concurrency group (mac-runner) to prevent two jobs from
+  # running wp-env simultaneously on the same machine.
+  e2e-local:
+    name: E2E — Playwright (Mac via Tailscale)
+    runs-on: ubuntu-latest
+    concurrency:
+      group: mac-runner
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tags: tag:github
+
+      - name: Install SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.MAC_SSH_PRIVATE_KEY }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > /tmp/mac_ssh_key
+          chmod 600 /tmp/mac_ssh_key
+
+      - name: Run E2E tests on Mac
+        # All ${{...}} values are passed via env to avoid shell-injection paths.
+        # Branch refs and SHAs end up inside the SSH'd shell as quoted "$VAR"
+        # references, never interpolated by the local shell.
+        env:
+          SSH_USER: ${{ secrets.MAC_SSH_USER }}
+          SSH_HOST: ${{ secrets.MAC_SSH_HOST }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -i /tmp/mac_ssh_key \
+              "$SSH_USER@$SSH_HOST" \
+              "bash -s" << REMOTE
+            set -e
+            export PATH="/usr/local/bin:/opt/homebrew/bin:\$PATH"
+            # Sync main plugin repo to the PR commit.
+            cd /Users/niklas/Documents/Homepages/wp-ai-mind
+            git fetch origin
+            git checkout "$HEAD_REF"
+            git reset --hard "$HEAD_SHA"
+            # Sync the blog submodule copy to the same commit so both paths are in step.
+            cd /Users/niklas/Documents/Homepages/blog.njohansson.eu/wp-content/plugins/wp-ai-mind
+            git fetch origin
+            git checkout "$HEAD_REF"
+            git reset --hard "$HEAD_SHA"
+            # Run tests from the main plugin repo.
+            cd /Users/niklas/Documents/Homepages/wp-ai-mind
+            npm ci --no-audit --no-fund
+            composer install --prefer-dist --no-interaction --no-progress
+            npx playwright install chromium
+            npx wp-env start
+            WP_BASE_URL=http://localhost:8888 CI=true npx playwright test
+            EXIT=\$?
+            npx wp-env stop
+            exit \$EXIT
+          REMOTE

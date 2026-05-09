@@ -2,7 +2,7 @@
 Contributors: njohansson
 Tags: ai, chatbot, openai, claude, content
 Requires at least: 6.4
-Tested up to: 6.8
+Tested up to: 6.9
 Stable tag: 1.8.0
 Requires PHP: 8.1
 License: GPLv2 or later

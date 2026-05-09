@@ -136,7 +136,7 @@ class NJ_Tier_Manager {
 		$batch_size = 200;
 
 		do {
-			$users = get_users(
+			$users   = get_users(
 				[
 					'meta_key'   => self::META_KEY,
 					'meta_value' => 'trial',

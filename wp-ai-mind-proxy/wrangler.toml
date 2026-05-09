@@ -4,8 +4,8 @@ compatibility_date = "2025-01-01"
 
 [[kv_namespaces]]
 binding = "USAGE_KV"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
-preview_id = "REPLACE_WITH_YOUR_KV_PREVIEW_NAMESPACE_ID"
+id = "71612d363b07408bb70eec49d5739b1c"
+preview_id = "38975852f1bc4c838da456ea9a21e789"
 
 # Secrets (set via CLI — never commit values):
 # wrangler secret put ANTHROPIC_API_KEY

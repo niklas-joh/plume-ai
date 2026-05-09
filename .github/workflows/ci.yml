@@ -19,7 +19,10 @@ jobs:
       - name: Lint PR title
         # The PR title becomes the squash-merge commit message on main,
         # which is what semantic-release reads to determine version bumps.
-        run: echo "${{ github.event.pull_request.title }}" | npx commitlint
+        # Pass title via env to prevent shell injection from a malicious title.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: echo "$PR_TITLE" | npx commitlint
   phpcs:
     name: PHPCS
     runs-on: ubuntu-latest

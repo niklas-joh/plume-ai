@@ -144,7 +144,7 @@ A short validation note appended to this document (or as a new `WP_7_0_API_VALID
 
 **THE headline integration.** Every entry in `ToolRegistry::register_tools()` becomes a `wp_register_ability()` registration with an `execute_callback` that delegates to `ToolExecutor::execute()`. The chat loop continues to use the existing tool path; Abilities is a parallel surface.
 
-- **All 10 tools** registered, including write tools (`create_post`, `update_post`, `plan_post`, `plan_update`, `generate_seo_meta`) the chat loop currently hides
+- **All 10 tools** registered, including write tools (`create_post`, `update_post`, `plan_post`, `plan_update`, `generate_seo_meta`) the chat loop currently hides. Note: `plan_post` and `plan_update` currently have no `ToolExecutor` handler — see sub-task below.
 - Strong `permission_callback` (calls `Gatekeeper::can_request_ai()` plus `current_user_can( $tool->capability )`)
 - Explicit `annotations.destructive=true` for write tools so consenting MCP clients can require confirmation
 - Abilities run as the *current user* — no privilege escalation
@@ -153,6 +153,7 @@ A short validation note appended to this document (or as a new `WP_7_0_API_VALID
 - New `includes/Abilities/AbilityRegistrar.php`
 - New `includes/Abilities/ToolToAbility.php` adapter
 - Sub-task: add `public function all(): array { return $this->tools; }` to `ToolRegistry` (currently private at `:26`)
+- Sub-task: add `plan_post` and `plan_update` handler methods to `ToolExecutor` and register them in the dispatch table. These two tools appear in `ToolRegistry` but have no corresponding private methods or dispatch entries in `ToolExecutor` — calling them today returns `['error' => 'Unknown tool: plan_post']`. They must be implemented before Phase 4.1 ships, or explicitly excluded from the Abilities surface with a documented rationale.
 
 **Why headline.** Core command palette, MCP clients (Claude Desktop, Claude Code), WP-CLI, and any agent-framework plugin gain access to wp-ai-mind tools without bespoke integration. This positions wp-ai-mind as the agent-action layer for the site **without** forcing other plugins through our tier system.
 
@@ -279,7 +280,7 @@ The decision to switch Pro BYOK from one-time fee → monthly subscription has i
 | `includes/Admin/NJ_Api_Key_Settings.php:178` | 2.2 | 3 |
 | `includes/Providers/AbstractProvider.php:157` | 3.3 | 4 |
 | `includes/Tools/ToolRegistry.php:26, :33` | 4.1, 4.2 | 3 |
-| `includes/Tools/ToolExecutor.php` (delegated from Ability callback) | 4.1 | 3 |
+| `includes/Tools/ToolExecutor.php` (add `plan_post`/`plan_update` handlers; delegated from Ability callback) | 4.1 | 3 |
 | `includes/Abilities/AbilityRegistrar.php` *(new)* | 4.1 | 3 |
 | `includes/Abilities/ToolToAbility.php` *(new)* | 4.1 | 3 |
 | `includes/Voice/VoiceInjector.php` | 5.2 | 4 |

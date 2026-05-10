@@ -85,7 +85,7 @@ Single function consolidating the four scattered gates (tier feature check, mont
 
 `ProviderSettings::ENV_VARS` (`includes/Settings/ProviderSettings.php:27-31`) maps `claude` → `CLAUDE_API_KEY`. Recognise both, with `ANTHROPIC_API_KEY` winning if both are present (it's the standard name and what WP 7.0's Connectors API expects).
 
-- **Files:** `includes/Settings/ProviderSettings.php:27-31, 60-67`
+- **Files:** `includes/Settings/ProviderSettings.php:27-31, 61-67`
 - **Required by:** 2.1
 
 ### 1.3 Tier-state caching with explicit invalidation
@@ -99,6 +99,7 @@ Single function consolidating the four scattered gates (tier feature check, mont
 
 - All six legacy gate sites call `Gatekeeper::can_request_ai()` — no behavioural change
 - `ANTHROPIC_API_KEY` env var works for `claude` provider
+- `ollama` provider is intentionally absent from `ENV_VARS` (no standard env var; local address configured separately) — no env lookup attempted for `ollama`
 - Multi-call benchmark on `NJ_Tier_Manager::get_user_tier()` shows single `get_user_meta` per cache window
 - Force-update tier via `set_user_tier()` → next read hits DB (cache invalidated correctly)
 - Existing PHPUnit suite passes; new unit tests cover Gatekeeper × four tiers × six gate sites
@@ -139,6 +140,8 @@ A short validation note appended to this document (or as a new `WP_7_0_API_VALID
 ## Phase 3 — WP 7.0 integrations (post-validation)
 
 **Goal.** The headline value-add work: Abilities discoverability + cleaner key-entry UX. Each item ships independently.
+
+> **Note on item numbering.** Item numbers (4.1, 4.2, 2.1, 2.2) match the overview table and original backlog IDs — they are not sequential within this phase. `4.x` items precede `2.x` here because Abilities (4.x) must be ready before the UX redirect (2.2) can meaningfully reference them.
 
 ### 4.1 Map all 10 tools to Abilities (read + plan + write)
 

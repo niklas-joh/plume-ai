@@ -322,7 +322,7 @@ async function handleRotateSecret(
 
 	return jsonResponse( {
 		tier_sync_secret: newSecret,
-		tier: auth.record.tier,
+		tier: updated.tier,
 	} );
 }
 

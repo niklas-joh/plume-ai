@@ -11,6 +11,7 @@ namespace WP_AI_Mind\Proxy;
 
 use WP_Error;
 use WP_AI_Mind\Admin\ActivationVerifyRestController;
+use WP_AI_Mind\Payments\TierUpdateWebhookController;
 use WP_AI_Mind\Tiers\NJ_Tier_Config;
 use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
@@ -33,12 +34,12 @@ class NJ_Site_Registration {
 
 	/**
 	 * Option key for the per-site HMAC secret used to authenticate Worker → WP
-	 * tier-update pushes. Mirror of TierUpdateWebhookController::OPTION_SECRET
-	 * kept here for symmetry with OPTION_TOKEN.
+	 * tier-update pushes. Canonical definition lives in TierUpdateWebhookController;
+	 * referenced here for symmetry with OPTION_TOKEN.
 	 *
 	 * @since 1.9.0
 	 */
-	public const OPTION_SECRET = 'wp_ai_mind_tier_sync_secret';
+	public const OPTION_SECRET = TierUpdateWebhookController::OPTION_SECRET;
 
 	private const TRANSIENT_BACKOFF = 'wp_ai_mind_reg_backoff';
 

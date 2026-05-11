@@ -10,7 +10,13 @@ use PHPUnit\Framework\TestCase;
 
 class ClaudeProviderTest extends TestCase {
 
-	protected function setUp(): void    { parent::setUp(); Monkey\setUp(); }
+	protected function setUp(): void    {
+		parent::setUp();
+		Monkey\setUp();
+		// Safe default — individual tests can override. Returns the $default arg so
+		// callers that pass a real default (e.g. 'free' for SITE_OPTION) get sensible values.
+		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
+	}
 	protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
 	private function mock_wpdb(): void {
@@ -25,6 +31,11 @@ class ClaudeProviderTest extends TestCase {
 		};
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		// Return 'pro_byok' so routing goes direct — preserving existing test behaviour.
+		// Tier is now site-level, so we stub the SITE_OPTION not user meta.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+		);
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
 		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
@@ -92,6 +103,10 @@ class ClaudeProviderTest extends TestCase {
 	public function test_complete_throws_on_api_error(): void {
 		// Stub tier resolution so routing goes direct (pro_byok path).
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+		);
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 
 		Functions\when( 'wp_remote_post' )->justReturn( [

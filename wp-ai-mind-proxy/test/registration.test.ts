@@ -160,10 +160,23 @@ describe( 'handleRegistration', () => {
 			env
 		);
 		expect( res.status ).toBe( 201 );
-		const data = ( await res.json() ) as { token: string; tier: string };
+		const data = ( await res.json() ) as {
+			token: string;
+			tier: string;
+			tier_sync_secret: string;
+		};
 		expect( typeof data.token ).toBe( 'string' );
 		expect( data.token.length ).toBeGreaterThan( 0 );
 		expect( data.tier ).toBe( 'trial' );
+		// New: secret is returned in response and is a 64-char hex token.
+		expect( data.tier_sync_secret ).toMatch( /^[0-9a-f]{64}$/ );
+
+		// New: the secret is persisted on the SiteRecord in KV.
+		const stored = await env.USAGE_KV.get< import('../src/types').SiteRecord >(
+			`site:${ data.token }`,
+			'json'
+		);
+		expect( stored?.tier_sync_secret ).toBe( data.tier_sync_secret );
 	} );
 
 	it( 'consumes the challenge (single-use)', async () => {

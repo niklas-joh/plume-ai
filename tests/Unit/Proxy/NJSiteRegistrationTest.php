@@ -199,6 +199,7 @@ class NJSiteRegistrationTest extends TestCase {
 		Functions\when( 'home_url' )->justReturn( 'https://mysite.example.com' );
 		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
 		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'do_action' )->justReturn( null );
 
 		$result = NJ_Site_Registration::register();
 
@@ -208,5 +209,159 @@ class NJSiteRegistrationTest extends TestCase {
 		$body = json_decode( $captured_args['body'], true );
 		$this->assertSame( $challenge, $body['challenge_token'] );
 		$this->assertSame( 'https://mysite.example.com', $body['site_url'] );
+	}
+
+	// ── register() — Worker now supplies tier_sync_secret and tier ──────────
+
+	public function test_register_stores_tier_sync_secret_and_site_tier_when_worker_supplies_them(): void {
+		$challenge = str_repeat( 'e', 64 );
+		$token     = str_repeat( 'f', 64 );
+		$secret    = str_repeat( '9', 64 );
+
+		Functions\when( 'wp_remote_get' )->justReturn( [] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_post' )->justReturn( [] );
+
+		$rcCalls = 0;
+		Functions\when( 'wp_remote_retrieve_response_code' )->alias(
+			function () use ( &$rcCalls ): int {
+				return 1 === ++$rcCalls ? 200 : 201;
+			}
+		);
+
+		$bodyCalls = 0;
+		Functions\when( 'wp_remote_retrieve_body' )->alias(
+			function () use ( &$bodyCalls, $challenge, $token, $secret ): string {
+				return 1 === ++$bodyCalls
+					? '{"challenge":"' . $challenge . '"}'
+					: '{"token":"' . $token . '","tier":"pro_managed","tier_sync_secret":"' . $secret . '"}';
+			}
+		);
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'home_url' )->justReturn( 'https://mysite.example.com' );
+		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$captured = [];
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value, $autoload = null ) use ( &$captured ) {
+				$captured[ $key ] = [ 'value' => $value, 'autoload' => $autoload ];
+				return true;
+			}
+		);
+
+		$result = NJ_Site_Registration::register();
+
+		$this->assertSame( $token, $result );
+		$this->assertSame( $secret, $captured[ NJ_Site_Registration::OPTION_SECRET ]['value'] );
+		$this->assertFalse( $captured[ NJ_Site_Registration::OPTION_SECRET ]['autoload'] );
+		// Tier should also have been persisted via set_site_tier().
+		$this->assertSame( 'pro_managed', $captured['wp_ai_mind_site_tier']['value'] );
+	}
+
+	public function test_register_succeeds_without_secret_or_tier_for_legacy_workers(): void {
+		$challenge = str_repeat( 'a', 64 );
+		$token     = str_repeat( 'b', 64 );
+
+		Functions\when( 'wp_remote_get' )->justReturn( [] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_post' )->justReturn( [] );
+
+		$rcCalls = 0;
+		Functions\when( 'wp_remote_retrieve_response_code' )->alias(
+			function () use ( &$rcCalls ): int {
+				return 1 === ++$rcCalls ? 200 : 201;
+			}
+		);
+
+		$bodyCalls = 0;
+		Functions\when( 'wp_remote_retrieve_body' )->alias(
+			function () use ( &$bodyCalls, $challenge, $token ): string {
+				return 1 === ++$bodyCalls
+					? '{"challenge":"' . $challenge . '"}'
+					: '{"token":"' . $token . '"}'; // legacy: token only.
+			}
+		);
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'home_url' )->justReturn( 'https://mysite.example.com' );
+		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
+
+		$captured = [];
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value, $autoload = null ) use ( &$captured ) {
+				$captured[ $key ] = $value;
+				return true;
+			}
+		);
+
+		$result = NJ_Site_Registration::register();
+
+		$this->assertSame( $token, $result );
+		// Only the token option must have been written — no secret, no tier.
+		$this->assertArrayHasKey( NJ_Site_Registration::OPTION_TOKEN, $captured );
+		$this->assertArrayNotHasKey( NJ_Site_Registration::OPTION_SECRET, $captured );
+		$this->assertArrayNotHasKey( 'wp_ai_mind_site_tier', $captured );
+	}
+
+	// ── rotate_secret() ─────────────────────────────────────────────────────
+
+	public function test_rotate_secret_returns_wp_error_when_not_registered(): void {
+		Functions\expect( 'get_option' )
+			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->andReturn( '' );
+
+		$result = NJ_Site_Registration::rotate_secret();
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'not_registered', $result->get_error_code() );
+	}
+
+	public function test_rotate_secret_returns_wp_error_on_non_200(): void {
+		Functions\when( 'get_option' )->alias(
+			fn( $k, $d = '' ) => NJ_Site_Registration::OPTION_TOKEN === $k ? 'site-token' : $d
+		);
+		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
+		Functions\when( 'wp_remote_post' )->justReturn( [] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 500 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '{}' );
+
+		$result = NJ_Site_Registration::rotate_secret();
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'rotate_failed', $result->get_error_code() );
+	}
+
+	public function test_rotate_secret_stores_new_secret_on_success(): void {
+		$secret = str_repeat( '7', 64 );
+
+		Functions\when( 'get_option' )->alias(
+			fn( $k, $d = '' ) => NJ_Site_Registration::OPTION_TOKEN === $k ? 'site-token' : $d
+		);
+		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
+		Functions\when( 'wp_remote_post' )->justReturn( [] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn(
+			'{"tier_sync_secret":"' . $secret . '","tier":"pro_managed"}'
+		);
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$captured = [];
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value, $autoload = null ) use ( &$captured ) {
+				$captured[ $key ] = $value;
+				return true;
+			}
+		);
+
+		$result = NJ_Site_Registration::rotate_secret();
+
+		$this->assertSame( $secret, $result );
+		$this->assertSame( $secret, $captured[ NJ_Site_Registration::OPTION_SECRET ] );
+		$this->assertSame( 'pro_managed', $captured['wp_ai_mind_site_tier'] );
 	}
 }

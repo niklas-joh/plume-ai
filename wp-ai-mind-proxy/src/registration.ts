@@ -121,12 +121,23 @@ export async function handleRegistration(
 			'json'
 		);
 		if ( record ) {
+			// Backfill the tier-sync secret on idempotent re-registration so
+			// pre-1.9 sites pick it up without needing a manual rotate call.
+			let secret = record.tier_sync_secret;
+			if ( ! secret ) {
+				secret = generateToken();
+			}
+
 			const startedAt = record.trial_started_at ?? record.created_at;
 			if (
 				record.tier === 'trial' &&
 				Date.now() - startedAt > TRIAL_PERIOD_MS
 			) {
-				const demoted: SiteRecord = { ...record, tier: 'free' };
+				const demoted: SiteRecord = {
+					...record,
+					tier: 'free',
+					tier_sync_secret: secret,
+				};
 				await env.USAGE_KV.put(
 					`site:${ existingToken }`,
 					JSON.stringify( demoted )
@@ -134,9 +145,26 @@ export async function handleRegistration(
 				return jsonResponse( {
 					token: existingToken,
 					tier: 'free',
+					tier_sync_secret: secret,
 				} );
 			}
-			return jsonResponse( { token: existingToken, tier: record.tier } );
+
+			if ( secret !== record.tier_sync_secret ) {
+				const backfilled: SiteRecord = {
+					...record,
+					tier_sync_secret: secret,
+				};
+				await env.USAGE_KV.put(
+					`site:${ existingToken }`,
+					JSON.stringify( backfilled )
+				);
+			}
+
+			return jsonResponse( {
+				token: existingToken,
+				tier: record.tier,
+				tier_sync_secret: secret,
+			} );
 		}
 	}
 
@@ -162,18 +190,23 @@ export async function handleRegistration(
 	} );
 
 	const token = generateToken();
+	const tierSyncSecret = generateToken();
 	const now = Date.now();
 	const record: SiteRecord = {
 		site_url: siteUrl,
 		tier: 'trial',
 		created_at: now,
 		trial_started_at: now,
+		tier_sync_secret: tierSyncSecret,
 	};
 
 	await env.USAGE_KV.put( `site:${ token }`, JSON.stringify( record ) );
 	await env.USAGE_KV.put( `site_url:${ urlHash }`, token );
 
-	return jsonResponse( { token, tier: 'trial' }, 201 );
+	return jsonResponse(
+		{ token, tier: 'trial', tier_sync_secret: tierSyncSecret },
+		201
+	);
 }
 
 function getCurrentHour(): string {

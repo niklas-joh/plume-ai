@@ -61,7 +61,7 @@ class NJ_Tier_Manager {
 		// is a site-level fact, so consult the site option directly.
 		if ( $user_id <= 0 ) {
 			$site_tier = (string) get_option( self::SITE_OPTION, 'free' );
-			return '' !== $site_tier ? $site_tier : 'free';
+			return in_array( $site_tier, NJ_Tier_Config::get_valid_tiers(), true ) ? $site_tier : 'free';
 		}
 
 		$site_tier = (string) get_option( self::SITE_OPTION, 'free' );
@@ -74,7 +74,10 @@ class NJ_Tier_Manager {
 			return 'trial';
 		}
 
-		return '' !== $site_tier ? $site_tier : 'free';
+		// Treat unknown site_option values as 'free' rather than passing them through
+		// — protects callers from corrupt option rows and gives legacy tests that stub
+		// get_option globally a deterministic floor.
+		return in_array( $site_tier, NJ_Tier_Config::get_valid_tiers(), true ) ? $site_tier : 'free';
 	}
 
 	/**

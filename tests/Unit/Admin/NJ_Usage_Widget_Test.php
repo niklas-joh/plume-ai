@@ -13,6 +13,9 @@ class NJ_Usage_Widget_Test extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Default site-tier lookup returns the supplied default; individual tests
+		// override when they need a paid site tier.
+		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
 	}
 
 	protected function tearDown(): void {
@@ -138,11 +141,13 @@ class NJ_Usage_Widget_Test extends TestCase {
 		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
 
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		// pro_byok lives on the site option now.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+		);
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key ) use ( $month_key ): string {
-				if ( 'wp_ai_mind_tier' === $key ) {
-					return 'pro_byok'; // limit = null
-				}
 				if ( $month_key === $key ) {
 					return '0';
 				}

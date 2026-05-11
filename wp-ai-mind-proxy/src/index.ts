@@ -1,7 +1,7 @@
 // src/index.ts
 
 import { Env, ModelConfig, NormalizedResponse, ProxyRequest, ProxyTier, SiteRecord, ToolParam } from './types';
-import { authenticateRequest } from './auth';
+import { authenticateRequest, generateToken } from './auth';
 import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
 import { TRIAL_PERIOD_MS } from './constants';
@@ -255,7 +255,11 @@ async function callGemini(
 }
 
 export default {
-	async fetch( request: Request, env: Env ): Promise< Response > {
+	async fetch(
+		request: Request,
+		env: Env,
+		ctx: ExecutionContext
+	): Promise< Response > {
 		const { pathname } = new URL( request.url );
 
 		if ( pathname === '/activation-challenge' ) {
@@ -271,7 +275,13 @@ export default {
 			if ( request.method !== 'POST' ) {
 				return jsonResponse( { error: 'Method not allowed' }, 405 );
 			}
-			return handleWebhook( request, env );
+			return handleWebhook( request, env, ctx );
+		}
+		if ( pathname === '/rotate-secret' ) {
+			if ( request.method !== 'POST' ) {
+				return jsonResponse( { error: 'Method not allowed' }, 405 );
+			}
+			return handleRotateSecret( request, env );
 		}
 		if ( pathname === '/v1/chat' ) {
 			if ( request.method !== 'POST' ) {
@@ -283,6 +293,38 @@ export default {
 		return jsonResponse( { error: 'Not found' }, 404 );
 	},
 };
+
+/**
+ * Issue a fresh tier-sync secret for a Bearer-authenticated site.
+ *
+ * Idempotent on the WP side — each call hands back a new secret and the WP
+ * plugin simply overwrites its stored value. Used by sites registered before
+ * the tier-sync handshake existed (backfill) and as a manual rotation path.
+ */
+async function handleRotateSecret(
+	request: Request,
+	env: Env
+): Promise< Response > {
+	const auth = await authenticateRequest( request, env );
+	if ( ! auth.authenticated || ! auth.site_token || ! auth.record ) {
+		return jsonResponse( { error: 'Unauthorised' }, 401 );
+	}
+
+	const newSecret = generateToken();
+	const updated: SiteRecord = {
+		...auth.record,
+		tier_sync_secret: newSecret,
+	};
+	await env.USAGE_KV.put(
+		`site:${ auth.site_token }`,
+		JSON.stringify( updated )
+	);
+
+	return jsonResponse( {
+		tier_sync_secret: newSecret,
+		tier: auth.record.tier,
+	} );
+}
 
 async function handleChatProxy(
 	request: Request,

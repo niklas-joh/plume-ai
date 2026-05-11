@@ -11,7 +11,11 @@ use PHPUnit\Framework\TestCase;
 
 class SettingsRestControllerTest extends TestCase {
 
-    protected function setUp(): void    { parent::setUp(); Monkey\setUp(); }
+    protected function setUp(): void    {
+        parent::setUp();
+        Monkey\setUp();
+        Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
+    }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     // ── Route registration ────────────────────────────────────────────────────
@@ -167,11 +171,15 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'wp_ai_mind_is_pro' )->justReturn( false );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
-        // Use a reference so the same mock returns different tiers on subsequent calls.
+        // Tier is now site-level — flip the SITE_OPTION between the two responses.
         $tier = 'free';
-        Functions\when( 'get_user_meta' )->alias( function( $uid, $key, $single ) use ( &$tier ) {
-            return $key === 'wp_ai_mind_tier' ? $tier : null;
+        Functions\when( 'get_option' )->alias( function( $key, $default = false ) use ( &$tier ) {
+            if ( 'wp_ai_mind_site_tier' === $key ) {
+                return $tier;
+            }
+            return $default;
         } );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => null );
 
         $controller   = new SettingsRestController();
         $response_free = $controller->get_settings( new \WP_REST_Request() );
@@ -193,11 +201,20 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'esc_url_raw' )->alias( fn( $v ) => $v );
         // ModuleRegistry::__construct() calls get_option to load saved state.
-        Functions\when( 'get_option' )->justReturn( [] );
-        // NJ_Tier_Manager::user_can() reads tier via get_current_user_id + get_user_meta.
-        // Use pro_byok so both model_selection and own_api_key gates pass.
+        // pro_byok is now a site-level entitlement, so the SITE_OPTION returns it
+        // while ModuleRegistry's other reads fall back to []/false.
+        Functions\when( 'get_option' )->alias( function( $key, $default = false ) {
+            if ( 'wp_ai_mind_site_tier' === $key ) {
+                return 'pro_byok';
+            }
+            if ( is_array( $default ) ) {
+                return [];
+            }
+            return $default;
+        } );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'wp_ai_mind_tier' ? 'pro_byok' : null );
+        Functions\when( '__' )->returnArg();
 
         $api_key_calls = [];
         $controller = new class( $api_key_calls ) extends SettingsRestController {
@@ -402,7 +419,10 @@ class SettingsRestControllerTest extends TestCase {
     public function test_get_settings_includes_is_pro_field(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
-        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'get_option' )->alias(
+            fn( $key, $default = false ) =>
+                'wp_ai_mind_site_tier' === $key ? 'pro_managed' : ( is_array( $default ) ? $default : ( $default ?: '' ) )
+        );
         Functions\when( 'get_current_user_id' )->justReturn( 2 );
         Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'wp_ai_mind_tier' ? 'pro_managed' : null );
 
@@ -458,7 +478,12 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         // Tier gate: NJ_Tier_Manager::user_can() needs these stubs.
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_option' )->alias(
+            fn( $key, $default = false ) =>
+                'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+        );
         Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'wp_ai_mind_tier' ? 'pro_byok' : null );
+        Functions\when( '__' )->returnArg();
 
         $api_key_calls = [];
         $controller = new class( $api_key_calls ) extends SettingsRestController {

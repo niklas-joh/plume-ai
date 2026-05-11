@@ -13,6 +13,7 @@ class ImagesModuleTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
 	}
 
 	protected function tearDown(): void {
@@ -79,6 +80,10 @@ class ImagesModuleTest extends TestCase {
 			function( $user_id, $key, $single ) use ( $month_key ) {
 				if ( 'wp_ai_mind_tier' === $key ) {
 					return 'trial';
+				}
+				if ( 'wp_ai_mind_trial_started' === $key ) {
+					// is_trial_active() needs a fresh trial timestamp.
+					return (string) time();
 				}
 				if ( $month_key === $key ) {
 					return '0'; // well under 300k trial limit

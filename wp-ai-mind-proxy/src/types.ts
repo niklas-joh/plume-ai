@@ -23,6 +23,12 @@ export interface SiteRecord {
 	created_at: number;
 	trial_started_at?: number;
 	ls_licence_key?: string;
+	/**
+	 * Shared HMAC secret used to sign tier-update pushes from the Worker to the
+	 * WordPress site. Optional so legacy KV records (issued before this field
+	 * existed) still decode; the Worker treats absent secrets as "no push".
+	 */
+	tier_sync_secret?: string;
 }
 
 export interface LicenceRecord {

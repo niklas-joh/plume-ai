@@ -58,6 +58,8 @@ if ( ! class_exists( 'WP_REST_Request' ) ) {
 	class WP_REST_Request {
 		private array $params     = [];
 		private array $url_params = [];
+		private array $headers    = [];
+		private string $body      = '';
 		public function __construct( string $method = 'GET', string $route = '' ) {}
 		public function get_param( string $key ) {
 			return $this->url_params[ $key ] ?? $this->params[ $key ] ?? null;
@@ -67,6 +69,15 @@ if ( ! class_exists( 'WP_REST_Request' ) ) {
 		public function set_body_params( array $params ): void { $this->params = array_merge( $this->params, $params ); }
 		public function set_url_params( array $params ): void { $this->url_params = array_merge( $this->url_params, $params ); }
 		public function set_param( string $key, mixed $value ): void { $this->params[ $key ] = $value; }
+		public function set_header( string $key, string $value ): void {
+			// WP stores keys lowercased with underscores so callers can use either case.
+			$this->headers[ strtolower( str_replace( '-', '_', $key ) ) ] = $value;
+		}
+		public function get_header( string $key ): ?string {
+			return $this->headers[ strtolower( str_replace( '-', '_', $key ) ) ] ?? null;
+		}
+		public function set_body( string $body ): void { $this->body = $body; }
+		public function get_body(): string { return $this->body; }
 	}
 }
 

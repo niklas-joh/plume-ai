@@ -468,7 +468,6 @@ git commit -m "chore: update wp-ai-mind submodule"
 ### Plugin Gotchas
 - **OPcache**: Docker serves stale bytecode after PHP edits — restart the container
 - **`json_decode($json, true)` converts `{}` → `[]`**: Cast empty arrays to `new \stdClass()` wherever JSON objects are required (tool `properties`, tool `input` fields)
-- **`wp_ai_mind_is_pro()`**: Global function in `Core/ProGate.php` — use `\wp_ai_mind_is_pro()` (global prefix) inside namespaced classes
 - **Staging deploy**: `git push origin main` in plugin repo, then `ssh siteground-staging "cd .../public_html && git submodule update --remote wp-content/plugins/wp-ai-mind"`
 
 

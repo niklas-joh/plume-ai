@@ -163,7 +163,10 @@ class TierUpdateWebhookController {
 			return new WP_REST_Response( [ 'error' => 'bad_request' ], 400 );
 		}
 
-		NJ_Tier_Manager::set_site_tier( $tier );
+		$ok = NJ_Tier_Manager::set_site_tier( $tier );
+		if ( ! $ok ) {
+			return new WP_REST_Response( [ 'error' => 'internal_error' ], 500 );
+		}
 
 		return new WP_REST_Response( [ 'ok' => true ], 200 );
 	}

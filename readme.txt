@@ -43,7 +43,7 @@ chosen provider. Review each provider's privacy policy and terms of service befo
 * **Stilus Proxy** (`https://wp-ai-mind-proxy.wp-ai-mind.workers.dev`): Free and managed-pro
   tiers route chat requests through this Cloudflare Worker service. The service receives your
   site URL (for registration) and the chat messages you send. No messages are stored by the
-  proxy beyond the in-flight API call. See: https://wpaimind.com/privacy-policy
+  proxy beyond the in-flight API call. See: https://wpaimind.com/privacy-policy (legacy domain)
 
 == Installation ==
 

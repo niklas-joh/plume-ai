@@ -53,7 +53,7 @@ class NJ_Usage_Widget {
 	}
 
 	/**
-	 * Register the AI Mind Usage dashboard widget.
+	 * Register the Stilus Usage dashboard widget.
 	 *
 	 * @since 1.2.0
 	 * @return void
@@ -64,7 +64,7 @@ class NJ_Usage_Widget {
 		}
 		wp_add_dashboard_widget(
 			'wp_ai_mind_usage',
-			__( 'AI Mind Usage', 'wp-ai-mind' ),
+			__( 'Stilus Usage', 'wp-ai-mind' ),
 			[ self::class, 'render' ]
 		);
 	}

@@ -304,7 +304,7 @@ class ChatRestController {
 					[
 						'message' => sprintf(
 												/* translators: %s: provider slug */
-							__( 'No API key configured for "%s". Please add one in WP AI Mind → Settings.', 'wp-ai-mind' ),
+							__( 'No API key configured for "%s". Please add one in Stilus → Settings.', 'wp-ai-mind' ),
 							$provider_slug
 						),
 					],

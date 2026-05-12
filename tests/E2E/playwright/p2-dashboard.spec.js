@@ -16,7 +16,7 @@ test.describe('P2 — Dashboard landing page', () => {
         await page.goto('/wp-admin/admin.php?page=wp-ai-mind');
         // Wait for React to hydrate
         await page.waitForSelector('.wpaim-dash-title', { timeout: 10000 });
-        await expect(page.locator('.wpaim-dash-title')).toContainText('Vectra WP AI Mind');
+        await expect(page.locator('.wpaim-dash-title')).toContainText('Stilus');
         await expect(page.locator('.wpaim-dash-tiles')).toBeVisible();
         await expect(page.locator('.wpaim-dash-resources')).toBeVisible();
         await expect(page.locator('.wpaim-dash-footer')).toBeVisible();

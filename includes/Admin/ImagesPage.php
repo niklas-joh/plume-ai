@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Renders the WP AI Mind image-generation admin page.
+ * Renders the Stilus image-generation admin page.
  *
  * Outputs a React mount point; assets are enqueued by ImagesModule.
  */

@@ -1,7 +1,7 @@
 <?php
 /**
  * REST endpoint called by the proxy Worker to verify a site is live and running
- * WP AI Mind.
+ * Stilus.
  *
  * @package WP_AI_Mind
  */

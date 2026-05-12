@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin page rendering the WP AI Mind dashboard.
+ * Admin page rendering the Stilus dashboard.
  *
  * @package WP_AI_Mind
  */
@@ -17,7 +17,7 @@ use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 
 /**
- * Renders the WP AI Mind dashboard admin page.
+ * Renders the Stilus dashboard admin page.
  *
  * Also handles the "Run setup again" GET action, which clears the
  * onboarding-seen flag and redirects back to the dashboard root.

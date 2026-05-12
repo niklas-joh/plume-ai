@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
 /**
- * Enqueues block-editor assets for the WP AI Mind sidebar panel.
+ * Enqueues block-editor assets for the Stilus sidebar panel.
  */
 class EditorModule {
 

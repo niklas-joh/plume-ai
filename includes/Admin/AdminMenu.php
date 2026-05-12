@@ -1,6 +1,6 @@
 <?php
 /**
- * Registers the WP AI Mind admin menu and sub-menu pages.
+ * Registers the Stilus admin menu and sub-menu pages.
  *
  * @package WP_AI_Mind
  */
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Registers the top-level WP AI Mind admin menu and all sub-menu pages.
+ * Registers the top-level Stilus admin menu and all sub-menu pages.
  *
  * The 'Upgrade' sub-menu is conditionally added only for free and trial users;
  * Pro users see a clean menu without the upsell entry.
@@ -28,8 +28,8 @@ class AdminMenu {
 	 */
 	public static function register(): void {
 		add_menu_page(
-			__( 'Vectra AI Writer and Designer', 'wp-ai-mind' ),
-			__( 'AI Mind', 'wp-ai-mind' ),
+			__( 'Stilus - Write and Design', 'wp-ai-mind' ),
+			__( 'Stilus', 'wp-ai-mind' ),
 			'edit_posts',
 			'wp-ai-mind',
 			[ DashboardPage::class, 'render' ],

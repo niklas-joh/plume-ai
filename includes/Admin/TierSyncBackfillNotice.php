@@ -105,12 +105,12 @@ class TierSyncBackfillNotice {
 		?>
 		<div class="notice notice-warning is-dismissible">
 			<p>
-				<strong><?php \esc_html_e( 'WP AI Mind — Plan sync setup required', 'wp-ai-mind' ); ?></strong>
+				<strong><?php \esc_html_e( 'Stilus - Plan sync setup required', 'wp-ai-mind' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				\esc_html_e(
-					'Your site is registered with the WP AI Mind proxy, but it has not yet been issued a tier-sync secret. Without this secret, plan upgrades and cancellations cannot be pushed to your site automatically. Click the button below to complete the one-time setup.',
+					'Your site is registered with the Stilus proxy, but it has not yet been issued a tier-sync secret. Without this secret, plan upgrades and cancellations cannot be pushed to your site automatically. Click the button below to complete the one-time setup.',
 					'wp-ai-mind'
 				);
 				?>
@@ -153,7 +153,7 @@ class TierSyncBackfillNotice {
 			?>
 			<div class="notice notice-success is-dismissible">
 				<p>
-					<?php \esc_html_e( 'WP AI Mind — Plan sync is now active. Your site can receive tier updates from the proxy.', 'wp-ai-mind' ); ?>
+					<?php \esc_html_e( 'Stilus - Plan sync is now active. Your site can receive tier updates from the proxy.', 'wp-ai-mind' ); ?>
 				</p>
 			</div>
 			<?php
@@ -169,7 +169,7 @@ class TierSyncBackfillNotice {
 		?>
 		<div class="notice notice-error is-dismissible">
 			<p>
-				<?php \esc_html_e( 'WP AI Mind — Re-registration failed.', 'wp-ai-mind' ); ?>
+				<?php \esc_html_e( 'Stilus - Re-registration failed.', 'wp-ai-mind' ); ?>
 				<?php if ( '' !== $detail ) : ?>
 					<br />
 					<code><?php echo \esc_html( $detail ); ?></code>
@@ -178,7 +178,7 @@ class TierSyncBackfillNotice {
 			<p>
 				<?php
 				\esc_html_e(
-					'If this persists, confirm the WP AI Mind proxy is reachable from this server and that the proxy has been updated to the current plugin version.',
+					'If this persists, confirm the Stilus proxy is reachable from this server and that the proxy has been updated to the current plugin version.',
 					'wp-ai-mind'
 				);
 				?>
@@ -220,7 +220,7 @@ class TierSyncBackfillNotice {
 				5 * MINUTE_IN_SECONDS
 			);
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			\error_log( '[WP AI Mind] Tier-sync rotation failed: ' . $result->get_error_message() );
+			\error_log( '[Stilus] Tier-sync rotation failed: ' . $result->get_error_message() );
 		}
 
 		$referer = \wp_get_referer();

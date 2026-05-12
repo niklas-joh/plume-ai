@@ -232,10 +232,10 @@ class SeoModule {
 			$provider = $factory->make_default();
 			$response = $provider->complete( $req );
 		} catch ( ProviderException $e ) {
-			\error_log( 'WP AI Mind SeoModule provider error: ' . $e->getMessage() );
+			\error_log( '[Stilus] SeoModule provider error: ' . $e->getMessage() );
 			return new \WP_Error( 'provider_error', __( 'Provider error. Please try again later.', 'wp-ai-mind' ) );
 		} catch ( \Exception $e ) {
-			\error_log( 'WP AI Mind SeoModule unexpected error: ' . $e->getMessage() );
+			\error_log( '[Stilus] SeoModule unexpected error: ' . $e->getMessage() );
 			return new \WP_Error( 'unexpected_error', __( 'An unexpected error occurred. Please try again later.', 'wp-ai-mind' ) );
 		}
 

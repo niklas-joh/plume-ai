@@ -1,0 +1,10 @@
+vendor/
+node_modules/
+assets/
+build/
+dist/
+.artifacts/
+*.min.js
+*.min.css
+*.map
+tests/

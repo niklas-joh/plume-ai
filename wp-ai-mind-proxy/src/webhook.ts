@@ -2,6 +2,7 @@
 
 import { Env, SiteRecord, LicenceRecord, ProxyTier } from './types';
 import { verifyLsSignature } from './signature';
+import { pushTierUpdate } from './tierSync';
 
 // Build LemonSqueezy variant ID → plugin tier map from environment variables.
 // Pro BYOK (1550517) is not here — it bypasses the proxy; handled in Phase 3.
@@ -18,7 +19,8 @@ function buildVariantTierMap( env: Env ): Record< string, ProxyTier > {
 
 export async function handleWebhook(
 	request: Request,
-	env: Env
+	env: Env,
+	ctx: ExecutionContext
 ): Promise< Response > {
 	if ( request.method !== 'POST' ) {
 		return new Response( 'Method not allowed', { status: 405 } );
@@ -56,18 +58,18 @@ export async function handleWebhook(
 		case 'subscription_created':
 		case 'subscription_resumed':
 		case 'subscription_unpaused':
-			await handleActivation( payload, env );
+			await handleActivation( payload, env, ctx );
 			break;
 
 		case 'subscription_cancelled':
 		case 'subscription_expired':
 		case 'subscription_paused':
-			await handleDeactivation( payload, env );
+			await handleDeactivation( payload, env, ctx );
 			break;
 
 		case 'licence_key_created':
 		case 'licence_key_updated':
-			await handleLicenceKey( payload, env );
+			await handleLicenceKey( payload, env, ctx );
 			break;
 
 		default:
@@ -79,7 +81,8 @@ export async function handleWebhook(
 
 async function handleActivation(
 	payload: Record< string, unknown >,
-	env: Env
+	env: Env,
+	ctx: ExecutionContext
 ): Promise< void > {
 	const meta = payload.meta as Record< string, unknown > | undefined;
 	const customData = meta?.custom_data as
@@ -105,12 +108,13 @@ async function handleActivation(
 	}
 
 	const licenceKey = ( attrs?.identifier as string | undefined ) ?? '';
-	await upgradeSiteTier( siteToken, tier, licenceKey, env );
+	await upgradeSiteTier( siteToken, tier, licenceKey, env, ctx );
 }
 
 async function handleDeactivation(
 	payload: Record< string, unknown >,
-	env: Env
+	env: Env,
+	ctx: ExecutionContext
 ): Promise< void > {
 	const data = payload.data as Record< string, unknown > | undefined;
 	const attrs = data?.attributes as Record< string, unknown > | undefined;
@@ -126,14 +130,15 @@ async function handleDeactivation(
 		'json'
 	);
 	if ( record?.site_token ) {
-		await downgradeSiteTier( record.site_token, env );
+		await downgradeSiteTier( record.site_token, env, ctx );
 		await env.USAGE_KV.delete( `licence:${ licenceKey }` );
 	}
 }
 
 async function handleLicenceKey(
 	payload: Record< string, unknown >,
-	env: Env
+	env: Env,
+	ctx: ExecutionContext
 ): Promise< void > {
 	const data = payload.data as Record< string, unknown > | undefined;
 	const attrs = data?.attributes as Record< string, unknown > | undefined;
@@ -164,7 +169,7 @@ async function handleLicenceKey(
 			'json'
 		);
 		if ( record ) {
-			await downgradeSiteTier( record.site_token, env );
+			await downgradeSiteTier( record.site_token, env, ctx );
 		}
 		await env.USAGE_KV.delete( `licence:${ key }` );
 	}
@@ -174,7 +179,8 @@ async function upgradeSiteTier(
 	token: string,
 	tier: ProxyTier,
 	licenceKey: string,
-	env: Env
+	env: Env,
+	ctx: ExecutionContext
 ): Promise< void > {
 	const existing = await env.USAGE_KV.get< SiteRecord >(
 		`site:${ token }`,
@@ -201,9 +207,22 @@ async function upgradeSiteTier(
 			JSON.stringify( lr )
 		);
 	}
+
+	// Notify WP asynchronously so the LS webhook response is not held up by the
+	// outbound round-trip. Silently skip when the site predates the tier-sync
+	// handshake — the WP-side backfill notice prompts the admin to re-register.
+	if ( existing.site_url && existing.tier_sync_secret ) {
+		ctx.waitUntil(
+			pushTierUpdate( existing.site_url, existing.tier_sync_secret, tier )
+		);
+	}
 }
 
-async function downgradeSiteTier( token: string, env: Env ): Promise< void > {
+async function downgradeSiteTier(
+	token: string,
+	env: Env,
+	ctx: ExecutionContext
+): Promise< void > {
 	const existing = await env.USAGE_KV.get< SiteRecord >(
 		`site:${ token }`,
 		'json'
@@ -216,4 +235,10 @@ async function downgradeSiteTier( token: string, env: Env ): Promise< void > {
 		`site:${ token }`,
 		JSON.stringify( { ...rest, tier: 'free' } )
 	);
+
+	if ( existing.site_url && existing.tier_sync_secret ) {
+		ctx.waitUntil(
+			pushTierUpdate( existing.site_url, existing.tier_sync_secret, 'free' )
+		);
+	}
 }

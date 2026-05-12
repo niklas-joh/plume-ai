@@ -14,6 +14,7 @@ class SeoModuleTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
 	}
 
 	protected function tearDown(): void {
@@ -55,6 +56,10 @@ class SeoModuleTest extends TestCase {
 				}
 				if ( 'wp_ai_mind_provider_settings' === $key ) {
 					return [];
+				}
+				// pro_byok is now site-level — routes ClaudeProvider::do_complete() direct.
+				if ( 'wp_ai_mind_site_tier' === $key ) {
+					return 'pro_byok';
 				}
 				return $default;
 			}
@@ -103,6 +108,10 @@ class SeoModuleTest extends TestCase {
 				}
 				if ( 'wp_ai_mind_provider_settings' === $key ) {
 					return [];
+				}
+				// pro_byok is now site-level — routes ClaudeProvider::do_complete() direct.
+				if ( 'wp_ai_mind_site_tier' === $key ) {
+					return 'pro_byok';
 				}
 				return $default;
 			}
@@ -156,6 +165,10 @@ class SeoModuleTest extends TestCase {
 				}
 				if ( 'wp_ai_mind_provider_settings' === $key ) {
 					return [];
+				}
+				// pro_byok is now site-level — routes ClaudeProvider::do_complete() direct.
+				if ( 'wp_ai_mind_site_tier' === $key ) {
+					return 'pro_byok';
 				}
 				return $default;
 			}

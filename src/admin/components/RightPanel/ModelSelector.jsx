@@ -1,6 +1,7 @@
 import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Cpu, ChevronRight, ChevronLeft } from 'lucide-react';
+import { storageGet, storageSet } from '../../utils/storage';
 
 const STORAGE_KEY = 'wpaim_advanced_model';
 
@@ -39,12 +40,12 @@ export default function ModelSelector( {
 	const { defaultModelLabel = 'AI' } = window.wpAiMindData || {};
 
 	const [ isAdvanced, setIsAdvanced ] = useState(
-		() => isPro && window.localStorage.getItem( STORAGE_KEY ) === '1'
+		() => isPro && storageGet( STORAGE_KEY ) === '1'
 	);
 
 	function toggleAdvanced( value ) {
 		setIsAdvanced( value );
-		window.localStorage.setItem( STORAGE_KEY, value ? '1' : '0' );
+		storageSet( STORAGE_KEY, value ? '1' : '0' );
 		if ( ! value ) {
 			onProviderChange( '' );
 			onModelChange( '' );

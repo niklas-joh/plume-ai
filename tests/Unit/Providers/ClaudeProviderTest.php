@@ -10,7 +10,13 @@ use PHPUnit\Framework\TestCase;
 
 class ClaudeProviderTest extends TestCase {
 
-	protected function setUp(): void    { parent::setUp(); Monkey\setUp(); }
+	protected function setUp(): void    {
+		parent::setUp();
+		Monkey\setUp();
+		// Safe default — individual tests can override. Returns the $default arg so
+		// callers that pass a real default (e.g. 'free' for SITE_OPTION) get sensible values.
+		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
+	}
 	protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
 	private function mock_wpdb(): void {
@@ -25,6 +31,11 @@ class ClaudeProviderTest extends TestCase {
 		};
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		// Return 'pro_byok' so routing goes direct — preserving existing test behaviour.
+		// Tier is now site-level, so we stub the SITE_OPTION not user meta.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+		);
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
 		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
@@ -92,6 +103,10 @@ class ClaudeProviderTest extends TestCase {
 	public function test_complete_throws_on_api_error(): void {
 		// Stub tier resolution so routing goes direct (pro_byok path).
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+		);
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 
 		Functions\when( 'wp_remote_post' )->justReturn( [
@@ -258,6 +273,7 @@ class ClaudeProviderTest extends TestCase {
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 
+		// Tools in Claude wire format (input_schema); proxy receives canonical format (parameters).
 		$tools    = [ [ 'name' => 'get_post_content', 'description' => 'Get post content.', 'input_schema' => [ 'type' => 'object', 'properties' => [ 'post_id' => [ 'type' => 'integer' ] ], 'required' => [ 'post_id' ] ] ] ];
 		$provider = new ClaudeProvider( '' ); // No API key — routes via proxy.
 		$request  = new CompletionRequest(
@@ -271,7 +287,10 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertNotNull( $captured_body );
 		$this->assertArrayHasKey( 'tools', $captured_body );
 		$this->assertSame( 'get_post_content', $captured_body['tools'][0]['name'] );
-		$this->assertSame( $tools, $captured_body['tools'] );
+		// Proxy body must carry canonical format (parameters), not Claude wire format (input_schema).
+		$this->assertArrayHasKey( 'parameters', $captured_body['tools'][0] );
+		$this->assertArrayNotHasKey( 'input_schema', $captured_body['tools'][0] );
+		$this->assertSame( $tools[0]['input_schema'], $captured_body['tools'][0]['parameters'] );
 	}
 
 	public function test_tools_injected_in_request_body(): void {

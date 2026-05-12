@@ -8,6 +8,7 @@ import QuickActions from '../RightPanel/QuickActions';
 import ModelSelector from '../RightPanel/ModelSelector';
 import apiFetch from '@wordpress/api-fetch';
 import { LAUNCH_ACTIONS } from './actions';
+import { storageGet, storageSet } from '../../utils/storage';
 
 const NEW_CONVERSATION_TITLE = __( 'New conversation', 'wp-ai-mind' );
 
@@ -42,7 +43,7 @@ export default function ChatApp() {
 	const [ selectedModel, setSelectedModel ] = useState( '' );
 	const [ providers, setProviders ] = useState( [] );
 	const [ isSidebarCollapsed, setIsSidebarCollapsed ] = useState(
-		() => window.localStorage.getItem( 'wpaim-sidebar-collapsed' ) === '1'
+		() => storageGet( 'wpaim-sidebar-collapsed' ) === '1'
 	);
 	const [ attachedPost, setAttachedPost ] = useState( null );
 	const [ pendingQuickAction, setPendingQuickAction ] = useState( null );
@@ -320,7 +321,7 @@ export default function ChatApp() {
 						onClick={ () =>
 							setIsSidebarCollapsed( ( prev ) => {
 								const next = ! prev;
-								window.localStorage.setItem(
+								storageSet(
 									'wpaim-sidebar-collapsed',
 									next ? '1' : '0'
 								);

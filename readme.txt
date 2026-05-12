@@ -1,9 +1,9 @@
-=== WP AI Mind ===
+=== Vectra AI Writer and Designer ===
 Contributors: njohansson
 Tags: ai, chatbot, openai, claude, content
 Requires at least: 6.4
-Tested up to: 6.8
-Stable tag: 1.7.1
+Tested up to: 6.9
+Stable tag: 1.8.0
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -12,7 +12,7 @@ AI-powered content co-pilot for WordPress.
 
 == Description ==
 
-WP AI Mind integrates Claude (Anthropic), OpenAI, Google Gemini, and Ollama directly
+Vectra AI Writer and Designer integrates Claude (Anthropic), OpenAI, Google Gemini, and Ollama directly
 into your WordPress dashboard, giving you AI assistance without leaving the editor.
 
 **Features:**
@@ -25,9 +25,9 @@ into your WordPress dashboard, giving you AI assistance without leaving the edit
 
 **Free vs Pro:**
 
-* **Free** — Chat assistant (50,000 tokens/month via WP AI Mind proxy, Claude only)
-* **Trial** — All features for 30 days (300,000 tokens/month via proxy)
-* **Pro Managed** — All features, 2,000,000 tokens/month via proxy
+* **Free** — Chat assistant (50,000 tokens/month via Vectra AI Writer and Designer proxy, Claude only)
+* **Trial** — All features for 30 days (300,000 tokens/month via Vectra AI Writer and Designer proxy)
+* **Pro Managed** — All features, 2,000,000 tokens/month via Vectra AI Writer and Designer proxy
 * **Pro BYOK** — All features, unlimited tokens, your own API key sent direct to provider
 
 **Supported AI providers:** Anthropic Claude, OpenAI (GPT-4+), Google Gemini, Ollama (local/self-hosted)
@@ -49,7 +49,7 @@ chosen provider. Review each provider's privacy policy and terms of service befo
 
 1. Upload the `wp-ai-mind` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the **Plugins** menu in WordPress.
-3. (Optional — Pro BYOK only) Navigate to **WP AI Mind → Settings** and enter your own API key. Free and managed-plan users do not need an API key.
+3. (Optional — Pro BYOK only) Navigate to **Vectra AI Writer and Designer → Settings** and enter your own API key. Free and managed-plan users do not need an API key.
 4. Start using the Chat, Generator, or Usage modules from the admin menu.
 
 == Frequently Asked Questions ==

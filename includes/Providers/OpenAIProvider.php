@@ -12,8 +12,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use WP_AI_Mind\Proxy\NJ_Proxy_Client;
+use WP_AI_Mind\Proxy\NJ_Site_Registration;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use WP_AI_Mind\Tools\ToolRegistry;
+
 /**
  * Handles completions, streaming, and image generation for OpenAI models.
+ *
+ * Free, trial, and pro_managed tiers route through the NJ proxy client so that
+ * usage is logged centrally. The pro_byok tier calls the OpenAI API directly.
  *
  * @since 1.0.0
  */
@@ -49,10 +57,21 @@ class OpenAIProvider extends AbstractProvider {
 	];
 
 	/**
+	 * Tracks whether the proxy handled logging so maybe_log() can skip double-logging.
+	 *
+	 * Mutable flag reset in do_complete() (pro_byok path) and maybe_log() (proxy path).
+	 * PHP does not run concurrent requests on the same instance, so there is no race risk
+	 * in practice; a future async runtime should replace this with a tagged return value.
+	 *
+	 * @var bool
+	 */
+	private bool $proxy_logged = false;
+
+	/**
 	 * Constructor.
 	 *
 	 * @since 1.0.0
-	 * @param string $api_key OpenAI API key.
+	 * @param string $api_key OpenAI API key; empty string for proxy-routed tiers.
 	 */
 	public function __construct( private readonly string $api_key ) {}
 
@@ -87,25 +106,43 @@ class OpenAIProvider extends AbstractProvider {
 	}
 
 	/**
-	 * Return true when an API key is configured.
+	 * Return true if the provider can handle requests for the current user.
+	 *
+	 * Available when an API key is set, or when the site is registered and the
+	 * user's tier is eligible for proxy routing.
 	 *
 	 * @since 1.0.0
 	 * @return bool
 	 */
 	public function is_available(): bool {
-		return '' !== $this->api_key;
+		if ( '' !== $this->api_key ) {
+			return true;
+		}
+		$tier = NJ_Tier_Manager::get_user_tier( get_current_user_id() );
+		return in_array( $tier, [ 'free', 'trial', 'pro_managed' ], true )
+			&& NJ_Site_Registration::is_registered();
 	}
 
 	/**
-	 * Send a completion request to the OpenAI Chat Completions endpoint.
+	 * Route completion by tier:
+	 *   - free / trial / pro_managed → proxy (NJ_Proxy_Client handles usage logging)
+	 *   - pro_byok                   → direct OpenAI API call (AbstractProvider logs usage)
 	 *
 	 * @since 1.0.0
 	 * @param CompletionRequest $request The completion request.
 	 * @return CompletionResponse
-	 * @throws ProviderException On HTTP failure or non-2xx status.
+	 * @throws ProviderException On API or proxy failure.
 	 */
 	protected function do_complete( CompletionRequest $request ): CompletionResponse {
-		$messages = $request->messages;
+		$tier = NJ_Tier_Manager::get_user_tier( get_current_user_id() );
+
+		if ( in_array( $tier, [ 'free', 'trial', 'pro_managed' ], true ) ) {
+			return $this->complete_via_proxy( $request );
+		}
+
+		// pro_byok — direct OpenAI API call; AbstractProvider::complete() will log usage.
+		$this->proxy_logged = false;
+		$messages           = $request->messages;
 		if ( '' !== $request->system ) {
 			array_unshift(
 				$messages,
@@ -128,6 +165,76 @@ class OpenAIProvider extends AbstractProvider {
 		}
 		$raw = $this->post( '/chat/completions', $body );
 		return $this->parse_response( $raw, $model );
+	}
+
+	/**
+	 * Suppress AbstractProvider usage logging when the proxy already logged it.
+	 *
+	 * @since 1.0.0
+	 * @param CompletionRequest  $request  The original completion request.
+	 * @param CompletionResponse $response The completed response.
+	 * @return void
+	 */
+	protected function maybe_log( CompletionRequest $request, CompletionResponse $response ): void {
+		if ( $this->proxy_logged ) {
+			$this->proxy_logged = false; // Reset for re-use.
+			return;
+		}
+		parent::maybe_log( $request, $response );
+	}
+
+	/**
+	 * Send the completion request through the NJ proxy client.
+	 *
+	 * @since 1.0.0
+	 * @param CompletionRequest $request The completion request.
+	 * @return CompletionResponse
+	 * @throws ProviderException When the proxy returns a WP_Error.
+	 */
+	private function complete_via_proxy( CompletionRequest $request ): CompletionResponse {
+		$model       = ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL;
+		$raw_options = [
+			'model'      => $model,
+			'max_tokens' => $request->max_tokens,
+			'system'     => '' !== $request->system ? $request->system : null,
+		];
+		$options     = array_filter( $raw_options, fn( $v ) => null !== $v );
+		if ( ! empty( $request->tools ) ) {
+			// Re-instantiate ToolRegistry to obtain the canonical proxy format.
+			// $request->tools carries OpenAI wire format so we cannot forward it directly.
+			// TODO: have the caller pass tools in canonical proxy format so providers do not
+			// need to re-register on every proxied request (SRP concern, tracked in #485).
+			$options['tools'] = ( new ToolRegistry() )->get_for_provider( 'proxy' );
+		}
+		$result = NJ_Proxy_Client::chat( $request->messages, $options, 'openai' );
+
+		if ( is_wp_error( $result ) ) {
+			throw new ProviderException( $result->get_error_message(), 'openai' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		// NJ_Proxy_Client::chat() already called NJ_Usage_Tracker::log_usage() — flag to suppress parent logging.
+		$this->proxy_logged = true;
+
+		// Build CompletionResponse directly from the proxy's normalised shape { content, usage, tool_call? }.
+		// parse_response() expects the upstream OpenAI wire format and cannot handle the normalised response.
+		$in_tokens  = (int) ( $result['usage']['input_tokens'] ?? 0 );
+		$out_tokens = (int) ( $result['usage']['output_tokens'] ?? 0 );
+		$pricing    = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
+		$cost       = ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
+
+		if ( ! empty( $result['tool_call'] ) ) {
+			return new CompletionResponse(
+				content: '',
+				model: $model,
+				prompt_tokens: $in_tokens,
+				completion_tokens: $out_tokens,
+				cost_usd: $cost,
+				raw: $result,
+				tool_call: $result['tool_call'],
+			);
+		}
+
+		return new CompletionResponse( $result['content'] ?? '', $model, $in_tokens, $out_tokens, $cost, $result );
 	}
 
 	/**

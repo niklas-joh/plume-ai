@@ -1,14 +1,21 @@
 {
   "name": "wp-ai-mind",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "private": true,
   "scripts": {
-    "prepare": "GIT_DIR=$(git rev-parse --git-dir 2>/dev/null) && mkdir -p \"$GIT_DIR/hooks\" && cp scripts/pre-commit \"$GIT_DIR/hooks/pre-commit\" && chmod +x \"$GIT_DIR/hooks/pre-commit\"",
+    "prepare": "GIT_DIR=$(git rev-parse --git-dir 2>/dev/null) && mkdir -p \"$GIT_DIR/hooks\" && cp scripts/pre-commit \"$GIT_DIR/hooks/pre-commit\" && chmod +x \"$GIT_DIR/hooks/pre-commit\" && cp scripts/pre-push \"$GIT_DIR/hooks/pre-push\" && chmod +x \"$GIT_DIR/hooks/pre-push\"",
     "build": "wp-scripts build",
     "start": "wp-scripts start",
     "lint:js": "wp-scripts lint-js",
     "lint:css": "wp-scripts lint-style",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report .artifacts/playwright-report",
+    "env:start": "wp-env start",
+    "env:stop": "wp-env stop",
+    "env:clean": "wp-env clean all",
+    "env:run": "wp-env run"
   },
   "dependencies": {
     "dompurify": "^3.4.0",
@@ -21,6 +28,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
     "@commitlint/config-conventional": "^19.0.0",
+    "@playwright/test": "^1.59.1",
     "@semantic-release/changelog": "^6.0.0",
     "@semantic-release/commit-analyzer": "^13.0.0",
     "@semantic-release/exec": "^6.0.0",
@@ -28,6 +36,7 @@
     "@semantic-release/github": "^10.0.0",
     "@semantic-release/release-notes-generator": "^14.0.0",
     "@wordpress/element": ">=6.0.0",
+    "@wordpress/env": "^11.5.0",
     "@wordpress/scripts": "^31.8.0",
     "conventional-changelog-conventionalcommits": "^9.3.1",
     "eslint-plugin-jsdoc": "^62.9.0",

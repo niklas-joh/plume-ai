@@ -70,7 +70,7 @@ export default function SettingsApp() {
 			<div className="wpaim-settings-header">
 				<div className="wpaim-settings-title">
 					<Settings size={ 16 } />
-					<span>WP AI Mind — Settings</span>
+					<span>Vectra AI Writer and Designer — Settings</span>
 				</div>
 
 				{ saveResult && (

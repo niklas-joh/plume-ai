@@ -48,7 +48,7 @@ class NJ_Api_Key_Settings {
 	 */
 	public static function add_menu_page(): void {
 		add_options_page(
-			__( 'WP AI Mind — API Keys', 'wp-ai-mind' ),
+			__( 'Vectra AI Writer and Designer — API Keys', 'wp-ai-mind' ),
 			__( 'AI Mind API Keys', 'wp-ai-mind' ),
 			'manage_options',
 			'wp-ai-mind-api-keys',

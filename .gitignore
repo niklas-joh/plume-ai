@@ -11,3 +11,17 @@ test-results/
 .worktrees/
 .artifacts/
 wp-ai-mind-proxy/.wrangler/
+
+# wp-env
+.wp-env/
+
+# Playwright
+.artifacts/playwright-report/
+playwright-report/
+
+# Coverage
+coverage.xml
+.phpunit.cache/
+
+# QIT
+.qit/

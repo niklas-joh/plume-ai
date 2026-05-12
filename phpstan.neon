@@ -1,0 +1,18 @@
+# phpstan-baseline.neon absorbs pre-existing legacy errors so CI only fails on regressions.
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    # Level 5 — balanced; catches undefined variables and union type errors without excessive WP noise.
+    level: 5
+    paths:
+        - includes
+        - wp-ai-mind.php
+        - uninstall.php
+    excludePaths:
+        - vendor
+        - node_modules
+    bootstrapFiles:
+        - tests/phpstan-bootstrap.php
+    phpVersion: 80100

@@ -28,7 +28,7 @@ class AdminMenu {
 	 */
 	public static function register(): void {
 		add_menu_page(
-			__( 'WP AI Mind', 'wp-ai-mind' ),
+			__( 'Vectra AI Writer and Designer', 'wp-ai-mind' ),
 			__( 'AI Mind', 'wp-ai-mind' ),
 			'edit_posts',
 			'wp-ai-mind',

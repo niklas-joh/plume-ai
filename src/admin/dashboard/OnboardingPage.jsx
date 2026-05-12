@@ -91,7 +91,9 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 					<div className="wpaim-ob-pip wpaim-ob-pip--active" />
 					{ /* Second pip only shown on own-key path — hidden here */ }
 				</div>
-				<div className="wpaim-ob-title">Welcome to WP AI Mind</div>
+				<div className="wpaim-ob-title">
+					Welcome to Vectra AI Writer and Designer
+				</div>
 				<div className="wpaim-ob-sub">
 					How would you like to connect? You can change this anytime
 					in Settings.
@@ -563,7 +565,9 @@ function DoneScreen( { apiTierLabel, urls } ) {
 					<div className="wpaim-ob-pip wpaim-ob-pip--done" />
 				</div>
 				<div className="wpaim-ob-title">You&apos;re all set</div>
-				<div className="wpaim-ob-sub">WP AI Mind is ready to use.</div>
+				<div className="wpaim-ob-sub">
+					Vectra AI Writer and Designer is ready to use.
+				</div>
 			</div>
 
 			<div className="wpaim-ob-body">

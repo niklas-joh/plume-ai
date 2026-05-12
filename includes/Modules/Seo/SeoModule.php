@@ -284,7 +284,7 @@ class SeoModule {
 				'provider_error' => 502,
 				// 'invalid_json' and 'unexpected_error' intentionally fall through to 500.
 			];
-			$status   = $code_map[ $result->get_error_code() ] ?? 500;
+			$status = $code_map[ $result->get_error_code() ] ?? 500;
 			return new \WP_REST_Response( [ 'error' => $result->get_error_message() ], $status );
 		}
 

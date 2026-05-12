@@ -63,6 +63,7 @@ class ToolRegistry {
 			'claude' => $this->format_claude( array_values( $tools ) ),
 			'openai' => $this->format_openai( array_values( $tools ) ),
 			'gemini' => $this->format_gemini( array_values( $tools ) ),
+			'proxy'  => $this->format_proxy( array_values( $tools ) ),
 			default  => [],  // ollama and unknown providers.
 		};
 	}
@@ -398,5 +399,33 @@ class ToolRegistry {
 		);
 
 		return [ [ 'functionDeclarations' => $declarations ] ];
+	}
+
+	/**
+	 * Format tools in the canonical provider-neutral format for the proxy.
+	 *
+	 * The Worker (wp-ai-mind-proxy) receives this format and translates it to the
+	 * wire format required by the target provider. Using a single canonical shape
+	 * here keeps the PHP side decoupled from provider-specific schema conventions.
+	 *
+	 * @since 1.0.0
+	 * @param ToolDefinition[] $tools Tool definitions to format.
+	 * @return array<int, array<string, mixed>> Canonical tool definitions.
+	 */
+	private function format_proxy( array $tools ): array {
+		return array_map(
+			static function ( ToolDefinition $tool ): array {
+				return [
+					'name'        => $tool->name,
+					'description' => $tool->description,
+					'parameters'  => [
+						'type'       => 'object',
+						'properties' => ! empty( $tool->parameters['properties'] ) ? $tool->parameters['properties'] : new \stdClass(),
+						'required'   => $tool->parameters['required'] ?? [],
+					],
+				];
+			},
+			$tools
+		);
 	}
 }

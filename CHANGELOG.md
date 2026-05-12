@@ -1,3 +1,19 @@
+## [1.8.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.7.1...v1.8.0) (2026-05-08)
+
+### New Features
+
+* **security:** add registration challenge and trial-to-free expiry ([#454](https://github.com/niklas-joh/wp-ai-mind/issues/454)) ([84e1bb1](https://github.com/niklas-joh/wp-ai-mind/commit/84e1bb10b91f0888c5aacb2423e487d058462975))
+
+### Bug Fixes
+
+* **chat:** forward tools through proxy for free/trial/pro_managed tiers ([#474](https://github.com/niklas-joh/wp-ai-mind/issues/474)) ([31236c1](https://github.com/niklas-joh/wp-ai-mind/commit/31236c17771eea549624f2574c81db67e8d19dc7)), closes [#434](https://github.com/niklas-joh/wp-ai-mind/issues/434) [#436](https://github.com/niklas-joh/wp-ai-mind/issues/436) [#434](https://github.com/niklas-joh/wp-ai-mind/issues/434) [#473](https://github.com/niklas-joh/wp-ai-mind/issues/473)
+* **chat:** rebuild compiled assets to include post-attach guard from [#436](https://github.com/niklas-joh/wp-ai-mind/issues/436) ([#449](https://github.com/niklas-joh/wp-ai-mind/issues/449)) ([5d6c30c](https://github.com/niklas-joh/wp-ai-mind/commit/5d6c30c1f2595504a7e47cd64aa6b6ecc1023682))
+
+### Code Refactors
+
+* **css:** spacing review — tokenise values, fix duplication, align composer buttons ([#463](https://github.com/niklas-joh/wp-ai-mind/issues/463)) ([b61e8a1](https://github.com/niklas-joh/wp-ai-mind/commit/b61e8a15fa0ba4982aac872d1634af5cad8e2584))
+* **proxy:** make wp-ai-mind-proxy provider-agnostic ([#480](https://github.com/niklas-joh/wp-ai-mind/issues/480)) ([6434f60](https://github.com/niklas-joh/wp-ai-mind/commit/6434f60579422f13d31edeefa6371eb7d07af840)), closes [#479](https://github.com/niklas-joh/wp-ai-mind/issues/479) [#475](https://github.com/niklas-joh/wp-ai-mind/issues/475)
+
 ## [1.7.1](https://github.com/niklas-joh/wp-ai-mind/compare/v1.7.0...v1.7.1) (2026-05-01)
 
 

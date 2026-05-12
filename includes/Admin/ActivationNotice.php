@@ -59,7 +59,7 @@ class ActivationNotice {
 		?>
 		<div class="notice notice-info is-dismissible">
 			<p>
-				<strong><?php \esc_html_e( 'WP AI Mind — External Services & Privacy Notice', 'wp-ai-mind' ); ?></strong>
+				<strong><?php \esc_html_e( 'Vectra AI Writer and Designer — External Services & Privacy Notice', 'wp-ai-mind' ); ?></strong>
 			</p>
 			<p>
 				<?php

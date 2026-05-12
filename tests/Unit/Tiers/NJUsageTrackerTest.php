@@ -13,6 +13,9 @@ class NJUsageTrackerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Default site-tier lookup returns the supplied default so tests focused on
+		// per-user meta resolution do not need to stub the new SITE_OPTION read.
+		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
 	}
 
 	protected function tearDown(): void {
@@ -58,10 +61,22 @@ class NJUsageTrackerTest extends TestCase {
 	public function test_get_usage_trial_tier_uses_300k_limit(): void {
 		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
 
-		Functions\expect( 'get_user_meta' )
-			->once()->with( 5, 'wp_ai_mind_tier', true )->andReturn( 'trial' );
-		Functions\expect( 'get_user_meta' )
-			->once()->with( 5, $month_key, true )->andReturn( '100000' );
+		// get_user_tier reads tier meta; is_trial_active reads tier + trial_started meta;
+		// then get_usage reads month meta. Stub generically.
+		Functions\when( 'get_user_meta' )->alias(
+			function ( $uid, $key, $single ) use ( $month_key ) {
+				if ( 'wp_ai_mind_tier' === $key ) {
+					return 'trial';
+				}
+				if ( 'wp_ai_mind_trial_started' === $key ) {
+					return (string) time();
+				}
+				if ( $month_key === $key ) {
+					return '100000';
+				}
+				return '';
+			}
+		);
 
 		$usage = NJ_Usage_Tracker::get_usage( 5 );
 		$this->assertSame( 'trial', $usage['tier'] );
@@ -73,9 +88,11 @@ class NJUsageTrackerTest extends TestCase {
 	public function test_get_usage_pro_byok_is_always_unlimited(): void {
 		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
 
-		// Passing explicit user_id — get_current_user_id is NOT called.
-		Functions\expect( 'get_user_meta' )
-			->once()->with( 3, 'wp_ai_mind_tier', true )->andReturn( 'pro_byok' );
+		// pro_byok now lives on the site option, not user meta.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+		);
 		Functions\expect( 'get_user_meta' )
 			->once()->with( 3, $month_key, true )->andReturn( '999999' );
 

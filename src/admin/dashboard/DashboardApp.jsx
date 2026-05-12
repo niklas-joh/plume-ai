@@ -7,7 +7,7 @@ import OnboardingPage from './OnboardingPage';
 import './dashboard.css';
 
 /**
- * Root dashboard application shown on the main WP AI Mind admin page.
+ * Root dashboard application shown on the main Vectra AI Writer and Designer admin page.
  *
  * Reads all page data from the `wpAiMindDashboard` global injected by PHP.
  * Renders the onboarding wizard in place of the normal dashboard when
@@ -40,7 +40,9 @@ export default function DashboardApp() {
 			{ /* Top bar */ }
 			<div className="wpaim-dash-topbar">
 				<div>
-					<div className="wpaim-dash-title">WP AI Mind</div>
+					<div className="wpaim-dash-title">
+						Vectra AI Writer and Designer
+					</div>
 					<div className="wpaim-dash-subtitle">
 						AI-powered content creation for WordPress
 					</div>

@@ -33,7 +33,7 @@ class NJ_Tier_Status_Page_Test extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html_e' )->echoArg();
 		Functions\when( 'number_format_i18n' )->alias( fn( $n ) => (string) number_format( (int) $n ) );
-		Functions\when( 'get_admin_page_title' )->justReturn( 'WP AI Mind — Plan &amp; Usage' );
+		Functions\when( 'get_admin_page_title' )->justReturn( 'Vectra WP AI Mind — Plan &amp; Usage' );
 		Functions\when( 'admin_url' )->alias( fn( $path ) => 'http://example.com/wp-admin/' . ltrim( $path, '/' ) );
 	}
 
@@ -55,6 +55,9 @@ class NJ_Tier_Status_Page_Test extends TestCase {
 				if ( 'wp_ai_mind_tier' === $key ) {
 					return $tier;
 				}
+				if ( 'wp_ai_mind_trial_started' === $key && 'trial' === $tier ) {
+					return (string) time();
+				}
 				if ( $month_key === $key ) {
 					return (string) $used;
 				}
@@ -62,9 +65,14 @@ class NJ_Tier_Status_Page_Test extends TestCase {
 			}
 		);
 		Functions\when( 'get_option' )->alias(
-			function ( string $key, $default = null ) use ( $token ) {
+			function ( string $key, $default = null ) use ( $token, $tier ) {
 				if ( 'wp_ai_mind_site_token' === $key ) {
 					return $token;
+				}
+				if ( 'wp_ai_mind_site_tier' === $key ) {
+					// Paid tiers are site-wide; trial/free are per-user so leave the
+					// site option at the default and let user meta drive resolution.
+					return ( 'pro_managed' === $tier || 'pro_byok' === $tier ) ? $tier : $default;
 				}
 				return $default;
 			}

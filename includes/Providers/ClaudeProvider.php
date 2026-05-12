@@ -172,9 +172,17 @@ class ClaudeProvider extends AbstractProvider {
 		];
 		$options     = array_filter( $raw_options, fn( $v ) => null !== $v );
 		if ( ! empty( $request->tools ) ) {
-			$options['tools'] = $request->tools;
+			// Convert from Claude wire format (input_schema) to canonical proxy format (parameters).
+			$options['tools'] = array_map(
+				fn( array $t ) => [
+					'name'        => $t['name'],
+					'description' => $t['description'] ?? '',
+					'parameters'  => $t['input_schema'] ?? [],
+				],
+				$request->tools
+			);
 		}
-		$result = NJ_Proxy_Client::chat( $request->messages, $options );
+		$result = NJ_Proxy_Client::chat( $request->messages, $options, 'claude' );
 
 		if ( is_wp_error( $result ) ) {
 			throw new ProviderException( $result->get_error_message(), 'claude' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped

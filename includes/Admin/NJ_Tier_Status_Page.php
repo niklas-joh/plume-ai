@@ -69,7 +69,7 @@ class NJ_Tier_Status_Page {
 	 */
 	public static function add_menu_page(): void {
 		add_options_page(
-			__( 'WP AI Mind — Plan & Usage', 'wp-ai-mind' ),
+			__( 'Vectra AI Writer and Designer — Plan & Usage', 'wp-ai-mind' ),
 			__( 'AI Mind Plan', 'wp-ai-mind' ),
 			'manage_options',
 			'wp-ai-mind-tier-status',

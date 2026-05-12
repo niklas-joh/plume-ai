@@ -24,19 +24,78 @@ class NJTierManagerTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_get_user_tier_defaults_to_free_when_no_meta(): void {
+	// ── get_user_tier resolution order (paid > active trial > site default) ──
+
+	public function test_get_user_tier_defaults_to_free_when_no_meta_and_no_site_option(): void {
 		Functions\expect( 'get_current_user_id' )->once()->andReturn( 1 );
+		Functions\expect( 'get_option' )->once()->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'free' );
 		Functions\expect( 'get_user_meta' )->once()->with( 1, 'wp_ai_mind_tier', true )->andReturn( '' );
 
 		$this->assertSame( 'free', NJ_Tier_Manager::get_user_tier() );
 	}
 
-	public function test_get_user_tier_returns_stored_value(): void {
+	public function test_get_user_tier_returns_site_option_when_site_is_pro_managed(): void {
+		// Site option wins over trial meta — paid status is per-site, not per-user.
 		Functions\expect( 'get_current_user_id' )->once()->andReturn( 5 );
-		Functions\expect( 'get_user_meta' )->once()->with( 5, 'wp_ai_mind_tier', true )->andReturn( 'pro_byok' );
+		Functions\expect( 'get_option' )->once()->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'pro_managed' );
+
+		$this->assertSame( 'pro_managed', NJ_Tier_Manager::get_user_tier() );
+	}
+
+	public function test_get_user_tier_returns_site_option_when_site_is_pro_byok(): void {
+		Functions\expect( 'get_current_user_id' )->once()->andReturn( 5 );
+		Functions\expect( 'get_option' )->once()->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'pro_byok' );
 
 		$this->assertSame( 'pro_byok', NJ_Tier_Manager::get_user_tier() );
 	}
+
+	public function test_get_user_tier_returns_trial_when_meta_is_trial_and_active_and_site_is_free(): void {
+		$started = (string) time();
+		Functions\expect( 'get_option' )->once()->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'free' );
+		// get_user_tier reads meta once; is_trial_active reads it twice more.
+		Functions\when( 'get_user_meta' )->alias(
+			function ( $uid, $key ) use ( $started ) {
+				if ( 'wp_ai_mind_tier' === $key ) {
+					return 'trial';
+				}
+				return $started;
+			}
+		);
+
+		$this->assertSame( 'trial', NJ_Tier_Manager::get_user_tier( 6 ) );
+	}
+
+	public function test_get_user_tier_returns_site_option_when_meta_is_trial_but_expired(): void {
+		$expired = (string) ( time() - ( 31 * DAY_IN_SECONDS ) );
+		Functions\expect( 'get_option' )->once()->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'free' );
+		Functions\when( 'get_user_meta' )->alias(
+			function ( $uid, $key ) use ( $expired ) {
+				if ( 'wp_ai_mind_tier' === $key ) {
+					return 'trial';
+				}
+				return $expired;
+			}
+		);
+
+		$this->assertSame( 'free', NJ_Tier_Manager::get_user_tier( 6 ) );
+	}
+
+	public function test_get_user_tier_short_circuits_to_site_option_when_no_user(): void {
+		// $user_id <= 0 path: skip meta entirely, consult site option directly.
+		Functions\expect( 'get_option' )->once()->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'pro_managed' );
+		Functions\expect( 'get_user_meta' )->never();
+
+		$this->assertSame( 'pro_managed', NJ_Tier_Manager::get_user_tier( 0 ) );
+	}
+
+	public function test_get_user_tier_returns_free_when_no_user_and_no_site_option(): void {
+		Functions\expect( 'get_option' )->once()->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'free' );
+		Functions\expect( 'get_user_meta' )->never();
+
+		$this->assertSame( 'free', NJ_Tier_Manager::get_user_tier( 0 ) );
+	}
+
+	// ── set_user_tier ────────────────────────────────────────────────────────
 
 	public function test_set_user_tier_rejects_invalid_tier(): void {
 		$this->assertFalse( NJ_Tier_Manager::set_user_tier( 'enterprise', 1 ) );
@@ -48,37 +107,57 @@ class NJTierManagerTest extends TestCase {
 		$this->assertTrue( NJ_Tier_Manager::set_user_tier( 'pro_managed', 3 ) );
 	}
 
+	// ── set_site_tier ────────────────────────────────────────────────────────
+
+	public function test_set_site_tier_rejects_invalid_tier(): void {
+		Functions\expect( 'update_option' )->never();
+		$this->assertFalse( NJ_Tier_Manager::set_site_tier( 'enterprise' ) );
+	}
+
+	public function test_set_site_tier_stores_valid_tier_with_autoload_false(): void {
+		Functions\expect( 'update_option' )
+			->once()
+			->with( NJ_Tier_Manager::SITE_OPTION, 'pro_managed', false )
+			->andReturn( true );
+		Functions\expect( 'do_action' )
+			->once()
+			->with( 'wp_ai_mind_tier_changed', 'pro_managed' );
+
+		$this->assertTrue( NJ_Tier_Manager::set_site_tier( 'pro_managed' ) );
+	}
+
+	public function test_set_site_tier_does_not_fire_action_on_failed_write(): void {
+		Functions\expect( 'update_option' )
+			->once()
+			->with( NJ_Tier_Manager::SITE_OPTION, 'pro_managed', false )
+			->andReturn( false );
+		Functions\expect( 'do_action' )->never();
+
+		$this->assertFalse( NJ_Tier_Manager::set_site_tier( 'pro_managed' ) );
+	}
+
+	// ── user_can — exercised against the get_user_tier resolution path ──────
+
 	public function test_free_user_can_chat_but_not_model_selection(): void {
 		Functions\expect( 'get_current_user_id' )->twice()->andReturn( 1 );
-		Functions\expect( 'get_user_meta' )->twice()->with( 1, 'wp_ai_mind_tier', true )->andReturn( 'free' );
+		Functions\expect( 'get_option' )->twice()->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'free' );
+		Functions\expect( 'get_user_meta' )->twice()->with( 1, 'wp_ai_mind_tier', true )->andReturn( '' );
 
 		$this->assertTrue( NJ_Tier_Manager::user_can( 'chat' ) );
 		$this->assertFalse( NJ_Tier_Manager::user_can( 'model_selection' ) );
 	}
 
-	public function test_trial_user_can_chat_but_not_model_selection(): void {
-		Functions\expect( 'get_current_user_id' )->twice()->andReturn( 10 );
-		Functions\expect( 'get_user_meta' )->twice()->with( 10, 'wp_ai_mind_tier', true )->andReturn( 'trial' );
-
-		$this->assertTrue( NJ_Tier_Manager::user_can( 'chat' ) );
-		$this->assertFalse( NJ_Tier_Manager::user_can( 'model_selection' ) );
-	}
-
-	public function test_trial_tier_monthly_limit(): void {
-		$this->assertSame( 300000, NJ_Tier_Manager::get_monthly_limit( 'trial' ) );
-	}
-
-	public function test_pro_managed_user_can_chat_and_model_selection(): void {
+	public function test_pro_managed_site_grants_model_selection(): void {
 		Functions\expect( 'get_current_user_id' )->twice()->andReturn( 2 );
-		Functions\expect( 'get_user_meta' )->twice()->with( 2, 'wp_ai_mind_tier', true )->andReturn( 'pro_managed' );
+		Functions\expect( 'get_option' )->twice()->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'pro_managed' );
 
 		$this->assertTrue( NJ_Tier_Manager::user_can( 'chat' ) );
 		$this->assertTrue( NJ_Tier_Manager::user_can( 'model_selection' ) );
 	}
 
-	public function test_pro_byok_user_can_all_features(): void {
+	public function test_pro_byok_site_grants_all_features(): void {
 		Functions\expect( 'get_current_user_id' )->times( 6 )->andReturn( 7 );
-		Functions\expect( 'get_user_meta' )->times( 6 )->with( 7, 'wp_ai_mind_tier', true )->andReturn( 'pro_byok' );
+		Functions\expect( 'get_option' )->times( 6 )->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'pro_byok' );
 
 		$this->assertTrue( NJ_Tier_Manager::user_can( 'chat' ) );
 		$this->assertTrue( NJ_Tier_Manager::user_can( 'model_selection' ) );
@@ -90,29 +169,27 @@ class NJTierManagerTest extends TestCase {
 
 	public function test_free_user_cannot_use_content_features(): void {
 		Functions\expect( 'get_current_user_id' )->times( 3 )->andReturn( 1 );
-		Functions\expect( 'get_user_meta' )->times( 3 )->with( 1, 'wp_ai_mind_tier', true )->andReturn( 'free' );
+		Functions\expect( 'get_option' )->times( 3 )->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'free' );
+		Functions\expect( 'get_user_meta' )->times( 3 )->with( 1, 'wp_ai_mind_tier', true )->andReturn( '' );
 
 		$this->assertFalse( NJ_Tier_Manager::user_can( 'generator' ) );
 		$this->assertFalse( NJ_Tier_Manager::user_can( 'seo' ) );
 		$this->assertFalse( NJ_Tier_Manager::user_can( 'images' ) );
 	}
 
-	public function test_trial_user_can_use_content_features(): void {
-		Functions\expect( 'get_current_user_id' )->times( 3 )->andReturn( 10 );
-		Functions\expect( 'get_user_meta' )->times( 3 )->with( 10, 'wp_ai_mind_tier', true )->andReturn( 'trial' );
+	public function test_pro_managed_site_can_use_content_features(): void {
+		Functions\expect( 'get_current_user_id' )->times( 3 )->andReturn( 2 );
+		Functions\expect( 'get_option' )->times( 3 )->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'pro_managed' );
 
 		$this->assertTrue( NJ_Tier_Manager::user_can( 'generator' ) );
 		$this->assertTrue( NJ_Tier_Manager::user_can( 'seo' ) );
 		$this->assertTrue( NJ_Tier_Manager::user_can( 'images' ) );
 	}
 
-	public function test_pro_managed_user_can_use_content_features(): void {
-		Functions\expect( 'get_current_user_id' )->times( 3 )->andReturn( 2 );
-		Functions\expect( 'get_user_meta' )->times( 3 )->with( 2, 'wp_ai_mind_tier', true )->andReturn( 'pro_managed' );
+	// ── Monthly limit helpers ───────────────────────────────────────────────
 
-		$this->assertTrue( NJ_Tier_Manager::user_can( 'generator' ) );
-		$this->assertTrue( NJ_Tier_Manager::user_can( 'seo' ) );
-		$this->assertTrue( NJ_Tier_Manager::user_can( 'images' ) );
+	public function test_trial_tier_monthly_limit(): void {
+		$this->assertSame( 300000, NJ_Tier_Manager::get_monthly_limit( 'trial' ) );
 	}
 
 	public function test_get_monthly_limit_returns_null_for_pro_byok(): void {
@@ -125,6 +202,8 @@ class NJTierManagerTest extends TestCase {
 		$this->assertSame( 2000000, NJ_Tier_Manager::get_monthly_limit( 'pro_managed' ) );
 	}
 
+	// ── Trial management ───────────────────────────────────────────────────
+
 	public function test_start_trial_sets_tier_and_timestamp(): void {
 		Functions\expect( 'update_user_meta' )
 			->once()->with( 4, 'wp_ai_mind_tier', 'trial' )->andReturn( true );
@@ -135,7 +214,7 @@ class NJTierManagerTest extends TestCase {
 	}
 
 	public function test_is_trial_active_returns_false_for_non_trial_tier(): void {
-		Functions\expect( 'get_current_user_id' )->never();
+		// is_trial_active() reads meta directly, not via get_user_tier.
 		Functions\expect( 'get_user_meta' )->once()->with( 5, 'wp_ai_mind_tier', true )->andReturn( 'free' );
 
 		$this->assertFalse( NJ_Tier_Manager::is_trial_active( 5 ) );
@@ -164,6 +243,8 @@ class NJTierManagerTest extends TestCase {
 		$this->assertTrue( NJ_Tier_Manager::is_trial_active( 6 ) );
 	}
 
+	// ── maybe_demote_expired_trials — now deletes meta instead of overwriting ─
+
 	/**
 	 * Verifies that the loop exits after one pass when a full batch yields zero successful demotions.
 	 *
@@ -172,7 +253,7 @@ class NJTierManagerTest extends TestCase {
 	public function test_maybe_demote_expired_trials_exits_when_no_demotions_in_full_batch(): void {
 		// 200 trial users, all still active — loop must exit after one pass (no progress).
 		$user_ids   = range( 1, 200 );
-		$started_at = (string) time(); // all trials started now, so none are expired
+		$started_at = (string) time(); // all trials started now, so none are expired.
 
 		Functions\expect( 'get_users' )
 			->once()
@@ -190,8 +271,8 @@ class NJTierManagerTest extends TestCase {
 				}
 			);
 
-		// set_user_tier / update_user_meta must NOT be called — no users are demoted.
-		Functions\expect( 'update_user_meta' )->never();
+		// delete_user_meta must NOT be called — no users are demoted.
+		Functions\expect( 'delete_user_meta' )->never();
 
 		NJ_Tier_Manager::maybe_demote_expired_trials();
 		$this->addToAssertionCount( 1 ); // loop exited without infinite loop
@@ -205,12 +286,10 @@ class NJTierManagerTest extends TestCase {
 	public function test_maybe_demote_expired_trials_demotes_expired_users_and_continues(): void {
 		$expired_start = time() - ( 31 * DAY_IN_SECONDS );
 
-		// First batch: 200 expired users → all demoted → second batch: fewer than 200.
 		Functions\expect( 'get_users' )
 			->twice()
 			->andReturn( range( 1, 200 ), range( 201, 210 ) );
 
-		// Tier meta for is_trial_active(): all are 'trial'.
 		Functions\expect( 'get_user_meta' )
 			->andReturnUsing(
 				function ( $uid, $key ) use ( $expired_start ) {
@@ -221,9 +300,10 @@ class NJTierManagerTest extends TestCase {
 				}
 			);
 
-		// update_user_meta called once per user (set_user_tier stores 'free').
-		Functions\expect( 'update_user_meta' )
+		// delete_user_meta called once per expired user (210 total).
+		Functions\expect( 'delete_user_meta' )
 			->times( 210 )
+			->with( \Mockery::type( 'int' ), 'wp_ai_mind_tier' )
 			->andReturn( true );
 
 		NJ_Tier_Manager::maybe_demote_expired_trials();
@@ -240,21 +320,16 @@ class NJTierManagerTest extends TestCase {
 		$expired_start = time() - ( 31 * DAY_IN_SECONDS );
 		$active_start  = (string) time();
 
-		// First batch: 200 users — 100 expired, 100 active.
-		// Second batch: fewer than 200 users → loop terminates.
 		Functions\expect( 'get_users' )
 			->twice()
 			->andReturn( range( 1, 200 ), range( 201, 210 ) );
 
-		// Users 1–100 are expired; 101–200 are active.
-		// Second batch (201–210) are all expired.
 		Functions\expect( 'get_user_meta' )
 			->andReturnUsing(
 				function ( $uid, $key ) use ( $expired_start, $active_start ) {
 					if ( 'wp_ai_mind_tier' === $key ) {
 						return 'trial';
 					}
-					// Users 101–200 are still within their trial window.
 					if ( $uid >= 101 && $uid <= 200 ) {
 						return $active_start;
 					}
@@ -262,13 +337,14 @@ class NJTierManagerTest extends TestCase {
 				}
 			);
 
-		// update_user_meta called once per expired user: 100 from batch 1 + 10 from batch 2.
-		Functions\expect( 'update_user_meta' )
+		// delete_user_meta called once per expired user: 100 from batch 1 + 10 from batch 2.
+		Functions\expect( 'delete_user_meta' )
 			->times( 110 )
+			->with( \Mockery::type( 'int' ), 'wp_ai_mind_tier' )
 			->andReturn( true );
 
 		NJ_Tier_Manager::maybe_demote_expired_trials();
-		$this->addToAssertionCount( 1 ); // loop terminated without infinite loop
+		$this->addToAssertionCount( 1 );
 	}
 
 	public function test_tier_config_has_four_tiers(): void {

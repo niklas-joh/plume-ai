@@ -7,3 +7,13 @@ if git diff --cached --name-only | grep -q '^src/'; then
   npm run build || { echo "npm run build failed. Commit aborted."; exit 1; }
   git add assets/
 fi
+
+# Run PHPCS on staged PHP files.
+STAGED_PHP=$(git diff --cached --name-only --diff-filter=ACM | grep '\.php$' | grep -v '^vendor/' | grep -v '^node_modules/')
+if [ -n "$STAGED_PHP" ]; then
+  echo "PHP files staged — running PHPCS..."
+  echo "$STAGED_PHP" | xargs ./vendor/bin/phpcs --standard=phpcs.xml.dist || {
+    echo "PHPCS failed. Run: ./vendor/bin/phpcbf --standard=phpcs.xml.dist for auto-fixes."
+    exit 1
+  }
+fi

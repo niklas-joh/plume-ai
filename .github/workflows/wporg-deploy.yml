@@ -37,11 +37,16 @@ jobs:
     steps:
       - name: Resolve tag and version
         id: vars
+        # All ${{...}} values are passed via env to avoid shell-injection paths.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            TAG="${{ inputs.tag }}"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            TAG="$INPUT_TAG"
           else
-            TAG="${{ github.event.release.tag_name }}"
+            TAG="$RELEASE_TAG"
           fi
           VERSION="${TAG#v}"
           echo "tag=$TAG"     >> "$GITHUB_OUTPUT"

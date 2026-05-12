@@ -1,2 +1,2 @@
-// Entry point — registers the WP AI Mind Gutenberg sidebar plugin.
+// Entry point — registers the Vectra AI Writer and Designer Gutenberg sidebar plugin.
 import './components/EditorSidebar';

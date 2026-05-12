@@ -37,7 +37,10 @@ export default function ImagesApp() {
 		return (
 			<div className="wpaim-pro-gate">
 				<Lock size={ 32 } />
-				<h2>AI image generation requires WP AI Mind Pro</h2>
+				<h2>
+					AI image generation requires Vectra AI Writer and Designer
+					Pro
+				</h2>
 				<p>
 					Generate beautiful featured images from a text prompt and
 					set them directly on any post or page.

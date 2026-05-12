@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use WP_AI_Mind\DB\Schema;
 use WP_AI_Mind\Proxy\NJ_Site_Registration;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
 /**
  * Plugin bootstrap singleton — wires hooks and owns the module registry.
@@ -104,10 +105,12 @@ class Plugin {
 		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\OnboardingRestController::class, 'register_routes' ] );
 		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\TestKeyRestController::class, 'register_routes' ] );
 		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\ActivationVerifyRestController::class, 'register_routes' ] );
+		add_action( 'rest_api_init', [ \WP_AI_Mind\Payments\TierUpdateWebhookController::class, 'register' ] );
 		\WP_AI_Mind\Admin\NJ_Tier_Status_Page::register_hooks();
 		\WP_AI_Mind\Admin\NJ_Api_Key_Settings::register_hooks();
 		\WP_AI_Mind\Admin\NJ_Usage_Widget::register_hooks();
 		\WP_AI_Mind\Admin\ActivationNotice::register();
+		\WP_AI_Mind\Admin\TierSyncBackfillNotice::register();
 		if ( $this->modules->is_enabled( 'chat' ) ) {
 			add_action( 'plugins_loaded', [ \WP_AI_Mind\Modules\Chat\ChatModule::class, 'register' ], 20 );
 			\WP_AI_Mind\Modules\Editor\EditorModule::register();
@@ -176,7 +179,51 @@ class Plugin {
 		if ( ! wp_next_scheduled( 'wp_ai_mind_trial_check' ) ) {
 			wp_schedule_event( time(), 'daily', 'wp_ai_mind_trial_check' );
 		}
+		self::backfill_site_tier_option();
 		flush_rewrite_rules();
+	}
+
+	/**
+	 * One-time migration to seed the site-tier option from a paid user's meta.
+	 *
+	 * Pre-1.9.0 the paid tier was stored only as per-user meta, which broke
+	 * logged-out callers, cron, and CLI. On upgrade we promote that meta value
+	 * to the site option so resolution stays correct.
+	 *
+	 * A `wp_ai_mind_backfill_done` marker is written after the first run so that
+	 * repeated activate/deactivate cycles and fresh installs never re-execute
+	 * the `get_users()` query.
+	 *
+	 * @since 1.9.0
+	 * @return void
+	 */
+	private static function backfill_site_tier_option(): void {
+		// Already migrated — skip without touching the DB.
+		if ( get_option( 'wp_ai_mind_backfill_done', false ) ) {
+			return;
+		}
+
+		if ( false !== get_option( NJ_Tier_Manager::SITE_OPTION, false ) ) {
+			update_option( 'wp_ai_mind_backfill_done', true, false );
+			return;
+		}
+
+		$users = get_users(
+			[
+				'meta_key'   => NJ_Tier_Manager::META_KEY,
+				'meta_value' => [ 'pro_managed', 'pro_byok' ],
+				'fields'     => 'ID',
+				'number'     => 1,
+			]
+		);
+		if ( empty( $users ) ) {
+			update_option( 'wp_ai_mind_backfill_done', true, false );
+			return;
+		}
+
+		$tier = (string) get_user_meta( (int) $users[0], NJ_Tier_Manager::META_KEY, true );
+		NJ_Tier_Manager::set_site_tier( $tier );
+		update_option( 'wp_ai_mind_backfill_done', true, false );
 	}
 
 	/**

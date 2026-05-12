@@ -25,6 +25,7 @@ class ToolExecutorTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
 	}
 
 	protected function tearDown(): void {
@@ -215,13 +216,15 @@ class ToolExecutorTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
 		Functions\when( '__' )->alias( fn( $s ) => $s );
+		Functions\when( 'wp_strip_all_tags' )->alias( fn( $s ) => $s );
 		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
-		// Return 'pro_managed' for the tier key and a huge usage count for the month key.
+		// pro_managed is site-level now; usage meta still per-user.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'wp_ai_mind_site_tier' === $key ? 'pro_managed' : $default
+		);
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key, bool $single ) use ( $month_key ): mixed {
-				if ( 'wp_ai_mind_tier' === $key ) {
-					return 'pro_managed';
-				}
 				if ( $month_key === $key ) {
 					return '3000000'; // Exceeds the 2 000 000 pro_managed limit.
 				}

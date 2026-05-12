@@ -10,7 +10,11 @@ use PHPUnit\Framework\TestCase;
 
 class OpenAIProviderTest extends TestCase {
 
-	protected function setUp(): void    { parent::setUp(); Monkey\setUp(); }
+	protected function setUp(): void    {
+		parent::setUp();
+		Monkey\setUp();
+		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
+	}
 	protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
 	private function mock_wpdb(): void {
@@ -24,7 +28,11 @@ class OpenAIProviderTest extends TestCase {
 			public function query( string $sql ): int { return 1; }
 		};
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		// Return 'pro_byok' so do_complete() routes direct — preserving existing test behaviour.
+		// Tier is now site-level, so we stub the SITE_OPTION not user meta.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+		);
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
 		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
@@ -65,6 +73,10 @@ class OpenAIProviderTest extends TestCase {
 
 	public function test_complete_throws_on_api_error(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+		);
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'wp_remote_post' )->justReturn( [
 			'response' => [ 'code' => 401 ],

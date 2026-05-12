@@ -14,6 +14,7 @@ class OnboardingRestControllerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
 	}
 
 	protected function tearDown(): void {
@@ -102,6 +103,10 @@ class OnboardingRestControllerTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->alias( fn( $s ) => $s );
 		// Tier gate: NJ_Tier_Manager::user_can() needs these stubs.
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+		);
 		Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'wp_ai_mind_tier' ? 'pro_byok' : null );
 
 		$mock_settings = $this->createMock( ProviderSettings::class );
@@ -126,6 +131,11 @@ class OnboardingRestControllerTest extends TestCase {
 	public function test_save_ignores_invalid_provider_in_api_keys(): void {
 		// Tier gate: NJ_Tier_Manager::user_can() needs these stubs.
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		// pro_byok is a site-level entitlement now, so stub the site option.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+		);
 		Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'wp_ai_mind_tier' ? 'pro_byok' : null );
 
 		$mock_settings = $this->createMock( ProviderSettings::class );

@@ -11,7 +11,9 @@ namespace WP_AI_Mind\Proxy;
 
 use WP_Error;
 use WP_AI_Mind\Admin\ActivationVerifyRestController;
+use WP_AI_Mind\Payments\TierUpdateWebhookController;
 use WP_AI_Mind\Tiers\NJ_Tier_Config;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -29,6 +31,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 class NJ_Site_Registration {
 
 	public const OPTION_TOKEN = 'wp_ai_mind_site_token';
+
+	/**
+	 * Option key for the per-site HMAC secret used to authenticate Worker → WP
+	 * tier-update pushes. Canonical definition lives in TierUpdateWebhookController;
+	 * referenced here for symmetry with OPTION_TOKEN.
+	 *
+	 * @since 1.9.0
+	 */
+	public const OPTION_SECRET = TierUpdateWebhookController::OPTION_SECRET;
 
 	private const TRANSIENT_BACKOFF = 'wp_ai_mind_reg_backoff';
 
@@ -172,7 +183,81 @@ class NJ_Site_Registration {
 
 		$token = sanitize_text_field( $body['token'] );
 		update_option( self::OPTION_TOKEN, $token );
+
+		self::store_worker_tier_state( $body );
+
 		return $token;
+	}
+
+	/**
+	 * Re-request a fresh tier-sync secret from the Worker.
+	 *
+	 * Used by the backfill admin notice for sites registered before the
+	 * tier-sync handshake existed, and as a manual rotation path on demand.
+	 * Bearer-authenticated using the existing site token.
+	 *
+	 * @since 1.9.0
+	 * @return string|WP_Error The new secret on success, or a WP_Error on failure.
+	 */
+	public static function rotate_secret(): string|WP_Error {
+		$token = self::get_site_token();
+		if ( '' === $token ) {
+			return new WP_Error( 'not_registered', 'This site is not registered with the proxy.' );
+		}
+
+		$response = wp_remote_post(
+			NJ_Tier_Config::get_proxy_url() . '/rotate-secret',
+			[
+				'headers' => [
+					'Authorization' => 'Bearer ' . $token,
+					'Content-Type'  => 'application/json',
+				],
+				'body'    => wp_json_encode( new \stdClass() ),
+				'timeout' => 10,
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$body = json_decode( wp_remote_retrieve_body( $response ), true ) ?? [];
+
+		if ( 200 !== $code || empty( $body['tier_sync_secret'] ) ) {
+			return new WP_Error( 'rotate_failed', "Proxy /rotate-secret returned HTTP {$code}" );
+		}
+
+		$secret = sanitize_text_field( $body['tier_sync_secret'] );
+		update_option( self::OPTION_SECRET, $secret, false );
+
+		if ( isset( $body['tier'] ) && is_string( $body['tier'] ) ) {
+			NJ_Tier_Manager::set_site_tier( sanitize_text_field( $body['tier'] ) );
+		}
+
+		return $secret;
+	}
+
+	/**
+	 * Persist Worker-supplied tier-sync state (secret + initial tier).
+	 *
+	 * Extracted so /register and /rotate-secret share identical handling.
+	 * Silently skips fields the Worker omits (legacy compat: pre-1.9 Workers
+	 * return only `{ token, tier }`; older still return just `{ token }`).
+	 *
+	 * @since 1.9.0
+	 * @param array<string, mixed> $body Decoded Worker response body.
+	 * @return void
+	 */
+	private static function store_worker_tier_state( array $body ): void {
+		if ( ! empty( $body['tier_sync_secret'] ) && is_string( $body['tier_sync_secret'] ) ) {
+			$secret = sanitize_text_field( $body['tier_sync_secret'] );
+			// autoload=false: only consulted by the tier-update webhook receiver.
+			update_option( self::OPTION_SECRET, $secret, false );
+		}
+		if ( isset( $body['tier'] ) && is_string( $body['tier'] ) ) {
+			NJ_Tier_Manager::set_site_tier( sanitize_text_field( $body['tier'] ) );
+		}
 	}
 
 	/**

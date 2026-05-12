@@ -48,6 +48,16 @@ class TierSyncBackfillNotice {
 	private const NONCE = 'wp_ai_mind_rotate_secret_nonce';
 
 	/**
+	 * Transient key prefix used to relay a failed-rotation error message from
+	 * the admin-post handler to the next admin page render. Suffixed with the
+	 * user ID so concurrent admins on the same site don't see each other's
+	 * outcomes.
+	 *
+	 * @since 1.9.0
+	 */
+	private const ERROR_TRANSIENT_PREFIX = 'wp_ai_mind_rotate_err_';
+
+	/**
 	 * Register WordPress hooks for the notice and its admin-post handler.
 	 *
 	 * @since 1.9.0
@@ -150,10 +160,28 @@ class TierSyncBackfillNotice {
 			return;
 		}
 
+		// Read and consume the transient so the diagnostic is shown exactly once.
+		$transient_key = self::ERROR_TRANSIENT_PREFIX . \get_current_user_id();
+		$detail        = (string) \get_transient( $transient_key );
+		if ( '' !== $detail ) {
+			\delete_transient( $transient_key );
+		}
 		?>
 		<div class="notice notice-error is-dismissible">
 			<p>
-				<?php \esc_html_e( 'WP AI Mind — Re-registration failed. Please check your connection and try again.', 'wp-ai-mind' ); ?>
+				<?php \esc_html_e( 'WP AI Mind — Re-registration failed.', 'wp-ai-mind' ); ?>
+				<?php if ( '' !== $detail ) : ?>
+					<br />
+					<code><?php echo \esc_html( $detail ); ?></code>
+				<?php endif; ?>
+			</p>
+			<p>
+				<?php
+				\esc_html_e(
+					'If this persists, confirm the WP AI Mind proxy is reachable from this server and that the proxy has been updated to the current plugin version.',
+					'wp-ai-mind'
+				);
+				?>
 			</p>
 		</div>
 		<?php
@@ -179,6 +207,21 @@ class TierSyncBackfillNotice {
 
 		$result = NJ_Site_Registration::rotate_secret();
 		$status = \is_wp_error( $result ) ? 'fail' : 'success';
+
+		if ( \is_wp_error( $result ) ) {
+			// Surface the message to the next admin render so the admin sees the
+			// actual failure (HTTP 404 from an out-of-date proxy, network error,
+			// etc.) instead of a generic placeholder. 5 minutes is long enough
+			// to survive the redirect even on slow connections, short enough
+			// that a stale message never leaks into an unrelated session.
+			\set_transient(
+				self::ERROR_TRANSIENT_PREFIX . \get_current_user_id(),
+				$result->get_error_message(),
+				5 * MINUTE_IN_SECONDS
+			);
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			\error_log( '[WP AI Mind] Tier-sync rotation failed: ' . $result->get_error_message() );
+		}
 
 		$referer = \wp_get_referer();
 		if ( ! $referer ) {

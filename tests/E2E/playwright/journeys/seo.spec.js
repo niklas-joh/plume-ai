@@ -5,8 +5,8 @@ test.describe( 'SEO journey', () => {
 	test.beforeEach( async ( { page } ) => {
 		await page.goto( '/wp-login.php' );
 		await page.waitForSelector( '#user_login', { state: 'visible' } );
-		await page.fill( '#user_login', 'nj_agent' );
-		await page.fill( '#user_pass', 'C8IcqAWJu8F3dOw6E4ndWhIe' );
+		await page.fill( '#user_login', process.env.WP_TEST_USER ?? 'nj_agent' );
+		await page.fill( '#user_pass', process.env.WP_TEST_PASS ?? '' );
 		await page.click( '#wp-submit' );
 		await page.waitForURL( '**/wp-admin/**' );
 	} );

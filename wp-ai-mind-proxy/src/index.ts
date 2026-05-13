@@ -125,30 +125,25 @@ async function callClaude(
 		throw Object.assign( new Error( 'Claude API error' ), { status: response.status, body: result } );
 	}
 
-	const contentArr = result.content as Array< {
-		type: string;
-		text?: string;
-		id?: string;
-		name?: string;
-		input?: Record< string, unknown >;
-	} >;
-	const usage = result.usage as { input_tokens: number; output_tokens: number };
+	const blocks = Array.isArray( result.content )
+		? ( result.content as Array< { type: string; text?: string; id?: string; name?: string; input?: Record< string, unknown > } > )
+		: [];
+	const usage = ( result.usage as { input_tokens: number; output_tokens: number } | undefined )
+		?? { input_tokens: 0, output_tokens: 0 };
 
-	let textContent = '';
-	let toolUseBlock: { id: string; name: string; input: Record< string, unknown > } | null = null;
-	for ( const block of contentArr ) {
-		if ( block.type === 'text' && block.text ) {
-			textContent = block.text;
-		} else if ( block.type === 'tool_use' && block.id && block.name ) {
-			toolUseBlock = { id: block.id, name: block.name, input: block.input ?? {} };
-		}
-	}
+	const textBlock  = blocks.find( b => b.type === 'text' && b.text );
+	const toolBlock  = blocks.find( b => b.type === 'tool_use' && b.id && b.name );
+	const textContent = textBlock?.text ?? '';
 
-	if ( toolUseBlock ) {
+	if ( toolBlock?.id && toolBlock?.name ) {
 		return {
 			content: textContent,
 			usage: { input_tokens: usage.input_tokens, output_tokens: usage.output_tokens },
-			tool_call: { id: toolUseBlock.id, name: toolUseBlock.name, arguments: toolUseBlock.input },
+			tool_call: {
+				id: toolBlock.id,
+				name: toolBlock.name,
+				arguments: ( toolBlock.input as Record< string, unknown > ) ?? {},
+			},
 		};
 	}
 

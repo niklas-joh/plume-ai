@@ -1,0 +1,71 @@
+# Deploys the Cloudflare Worker in wp-ai-mind-proxy/ on every push to main
+# that touches Worker source. Runs over Tailscale + SSH against the dev Mac
+# so it reuses the existing wrangler OAuth login on that machine — no
+# Cloudflare API token is stored in GitHub Secrets.
+#
+# Manual dispatch (workflow_dispatch) is available for re-deploys without a
+# commit, e.g. to roll a Worker secret change.
+name: Deploy proxy Worker
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'wp-ai-mind-proxy/src/**'
+      - 'wp-ai-mind-proxy/wrangler.toml'
+      - 'wp-ai-mind-proxy/package.json'
+      - 'wp-ai-mind-proxy/package-lock.json'
+      - '.github/workflows/deploy-proxy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: wrangler deploy (Mac via Tailscale)
+    runs-on: ubuntu-latest
+    concurrency:
+      group: mac-runner
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tags: tag:github
+
+      - name: Install SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.MAC_SSH_PRIVATE_KEY }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > /tmp/mac_ssh_key
+          chmod 600 /tmp/mac_ssh_key
+
+      - name: Test & deploy Worker on Mac
+        # All ${{...}} values are passed via env to avoid shell-injection paths.
+        # The SHA arrives inside the SSH'd shell as a quoted "$VAR" reference,
+        # never interpolated by the local shell.
+        env:
+          SSH_USER: ${{ secrets.MAC_SSH_USER }}
+          SSH_HOST: ${{ secrets.MAC_SSH_HOST }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -i /tmp/mac_ssh_key \
+              "$SSH_USER@$SSH_HOST" \
+              "bash -s" << REMOTE
+            set -e
+            export PATH="/usr/local/bin:/opt/homebrew/bin:\$PATH"
+            cd /Users/niklas/Documents/Homepages/wp-ai-mind
+            git fetch origin
+            git checkout main
+            git reset --hard "$HEAD_SHA"
+            cd wp-ai-mind-proxy
+            npm ci --no-audit --no-fund
+            npm test
+            npm run deploy
+          REMOTE

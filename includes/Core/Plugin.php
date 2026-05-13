@@ -179,6 +179,7 @@ class Plugin {
 			wp_schedule_event( time(), 'daily', 'wp_ai_mind_trial_check' );
 		}
 		self::backfill_site_tier_option();
+		self::cleanup_orphaned_api_key_data();
 		flush_rewrite_rules();
 	}
 
@@ -223,6 +224,32 @@ class Plugin {
 		$tier = (string) get_user_meta( (int) $users[0], NJ_Tier_Manager::META_KEY, true );
 		NJ_Tier_Manager::set_site_tier( $tier );
 		update_option( 'wp_ai_mind_backfill_done', true, false );
+	}
+
+	/**
+	 * One-time cleanup of orphaned data left by the removed NJ_Api_Key_Settings class.
+	 *
+	 * Deletes the AES-256 encryption key option (autoloaded on every page load) and
+	 * all per-user BYOK API key meta rows that can no longer be decrypted because
+	 * the decryption class was removed in 1.9.0.
+	 *
+	 * A marker option prevents the query from running on subsequent activations.
+	 *
+	 * @since 1.9.0
+	 * @return void
+	 */
+	private static function cleanup_orphaned_api_key_data(): void {
+		if ( get_option( 'wp_ai_mind_api_key_cleanup_done', false ) ) {
+			return;
+		}
+
+		delete_option( 'wp_ai_mind_enc_key' );
+
+		foreach ( [ 'claude', 'openai', 'gemini' ] as $provider ) {
+			delete_metadata( 'user', 0, "wp_ai_mind_api_key_{$provider}", '', true );
+		}
+
+		update_option( 'wp_ai_mind_api_key_cleanup_done', true, false );
 	}
 
 	/**

@@ -4,15 +4,15 @@
  * @see src/shared/PostListTable.jsx
  */
 import React from 'react';
-import { act } from 'react-dom/test-utils';
-import ReactDOM from 'react-dom';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import PostListTable from '../../src/shared/PostListTable';
 
-jest.mock( '@wordpress/api-fetch', () => jest.fn() );
-
+// @wordpress/element re-exports React hooks. Mock it to forward to React so
+// useState/useEffect are available in the jsdom environment without needing the
+// full WordPress build pipeline.
 jest.mock( '@wordpress/element', () => ( {
 	...jest.requireActual( 'react' ),
-	render: jest.requireActual( 'react-dom' ).render,
 } ) );
 
 // DOMPurify is used to sanitise post title HTML in PostRow (PostListTable.jsx
@@ -52,6 +52,7 @@ const FIXTURE_POSTS = [
 
 describe( 'PostListTable', () => {
 	let container;
+	let root;
 
 	beforeEach( () => {
 		// PostListTable fetches /wp/v2/posts and /wp/v2/pages using apiFetch with
@@ -75,21 +76,20 @@ describe( 'PostListTable', () => {
 
 		container = document.createElement( 'div' );
 		document.body.appendChild( container );
+		// React 18 createRoot — avoids the deprecated ReactDOM.render warning.
+		root = createRoot( container );
 	} );
 
 	afterEach( () => {
 		act( () => {
-			ReactDOM.unmountComponentAtNode( container );
+			root.unmount();
 		} );
 		document.body.removeChild( container );
 	} );
 
 	it( 'renders a table element after posts load', async () => {
 		await act( async () => {
-			ReactDOM.render(
-				<PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } />,
-				container
-			);
+			root.render( <PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } /> );
 		} );
 
 		// PostListTable renders .wpaim-list-loading while fetching (line 125).
@@ -100,10 +100,7 @@ describe( 'PostListTable', () => {
 
 	it( 'renders a tab button for each entry in the tabs prop', async () => {
 		await act( async () => {
-			ReactDOM.render(
-				<PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } />,
-				container
-			);
+			root.render( <PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } /> );
 		} );
 
 		// Tab buttons are rendered in .wpaim-list-tabs (PostListTable.jsx line 134).
@@ -117,10 +114,7 @@ describe( 'PostListTable', () => {
 
 	it( 'renders a row for each post after data loads', async () => {
 		await act( async () => {
-			ReactDOM.render(
-				<PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } />,
-				container
-			);
+			root.render( <PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } /> );
 		} );
 
 		// Each post becomes a <tr> inside <tbody> (PostListTable.jsx line 188).
@@ -131,10 +125,7 @@ describe( 'PostListTable', () => {
 
 	it( 'renders the search input', async () => {
 		await act( async () => {
-			ReactDOM.render(
-				<PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } />,
-				container
-			);
+			root.render( <PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } /> );
 		} );
 
 		// .wpaim-list-search is the <input type="search"> (PostListTable.jsx line 147).

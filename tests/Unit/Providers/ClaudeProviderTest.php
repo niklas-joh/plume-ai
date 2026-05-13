@@ -262,8 +262,7 @@ class ClaudeProviderTest extends TestCase {
 			return [
 				'response' => [ 'code' => 200 ],
 				'body'     => json_encode( [
-					'content' => [ [ 'type' => 'text', 'text' => 'Here is a summary.' ] ],
-					'model'   => 'claude-haiku-4-5-20251001',
+					'content' => 'Here is a summary.',
 					'usage'   => [ 'input_tokens' => 50, 'output_tokens' => 20 ],
 				] ),
 			];
@@ -291,6 +290,61 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertArrayHasKey( 'parameters', $captured_body['tools'][0] );
 		$this->assertArrayNotHasKey( 'input_schema', $captured_body['tools'][0] );
 		$this->assertSame( $tools[0]['input_schema'], $captured_body['tools'][0]['parameters'] );
+	}
+
+	public function test_complete_via_proxy_defaults_content_to_empty_string_when_absent(): void {
+		$this->mock_wpdb();
+		Functions\when( 'get_user_meta' )->justReturn( 'free' );
+		Functions\when( 'get_option' )->justReturn( 'mock-site-token' );
+		Functions\stubs( [ '__' => fn( $str ) => $str ] );
+
+		// Proxy response omits the 'content' key entirely.
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'usage' => [ 'input_tokens' => 10, 'output_tokens' => 5 ],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+
+		$provider = new ClaudeProvider( '' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+		$response = $provider->complete( $request );
+
+		$this->assertSame( '', $response->content );
+	}
+
+	public function test_complete_via_proxy_relays_tool_call(): void {
+		$this->mock_wpdb();
+		Functions\when( 'get_user_meta' )->justReturn( 'free' );
+		Functions\when( 'get_option' )->justReturn( 'mock-site-token' );
+		Functions\stubs( [ '__' => fn( $str ) => $str ] );
+
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content'   => "I'll fetch that post for you.",
+				'usage'     => [ 'input_tokens' => 20, 'output_tokens' => 10 ],
+				'tool_call' => [ 'id' => 'toolu_01', 'name' => 'get_post_content', 'arguments' => [ 'post_id' => 42 ] ],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+
+		$provider = new ClaudeProvider( '' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'Summarise post 42' ] ] );
+		$response = $provider->complete( $request );
+
+		$this->assertTrue( $response->is_tool_call() );
+		$this->assertSame( 'get_post_content', $response->tool_call['name'] );
+		$this->assertSame( 'toolu_01', $response->tool_call['id'] );
+		$this->assertSame( [ 'post_id' => 42 ], $response->tool_call['arguments'] );
+		$this->assertSame( "I'll fetch that post for you.", $response->content );
 	}
 
 	public function test_tools_injected_in_request_body(): void {

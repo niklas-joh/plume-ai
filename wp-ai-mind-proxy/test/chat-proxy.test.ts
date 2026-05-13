@@ -145,6 +145,68 @@ describe( 'handleChatProxy', () => {
 		} );
 	} );
 
+	it( 'Claude adapter: relays tool_call when Claude returns a tool_use block', async () => {
+		const env = await makeEnvWithSiteToken( 'trial' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [
+							{ type: 'text', text: "I'll fetch that post for you." },
+							{ type: 'tool_use', id: 'toolu_01', name: 'get_post_content', input: { post_id: 42 } },
+						],
+						usage: { input_tokens: 20, output_tokens: 10 },
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Summarise post 42' } ],
+			provider: 'claude',
+			tools: [ mockTool ],
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const json = ( await response.json() ) as {
+			content: string;
+			usage: { input_tokens: number; output_tokens: number };
+			tool_call?: { id: string; name: string; arguments: Record< string, unknown > };
+		};
+		expect( json.content ).toBe( "I'll fetch that post for you." );
+		expect( json.tool_call ).toEqual( { id: 'toolu_01', name: 'get_post_content', arguments: { post_id: 42 } } );
+		expect( json.usage ).toEqual( { input_tokens: 20, output_tokens: 10 } );
+	} );
+
+	it( 'Claude adapter: returns text-only response when no tool_use block is present', async () => {
+		const env = await makeEnvWithSiteToken( 'trial' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [ { type: 'text', text: 'Here is the summary.' } ],
+						usage: { input_tokens: 15, output_tokens: 8 },
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+
+		const response = await worker.fetch( makeChatRequest(), env );
+		expect( response.status ).toBe( 200 );
+
+		const json = ( await response.json() ) as { content: string; tool_call?: unknown };
+		expect( json.content ).toBe( 'Here is the summary.' );
+		expect( json.tool_call ).toBeUndefined();
+	} );
+
 	it( 'OpenAI adapter: sends correct OpenAI-format body and returns normalised response', async () => {
 		const env = await makeEnvWithSiteToken( 'trial' );
 

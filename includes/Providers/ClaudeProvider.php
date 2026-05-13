@@ -190,7 +190,22 @@ class ClaudeProvider extends AbstractProvider {
 
 		// NJ_Proxy_Client::chat() already called NJ_Usage_Tracker::log_usage() — flag to suppress parent logging.
 		$this->proxy_logged = true;
-		return $this->parse_response( $result, $request );
+
+		// Proxy normalises content to a flat string; parse_response() expects Anthropic block arrays.
+		$model      = ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL;
+		$in_tokens  = (int) ( $result['usage']['input_tokens'] ?? 0 );
+		$out_tokens = (int) ( $result['usage']['output_tokens'] ?? 0 );
+		$cost       = $this->calculate_cost( $model, $in_tokens, $out_tokens );
+
+		return new CompletionResponse(
+			content: $result['content'] ?? '',
+			model: $model,
+			prompt_tokens: $in_tokens,
+			completion_tokens: $out_tokens,
+			cost_usd: $cost,
+			raw: $result,
+			tool_call: $result['tool_call'] ?? null,
+		);
 	}
 
 	/**
@@ -231,6 +246,22 @@ class ClaudeProvider extends AbstractProvider {
 	}
 
 	// ── Private helpers ───────────────────────────────────────────────────────
+
+	/**
+	 * Calculate the USD cost for a completion based on token usage.
+	 *
+	 * Centralises pricing so future rate changes require a single edit.
+	 *
+	 * @since 1.0.0
+	 * @param string $model      Model slug used for the completion.
+	 * @param int    $in_tokens  Input token count.
+	 * @param int    $out_tokens Output token count.
+	 * @return float Cost in USD.
+	 */
+	private function calculate_cost( string $model, int $in_tokens, int $out_tokens ): float {
+		$pricing = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
+		return ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
+	}
 
 	/**
 	 * Build the Anthropic API request body from a completion request.
@@ -307,8 +338,7 @@ class ClaudeProvider extends AbstractProvider {
 		$model      = $data['model'] ?? ( ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL );
 		$in_tokens  = (int) ( $data['usage']['input_tokens'] ?? 0 );
 		$out_tokens = (int) ( $data['usage']['output_tokens'] ?? 0 );
-		$pricing    = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
-		$cost       = ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
+		$cost       = $this->calculate_cost( $model, $in_tokens, $out_tokens );
 
 		// Check for a tool_use block in the response content.
 		$content_blocks = $data['content'] ?? [];

@@ -602,12 +602,30 @@ class ChatRestController {
 				$raw_content = $tool_response->raw['content'] ?? [];
 				// PHP json_decode converts {} to [] for empty objects.
 				// Claude requires tool_use.input to be a JSON object (dictionary), not an array.
-				foreach ( $raw_content as &$block ) {
-					if ( ( $block['type'] ?? '' ) === 'tool_use' && ( $block['input'] ?? null ) === [] ) {
-						$block['input'] = new \stdClass();
+				if ( is_array( $raw_content ) ) {
+					foreach ( $raw_content as &$block ) {
+						if ( ( $block['type'] ?? '' ) === 'tool_use' && ( $block['input'] ?? null ) === [] ) {
+							$block['input'] = new \stdClass();
+						}
 					}
+					unset( $block );
 				}
-				unset( $block );
+				// Proxy normalises content to a flat string; reconstruct the tool_use block so Claude
+				// receives a valid assistant turn when the next message contains tool_result blocks.
+				$has_tool_use_block = is_array( $raw_content ) && ! empty(
+					array_filter( $raw_content, fn( $b ) => ( $b['type'] ?? '' ) === 'tool_use' )
+				);
+				if ( ! $has_tool_use_block ) {
+					$tool_input  = ! empty( $tool_call['arguments'] ) ? (object) $tool_call['arguments'] : new \stdClass();
+					$raw_content = [
+						[
+							'type'  => 'tool_use',
+							'id'    => $tool_call['id'],
+							'name'  => $tool_call['name'],
+							'input' => $tool_input,
+						],
+					];
+				}
 				$messages[] = [
 					'role'    => 'assistant',
 					'content' => $raw_content,

@@ -4,42 +4,19 @@
  * @see src/admin/components/Chat/ChatApp.jsx
  */
 import React from 'react';
-import { act } from 'react-dom/test-utils';
-import ReactDOM from 'react-dom';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import ChatApp from '../../src/admin/components/Chat/ChatApp';
 
-// @wordpress/api-fetch is treated as an external by webpack and is not
-// installed as a standalone npm package. Mock the module so Jest can resolve
-// it; all tests that care about fetch behaviour control it via this mock.
-jest.mock( '@wordpress/api-fetch', () => jest.fn() );
-
 // @wordpress/element re-exports React hooks. Mock it to forward to React so
-// useState/useEffect/useRef are available in the jsdom environment.
+// useState/useEffect/useRef are available in the jsdom environment without
+// needing the full WordPress build pipeline.
 jest.mock( '@wordpress/element', () => ( {
 	...jest.requireActual( 'react' ),
-	render: jest.requireActual( 'react-dom' ).render,
 } ) );
 
-// @wordpress/i18n is not installed standalone — provide a minimal stub.
-jest.mock( '@wordpress/i18n', () => ( {
-	__: ( str ) => str,
-	_x: ( str ) => str,
-	_n: ( singular ) => singular,
-} ) );
-
-// @wordpress/components renders heavy UI widgets not needed for these tests.
-jest.mock( '@wordpress/components', () => ( {
-	Button: ( { children, onClick, disabled } ) => (
-		<button onClick={ onClick } disabled={ disabled }>{ children }</button>
-	),
-	SelectControl: ( { label, value, onChange, options = [] } ) => (
-		<select aria-label={ label } value={ value } onChange={ ( e ) => onChange( e.target.value ) }>
-			{ options.map( ( o ) => <option key={ o.value } value={ o.value }>{ o.label }</option> ) }
-		</select>
-	),
-} ) );
-
-// lucide-react icons — stub every named export as a no-op span.
+// lucide-react icons — stub every named export as a no-op span so the component
+// can render without importing the full SVG bundle.
 jest.mock( 'lucide-react', () =>
 	new Proxy( {}, { get: () => () => <span /> } )
 );
@@ -67,6 +44,7 @@ afterAll( () => {
 
 describe( 'ChatApp', () => {
 	let container;
+	let root;
 
 	beforeEach( () => {
 		// apiFetch resolves with empty arrays by default so the component does
@@ -76,11 +54,14 @@ describe( 'ChatApp', () => {
 
 		container = document.createElement( 'div' );
 		document.body.appendChild( container );
+		// React 18 createRoot — avoids the deprecated ReactDOM.render warning
+		// that @wordpress/jest-console treats as a test failure.
+		root = createRoot( container );
 	} );
 
 	afterEach( () => {
 		act( () => {
-			ReactDOM.unmountComponentAtNode( container );
+			root.unmount();
 		} );
 		document.body.removeChild( container );
 	} );
@@ -89,7 +70,7 @@ describe( 'ChatApp', () => {
 		// The component makes apiFetch calls on mount; wrap in act so React
 		// flushes effects and state updates before we make assertions.
 		await act( async () => {
-			ReactDOM.render( <ChatApp />, container );
+			root.render( <ChatApp /> );
 		} );
 
 		// .wpaim-shell is the root CSS class (ChatApp.jsx line 297).
@@ -98,7 +79,7 @@ describe( 'ChatApp', () => {
 
 	it( 'renders the composer input in the DOM', async () => {
 		await act( async () => {
-			ReactDOM.render( <ChatApp />, container );
+			root.render( <ChatApp /> );
 		} );
 
 		// The launch view's Composer always renders .wpaim-composer__input
@@ -110,7 +91,7 @@ describe( 'ChatApp', () => {
 
 	it( 'renders the sidebar element', async () => {
 		await act( async () => {
-			ReactDOM.render( <ChatApp />, container );
+			root.render( <ChatApp /> );
 		} );
 
 		// ChatApp.jsx line 301 — <aside className="wpaim-sidebar">.

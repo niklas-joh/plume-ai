@@ -4,8 +4,8 @@
  * @see src/seo/SeoBadge.jsx
  */
 import React from 'react';
-import { act } from 'react-dom/test-utils';
-import ReactDOM from 'react-dom';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import SeoBadge, { getSeoStatus } from '../../src/seo/SeoBadge';
 
 describe( 'getSeoStatus', () => {
@@ -39,22 +39,26 @@ describe( 'getSeoStatus', () => {
 
 describe( 'SeoBadge', () => {
 	let container;
+	let root;
 
 	beforeEach( () => {
 		container = document.createElement( 'div' );
 		document.body.appendChild( container );
+		// React 18 createRoot — avoids the deprecated ReactDOM.render warning
+		// that @wordpress/jest-console treats as a test failure.
+		root = createRoot( container );
 	} );
 
 	afterEach( () => {
 		act( () => {
-			ReactDOM.unmountComponentAtNode( container );
+			root.unmount();
 		} );
 		document.body.removeChild( container );
 	} );
 
 	it( 'renders without throwing', () => {
 		act( () => {
-			ReactDOM.render( <SeoBadge status="complete" />, container );
+			root.render( <SeoBadge status="complete" /> );
 		} );
 		// SeoBadge renders a <span> with class wpaim-badge--{status} (SeoBadge.jsx line 38).
 		expect( container.querySelector( 'span.wpaim-badge' ) ).not.toBeNull();
@@ -65,7 +69,7 @@ describe( 'SeoBadge', () => {
 
 		statuses.forEach( ( status ) => {
 			act( () => {
-				ReactDOM.render( <SeoBadge status={ status } />, container );
+				root.render( <SeoBadge status={ status } /> );
 			} );
 
 			const badge = container.querySelector( `span.wpaim-badge--${ status }` );
@@ -75,7 +79,7 @@ describe( 'SeoBadge', () => {
 
 	it( 'renders the human-readable label text', () => {
 		act( () => {
-			ReactDOM.render( <SeoBadge status="complete" />, container );
+			root.render( <SeoBadge status="complete" /> );
 		} );
 		// STATUS_LABELS maps 'complete' → 'Complete' (SeoBadge.jsx line 1).
 		expect( container.querySelector( '.wpaim-badge' ).textContent ).toBe( 'Complete' );
@@ -83,7 +87,7 @@ describe( 'SeoBadge', () => {
 
 	it( 'renders the status value as text when status is not in STATUS_LABELS', () => {
 		act( () => {
-			ReactDOM.render( <SeoBadge status="unknown-status" />, container );
+			root.render( <SeoBadge status="unknown-status" /> );
 		} );
 		// Fallback: `STATUS_LABELS[status] ?? status` (SeoBadge.jsx line 39).
 		expect( container.querySelector( '.wpaim-badge' ).textContent ).toBe( 'unknown-status' );

@@ -317,20 +317,18 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertSame( '', $response->content );
 	}
 
-	public function test_complete_via_proxy_does_not_relay_tool_use_blocks(): void {
-		// The proxy contract guarantees content is always a flat string — tool-use blocks
-		// are never relayed. This test guards against silent breakage if the contract changes.
+	public function test_complete_via_proxy_relays_tool_call(): void {
 		$this->mock_wpdb();
 		Functions\when( 'get_user_meta' )->justReturn( 'free' );
 		Functions\when( 'get_option' )->justReturn( 'mock-site-token' );
 		Functions\stubs( [ '__' => fn( $str ) => $str ] );
 
-		// Proxy always returns a flat string, never a tool-use block.
 		Functions\when( 'wp_remote_post' )->justReturn( [
 			'response' => [ 'code' => 200 ],
 			'body'     => json_encode( [
-				'content' => 'Some text response',
-				'usage'   => [ 'input_tokens' => 10, 'output_tokens' => 5 ],
+				'content'   => "I'll fetch that post for you.",
+				'usage'     => [ 'input_tokens' => 20, 'output_tokens' => 10 ],
+				'tool_call' => [ 'id' => 'toolu_01', 'name' => 'get_post_content', 'arguments' => [ 'post_id' => 42 ] ],
 			] ),
 		] );
 		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
@@ -339,11 +337,14 @@ class ClaudeProviderTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 
 		$provider = new ClaudeProvider( '' );
-		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'Summarise post 42' ] ] );
 		$response = $provider->complete( $request );
 
-		$this->assertSame( 'Some text response', $response->content );
-		$this->assertFalse( $response->is_tool_call() );
+		$this->assertTrue( $response->is_tool_call() );
+		$this->assertSame( 'get_post_content', $response->tool_call['name'] );
+		$this->assertSame( 'toolu_01', $response->tool_call['id'] );
+		$this->assertSame( [ 'post_id' => 42 ], $response->tool_call['arguments'] );
+		$this->assertSame( "I'll fetch that post for you.", $response->content );
 	}
 
 	public function test_tools_injected_in_request_body(): void {

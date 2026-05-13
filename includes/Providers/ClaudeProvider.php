@@ -204,6 +204,7 @@ class ClaudeProvider extends AbstractProvider {
 			completion_tokens: $out_tokens,
 			cost_usd: $cost,
 			raw: $result,
+			tool_call: $result['tool_call'] ?? null,
 		);
 	}
 

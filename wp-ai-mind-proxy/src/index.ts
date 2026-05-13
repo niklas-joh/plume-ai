@@ -125,11 +125,35 @@ async function callClaude(
 		throw Object.assign( new Error( 'Claude API error' ), { status: response.status, body: result } );
 	}
 
-	const contentArr = result.content as Array< { type: string; text: string } >;
+	const contentArr = result.content as Array< {
+		type: string;
+		text?: string;
+		id?: string;
+		name?: string;
+		input?: Record< string, unknown >;
+	} >;
 	const usage = result.usage as { input_tokens: number; output_tokens: number };
 
+	let textContent = '';
+	let toolUseBlock: { id: string; name: string; input: Record< string, unknown > } | null = null;
+	for ( const block of contentArr ) {
+		if ( block.type === 'text' && block.text ) {
+			textContent = block.text;
+		} else if ( block.type === 'tool_use' && block.id && block.name ) {
+			toolUseBlock = { id: block.id, name: block.name, input: block.input ?? {} };
+		}
+	}
+
+	if ( toolUseBlock ) {
+		return {
+			content: textContent,
+			usage: { input_tokens: usage.input_tokens, output_tokens: usage.output_tokens },
+			tool_call: { id: toolUseBlock.id, name: toolUseBlock.name, arguments: toolUseBlock.input },
+		};
+	}
+
 	return {
-		content: contentArr[ 0 ]?.text ?? '',
+		content: textContent,
 		usage: { input_tokens: usage.input_tokens, output_tokens: usage.output_tokens },
 	};
 }
@@ -412,7 +436,11 @@ async function handleChatProxy(
 		const rawTokens = normalized.usage.input_tokens + normalized.usage.output_tokens;
 		await updateUsage( siteToken, rawTokens * weight, env );
 
-		return jsonResponse( { content: normalized.content, usage: normalized.usage } );
+		const responseData: Record< string, unknown > = { content: normalized.content, usage: normalized.usage };
+		if ( normalized.tool_call ) {
+			responseData.tool_call = normalized.tool_call;
+		}
+		return jsonResponse( responseData );
 	} catch ( error ) {
 		// eslint-disable-next-line no-console
 		console.error( 'Proxy error:', error );

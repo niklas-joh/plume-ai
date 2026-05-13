@@ -115,8 +115,7 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 					</h3>
 					<p className="wpaim-settings-section-desc">
 						Enable or disable individual AI modules. Pro modules
-						require an active Vectra AI Writer and Designer Pro
-						licence.
+						require an active Stilus Pro licence.
 					</p>
 				</div>
 
@@ -181,8 +180,7 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 									{ isLocked && (
 										<p className="wpaim-feature-card-locked-msg">
 											<Lock size={ 11 } />
-											Requires Vectra AI Writer and
-											Designer Pro
+											Requires Stilus Pro
 										</p>
 									) }
 								</div>

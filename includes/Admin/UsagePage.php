@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Renders the WP AI Mind usage & cost admin page.
+ * Renders the Stilus usage & cost admin page.
  *
  * Outputs a React mount point; assets are enqueued by UsageModule.
  */

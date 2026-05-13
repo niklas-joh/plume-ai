@@ -25,10 +25,10 @@ async function loginAsAdmin( page ) {
 
 test.describe( 'P1 — Plugin activation', () => {
 
-	test( 'Admin menu item "AI Mind" appears after activation', async ( { page } ) => {
+	test( 'Admin menu item "Stilus" appears after activation', async ( { page } ) => {
 		await loginAsAdmin( page );
 		await page.goto( '/wp-admin/' );
-		await expect( page.locator( '#adminmenu' ) ).toContainText( 'AI Mind' );
+		await expect( page.locator( '#adminmenu' ) ).toContainText( 'Stilus' );
 	} );
 
 	test( 'Chat page renders the React mount point (#wp-ai-mind-chat)', async ( { page } ) => {

@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
 /**
- * Renders the WP AI Mind settings admin page.
+ * Renders the Stilus settings admin page.
  *
  * Outputs a React mount point and enqueues the shared admin bundle.
  * The React app reads the mount-point ID or a URL hash to decide

@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       Vectra AI Writer and Designer
+ * Plugin Name:       Stilus - Write and Design
  * Plugin URI:        https://njohansson.eu/wp-ai-mind/
  * Description:       AI-powered content co-pilot for WordPress.
  * Version:           1.8.0

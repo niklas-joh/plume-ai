@@ -17,7 +17,7 @@ use WP_AI_Mind\Settings\ProviderSettings;
 use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
 /**
- * Renders the WP AI Mind chat admin page.
+ * Renders the Stilus chat admin page.
  *
  * Outputs a React mount point and enqueues the shared admin bundle with
  * localised data that includes the default model label for the UI header.

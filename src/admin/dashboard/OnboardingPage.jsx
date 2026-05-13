@@ -92,7 +92,7 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 					{ /* Second pip only shown on own-key path — hidden here */ }
 				</div>
 				<div className="wpaim-ob-title">
-					Welcome to Vectra AI Writer and Designer
+					Welcome to Stilus - Write and Design
 				</div>
 				<div className="wpaim-ob-sub">
 					How would you like to connect? You can change this anytime
@@ -566,7 +566,7 @@ function DoneScreen( { apiTierLabel, urls } ) {
 				</div>
 				<div className="wpaim-ob-title">You&apos;re all set</div>
 				<div className="wpaim-ob-sub">
-					Vectra AI Writer and Designer is ready to use.
+					Stilus - Write and Design is ready to use.
 				</div>
 			</div>
 

@@ -46,7 +46,7 @@ export default function SeoApp() {
 		return (
 			<div className="wpaim-pro-gate">
 				<Lock size={ 32 } />
-				<h2>AI SEO requires Vectra AI Writer and Designer Pro</h2>
+				<h2>AI SEO requires Stilus Pro</h2>
 				<p>
 					Automatically generate meta titles, OG descriptions,
 					excerpts, and image alt text for every post — in one click.

@@ -115,7 +115,7 @@ class NJ_Site_Registration {
 		if ( is_wp_error( $result ) ) {
 			set_transient( self::TRANSIENT_BACKOFF, 1, 5 * MINUTE_IN_SECONDS );
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( '[WP AI Mind] Site registration failed: ' . $result->get_error_message() );
+			error_log( '[Stilus] Site registration failed: ' . $result->get_error_message() );
 		}
 	}
 

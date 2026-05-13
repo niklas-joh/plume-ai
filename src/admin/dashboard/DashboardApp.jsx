@@ -7,7 +7,7 @@ import OnboardingPage from './OnboardingPage';
 import './dashboard.css';
 
 /**
- * Root dashboard application shown on the main Vectra AI Writer and Designer admin page.
+ * Root dashboard application shown on the main Stilus admin page.
  *
  * Reads all page data from the `wpAiMindDashboard` global injected by PHP.
  * Renders the onboarding wizard in place of the normal dashboard when
@@ -41,7 +41,7 @@ export default function DashboardApp() {
 			<div className="wpaim-dash-topbar">
 				<div>
 					<div className="wpaim-dash-title">
-						Vectra AI Writer and Designer
+						Stilus - Write and Design
 					</div>
 					<div className="wpaim-dash-subtitle">
 						AI-powered content creation for WordPress

@@ -1,4 +1,4 @@
-=== Vectra AI Writer and Designer ===
+=== Stilus - Write and Design ===
 Contributors: njohansson
 Tags: ai, chatbot, openai, claude, content
 Requires at least: 6.4
@@ -12,7 +12,7 @@ AI-powered content co-pilot for WordPress.
 
 == Description ==
 
-Vectra AI Writer and Designer integrates Claude (Anthropic), OpenAI, Google Gemini, and Ollama directly
+Stilus - Write and Design integrates Claude (Anthropic), OpenAI, Google Gemini, and Ollama directly
 into your WordPress dashboard, giving you AI assistance without leaving the editor.
 
 **Features:**
@@ -25,9 +25,9 @@ into your WordPress dashboard, giving you AI assistance without leaving the edit
 
 **Free vs Pro:**
 
-* **Free** — Chat assistant (50,000 tokens/month via Vectra AI Writer and Designer proxy, Claude only)
-* **Trial** — All features for 30 days (300,000 tokens/month via Vectra AI Writer and Designer proxy)
-* **Pro Managed** — All features, 2,000,000 tokens/month via Vectra AI Writer and Designer proxy
+* **Free** — Chat assistant (50,000 tokens/month via Stilus proxy, Claude only)
+* **Trial** — All features for 30 days (300,000 tokens/month via Stilus proxy)
+* **Pro Managed** — All features, 2,000,000 tokens/month via Stilus proxy
 * **Pro BYOK** — All features, unlimited tokens, your own API key sent direct to provider
 
 **Supported AI providers:** Anthropic Claude, OpenAI (GPT-4+), Google Gemini, Ollama (local/self-hosted)
@@ -40,16 +40,16 @@ chosen provider. Review each provider's privacy policy and terms of service befo
 * OpenAI: https://openai.com/policies/privacy-policy
 * Google Gemini: https://policies.google.com/privacy
 * Ollama is self-hosted; no external transmission occurs when using Ollama.
-* **WP AI Mind Proxy** (`https://wp-ai-mind-proxy.wp-ai-mind.workers.dev`): Free and managed-pro
+* **Stilus Proxy** (`https://wp-ai-mind-proxy.wp-ai-mind.workers.dev`): Free and managed-pro
   tiers route chat requests through this Cloudflare Worker service. The service receives your
   site URL (for registration) and the chat messages you send. No messages are stored by the
-  proxy beyond the in-flight API call. See: https://wpaimind.com/privacy-policy
+  proxy beyond the in-flight API call. See: https://wpaimind.com/privacy-policy (legacy domain)
 
 == Installation ==
 
 1. Upload the `wp-ai-mind` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the **Plugins** menu in WordPress.
-3. (Optional — Pro BYOK only) Navigate to **Vectra AI Writer and Designer → Settings** and enter your own API key. Free and managed-plan users do not need an API key.
+3. (Optional — Pro BYOK only) Navigate to **Stilus - Write and Design → Settings** and enter your own API key. Free and managed-plan users do not need an API key.
 4. Start using the Chat, Generator, or Usage modules from the admin menu.
 
 == Frequently Asked Questions ==
@@ -62,7 +62,7 @@ one or more providers and switch between them in the settings.
 = Does this plugin store my API keys securely? =
 
 **Free / Trial / Pro Managed tiers:** No API key is required — chat requests are routed
-through the WP AI Mind proxy (see External services above). Your messages are transmitted
+through the Stilus proxy (see External services above). Your messages are transmitted
 to that proxy, which forwards them to Claude (Anthropic) on your behalf.
 
 **Pro BYOK tier:** Your own API key is stored encrypted (AES-256-CBC) in the WordPress
@@ -71,11 +71,11 @@ to any other server.
 
 = Is this plugin GDPR-compliant? =
 
-The plugin transmits content you submit to the WP AI Mind proxy service and/or the AI
+The plugin transmits content you submit to the Stilus proxy service and/or the AI
 provider you have configured (Anthropic Claude, OpenAI, Google Gemini). Both the proxy and
 the AI provider receive your chat messages. You are responsible for ensuring that
 transmission is compliant with your applicable data protection regulations. Consider adding
-the WP AI Mind privacy policy and your chosen provider's data processing agreement to your
+the Stilus privacy policy and your chosen provider's data processing agreement to your
 privacy documentation.
 
 = What WordPress roles can use the AI features? =
@@ -160,5 +160,5 @@ Initial release. No upgrade steps required.
 
 == Screenshots ==
 
-1. The WP AI Mind chat assistant in the WordPress admin.
+1. The Stilus chat assistant in the WordPress admin.
 2. The blog post generator with tone and length controls.

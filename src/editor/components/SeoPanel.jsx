@@ -61,7 +61,7 @@ export default function SeoPanel() {
 			<div className="wpaim-seo-panel wpaim-seo-panel--locked">
 				<Lock size={ 20 } />
 				<p className="wpaim-seo-panel__locked-text">
-					SEO analysis requires Vectra AI Writer and Designer Pro.
+					SEO analysis requires Stilus Pro.
 				</p>
 			</div>
 		);

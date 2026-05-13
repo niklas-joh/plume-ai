@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Renders the WP AI Mind SEO admin page.
+ * Renders the Stilus SEO admin page.
  *
  * Outputs a React mount point; assets are enqueued by SeoModule.
  */

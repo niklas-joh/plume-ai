@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
 /**
- * Renders the WP AI Mind post-generator admin page.
+ * Renders the Stilus post-generator admin page.
  *
  * Outputs a React mount point and enqueues the generator bundle.
  */

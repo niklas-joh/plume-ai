@@ -41,13 +41,24 @@ test.describe( 'Tier gating', () => {
 			} );
 		} );
 
-		// Hit the endpoint directly via the browser request API.
-		// page.request shares the authenticated session cookies from beforeEach.
-		const response = await page.request.post(
-			'/wp-json/wp-ai-mind/v1/seo/generate',
-			{ data: { post_id: 1 } }
-		);
-		expect( response.status() ).toBe( 403 );
+		// Navigate into the admin so the browser context is initialised with
+		// the authenticated session from beforeEach.
+		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-seo' );
+
+		// Trigger the fetch from the page (browser) context so page.route()
+		// intercepts it. page.request bypasses route intercepts entirely.
+		const status = await page.evaluate( async () => {
+			const response = await fetch(
+				'/wp-json/wp-ai-mind/v1/seo/generate',
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify( { post_id: 1 } ),
+				}
+			);
+			return response.status;
+		} );
+		expect( status ).toBe( 403 );
 	} );
 
 	test( 'SEO page shows Pro-gate upgrade link for free-tier users', async ( { page } ) => {

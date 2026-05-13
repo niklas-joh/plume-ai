@@ -27,6 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ProxyResponse {
 
 	/**
+	 * Construct a typed proxy response from its three normalised fields.
+	 *
 	 * @since 1.2.0
 	 * @param string $content       Plain text content returned by the proxy.
 	 * @param int    $input_tokens  Input token count for usage tracking.
@@ -56,8 +58,8 @@ class ProxyResponse {
 	/**
 	 * Convert to the Claude API wire format expected by ClaudeProvider::parse_response().
 	 *
-	 * parse_response() iterates over content blocks looking for type=text;
-	 * wrapping the plain string here keeps the adapter logic in one place.
+	 * The method wraps the plain string in a block array because parse_response()
+	 * iterates over content blocks looking for type=text.
 	 *
 	 * @since 1.2.0
 	 * @return array<string, mixed>

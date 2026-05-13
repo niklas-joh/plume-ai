@@ -5,6 +5,12 @@ on:
     branches:
       - main
     types: [opened, synchronize, reopened]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'CHANGELOG.md'
+      - 'RELEASING.md'
 
 permissions:
   contents: read
@@ -15,10 +21,44 @@ concurrency:
 
 jobs:
 
+  # ── Detect which files changed ─────────────────────────────────────────────
+  changes:
+    name: Detect file changes
+    runs-on: ubuntu-latest
+    outputs:
+      php: ${{ steps.filter.outputs.php }}
+      js: ${{ steps.filter.outputs.js }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            php:
+              - '**.php'
+              - 'composer.json'
+              - 'composer.lock'
+              - 'phpcs.xml.dist'
+              - 'phpstan.neon'
+            js:
+              - 'src/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'webpack.config.js'
+            e2e:
+              - 'src/**'
+              - 'tests/E2E/**'
+              - 'includes/**'
+              - 'package.json'
+              - 'playwright.config.*'
+
   # ── Cloud: PHPStan ──────────────────────────────────────────────────────────
   phpstan:
     name: PHPStan — Static Analysis
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.php == 'true'
     steps:
       - uses: actions/checkout@v4
 
@@ -46,6 +86,8 @@ jobs:
   php-compat:
     name: PHP Compat — ${{ matrix.php }}
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.php == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -146,6 +188,7 @@ jobs:
   plugin-check:
     name: WP Plugin Check
     runs-on: ubuntu-latest
+    needs: changes
     permissions:
       contents: read
       pull-requests: write  # for the action to post/update its PR comment
@@ -385,66 +428,70 @@ jobs:
         if: always()
         run: npx wp-env stop || true
 
-  # ── Mac via Tailscale SSH: E2E ──────────────────────────────────────────────
-  # Uses a shared concurrency group (mac-runner) to prevent two jobs from
-  # running wp-env simultaneously on the same machine.
-  e2e-local:
-    name: E2E — Playwright (Mac via Tailscale)
+  # ── Cloud: E2E (Playwright via wp-env) ─────────────────────────────────────
+  e2e:
+    name: E2E — Playwright (wp-env on Ubuntu)
     runs-on: ubuntu-latest
-    concurrency:
-      group: mac-runner
-      cancel-in-progress: false
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
     steps:
       - uses: actions/checkout@v4
 
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
-          tags: tag:github
+          node-version: '20'
+          cache: 'npm'
 
-      - name: Install SSH key
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.MAC_SSH_PRIVATE_KEY }}
-        run: |
-          echo "$SSH_PRIVATE_KEY" > /tmp/mac_ssh_key
-          chmod 600 /tmp/mac_ssh_key
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
 
-      - name: Run E2E tests on Mac
-        # All ${{...}} values are passed via env to avoid shell-injection paths.
-        # Branch refs and SHAs end up inside the SSH'd shell as quoted "$VAR"
-        # references, never interpolated by the local shell.
-        env:
-          SSH_USER: ${{ secrets.MAC_SSH_USER }}
-          SSH_HOST: ${{ secrets.MAC_SSH_HOST }}
-          HEAD_REF: ${{ github.head_ref }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      - name: Cache Composer deps
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install npm dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Start wp-env
+        run: npx wp-env start
+
+      - name: Wait for WordPress
         run: |
-          ssh -o StrictHostKeyChecking=no \
-              -i /tmp/mac_ssh_key \
-              "$SSH_USER@$SSH_HOST" \
-              "bash -s" << REMOTE
-            set -e
-            export PATH="/usr/local/bin:/opt/homebrew/bin:\$PATH"
-            # Sync main plugin repo to the PR commit.
-            cd /Users/niklas/Documents/Homepages/wp-ai-mind
-            git fetch origin
-            git checkout "$HEAD_REF"
-            git reset --hard "$HEAD_SHA"
-            # Sync the blog submodule copy to the same commit so both paths are in step.
-            cd /Users/niklas/Documents/Homepages/blog.njohansson.eu/wp-content/plugins/wp-ai-mind
-            git fetch origin
-            git checkout "$HEAD_REF"
-            git reset --hard "$HEAD_SHA"
-            # Run tests from the main plugin repo.
-            cd /Users/niklas/Documents/Homepages/wp-ai-mind
-            npm ci --no-audit --no-fund
-            composer install --prefer-dist --no-interaction --no-progress
-            npx playwright install chromium
-            npx wp-env start
-            WP_BASE_URL=http://localhost:8888 CI=true npx playwright test
-            EXIT=\$?
-            npx wp-env stop
-            exit \$EXIT
-          REMOTE
+          for i in {1..30}; do
+            if curl -fs http://localhost:8888 > /dev/null; then
+              echo "WordPress is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::WordPress did not start within 60s"
+          exit 1
+
+      - name: Run Playwright tests
+        run: WP_BASE_URL=http://localhost:8888 CI=true npx playwright test
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: .artifacts/playwright-report/
+          retention-days: 7
+
+      - name: Stop wp-env
+        if: always()
+        run: npx wp-env stop || true

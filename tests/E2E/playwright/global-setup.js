@@ -41,11 +41,15 @@ async function globalSetup() {
 		console.log( '[E2E setup] nj_agent created.' );
 	}
 
-	// Grant trial tier so isPro === true in generator/SEO pages.
-	// Without this nj_agent defaults to 'free', GeneratorWizard renders .wpaim-pro-gate
-	// instead of the form, and generator/SEO journey selectors are never found.
+	// Grant an active trial tier so isPro === true in generator/SEO pages.
+	// NJ_Tier_Manager::get_user_tier() returns 'trial' only when both
+	// wp_ai_mind_tier = 'trial' AND wp_ai_mind_trial_started is a recent timestamp.
+	// Without both meta keys the user falls back to 'free' and generator/SEO
+	// render .wpaim-pro-gate instead of the interactive form.
+	const nowSeconds = Math.floor( Date.now() / 1000 );
 	wpCli( 'user meta update nj_agent wp_ai_mind_tier trial', { stdio: 'inherit' } );
-	console.log( '[E2E setup] nj_agent tier set to trial.' );
+	wpCli( `user meta update nj_agent wp_ai_mind_trial_started ${ nowSeconds }`, { stdio: 'inherit' } );
+	console.log( '[E2E setup] nj_agent tier set to trial (started now).' );
 
 	// Mark onboarding as seen so the dashboard renders normally.
 	// On a fresh install the wizard blocks the dashboard and chat views.

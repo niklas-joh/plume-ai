@@ -83,6 +83,22 @@ class TierSyncBackfillNotice {
 	}
 
 	/**
+	 * Returns true when the current user may see a tier notice.
+	 *
+	 * Shared preamble for maybe_display() and maybe_display_sig_mismatch() so the
+	 * three-guard sequence (capability, registration, secret-presence) stays in sync.
+	 *
+	 * @since 1.10.0
+	 * @return bool True when the common preconditions are met.
+	 */
+	private static function can_show_tier_notice(): bool {
+		if ( ! \current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+		return NJ_Site_Registration::is_registered();
+	}
+
+	/**
 	 * Render the backfill prompt when registration is complete but no
 	 * tier-sync secret has been issued yet.
 	 *
@@ -93,10 +109,7 @@ class TierSyncBackfillNotice {
 	 * @return void
 	 */
 	public static function maybe_display(): void {
-		if ( ! \current_user_can( 'manage_options' ) ) {
-			return;
-		}
-		if ( ! NJ_Site_Registration::is_registered() ) {
+		if ( ! self::can_show_tier_notice() ) {
 			return;
 		}
 		if ( '' !== (string) \get_option( NJ_Site_Registration::OPTION_SECRET, '' ) ) {
@@ -143,10 +156,7 @@ class TierSyncBackfillNotice {
 	 * @return void
 	 */
 	public static function maybe_display_sig_mismatch(): void {
-		if ( ! \current_user_can( 'manage_options' ) ) {
-			return;
-		}
-		if ( ! NJ_Site_Registration::is_registered() ) {
+		if ( ! self::can_show_tier_notice() ) {
 			return;
 		}
 		// The no-secret notice (maybe_display) handles this case; don't show both.

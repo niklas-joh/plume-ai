@@ -369,6 +369,9 @@ class NJTierManagerTest extends TestCase {
 
 	// ── Tier integrity (HMAC signature verification) ──────────────────────────
 
+	/**
+	 * @since 1.10.0
+	 */
 	public function test_get_user_tier_returns_paid_tier_when_signature_is_valid(): void {
 		$secret = 'test-secret';
 		$tier   = 'pro_byok';
@@ -382,6 +385,9 @@ class NJTierManagerTest extends TestCase {
 		$this->assertSame( 'pro_byok', NJ_Tier_Manager::get_user_tier() );
 	}
 
+	/**
+	 * @since 1.10.0
+	 */
 	public function test_get_user_tier_returns_free_when_signature_is_wrong(): void {
 		$secret = 'test-secret';
 		$tier   = 'pro_byok';
@@ -396,6 +402,9 @@ class NJTierManagerTest extends TestCase {
 		$this->assertSame( 'free', NJ_Tier_Manager::get_user_tier() );
 	}
 
+	/**
+	 * @since 1.10.0
+	 */
 	public function test_get_user_tier_returns_free_when_signature_is_absent_but_secret_exists(): void {
 		Functions\expect( 'get_current_user_id' )->once()->andReturn( 1 );
 		Functions\expect( 'get_option' )->once()->with( NJ_Tier_Manager::SITE_OPTION, 'free' )->andReturn( 'pro_managed' );
@@ -407,6 +416,9 @@ class NJTierManagerTest extends TestCase {
 		$this->assertSame( 'free', NJ_Tier_Manager::get_user_tier() );
 	}
 
+	/**
+	 * @since 1.10.0
+	 */
 	public function test_get_user_tier_trusts_paid_tier_when_no_secret_exists(): void {
 		// Unregistered site — no secret means no verification; stored value is trusted.
 		Functions\expect( 'get_current_user_id' )->once()->andReturn( 1 );
@@ -416,6 +428,9 @@ class NJTierManagerTest extends TestCase {
 		$this->assertSame( 'pro_managed', NJ_Tier_Manager::get_user_tier() );
 	}
 
+	/**
+	 * @since 1.10.0
+	 */
 	public function test_set_site_tier_writes_hmac_signature_when_secret_exists(): void {
 		$secret = 'my-secret';
 		$tier   = 'pro_managed';
@@ -440,6 +455,9 @@ class NJTierManagerTest extends TestCase {
 		$this->assertTrue( NJ_Tier_Manager::set_site_tier( $tier ) );
 	}
 
+	/**
+	 * @since 1.10.0
+	 */
 	public function test_set_site_tier_skips_signature_when_no_secret_exists(): void {
 		Functions\expect( 'update_option' )
 			->once()

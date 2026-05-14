@@ -113,9 +113,10 @@ class NJProxyClientTest extends TestCase {
 	}
 
 	public function test_chat_returns_response_body_on_success(): void {
+		// Proxy normalises content to a flat string — NOT a Claude block array.
 		$body = json_encode(
 			[
-				'content' => [ [ 'type' => 'text', 'text' => 'hello' ] ],
+				'content' => 'hello',
 				'usage'   => [ 'input_tokens' => 10, 'output_tokens' => 5 ],
 			]
 		);
@@ -147,8 +148,47 @@ class NJProxyClientTest extends TestCase {
 		$this->assertSame( 5, $result['usage']['output_tokens'] );
 	}
 
+	public function test_chat_returns_tool_call_when_proxy_relays_one(): void {
+		$body = json_encode(
+			[
+				'content'   => "I'll fetch that for you.",
+				'usage'     => [ 'input_tokens' => 20, 'output_tokens' => 8 ],
+				'tool_call' => [ 'id' => 'toolu_01', 'name' => 'get_post_content', 'arguments' => [ 'post_id' => 42 ] ],
+			]
+		);
+
+		Functions\expect( 'get_option' )
+			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->andReturn( 'test-token' );
+		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
+		Functions\when( 'get_user_meta' )->alias(
+			function ( $user_id, $key ) {
+				if ( 'wp_ai_mind_tier' === $key ) {
+					return 'free';
+				}
+				return 0;
+			}
+		);
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_remote_post' )->justReturn( [] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( $body );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$result = NJ_Proxy_Client::chat( [ [ 'role' => 'user', 'content' => 'Summarise post 42' ] ] );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( "I'll fetch that for you.", $result['content'] );
+		$this->assertArrayHasKey( 'tool_call', $result );
+		$this->assertSame( 'toolu_01', $result['tool_call']['id'] );
+		$this->assertSame( 'get_post_content', $result['tool_call']['name'] );
+		$this->assertSame( [ 'post_id' => 42 ], $result['tool_call']['arguments'] );
+	}
+
 	public function test_chat_skips_usage_mirror_when_usage_absent_from_response(): void {
-		$body = json_encode( [ 'content' => [ [ 'type' => 'text', 'text' => 'hello' ] ] ] );
+		// Proxy normalises content to a flat string — NOT a Claude block array.
+		$body = json_encode( [ 'content' => 'hello' ] );
 
 		Functions\expect( 'get_option' )
 			->with( NJ_Site_Registration::OPTION_TOKEN, '' )

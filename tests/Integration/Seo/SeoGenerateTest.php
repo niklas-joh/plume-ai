@@ -132,11 +132,14 @@ class SeoGenerateTest extends IntegrationTestCase {
 	}
 
 	/**
-	 * Verify that calling the apply endpoint with SEO field values returns 200.
+	 * Verify that calling the apply endpoint with SEO field values returns 200
+	 * and persists all three fields to the database.
 	 *
 	 * A trial-tier editor creates a post and submits meta_title, og_description,
-	 * and excerpt. The handler writes the values to post meta via apply_for_post();
-	 * the test asserts the response is 200.
+	 * and excerpt. The handler writes the values via apply_for_post(): meta_title
+	 * and og_description go to both the Yoast and Rank Math meta keys; excerpt is
+	 * written to post_excerpt via wp_update_post(). All three writes are verified
+	 * after the HTTP 200 check to catch silent persistence failures.
 	 *
 	 * @since 1.0.0
 	 * @return void
@@ -164,5 +167,37 @@ class SeoGenerateTest extends IntegrationTestCase {
 		);
 
 		$this->assertSame( 200, $response->get_status(), 'Apply endpoint must return 200 for a valid trial-tier editor.' );
+
+		// apply_for_post() writes meta_title to both the Yoast and Rank Math keys so the
+		// value is picked up regardless of which SEO plugin is active on the site.
+		$this->assertSame(
+			'Integration Meta Title',
+			get_post_meta( $post_id, '_yoast_wpseo_title', true ),
+			'meta_title must be persisted to the Yoast meta key.'
+		);
+		$this->assertSame(
+			'Integration Meta Title',
+			get_post_meta( $post_id, 'rank_math_title', true ),
+			'meta_title must be persisted to the Rank Math meta key.'
+		);
+
+		// og_description follows the same dual-write pattern as meta_title.
+		$this->assertSame(
+			'Integration OG Description',
+			get_post_meta( $post_id, '_yoast_wpseo_metadesc', true ),
+			'og_description must be persisted to the Yoast meta key.'
+		);
+		$this->assertSame(
+			'Integration OG Description',
+			get_post_meta( $post_id, 'rank_math_description', true ),
+			'og_description must be persisted to the Rank Math meta key.'
+		);
+
+		// excerpt is stored in the post row via wp_update_post(), not in post meta.
+		$this->assertSame(
+			'Integration excerpt text.',
+			get_post_field( 'post_excerpt', $post_id ),
+			'excerpt must be persisted to post_excerpt.'
+		);
 	}
 }

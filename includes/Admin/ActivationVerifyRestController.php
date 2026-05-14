@@ -83,6 +83,13 @@ class ActivationVerifyRestController {
 
 		// Consume-once: delete before returning so a replayed request cannot
 		// use this endpoint as an existence oracle for the stored transient.
+		// Note: the get_transient → delete_transient sequence is non-atomic, so two
+		// concurrent requests carrying the same token could theoretically both pass
+		// (TOCTOU). In practice the window is negligible: tokens are high-entropy
+		// (256-bit hex), single-use, and short-lived (300 s), making a collision
+		// requiring an attacker who already holds the token vanishingly unlikely.
+		// A native compare-and-delete primitive is not available in WP transients;
+		// a SELECT … FOR UPDATE lock would require a custom table. Accepted risk.
 		if ( get_transient( self::TRANSIENT . $challenge ) ) {
 			delete_transient( self::TRANSIENT . $challenge );
 			return new WP_REST_Response( [ 'verified' => true ], 200 );

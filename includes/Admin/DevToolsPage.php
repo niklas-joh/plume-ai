@@ -144,7 +144,7 @@ class DevToolsPage {
 				</tr>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Can use', 'wp-ai-mind' ); ?></th>
-					<td id="wpaim-dev-can-use"><?php echo $usage['can_use'] ? '&#10003; Yes' : '&#10007; No (limit reached)'; ?></td>
+					<td id="wpaim-dev-can-use"><?php echo $usage['can_use'] ? '&#10003; ' . esc_html__( 'Yes', 'wp-ai-mind' ) : '&#10007; ' . esc_html__( 'No (limit reached)', 'wp-ai-mind' ); ?></td>
 				</tr>
 			</table>
 

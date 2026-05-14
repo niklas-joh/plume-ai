@@ -110,11 +110,12 @@ class NJ_Proxy_Client {
 			if ( ! has_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'proxy_auth_failed', __( 'Connection to Stilus - Write and Design failed. Please reload the page and try again.', 'wp-ai-mind' ) );
+			return new WP_Error( 'auth_failed', __( 'Connection to Stilus - Write and Design failed. Please reload the page and try again.', 'wp-ai-mind' ) );
 		}
 
 		if ( $code < 200 || $code >= 300 ) {
-			return new WP_Error( 'proxy_error', $body['error'] ?? sprintf( 'Vectra AI Writer and Design returned HTTP %d', $code ) );
+			// translators: %d is the HTTP status code returned by the service.
+			return new WP_Error( 'service_error', $body['error'] ?? sprintf( __( 'Stilus - Write and Design returned HTTP %d', 'wp-ai-mind' ), $code ) );
 		}
 
 		// Mirror usage locally for dashboard display only — KV is authoritative for quota enforcement.

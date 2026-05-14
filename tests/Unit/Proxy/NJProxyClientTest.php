@@ -127,7 +127,7 @@ class NJProxyClientTest extends TestCase {
 		$result = NJ_Proxy_Client::chat( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'proxy_auth_failed', $result->get_error_code() );
+		$this->assertSame( 'auth_failed', $result->get_error_code() );
 	}
 
 	public function test_chat_returns_rate_limit_error_on_429(): void {

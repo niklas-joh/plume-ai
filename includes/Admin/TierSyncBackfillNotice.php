@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Backfill notice for sites that registered with the proxy before the
+ * Backfill notice for sites that registered with the service before the
  * tier-sync handshake existed.
  *
  * Such installs hold a valid `wp_ai_mind_site_token` but no

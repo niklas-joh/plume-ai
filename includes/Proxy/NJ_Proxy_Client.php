@@ -46,7 +46,7 @@ class NJ_Proxy_Client {
 			if ( ! has_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'not_registered', __( 'Site not registered with AI proxy.', 'wp-ai-mind' ) );
+			return new WP_Error( 'not_registered', __( 'Site not connected to Stilus - Write and Design. Please reload the page.', 'wp-ai-mind' ) );
 		}
 
 		$user_id = get_current_user_id();
@@ -110,11 +110,11 @@ class NJ_Proxy_Client {
 			if ( ! has_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'proxy_auth_failed', __( 'Proxy authentication failed. Please reload the page and try again.', 'wp-ai-mind' ) );
+			return new WP_Error( 'proxy_auth_failed', __( 'Connection to Stilus - Write and Design failed. Please reload the page and try again.', 'wp-ai-mind' ) );
 		}
 
 		if ( $code < 200 || $code >= 300 ) {
-			return new WP_Error( 'proxy_error', $body['error'] ?? sprintf( 'Proxy returned HTTP %d', $code ) );
+			return new WP_Error( 'proxy_error', $body['error'] ?? sprintf( 'Vectra AI Writer and Design returned HTTP %d', $code ) );
 		}
 
 		// Mirror usage locally for dashboard display only — KV is authoritative for quota enforcement.

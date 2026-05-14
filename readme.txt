@@ -25,9 +25,9 @@ into your WordPress dashboard, giving you AI assistance without leaving the edit
 
 **Free vs Pro:**
 
-* **Free** — Chat assistant (50,000 tokens/month via Stilus proxy, Claude only)
-* **Trial** — All features for 30 days (300,000 tokens/month via Stilus proxy)
-* **Pro Managed** — All features, 2,000,000 tokens/month via Stilus proxy
+* **Free** — Chat assistant (50,000 tokens/month via Vectra AI Writer and Design, Claude only)
+* **Trial** — All features for 30 days (300,000 tokens/month via Vectra AI Writer and Design)
+* **Pro Managed** — All features, 2,000,000 tokens/month via Vectra AI Writer and Design
 * **Pro BYOK** — All features, unlimited tokens, your own API key sent direct to provider
 
 **Supported AI providers:** Anthropic Claude, OpenAI (GPT-4+), Google Gemini, Ollama (local/self-hosted)
@@ -40,10 +40,10 @@ chosen provider. Review each provider's privacy policy and terms of service befo
 * OpenAI: https://openai.com/policies/privacy-policy
 * Google Gemini: https://policies.google.com/privacy
 * Ollama is self-hosted; no external transmission occurs when using Ollama.
-* **Stilus Proxy** (`https://wp-ai-mind-proxy.wp-ai-mind.workers.dev`): Free and managed-pro
-  tiers route chat requests through this Cloudflare Worker service. The service receives your
-  site URL (for registration) and the chat messages you send. No messages are stored by the
-  proxy beyond the in-flight API call. See: https://wpaimind.com/privacy-policy (legacy domain)
+* **Vectra AI Writer and Design** (`https://wp-ai-mind-proxy.wp-ai-mind.workers.dev`): Free and managed-pro
+  tiers route chat requests through this service. The service receives your
+  site URL (for registration) and the chat messages you send. No messages are stored
+  beyond the in-flight API call. See: https://wpaimind.com/privacy-policy (legacy domain)
 
 == Installation ==
 
@@ -62,8 +62,8 @@ one or more providers and switch between them in the settings.
 = Does this plugin store my API keys securely? =
 
 **Free / Trial / Pro Managed tiers:** No API key is required — chat requests are routed
-through the Stilus proxy (see External services above). Your messages are transmitted
-to that proxy, which forwards them to Claude (Anthropic) on your behalf.
+through Vectra AI Writer and Design (see External services above). Your messages are
+forwarded to Claude (Anthropic) on your behalf.
 
 **Pro BYOK tier:** Your own API key is stored encrypted (AES-256-CBC) in the WordPress
 database and is transmitted directly to the AI provider you have chosen. It is never sent
@@ -71,11 +71,11 @@ to any other server.
 
 = Is this plugin GDPR-compliant? =
 
-The plugin transmits content you submit to the Stilus proxy service and/or the AI
-provider you have configured (Anthropic Claude, OpenAI, Google Gemini). Both the proxy and
+The plugin transmits content you submit to Vectra AI Writer and Design and/or the AI
+provider you have configured (Anthropic Claude, OpenAI, Google Gemini). Both the service and
 the AI provider receive your chat messages. You are responsible for ensuring that
 transmission is compliant with your applicable data protection regulations. Consider adding
-the Stilus privacy policy and your chosen provider's data processing agreement to your
+the Vectra AI Writer and Design privacy policy and your chosen provider's data processing agreement to your
 privacy documentation.
 
 = What WordPress roles can use the AI features? =

@@ -1,4 +1,4 @@
-=== Stilus - Write and Design ===
+=== Vectra AI Writer and Design ===
 Contributors: njohansson
 Tags: ai, chatbot, openai, claude, content
 Requires at least: 6.4
@@ -12,7 +12,7 @@ AI-powered content co-pilot for WordPress.
 
 == Description ==
 
-Stilus - Write and Design integrates Claude (Anthropic), OpenAI, Google Gemini, and Ollama directly
+Vectra AI Writer and Design integrates Claude (Anthropic), OpenAI, Google Gemini, and Ollama directly
 into your WordPress dashboard, giving you AI assistance without leaving the editor.
 
 **Features:**
@@ -49,7 +49,7 @@ chosen provider. Review each provider's privacy policy and terms of service befo
 
 1. Upload the `wp-ai-mind` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the **Plugins** menu in WordPress.
-3. (Optional — Pro BYOK only) Navigate to **Stilus - Write and Design → Settings** and enter your own API key. Free and managed-plan users do not need an API key.
+3. (Optional — Pro BYOK only) Navigate to **Vectra AI Writer and Design → Settings** and enter your own API key. Free and managed-plan users do not need an API key.
 4. Start using the Chat, Generator, or Usage modules from the admin menu.
 
 == Frequently Asked Questions ==
@@ -160,5 +160,5 @@ Initial release. No upgrade steps required.
 
 == Screenshots ==
 
-1. The Stilus chat assistant in the WordPress admin.
+1. The Vectra AI Writer and Design chat assistant in the WordPress admin.
 2. The blog post generator with tone and length controls.

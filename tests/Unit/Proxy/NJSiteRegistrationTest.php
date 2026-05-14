@@ -200,6 +200,8 @@ class NJSiteRegistrationTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
 		Functions\when( 'update_option' )->justReturn( true );
 		Functions\when( 'do_action' )->justReturn( null );
+		// set_site_tier() reads the sync secret to sign the stored tier value.
+		Functions\when( 'get_option' )->justReturn( '' );
 
 		$result = NJ_Site_Registration::register();
 
@@ -242,6 +244,8 @@ class NJSiteRegistrationTest extends TestCase {
 		Functions\when( 'home_url' )->justReturn( 'https://mysite.example.com' );
 		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
 		Functions\when( 'do_action' )->justReturn( null );
+		// set_site_tier() reads the sync secret to sign the stored tier value.
+		Functions\when( 'get_option' )->justReturn( '' );
 
 		$captured = [];
 		Functions\when( 'update_option' )->alias(

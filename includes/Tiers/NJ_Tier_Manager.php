@@ -9,6 +9,8 @@ declare( strict_types=1 );
 
 namespace WP_AI_Mind\Tiers;
 
+use WP_AI_Mind\Payments\TierUpdateWebhookController;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -38,6 +40,17 @@ class NJ_Tier_Manager {
 	 */
 	public const SITE_OPTION = 'wp_ai_mind_site_tier';
 
+	/**
+	 * Option key for the HMAC signature that authenticates the stored site tier.
+	 *
+	 * Written by set_site_tier() alongside SITE_OPTION; verified by
+	 * get_user_tier() before honouring a paid tier value. This detects direct
+	 * database edits that bypass the signed webhook.
+	 *
+	 * @since 1.10.0
+	 */
+	public const SITE_OPTION_SIG = 'wp_ai_mind_site_tier_sig';
+
 	// ── Tier CRUD ─────────────────────────────────────────────────────────────
 
 	/**
@@ -61,11 +74,17 @@ class NJ_Tier_Manager {
 		// is a site-level fact, so consult the site option directly.
 		if ( $user_id <= 0 ) {
 			$site_tier = (string) get_option( self::SITE_OPTION, 'free' );
-			return in_array( $site_tier, NJ_Tier_Config::get_valid_tiers(), true ) ? $site_tier : 'free';
+			if ( ! in_array( $site_tier, NJ_Tier_Config::get_valid_tiers(), true ) ) {
+				return 'free';
+			}
+			if ( in_array( $site_tier, [ 'pro_managed', 'pro_byok' ], true ) && ! self::is_site_tier_verified( $site_tier ) ) {
+				return 'free';
+			}
+			return $site_tier;
 		}
 
 		$site_tier = (string) get_option( self::SITE_OPTION, 'free' );
-		if ( 'pro_managed' === $site_tier || 'pro_byok' === $site_tier ) {
+		if ( ( 'pro_managed' === $site_tier || 'pro_byok' === $site_tier ) && self::is_site_tier_verified( $site_tier ) ) {
 			return $site_tier;
 		}
 
@@ -76,7 +95,11 @@ class NJ_Tier_Manager {
 
 		// Treat unknown site_option values as 'free' rather than passing them through
 		// — protects callers from corrupt option rows and gives legacy tests that stub
-		// get_option globally a deterministic floor.
+		// get_option globally a deterministic floor. Paid tiers that failed signature
+		// verification also fall here; exclude them rather than honouring the tampered value.
+		if ( in_array( $site_tier, [ 'pro_managed', 'pro_byok' ], true ) ) {
+			return 'free';
+		}
 		return in_array( $site_tier, NJ_Tier_Config::get_valid_tiers(), true ) ? $site_tier : 'free';
 	}
 
@@ -117,6 +140,15 @@ class NJ_Tier_Manager {
 		// every page load, so paying the autoload cost on every request is wasteful.
 		$ok = (bool) update_option( self::SITE_OPTION, $tier, false );
 		if ( $ok ) {
+			$secret = (string) get_option( TierUpdateWebhookController::OPTION_SECRET, '' );
+			if ( '' !== $secret ) {
+				if ( in_array( $tier, [ 'pro_managed', 'pro_byok' ], true ) ) {
+					update_option( self::SITE_OPTION_SIG, hash_hmac( 'sha256', $tier, $secret ), false );
+				} else {
+					// Non-paid tiers carry no signature value; remove any stale sig from a prior subscription.
+					delete_option( self::SITE_OPTION_SIG );
+				}
+			}
 			do_action( 'wp_ai_mind_tier_changed', $tier );
 		}
 		return $ok;
@@ -144,6 +176,58 @@ class NJ_Tier_Manager {
 	 */
 	public static function get_monthly_limit( string $tier ): ?int {
 		return NJ_Tier_Config::get_limit( $tier );
+	}
+
+	// ── Tier integrity ────────────────────────────────────────────────────────
+
+	/**
+	 * Verifies the HMAC signature stored alongside the site tier option.
+	 *
+	 * Returns true when no sync secret exists so that unregistered sites are
+	 * never silently downgraded. Once a secret is present every paid-tier write
+	 * must have produced a companion signature; absence means the option was
+	 * written outside the normal webhook path.
+	 *
+	 * @since 1.10.0
+	 * @param string $tier The tier slug to verify against the stored signature.
+	 * @return bool True when verification passes or cannot be performed; false on mismatch.
+	 */
+	private static function is_site_tier_verified( string $tier ): bool {
+		$secret = (string) get_option( TierUpdateWebhookController::OPTION_SECRET, '' );
+		if ( '' === $secret ) {
+			return true; // Unregistered site — no secret to check against.
+		}
+		$stored = (string) get_option( self::SITE_OPTION_SIG, '' );
+		if ( '' === $stored ) {
+			return false; // Secret present but signature absent — unverified.
+		}
+		return hash_equals( hash_hmac( 'sha256', $tier, $secret ), $stored );
+	}
+
+	/**
+	 * Returns true when a paid tier is stored but its HMAC signature is missing
+	 * or does not match, signalling that the DB option may have been edited directly.
+	 *
+	 * Used by TierSyncBackfillNotice to prompt a re-registration that re-issues
+	 * a signed tier from the Worker.
+	 *
+	 * @since 1.10.0
+	 * @return bool True when the stored paid tier cannot be verified and a re-sync is needed.
+	 */
+	public static function needs_tier_verification_resync(): bool {
+		$secret = (string) get_option( TierUpdateWebhookController::OPTION_SECRET, '' );
+		if ( '' === $secret ) {
+			return false; // Not registered — no action needed.
+		}
+		$site_tier = (string) get_option( self::SITE_OPTION, 'free' );
+		if ( ! in_array( $site_tier, [ 'pro_managed', 'pro_byok' ], true ) ) {
+			return false; // Free or trial tier — nothing to verify.
+		}
+		$stored_sig = (string) get_option( self::SITE_OPTION_SIG, '' );
+		if ( '' === $stored_sig ) {
+			return true;
+		}
+		return ! hash_equals( hash_hmac( 'sha256', $site_tier, $secret ), $stored_sig );
 	}
 
 	// ── Trial management ──────────────────────────────────────────────────────

@@ -10,6 +10,7 @@ declare( strict_types=1 );
 namespace WP_AI_Mind\Admin;
 
 use WP_AI_Mind\Proxy\NJ_Site_Registration;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -65,6 +66,7 @@ class TierSyncBackfillNotice {
 	 */
 	public static function register(): void {
 		\add_action( 'admin_notices', [ self::class, 'maybe_display' ] );
+		\add_action( 'admin_notices', [ self::class, 'maybe_display_sig_mismatch' ] );
 		\add_action( 'admin_notices', [ self::class, 'maybe_display_result' ] );
 		\add_action( 'admin_post_' . self::ACTION, [ self::class, 'handle_rotate' ] );
 		\add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_styles' ] );
@@ -81,6 +83,22 @@ class TierSyncBackfillNotice {
 	}
 
 	/**
+	 * Returns true when the current user may see a tier notice.
+	 *
+	 * Shared preamble for maybe_display() and maybe_display_sig_mismatch() so the
+	 * three-guard sequence (capability, registration, secret-presence) stays in sync.
+	 *
+	 * @since 1.10.0
+	 * @return bool True when the common preconditions are met.
+	 */
+	private static function can_show_tier_notice(): bool {
+		if ( ! \current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+		return NJ_Site_Registration::is_registered();
+	}
+
+	/**
 	 * Render the backfill prompt when registration is complete but no
 	 * tier-sync secret has been issued yet.
 	 *
@@ -91,10 +109,7 @@ class TierSyncBackfillNotice {
 	 * @return void
 	 */
 	public static function maybe_display(): void {
-		if ( ! \current_user_can( 'manage_options' ) ) {
-			return;
-		}
-		if ( ! NJ_Site_Registration::is_registered() ) {
+		if ( ! self::can_show_tier_notice() ) {
 			return;
 		}
 		if ( '' !== (string) \get_option( NJ_Site_Registration::OPTION_SECRET, '' ) ) {
@@ -121,6 +136,57 @@ class TierSyncBackfillNotice {
 					<input type="hidden" name="action" value="<?php echo \esc_attr( self::ACTION ); ?>" />
 					<button type="submit" class="button button-primary">
 						<?php \esc_html_e( 'Re-register now', 'wp-ai-mind' ); ?>
+					</button>
+				</form>
+			</p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render a warning when a paid tier is stored but its HMAC signature is
+	 * missing or invalid, indicating a direct database edit bypassed the webhook.
+	 *
+	 * This notice is mutually exclusive with maybe_display() — it requires the
+	 * sync secret to already be present, whereas maybe_display() fires when the
+	 * secret is absent. Re-registering via the existing rotate action re-issues a
+	 * signed tier from the Worker, resolving both conditions.
+	 *
+	 * @since 1.10.0
+	 * @return void
+	 */
+	public static function maybe_display_sig_mismatch(): void {
+		if ( ! self::can_show_tier_notice() ) {
+			return;
+		}
+		// The no-secret notice (maybe_display) handles this case; don't show both.
+		if ( '' === (string) \get_option( NJ_Site_Registration::OPTION_SECRET, '' ) ) {
+			return;
+		}
+		if ( ! NJ_Tier_Manager::needs_tier_verification_resync() ) {
+			return;
+		}
+
+		$action_url = \admin_url( 'admin-post.php' );
+		?>
+		<div class="notice notice-warning is-dismissible">
+			<p>
+				<strong><?php \esc_html_e( 'Stilus - Plan verification required', 'wp-ai-mind' ); ?></strong>
+			</p>
+			<p>
+				<?php
+				\esc_html_e(
+					'Your site shows a paid plan in the database, but the plan integrity signature is missing or does not match. This can happen after a direct database edit or a migration. Until re-verified, the plugin will treat your site as free. Click below to re-sync your plan from the Stilus proxy.',
+					'wp-ai-mind'
+				);
+				?>
+			</p>
+			<p>
+				<form method="post" action="<?php echo \esc_url( $action_url ); ?>" class="nj-backfill-form">
+					<?php \wp_nonce_field( self::NONCE ); ?>
+					<input type="hidden" name="action" value="<?php echo \esc_attr( self::ACTION ); ?>" />
+					<button type="submit" class="button button-primary">
+						<?php \esc_html_e( 'Re-sync plan now', 'wp-ai-mind' ); ?>
 					</button>
 				</form>
 			</p>

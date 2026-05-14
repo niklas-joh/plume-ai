@@ -229,7 +229,9 @@ class DevToolsPage {
 					if ( ! data.tier ) {
 						return;
 					}
-					document.getElementById( 'wpaim-dev-tier-label' ).innerHTML = '<strong>' + data.tier_label + '</strong>';
+					var strong = document.createElement( 'strong' );
+					strong.textContent = data.tier_label;
+					document.getElementById( 'wpaim-dev-tier-label' ).replaceChildren( strong );
 					document.getElementById( 'wpaim-dev-usage' ).textContent    = data.usage_display;
 					document.getElementById( 'wpaim-dev-can-use' ).textContent  = data.can_use ? '✓ Yes' : '✗ No (limit reached)';
 					document.getElementById( 'wpaim-tier-select' ).value        = data.tier;

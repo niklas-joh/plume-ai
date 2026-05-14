@@ -176,7 +176,10 @@ class TierFeatureMatrixTest extends IntegrationTestCase {
 			return;
 		}
 
-		// Standard Claude text-completion fixture works for chat, seo, and generator.
+		// The proxy normalises responses to a plain string content field; chat, seo,
+		// and generator all route through the proxy for trial-tier users.
+		// ProxyResponse::from_array() adapts the string to Claude wire format before
+		// ClaudeProvider::parse_response() is called, so the fixture matches proxy output.
 		$text = 'seo' === $feature
 			? wp_json_encode(
 				[
@@ -190,17 +193,11 @@ class TierFeatureMatrixTest extends IntegrationTestCase {
 
 		$this->mock_http_with_claude_fixture(
 			[
-				'content' => [
-					[
-						'type' => 'text',
-						'text' => $text,
-					],
-				],
+				'content' => $text,
 				'usage'   => [
 					'input_tokens'  => 10,
 					'output_tokens' => 5,
 				],
-				'model'   => 'claude-opus-4-6',
 			]
 		);
 	}

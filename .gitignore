@@ -9,6 +9,7 @@ test-results/
 .agents/
 .superpowers/
 .worktrees/
+.claude/worktrees/
 .artifacts/
 wp-ai-mind-proxy/.wrangler/
 

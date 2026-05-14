@@ -9,24 +9,26 @@ test.describe( 'Tier gating', () => {
 
 	test( 'generator page loads for authenticated user', async ( { page } ) => {
 		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-generator' );
-		// The mount point id matches the page slug registered in PHP.
+		// #wp-ai-mind-generator is the PHP-rendered mount point — always present when
+		// the plugin is active and the page loads without a fatal error.
+		// .first() avoids a strict-mode violation if the fallback selector also matches.
 		await expect(
-			page.locator( '#wp-ai-mind-generator, .wpaim-generator-app, body' )
+			page.locator( '#wp-ai-mind-generator, .wpaim-generator-app' ).first()
 		).toBeVisible();
 	} );
 
 	test( 'images page loads for authenticated user', async ( { page } ) => {
 		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-images' );
 		await expect(
-			page.locator( '#wp-ai-mind-images, .wpaim-images-app, body' )
+			page.locator( '#wp-ai-mind-images, .wpaim-images-app' ).first()
 		).toBeVisible();
 	} );
 
 	test( 'REST API returns 403 for seo/generate when mocked as free tier', async ( { page } ) => {
 		// Intercept the seo/generate endpoint and respond with a 403.
-		// SeoWorkArea.jsx uses the full restUrl from window.wpAiMindData,
-		// so we match the path segment rather than an absolute URL.
-		await page.route( '**/seo/generate', async ( route ) => {
+		// URL predicate matches both /wp-json/.../seo/generate (pretty) and
+		// ?rest_route=.../seo/generate (plain) without glob ambiguity.
+		await page.route( ( url ) => url.href.includes( 'seo/generate' ), async ( route ) => {
 			await route.fulfill( {
 				status: 403,
 				contentType: 'application/json',
@@ -59,16 +61,15 @@ test.describe( 'Tier gating', () => {
 
 	test( 'SEO page shows Pro-gate upgrade link for free-tier users', async ( { page } ) => {
 		// Override window.wpAiMindData to simulate free tier before React boots.
-		// This is injected before navigation so the SeoApp conditional (line 46)
-		// reads isPro === false and renders .wpaim-pro-gate.
+		// A getter/setter proxy is used so PHP's inline `var wpAiMindData = {...}`
+		// triggers the setter and gets isPro forced to false, while still receiving
+		// the real restUrl, nonce, and other values from the server.
 		await page.addInitScript( () => {
+			let _data = {};
 			Object.defineProperty( window, 'wpAiMindData', {
-				value: {
-					...( window.wpAiMindData ?? {} ),
-					isPro: false,
-				},
-				writable: true,
-				configurable: true,
+				get() { return _data; },
+				set( val ) { _data = { ...val, isPro: false }; },
+				configurable: false,
 			} );
 		} );
 
@@ -93,14 +94,13 @@ test.describe( 'Tier gating', () => {
 
 	test( 'chat page remains accessible for free-tier users', async ( { page } ) => {
 		// Chat is not Pro-gated — ensure it still renders .wpaim-shell regardless of tier.
+		// Getter/setter proxy forces isPro: false while preserving restUrl, nonce, etc.
 		await page.addInitScript( () => {
+			let _data = {};
 			Object.defineProperty( window, 'wpAiMindData', {
-				value: {
-					...( window.wpAiMindData ?? {} ),
-					isPro: false,
-				},
-				writable: true,
-				configurable: true,
+				get() { return _data; },
+				set( val ) { _data = { ...val, isPro: false }; },
+				configurable: false,
 			} );
 		} );
 

@@ -26,6 +26,13 @@ async function globalSetup() {
 		return execSync( fullCmd, opts );
 	};
 
+	// Set pretty permalinks so REST API uses /wp-json/ paths — without this,
+	// wp-env defaults to plain URLs (?rest_route=...) which don't match the
+	// **/wp-json/** glob patterns used in Playwright route intercepts.
+	wpCli( 'rewrite structure /%postname%/ --hard', { stdio: 'inherit' } );
+	wpCli( 'rewrite flush --hard', { stdio: 'inherit' } );
+	console.log( '[E2E setup] Permalink structure set to /%postname%/.' );
+
 	try {
 		wpCli( 'user get nj_agent --field=login', { stdio: 'pipe' } );
 		console.log( '[E2E setup] nj_agent user already exists — skipping creation.' );
@@ -40,6 +47,15 @@ async function globalSetup() {
 		);
 		console.log( '[E2E setup] nj_agent created.' );
 	}
+
+	// Set site tier to pro_managed so all authenticated requests resolve to a
+	// Pro tier. pro_managed includes model_selection=true, which enables the
+	// provider select in ProvidersTab (trial has model_selection=false, leaving
+	// the fieldset disabled and preventing the settings save test from working).
+	// Tier-gating tests that need to simulate free tier override isPro client-side
+	// via addInitScript, so this site-level setting does not interfere with them.
+	wpCli( 'option set wp_ai_mind_site_tier pro_managed', { stdio: 'inherit' } );
+	console.log( '[E2E setup] Site tier set to pro_managed.' );
 
 	// Mark onboarding as seen so the dashboard renders normally.
 	// On a fresh install the wizard blocks the dashboard and chat views.

@@ -143,6 +143,7 @@ class NJProxyClientTest extends TestCase {
 		$result = NJ_Proxy_Client::chat( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
 
 		$this->assertIsArray( $result );
+		$this->assertSame( 'hello', $result['content'] );
 		$this->assertArrayHasKey( 'usage', $result );
 		$this->assertSame( 10, $result['usage']['input_tokens'] );
 		$this->assertSame( 5, $result['usage']['output_tokens'] );

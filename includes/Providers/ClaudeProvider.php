@@ -191,21 +191,26 @@ class ClaudeProvider extends AbstractProvider {
 		// NJ_Proxy_Client::chat() already called NJ_Usage_Tracker::log_usage() — flag to suppress parent logging.
 		$this->proxy_logged = true;
 
-		// Proxy normalises content to a flat string; parse_response() expects Anthropic block arrays.
+		// Build CompletionResponse directly from the proxy's normalised shape { content, usage, tool_call? }.
+		// parse_response() expects the upstream Claude wire format and cannot handle the normalised response.
 		$model      = ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL;
 		$in_tokens  = (int) ( $result['usage']['input_tokens'] ?? 0 );
 		$out_tokens = (int) ( $result['usage']['output_tokens'] ?? 0 );
 		$cost       = $this->calculate_cost( $model, $in_tokens, $out_tokens );
 
-		return new CompletionResponse(
-			content: $result['content'] ?? '',
-			model: $model,
-			prompt_tokens: $in_tokens,
-			completion_tokens: $out_tokens,
-			cost_usd: $cost,
-			raw: $result,
-			tool_call: $result['tool_call'] ?? null,
-		);
+		if ( ! empty( $result['tool_call'] ) ) {
+			return new CompletionResponse(
+				content: $result['content'] ?? '',
+				model: $model,
+				prompt_tokens: $in_tokens,
+				completion_tokens: $out_tokens,
+				cost_usd: $cost,
+				raw: $result,
+				tool_call: $result['tool_call'],
+			);
+		}
+
+		return new CompletionResponse( $result['content'] ?? '', $model, $in_tokens, $out_tokens, $cost, $result );
 	}
 
 	/**

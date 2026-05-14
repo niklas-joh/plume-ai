@@ -16,7 +16,8 @@
     "env:stop": "wp-env stop",
     "env:clean": "wp-env clean all",
     "env:run": "wp-env run",
-    "test:integration": "wp-env run tests-wordpress vendor/bin/phpunit -c phpunit-integration.xml.dist"
+    "test:integration": "wp-env run tests-wordpress vendor/bin/phpunit -c phpunit-integration.xml.dist",
+    "test:unit-js": "wp-scripts test-unit-js"
   },
   "dependencies": {
     "dompurify": "^3.4.0",

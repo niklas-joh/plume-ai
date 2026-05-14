@@ -2,6 +2,16 @@
 const { test, expect } = require( '@playwright/test' );
 const { wpLogin } = require( '../helpers/login' );
 
+// URL predicates used for route intercepts — matches both pretty-permalink
+// (/wp-json/wp-ai-mind/v1/...) and plain-permalink (?rest_route=...) formats.
+const isConversationsUrl = ( url ) =>
+	url.href.includes( 'wp-ai-mind/v1/conversations' ) &&
+	! url.href.includes( '/messages' );
+
+const isMessagesUrl = ( url ) =>
+	url.href.includes( 'wp-ai-mind/v1/conversations' ) &&
+	url.href.includes( '/messages' );
+
 test.describe( 'Chat journey', () => {
 	test.beforeEach( async ( { page } ) => {
 		await wpLogin( page );
@@ -9,7 +19,7 @@ test.describe( 'Chat journey', () => {
 
 	test( 'sends a message and renders the specific AI response text', async ( { page } ) => {
 		// Mock conversation creation (inline — fires when no conversation is active yet).
-		await page.route( '**/wp-json/wp-ai-mind/v1/conversations', async ( route ) => {
+		await page.route( isConversationsUrl, async ( route ) => {
 			if ( route.request().method() === 'POST' ) {
 				await route.fulfill( {
 					status: 201,
@@ -27,7 +37,7 @@ test.describe( 'Chat journey', () => {
 
 		// Mock the messages POST to return a specific, verifiable AI response.
 		// The GET (loadMessages) should still pass through to the real server.
-		await page.route( '**/wp-json/wp-ai-mind/v1/conversations/*/messages', async ( route ) => {
+		await page.route( isMessagesUrl, async ( route ) => {
 			if ( route.request().method() === 'POST' ) {
 				await route.fulfill( {
 					status: 200,
@@ -64,7 +74,7 @@ test.describe( 'Chat journey', () => {
 
 	test( 'conversation list updates after creating a conversation', async ( { page } ) => {
 		// Mock both GET and POST on /conversations so the sidebar shows our fixture title.
-		await page.route( '**/wp-json/wp-ai-mind/v1/conversations', async ( route ) => {
+		await page.route( isConversationsUrl, async ( route ) => {
 			if ( route.request().method() === 'POST' ) {
 				await route.fulfill( {
 					status: 201,
@@ -105,7 +115,7 @@ test.describe( 'Chat journey', () => {
 
 	test( 'delete conversation button is present in the sidebar', async ( { page } ) => {
 		// Seed one conversation via the GET mock.
-		await page.route( '**/wp-json/wp-ai-mind/v1/conversations', async ( route ) => {
+		await page.route( isConversationsUrl, async ( route ) => {
 			if ( route.request().method() === 'GET' ) {
 				await route.fulfill( {
 					status: 200,
@@ -135,7 +145,7 @@ test.describe( 'Chat journey', () => {
 
 	test( 'empty state shows when there are no conversations', async ( { page } ) => {
 		// Return an empty array so ConversationHistory renders its empty-state div.
-		await page.route( '**/wp-json/wp-ai-mind/v1/conversations', async ( route ) => {
+		await page.route( isConversationsUrl, async ( route ) => {
 			if ( route.request().method() === 'GET' ) {
 				await route.fulfill( {
 					status: 200,

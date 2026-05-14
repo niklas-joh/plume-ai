@@ -86,25 +86,22 @@ class SeoGenerateTest extends IntegrationTestCase {
 			]
 		);
 
+		// The proxy normalises responses to a plain string content field.
+		// ProxyResponse::from_array() then adapts this to Claude wire format before
+		// parse_response() is called, so the fixture must match the proxy output shape.
 		$fixture = [
-			'content' => [
+			'content' => wp_json_encode(
 				[
-					'type' => 'text',
-					'text' => wp_json_encode(
-						[
-							'meta_title'     => 'Test AI Title',
-							'og_description' => 'Test AI Desc',
-							'excerpt'        => 'Test Excerpt',
-							'alt_text'       => 'Test Alt',
-						]
-					),
-				],
-			],
+					'meta_title'     => 'Test AI Title',
+					'og_description' => 'Test AI Desc',
+					'excerpt'        => 'Test Excerpt',
+					'alt_text'       => 'Test Alt',
+				]
+			),
 			'usage'   => [
 				'input_tokens'  => 100,
 				'output_tokens' => 50,
 			],
-			'model'   => 'claude-opus-4-6',
 		];
 
 		$this->mock_http_with_claude_fixture( $fixture );

@@ -97,6 +97,42 @@ class DevToolsPage {
 	}
 
 	/**
+	 * Enqueue the compiled dev-tools script and pass runtime data via wp_localize_script.
+	 *
+	 * Called from render() so assets are registered at the correct time (after the page
+	 * hook fires) without adding a separate admin_enqueue_scripts hook for a hidden page.
+	 *
+	 * @since 1.11.0
+	 * @return void
+	 */
+	private static function enqueue_assets(): void {
+		$asset_file = WP_AI_MIND_DIR . 'assets/admin/dev-tools.asset.php';
+		$asset      = file_exists( $asset_file )
+			? require $asset_file
+			: [
+				'dependencies' => [],
+				'version'      => WP_AI_MIND_VERSION,
+			];
+
+		wp_enqueue_script(
+			'wp-ai-mind-dev-tools',
+			WP_AI_MIND_URL . 'assets/admin/dev-tools.js',
+			$asset['dependencies'],
+			$asset['version'],
+			true
+		);
+
+		wp_localize_script(
+			'wp-ai-mind-dev-tools',
+			'njDevTools',
+			[
+				'restUrl' => esc_url_raw( rest_url( 'wp-ai-mind/v1/dev/' ) ),
+				'nonce'   => wp_create_nonce( 'wp_rest' ),
+			]
+		);
+	}
+
+	/**
 	 * Render the developer tools admin page.
 	 *
 	 * @since 1.11.0
@@ -107,12 +143,12 @@ class DevToolsPage {
 			wp_die( esc_html__( 'Developer tools are not enabled on this site.', 'wp-ai-mind' ), 403 );
 		}
 
+		self::enqueue_assets();
+
 		$usage        = NJ_Usage_Tracker::get_usage();
 		$tier_labels  = NJ_Tier_Config::get_tier_labels();
 		$all_tiers    = NJ_Tier_Config::get_valid_tiers();
 		$current_tier = $usage['tier'];
-		$rest_url     = rest_url( 'wp-ai-mind/v1/dev/' );
-		$nonce        = wp_create_nonce( 'wp_rest' );
 
 		if ( null === $usage['limit'] ) {
 			$usage_display = __( 'Unlimited', 'wp-ai-mind' );
@@ -197,76 +233,6 @@ class DevToolsPage {
 
 			<div id="wpaim-dev-notice" style="display:none;" class="notice inline" aria-live="polite"></div>
 		</div>
-
-		<script>
-		( function () {
-			var restUrl = <?php echo wp_json_encode( $rest_url ); ?>;
-			var nonce   = <?php echo wp_json_encode( $nonce ); ?>;
-
-			function post( endpoint, body ) {
-				return fetch( restUrl + endpoint, {
-					method:  'POST',
-					headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },
-					body:    JSON.stringify( body ),
-				} ).then( function ( r ) { return r.json(); } );
-			}
-
-			function get( endpoint ) {
-				return fetch( restUrl + endpoint, {
-					headers: { 'X-WP-Nonce': nonce },
-				} ).then( function ( r ) { return r.json(); } );
-			}
-
-			function showNotice( msg, type ) {
-				var el = document.getElementById( 'wpaim-dev-notice' );
-				el.className  = 'notice notice-' + type + ' inline';
-				el.textContent = msg;
-				el.style.display = '';
-			}
-
-			function refreshState() {
-				get( 'status' ).then( function ( data ) {
-					if ( ! data.tier ) {
-						return;
-					}
-					var strong = document.createElement( 'strong' );
-					strong.textContent = data.tier_label;
-					document.getElementById( 'wpaim-dev-tier-label' ).replaceChildren( strong );
-					document.getElementById( 'wpaim-dev-usage' ).textContent    = data.usage_display;
-					document.getElementById( 'wpaim-dev-can-use' ).textContent  = data.can_use ? '✓ Yes' : '✗ No (limit reached)';
-					document.getElementById( 'wpaim-tier-select' ).value        = data.tier;
-				} );
-			}
-
-			document.getElementById( 'wpaim-apply-tier' ).addEventListener( 'click', function () {
-				var tier = document.getElementById( 'wpaim-tier-select' ).value;
-				post( 'set-tier', { tier: tier } ).then( function ( data ) {
-					showNotice( data.message || ( data.success ? 'Done.' : 'Error.' ), data.success ? 'success' : 'error' );
-					if ( data.success ) {
-						refreshState();
-					}
-				} );
-			} );
-
-			document.getElementById( 'wpaim-reset-usage' ).addEventListener( 'click', function () {
-				post( 'reset-usage', {} ).then( function ( data ) {
-					showNotice( data.message || ( data.success ? 'Done.' : 'Error.' ), data.success ? 'success' : 'error' );
-					if ( data.success ) {
-						refreshState();
-					}
-				} );
-			} );
-
-			document.getElementById( 'wpaim-set-ceiling' ).addEventListener( 'click', function () {
-				post( 'set-ceiling', {} ).then( function ( data ) {
-					showNotice( data.message || ( data.success ? 'Done.' : 'Error.' ), data.success ? 'success' : 'error' );
-					if ( data.success ) {
-						refreshState();
-					}
-				} );
-			} );
-		}() );
-		</script>
 		<?php
 	}
 

@@ -142,7 +142,12 @@ class NJ_Tier_Manager {
 		if ( $ok ) {
 			$secret = (string) get_option( TierUpdateWebhookController::OPTION_SECRET, '' );
 			if ( '' !== $secret ) {
-				update_option( self::SITE_OPTION_SIG, hash_hmac( 'sha256', $tier, $secret ), false );
+				if ( in_array( $tier, [ 'pro_managed', 'pro_byok' ], true ) ) {
+					update_option( self::SITE_OPTION_SIG, hash_hmac( 'sha256', $tier, $secret ), false );
+				} else {
+					// Non-paid tiers carry no signature value; remove any stale sig from a prior subscription.
+					delete_option( self::SITE_OPTION_SIG );
+				}
 			}
 			do_action( 'wp_ai_mind_tier_changed', $tier );
 		}

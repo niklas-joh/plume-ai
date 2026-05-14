@@ -577,7 +577,7 @@ class ChatRestController {
 	 * Isolated as a protected method so tests can override without stubbing
 	 * static calls on NJ_Tier_Manager.
 	 *
-	 * @since 1.0.0
+	 * @since 1.8.0
 	 * @param int $user_id WordPress user ID.
 	 * @return bool
 	 */
@@ -591,7 +591,7 @@ class ChatRestController {
 	 * Isolated as a protected method so tests can override without stubbing
 	 * static calls on NJ_Usage_Tracker.
 	 *
-	 * @since 1.0.0
+	 * @since 1.8.0
 	 * @param int $user_id WordPress user ID.
 	 * @return bool
 	 */

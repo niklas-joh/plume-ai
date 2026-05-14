@@ -387,7 +387,7 @@ class ChatRestControllerTest extends TestCase {
     /**
      * Helper: build a ChatRestController subclass with both tier and quota checks stubbed to pass.
      *
-     * @since 1.0.0
+     * @since 1.8.0
      * @return ChatRestController
      */
     private function make_controller_passing_gates(): ChatRestController {
@@ -404,7 +404,7 @@ class ChatRestControllerTest extends TestCase {
     /**
      * Helper: build a ChatRestController subclass with tier check stubbed to fail.
      *
-     * @since 1.0.0
+     * @since 1.8.0
      * @return ChatRestController
      */
     private function make_controller_tier_denied(): ChatRestController {
@@ -418,7 +418,7 @@ class ChatRestControllerTest extends TestCase {
     /**
      * Helper: build a ChatRestController subclass with quota check stubbed to fail.
      *
-     * @since 1.0.0
+     * @since 1.8.0
      * @return ChatRestController
      */
     private function make_controller_quota_exhausted(): ChatRestController {

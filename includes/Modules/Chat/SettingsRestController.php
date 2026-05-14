@@ -188,7 +188,7 @@ class SettingsRestController {
 	/**
 	 * Checks that the current user has the `manage_options` capability.
 	 *
-	 * @since 1.0.0
+	 * @since 1.8.0
 	 * @return bool|\WP_Error True on success; WP_Error with 403 status on failure.
 	 */
 	public function check_permission(): bool|\WP_Error {

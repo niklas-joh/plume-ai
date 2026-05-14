@@ -315,6 +315,7 @@ class NJSiteRegistrationTest extends TestCase {
 		Functions\expect( 'get_option' )
 			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
 			->andReturn( '' );
+		Functions\when( '__' )->returnArg();
 
 		$result = NJ_Site_Registration::rotate_secret();
 

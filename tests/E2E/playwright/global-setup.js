@@ -48,15 +48,14 @@ async function globalSetup() {
 		console.log( '[E2E setup] nj_agent created.' );
 	}
 
-	// Grant an active trial tier so isPro === true in generator/SEO pages.
-	// NJ_Tier_Manager::get_user_tier() returns 'trial' only when both
-	// wp_ai_mind_tier = 'trial' AND wp_ai_mind_trial_started is a recent timestamp.
-	// Without both meta keys the user falls back to 'free' and generator/SEO
-	// render .wpaim-pro-gate instead of the interactive form.
-	const nowSeconds = Math.floor( Date.now() / 1000 );
-	wpCli( 'user meta update nj_agent wp_ai_mind_tier trial', { stdio: 'inherit' } );
-	wpCli( `user meta update nj_agent wp_ai_mind_trial_started ${ nowSeconds }`, { stdio: 'inherit' } );
-	console.log( '[E2E setup] nj_agent tier set to trial (started now).' );
+	// Set site tier to pro_managed so all authenticated requests resolve to a
+	// Pro tier. pro_managed includes model_selection=true, which enables the
+	// provider select in ProvidersTab (trial has model_selection=false, leaving
+	// the fieldset disabled and preventing the settings save test from working).
+	// Tier-gating tests that need to simulate free tier override isPro client-side
+	// via addInitScript, so this site-level setting does not interfere with them.
+	wpCli( 'option set wp_ai_mind_site_tier pro_managed', { stdio: 'inherit' } );
+	console.log( '[E2E setup] Site tier set to pro_managed.' );
 
 	// Mark onboarding as seen so the dashboard renders normally.
 	// On a fresh install the wizard blocks the dashboard and chat views.

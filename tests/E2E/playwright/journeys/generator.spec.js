@@ -11,22 +11,28 @@ test.describe( 'Generator journey', () => {
 		// Route the generate endpoint to return a verifiable fixture post.
 		// GeneratorWizard.jsx posts to /wp-ai-mind/v1/generate and on success
 		// transitions to step 3, rendering result.content in .wpaim-generator__preview.
-		await page.route( '**/wp-ai-mind/v1/generate', async ( route ) => {
-			if ( route.request().method() === 'POST' ) {
-				await route.fulfill( {
-					status: 200,
-					contentType: 'application/json',
-					body: JSON.stringify( {
-						post_id: 42,
-						edit_url: '/wp-admin/post.php?post=42&action=edit',
-						content: 'This is a uniquely identifiable generator test output for validation.',
-						tokens_used: 150,
-					} ),
-				} );
-			} else {
-				await route.continue();
+		// URL predicate is used instead of a glob — wp-env may serve REST via
+		// /?rest_route= (plain permalinks) or /wp-json/ (pretty), and both forms
+		// contain the same path segment so the predicate matches either.
+		await page.route(
+			( url ) => url.href.includes( 'wp-ai-mind/v1/generate' ),
+			async ( route ) => {
+				if ( route.request().method() === 'POST' ) {
+					await route.fulfill( {
+						status: 200,
+						contentType: 'application/json',
+						body: JSON.stringify( {
+							post_id: 42,
+							edit_url: '/wp-admin/post.php?post=42&action=edit',
+							content: 'This is a uniquely identifiable generator test output for validation.',
+							tokens_used: 150,
+						} ),
+					} );
+				} else {
+					await route.continue();
+				}
 			}
-		} );
+		);
 
 		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-generator' );
 
@@ -52,20 +58,23 @@ test.describe( 'Generator journey', () => {
 	test( 'shows error state on API failure', async ( { page } ) => {
 		// Return a 500 WP REST error — GeneratorWizard catches the rejection,
 		// sets the error state, and renders it above the form (line 174–189).
-		await page.route( '**/wp-ai-mind/v1/generate', async ( route ) => {
-			if ( route.request().method() === 'POST' ) {
-				await route.fulfill( {
-					status: 500,
-					contentType: 'application/json',
-					body: JSON.stringify( {
-						code: 'api_error',
-						message: 'Uniquely identifiable error message from generator test',
-					} ),
-				} );
-			} else {
-				await route.continue();
+		await page.route(
+			( url ) => url.href.includes( 'wp-ai-mind/v1/generate' ),
+			async ( route ) => {
+				if ( route.request().method() === 'POST' ) {
+					await route.fulfill( {
+						status: 500,
+						contentType: 'application/json',
+						body: JSON.stringify( {
+							code: 'api_error',
+							message: 'Uniquely identifiable error message from generator test',
+						} ),
+					} );
+				} else {
+					await route.continue();
+				}
 			}
-		} );
+		);
 
 		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-generator' );
 		await page.waitForSelector( '#wp-ai-mind-generator', { timeout: 10000 } );

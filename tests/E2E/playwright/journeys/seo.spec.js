@@ -37,7 +37,9 @@ test.describe( 'SEO journey', () => {
 		// Mock the seo/generate endpoint — uses the full restUrl path built in SeoWorkArea.jsx.
 		// The URL is constructed as `${restUrl}/seo/generate` where restUrl comes from
 		// window.wpAiMindData, so we match on the path segment.
-		await page.route( '**/seo/generate', async ( route ) => {
+		// URL predicate matches both pretty (/wp-json/.../seo/generate) and plain
+		// (?rest_route=.../seo/generate) REST permalink formats.
+		await page.route( ( url ) => url.href.includes( 'seo/generate' ), async ( route ) => {
 			await route.fulfill( {
 				status: 200,
 				contentType: 'application/json',

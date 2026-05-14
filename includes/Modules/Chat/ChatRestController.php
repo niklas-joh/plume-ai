@@ -21,6 +21,8 @@ use WP_AI_Mind\Settings\ProviderSettings;
 use WP_AI_Mind\Tools\ToolRegistry;
 use WP_AI_Mind\Tools\ToolExecutor;
 use WP_AI_Mind\Voice\VoiceInjector;
+use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 
 /**
  * REST controller for chat conversations, providers, and post search.
@@ -528,16 +530,72 @@ class ChatRestController {
 	}
 
 	/**
-	 * Check that the current user has the edit_posts capability.
+	 * Checks that the current user may access chat REST endpoints.
+	 *
+	 * Three conditions must all pass: the user must hold the edit_posts capability,
+	 * their tier must include the 'chat' feature, and they must have remaining
+	 * monthly quota. Tier and quota are checked after capability to avoid
+	 * unnecessary DB reads for unauthenticated requests.
 	 *
 	 * @since 1.0.0
-	 * @return bool|\WP_Error
+	 * @return bool|\WP_Error True on success; WP_Error with 403 status on failure.
 	 */
 	public function check_permission(): bool|\WP_Error {
 		if ( ! current_user_can( 'edit_posts' ) ) {
-			return new \WP_Error( 'rest_forbidden', __( 'Insufficient permissions.', 'wp-ai-mind' ), [ 'status' => 403 ] );
+			return new \WP_Error(
+				'rest_forbidden',
+				__( 'Insufficient permissions.', 'wp-ai-mind' ),
+				[ 'status' => 403 ]
+			);
 		}
+
+		$user_id = get_current_user_id();
+
+		if ( ! $this->user_can_chat( $user_id ) ) {
+			return new \WP_Error(
+				'rest_tier_denied',
+				__( 'Your current plan does not include chat access.', 'wp-ai-mind' ),
+				[ 'status' => 403 ]
+			);
+		}
+
+		if ( ! $this->user_within_quota( $user_id ) ) {
+			return new \WP_Error(
+				'rest_quota_exceeded',
+				__( 'You have reached your monthly usage limit.', 'wp-ai-mind' ),
+				[ 'status' => 403 ]
+			);
+		}
+
 		return true;
+	}
+
+	/**
+	 * Returns whether the user's tier grants chat access.
+	 *
+	 * Isolated as a protected method so tests can override without stubbing
+	 * static calls on NJ_Tier_Manager.
+	 *
+	 * @since 1.0.0
+	 * @param int $user_id WordPress user ID.
+	 * @return bool
+	 */
+	protected function user_can_chat( int $user_id ): bool {
+		return NJ_Tier_Manager::user_can( 'chat', $user_id );
+	}
+
+	/**
+	 * Returns whether the user is within their monthly quota.
+	 *
+	 * Isolated as a protected method so tests can override without stubbing
+	 * static calls on NJ_Usage_Tracker.
+	 *
+	 * @since 1.0.0
+	 * @param int $user_id WordPress user ID.
+	 * @return bool
+	 */
+	protected function user_within_quota( int $user_id ): bool {
+		return NJ_Usage_Tracker::check_limit( $user_id );
 	}
 
 	// ── Overridable factory methods (for testing) ─────────────────────────────

@@ -384,9 +384,55 @@ class ChatRestControllerTest extends TestCase {
 
     // ── Permission check ───────────────────────────────────────────────────────
 
+    /**
+     * Helper: build a ChatRestController subclass with both tier and quota checks stubbed to pass.
+     *
+     * @return ChatRestController
+     */
+    private function make_controller_passing_gates(): ChatRestController {
+        return new class( $this->tool_registry, $this->tool_executor ) extends ChatRestController {
+            protected function user_can_chat( int $user_id ): bool {
+                return true;
+            }
+            protected function user_within_quota( int $user_id ): bool {
+                return true;
+            }
+        };
+    }
+
+    /**
+     * Helper: build a ChatRestController subclass with tier check stubbed to fail.
+     *
+     * @return ChatRestController
+     */
+    private function make_controller_tier_denied(): ChatRestController {
+        return new class( $this->tool_registry, $this->tool_executor ) extends ChatRestController {
+            protected function user_can_chat( int $user_id ): bool {
+                return false;
+            }
+        };
+    }
+
+    /**
+     * Helper: build a ChatRestController subclass with quota check stubbed to fail.
+     *
+     * @return ChatRestController
+     */
+    private function make_controller_quota_exhausted(): ChatRestController {
+        return new class( $this->tool_registry, $this->tool_executor ) extends ChatRestController {
+            protected function user_can_chat( int $user_id ): bool {
+                return true;
+            }
+            protected function user_within_quota( int $user_id ): bool {
+                return false;
+            }
+        };
+    }
+
     public function test_permission_check_returns_true_for_editors(): void {
         Functions\when( 'current_user_can' )->justReturn( true );
-        $controller = new ChatRestController( $this->tool_registry, $this->tool_executor );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        $controller = $this->make_controller_passing_gates();
 
         $result = $controller->check_permission();
         $this->assertTrue( $result );
@@ -405,6 +451,50 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'current_user_can' )->justReturn( false );
         Functions\when( '__' )->alias( fn( $s ) => $s );
         $controller = new ChatRestController( $this->tool_registry, $this->tool_executor );
+
+        $result = $controller->check_permission();
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 403, $result->get_error_data()['status'] );
+    }
+
+    public function test_permission_check_fails_when_tier_denies_chat(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+        $controller = $this->make_controller_tier_denied();
+
+        $result = $controller->check_permission();
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rest_tier_denied', $result->get_error_code() );
+    }
+
+    public function test_permission_check_tier_error_has_403_status(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+        $controller = $this->make_controller_tier_denied();
+
+        $result = $controller->check_permission();
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 403, $result->get_error_data()['status'] );
+    }
+
+    public function test_permission_check_fails_when_quota_exhausted(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+        $controller = $this->make_controller_quota_exhausted();
+
+        $result = $controller->check_permission();
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rest_quota_exceeded', $result->get_error_code() );
+    }
+
+    public function test_permission_check_quota_error_has_403_status(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+        $controller = $this->make_controller_quota_exhausted();
 
         $result = $controller->check_permission();
         $this->assertInstanceOf( \WP_Error::class, $result );

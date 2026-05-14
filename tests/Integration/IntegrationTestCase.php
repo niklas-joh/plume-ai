@@ -85,19 +85,25 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Set a fake site token before each test.
+	 * Set a fake site token and reset the REST server before each test.
 	 *
 	 * The site token prevents NJ_Site_Registration::maybe_register() from
 	 * firing a real outbound HTTP call during the test run. The REST server
-	 * is not initialised here; rest_get_server() handles lazy initialisation
-	 * on demand, and the previous server is nulled in tearDown() so each test
-	 * starts with a clean slate without redundant bootstrap overhead.
+	 * global is nulled here so the first test in a class is not affected by
+	 * whatever state a previous test class left in $wp_rest_server; tearDown()
+	 * handles the reset for every subsequent test. Lazy-init via
+	 * rest_get_server() fires rest_api_init only when the server is needed.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
 	public function setUp(): void {
 		parent::setUp();
+
+		// Guarantee a clean server for the first test in a class — lazy-init via
+		// rest_get_server() re-fires rest_api_init only when the server is needed.
+		global $wp_rest_server;
+		$wp_rest_server = null;
 
 		// Prevent the proxy registration flow from making real network calls.
 		update_option( NJ_Site_Registration::OPTION_TOKEN, 'test-site-token' );

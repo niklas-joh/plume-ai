@@ -59,16 +59,15 @@ test.describe( 'Tier gating', () => {
 
 	test( 'SEO page shows Pro-gate upgrade link for free-tier users', async ( { page } ) => {
 		// Override window.wpAiMindData to simulate free tier before React boots.
-		// This is injected before navigation so the SeoApp conditional (line 46)
-		// reads isPro === false and renders .wpaim-pro-gate.
+		// A getter/setter proxy is used so PHP's inline `var wpAiMindData = {...}`
+		// triggers the setter and gets isPro forced to false, while still receiving
+		// the real restUrl, nonce, and other values from the server.
 		await page.addInitScript( () => {
+			let _data = {};
 			Object.defineProperty( window, 'wpAiMindData', {
-				value: {
-					...( window.wpAiMindData ?? {} ),
-					isPro: false,
-				},
-				writable: true,
-				configurable: true,
+				get() { return _data; },
+				set( val ) { _data = { ...val, isPro: false }; },
+				configurable: false,
 			} );
 		} );
 
@@ -93,14 +92,13 @@ test.describe( 'Tier gating', () => {
 
 	test( 'chat page remains accessible for free-tier users', async ( { page } ) => {
 		// Chat is not Pro-gated — ensure it still renders .wpaim-shell regardless of tier.
+		// Getter/setter proxy forces isPro: false while preserving restUrl, nonce, etc.
 		await page.addInitScript( () => {
+			let _data = {};
 			Object.defineProperty( window, 'wpAiMindData', {
-				value: {
-					...( window.wpAiMindData ?? {} ),
-					isPro: false,
-				},
-				writable: true,
-				configurable: true,
+				get() { return _data; },
+				set( val ) { _data = { ...val, isPro: false }; },
+				configurable: false,
 			} );
 		} );
 

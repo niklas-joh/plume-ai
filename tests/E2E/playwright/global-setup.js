@@ -26,6 +26,13 @@ async function globalSetup() {
 		return execSync( fullCmd, opts );
 	};
 
+	// Set pretty permalinks so REST API uses /wp-json/ paths — without this,
+	// wp-env defaults to plain URLs (?rest_route=...) which don't match the
+	// **/wp-json/** glob patterns used in Playwright route intercepts.
+	wpCli( 'rewrite structure /%postname%/ --hard', { stdio: 'inherit' } );
+	wpCli( 'rewrite flush --hard', { stdio: 'inherit' } );
+	console.log( '[E2E setup] Permalink structure set to /%postname%/.' );
+
 	try {
 		wpCli( 'user get nj_agent --field=login', { stdio: 'pipe' } );
 		console.log( '[E2E setup] nj_agent user already exists — skipping creation.' );

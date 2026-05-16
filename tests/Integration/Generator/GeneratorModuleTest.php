@@ -72,12 +72,15 @@ class GeneratorModuleTest extends IntegrationTestCase {
 		$this->set_user_tier( self::$editor_user_id, 'trial' );
 		wp_set_current_user( self::$editor_user_id );
 
+		$prompt_tokens     = 120;
+		$completion_tokens = 80;
+
 		$this->mock_http_with_claude_fixture(
 			[
 				'content' => '<h2>Intro</h2><p>AI generated body content for the test post.</p>',
 				'usage'   => [
-					'input_tokens'  => 120,
-					'output_tokens' => 80,
+					'input_tokens'  => $prompt_tokens,
+					'output_tokens' => $completion_tokens,
 				],
 			]
 		);
@@ -103,7 +106,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 
 		$this->assertIsInt( $data['post_id'], 'post_id must be an integer.' );
 		$this->assertGreaterThan( 0, $data['post_id'], 'post_id must be a positive integer.' );
-		$this->assertSame( 200, $data['tokens_used'], 'tokens_used must equal input + output tokens from fixture.' );
+		$this->assertSame( $prompt_tokens + $completion_tokens, $data['tokens_used'], 'tokens_used must equal input + output tokens from fixture.' );
 
 		// Verify the draft post was actually created in the database.
 		$post = get_post( $data['post_id'] );

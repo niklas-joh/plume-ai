@@ -40,9 +40,9 @@ class NJ_Proxy_Client {
 	public static function chat( array $messages, array $options = [], string $provider = 'claude' ): array|WP_Error {
 		$token = NJ_Site_Registration::get_site_token();
 		if ( empty( $token ) ) {
-			// Schedule re-registration after the current response is sent. Inline registration
-			// risks a loopback deadlock on single-worker setups because the Worker's challenge
-			// callback is a fresh HTTP request that would queue behind the in-flight request.
+			// Inline registration risks a loopback deadlock on single-worker setups because
+			// the Worker's challenge callback is a fresh HTTP request that would queue behind
+			// the in-flight request.
 			if ( ! has_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] );
 			}

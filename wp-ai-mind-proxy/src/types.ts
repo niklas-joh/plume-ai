@@ -8,6 +8,11 @@ export interface Env {
 	LS_WEBHOOK_SECRET: string;
 	LS_PRO_MONTHLY_VARIANT_ID: string;
 	LS_PRO_ANNUAL_VARIANT_ID: string;
+	/**
+	 * When set to any non-empty value, enables the /dev/* endpoints.
+	 * Never set this on production deployments.
+	 */
+	DEV_MODE?: string;
 	// PROXY_SIGNATURE_SECRET intentionally removed — replaced by site token Bearer auth.
 }
 

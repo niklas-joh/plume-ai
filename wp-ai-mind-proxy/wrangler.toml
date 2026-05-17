@@ -14,3 +14,9 @@ preview_id = "38975852f1bc4c838da456ea9a21e789"
 # wrangler secret put LS_PRO_ANNUAL_VARIANT_ID     ← LemonSqueezy: Products → WP AI Mind Pro → Variants
 # PROXY_SIGNATURE_SECRET is no longer used — can be deleted:
 # wrangler secret delete PROXY_SIGNATURE_SECRET
+
+# Dev-only feature flag (never set in production):
+# wrangler secret put DEV_MODE dev
+#   Enables /dev/set-tier, /dev/reset-usage, /dev/set-usage for local testing.
+#   Each endpoint still requires Bearer-token authentication (the site token).
+#   Leave unset on production deployments — routes return 404 when absent.

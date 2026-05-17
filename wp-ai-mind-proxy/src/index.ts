@@ -1,6 +1,6 @@
 // src/index.ts
 
-import { Env, ModelConfig, NormalizedResponse, ProxyRequest, ProxyTier, SiteRecord, ToolParam } from './types';
+import { Env, ModelConfig, NormalizedResponse, ProxyRequest, ProxyTier, SiteRecord, SiteTier, ToolParam } from './types';
 import { authenticateRequest, generateToken } from './auth';
 import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
@@ -302,6 +302,21 @@ export default {
 			}
 			return handleRotateSecret( request, env );
 		}
+
+		// Dev-only endpoints — only active when DEV_MODE is set in the Worker environment.
+		// Each route still requires Bearer-token auth (the registered site token).
+		if ( pathname === '/dev/set-tier' || pathname === '/dev/reset-usage' || pathname === '/dev/set-usage' ) {
+			if ( ! env.DEV_MODE ) {
+				return jsonResponse( { error: 'Not found' }, 404 );
+			}
+			if ( request.method !== 'POST' ) {
+				return jsonResponse( { error: 'Method not allowed' }, 405 );
+			}
+			if ( pathname === '/dev/set-tier' )    return handleDevSetTier( request, env );
+			if ( pathname === '/dev/reset-usage' ) return handleDevResetUsage( request, env );
+			return handleDevSetUsage( request, env );
+		}
+
 		if ( pathname === '/v1/chat' ) {
 			if ( request.method !== 'POST' ) {
 				return jsonResponse( { error: 'Method not allowed' }, 405 );
@@ -344,6 +359,70 @@ async function handleRotateSecret(
 		tier: updated.tier,
 	} );
 }
+
+// ── Dev override endpoints ────────────────────────────────────────────────────
+// These three handlers are only reachable when DEV_MODE is set on the Worker.
+// The fetch() dispatcher enforces that guard before calling any of these.
+
+/**
+ * Override the tier stored in the site's KV record.
+ * Mirrors what a real LemonSqueezy webhook would do, but without payment.
+ */
+async function handleDevSetTier( request: Request, env: Env ): Promise< Response > {
+	const auth = await authenticateRequest( request, env );
+	if ( ! auth.authenticated || ! auth.site_token || ! auth.record ) {
+		return jsonResponse( { error: 'Unauthorised' }, 401 );
+	}
+
+	const body = ( await request.json() ) as { tier?: string };
+	const validTiers: SiteTier[] = [ 'free', 'trial', 'pro_managed', 'pro_byok' ];
+	if ( ! body.tier || ! validTiers.includes( body.tier as SiteTier ) ) {
+		return jsonResponse( { error: 'Invalid tier' }, 400 );
+	}
+
+	const updated: SiteRecord = { ...auth.record, tier: body.tier as SiteTier };
+	await env.USAGE_KV.put( `site:${ auth.site_token }`, JSON.stringify( updated ) );
+
+	return jsonResponse( { ok: true, tier: body.tier } );
+}
+
+/**
+ * Zero out this month's usage counter for the authenticated site.
+ */
+async function handleDevResetUsage( request: Request, env: Env ): Promise< Response > {
+	const auth = await authenticateRequest( request, env );
+	if ( ! auth.authenticated || ! auth.site_token ) {
+		return jsonResponse( { error: 'Unauthorised' }, 401 );
+	}
+
+	const key = `usage:${ auth.site_token }:${ getCurrentMonth() }`;
+	await env.USAGE_KV.put( key, '0', { expirationTtl: getSecondsUntilNextMonth() } );
+
+	return jsonResponse( { ok: true, usage: 0 } );
+}
+
+/**
+ * Set this month's usage counter to an explicit value for the authenticated site.
+ * Pass the tier's monthly limit to simulate a fully-exhausted quota.
+ */
+async function handleDevSetUsage( request: Request, env: Env ): Promise< Response > {
+	const auth = await authenticateRequest( request, env );
+	if ( ! auth.authenticated || ! auth.site_token ) {
+		return jsonResponse( { error: 'Unauthorised' }, 401 );
+	}
+
+	const body = ( await request.json() ) as { usage?: number };
+	if ( typeof body.usage !== 'number' || body.usage < 0 ) {
+		return jsonResponse( { error: 'Invalid usage value — must be a non-negative number' }, 400 );
+	}
+
+	const key = `usage:${ auth.site_token }:${ getCurrentMonth() }`;
+	await env.USAGE_KV.put( key, String( body.usage ), { expirationTtl: getSecondsUntilNextMonth() } );
+
+	return jsonResponse( { ok: true, usage: body.usage } );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function handleChatProxy(
 	request: Request,

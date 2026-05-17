@@ -202,7 +202,7 @@ class NJ_Site_Registration {
 	public static function rotate_secret(): string|WP_Error {
 		$token = self::get_site_token();
 		if ( '' === $token ) {
-			return new WP_Error( 'not_registered', __( 'This site is not registered with Vectra AI Writer and Design.', 'wp-ai-mind' ) );
+			return new WP_Error( 'not_registered', __( 'This site is not registered with Stilus - Write and Design.', 'wp-ai-mind' ) );
 		}
 
 		$response = wp_remote_post(

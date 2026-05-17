@@ -120,12 +120,12 @@ class TierSyncBackfillNotice {
 		?>
 		<div class="notice notice-warning is-dismissible">
 			<p>
-				<strong><?php \esc_html_e( 'Vectra AI Writer and Design — Plan sync setup required', 'wp-ai-mind' ); ?></strong>
+				<strong><?php \esc_html_e( 'Stilus - Write and Design — Plan sync setup required', 'wp-ai-mind' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				\esc_html_e(
-					'Your site is connected to Vectra AI Writer and Design, but the connection has not been fully set up yet. Without this step, plan upgrades and cancellations will not take effect automatically. Click the button below to complete the one-time setup.',
+					'Your site is connected to Stilus - Write and Design, but the connection has not been fully set up yet. Without this step, plan upgrades and cancellations will not take effect automatically. Click the button below to complete the one-time setup.',
 					'wp-ai-mind'
 				);
 				?>
@@ -171,12 +171,12 @@ class TierSyncBackfillNotice {
 		?>
 		<div class="notice notice-warning is-dismissible">
 			<p>
-				<strong><?php \esc_html_e( 'Vectra AI Writer and Design — Plan verification required', 'wp-ai-mind' ); ?></strong>
+				<strong><?php \esc_html_e( 'Stilus - Write and Design — Plan verification required', 'wp-ai-mind' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				\esc_html_e(
-					'Your site shows a paid plan in the database, but the plan integrity signature is missing or does not match. This can happen after a direct database edit or a migration. Until re-verified, the plugin will treat your site as free. Click below to re-sync your plan with Vectra AI Writer and Design.',
+					'Your site shows a paid plan in the database, but the plan integrity signature is missing or does not match. This can happen after a direct database edit or a migration. Until re-verified, the plugin will treat your site as free. Click below to re-sync your plan with Stilus - Write and Design.',
 					'wp-ai-mind'
 				);
 				?>
@@ -219,7 +219,7 @@ class TierSyncBackfillNotice {
 			?>
 			<div class="notice notice-success is-dismissible">
 				<p>
-					<?php \esc_html_e( 'Vectra AI Writer and Design — Plan sync is now active. Your site will automatically receive plan updates.', 'wp-ai-mind' ); ?>
+					<?php \esc_html_e( 'Stilus - Write and Design — Plan sync is now active. Your site will automatically receive plan updates.', 'wp-ai-mind' ); ?>
 				</p>
 			</div>
 			<?php
@@ -235,7 +235,7 @@ class TierSyncBackfillNotice {
 		?>
 		<div class="notice notice-error is-dismissible">
 			<p>
-				<?php \esc_html_e( 'Vectra AI Writer and Design — Setup failed.', 'wp-ai-mind' ); ?>
+				<?php \esc_html_e( 'Stilus - Write and Design — Setup failed.', 'wp-ai-mind' ); ?>
 				<?php if ( '' !== $detail ) : ?>
 					<br />
 					<code><?php echo \esc_html( $detail ); ?></code>

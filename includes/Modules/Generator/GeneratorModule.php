@@ -130,8 +130,6 @@ class GeneratorModule {
 	 * @return \WP_REST_Response 201 on success with post_id, edit_url, content, tokens_used; 500 on error.
 	 */
 	public static function handle_generate( \WP_REST_Request $request ): \WP_REST_Response {
-		\error_log( '[WP_AI_Mind] handle_generate() invoked — user=' . \get_current_user_id() . ' php=' . PHP_VERSION );
-
 		$title    = $request->get_param( 'title' );
 		$keywords = $request->get_param( 'keywords' );
 		$tone     = $request->get_param( 'tone' );
@@ -153,11 +151,8 @@ class GeneratorModule {
 			. 'Return only the post body — no title, no preamble.';
 
 		try {
-			\error_log( '[WP_AI_Mind] Instantiating ProviderFactory...' );
 			$factory  = new ProviderFactory( new ProviderSettings() );
-			\error_log( '[WP_AI_Mind] ProviderFactory OK. Calling make_default()...' );
 			$provider = $factory->make_default();
-			\error_log( '[WP_AI_Mind] Provider: ' . get_class( $provider ) . ', model: ' . $provider->get_default_model() );
 			$voice    = new \WP_AI_Mind\Voice\VoiceInjector();
 
 			$req = new \WP_AI_Mind\Providers\CompletionRequest(
@@ -208,8 +203,10 @@ class GeneratorModule {
 			);
 
 		} catch ( \Throwable $e ) {
-			\error_log( '[WP_AI_Mind] handle_generate() caught ' . get_class( $e ) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
-			\error_log( '[WP_AI_Mind] Stack trace: ' . $e->getTraceAsString() );
+			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				\error_log( '[WP_AI_Mind][Generator] ' . get_class( $e ) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
+			}
 			return new \WP_REST_Response( [ 'error' => $e->getMessage() ], 500 );
 		}
 	}

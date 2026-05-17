@@ -314,7 +314,7 @@ export default {
 			if ( request.method !== 'POST' ) {
 				return jsonResponse( { error: 'Method not allowed' }, 405 );
 			}
-			if ( pathname === '/dev/set-tier' )    return handleDevSetTier( request, env );
+			if ( pathname === '/dev/set-tier' ) return handleDevSetTier( request, env );
 			if ( pathname === '/dev/reset-usage' ) return handleDevResetUsage( request, env );
 			return handleDevSetUsage( request, env );
 		}
@@ -364,13 +364,15 @@ async function handleRotateSecret(
 
 // ── Dev override endpoints ────────────────────────────────────────────────────
 
-interface DevAuthResult {
-	authenticated: boolean;
-	site_token?: string;
-	record?: SiteRecord;
-	error?: string;
-	status?: number;
-}
+/** Replay window applied symmetrically to both past and future timestamps. */
+const DEV_TIMESTAMP_WINDOW_S = 60;
+
+/** Valid tier values accepted by /dev/set-tier. */
+const VALID_TIERS: SiteTier[] = [ 'free', 'trial', 'pro_managed', 'pro_byok' ];
+
+type DevAuthResult =
+	| { authenticated: true;  site_token: string; record: SiteRecord }
+	| { authenticated: false; error: string;       status: number };
 
 /**
  * Verify a dev endpoint request: Bearer token + HMAC-signed timestamp.
@@ -382,7 +384,7 @@ interface DevAuthResult {
  *      (Worker→WP) in the reverse direction (WP→Worker).
  *
  * Required headers: X-Dev-Signature (hex HMAC) and X-Dev-Timestamp (unix sec).
- * Timestamp must be within ±300 s of the Worker clock to prevent replay.
+ * Timestamp must be within ±60 s of the Worker clock to prevent replay.
  */
 async function authenticateDevRequest(
 	request: Request,
@@ -411,7 +413,7 @@ async function authenticateDevRequest(
 	}
 
 	const skew = Math.floor( Date.now() / 1000 ) - timestamp;
-	if ( skew > 60 || skew < -60 ) {
+	if ( skew > DEV_TIMESTAMP_WINDOW_S || skew < -DEV_TIMESTAMP_WINDOW_S ) {
 		return { authenticated: false, error: 'Timestamp out of window', status: 401 };
 	}
 
@@ -432,7 +434,7 @@ async function handleDevSetTier( request: Request, env: Env ): Promise< Response
 	const bodyText = await request.text();
 	const auth = await authenticateDevRequest( request, bodyText, env );
 	if ( ! auth.authenticated ) {
-		return jsonResponse( { error: auth.error ?? 'Unauthorised' }, auth.status ?? 401 );
+		return jsonResponse( { error: auth.error }, auth.status );
 	}
 
 	let body: { tier?: string };
@@ -442,12 +444,11 @@ async function handleDevSetTier( request: Request, env: Env ): Promise< Response
 		return jsonResponse( { error: 'Invalid JSON body' }, 400 );
 	}
 
-	const validTiers: SiteTier[] = [ 'free', 'trial', 'pro_managed', 'pro_byok' ];
-	if ( ! body.tier || ! validTiers.includes( body.tier as SiteTier ) ) {
+	if ( ! body.tier || ! VALID_TIERS.includes( body.tier as SiteTier ) ) {
 		return jsonResponse( { error: 'Invalid tier' }, 400 );
 	}
 
-	const updated: SiteRecord = { ...auth.record!, tier: body.tier as SiteTier };
+	const updated: SiteRecord = { ...auth.record, tier: body.tier as SiteTier };
 	await env.USAGE_KV.put( `site:${ auth.site_token }`, JSON.stringify( updated ) );
 
 	return jsonResponse( { ok: true, tier: body.tier } );
@@ -460,10 +461,10 @@ async function handleDevResetUsage( request: Request, env: Env ): Promise< Respo
 	const bodyText = await request.text();
 	const auth = await authenticateDevRequest( request, bodyText, env );
 	if ( ! auth.authenticated ) {
-		return jsonResponse( { error: auth.error ?? 'Unauthorised' }, auth.status ?? 401 );
+		return jsonResponse( { error: auth.error }, auth.status );
 	}
 
-	const key = `usage:${ auth.site_token! }:${ getCurrentMonth() }`;
+	const key = `usage:${ auth.site_token }:${ getCurrentMonth() }`;
 	await env.USAGE_KV.put( key, '0', { expirationTtl: getSecondsUntilNextMonth() } );
 
 	return jsonResponse( { ok: true, usage: 0 } );
@@ -477,7 +478,7 @@ async function handleDevSetUsage( request: Request, env: Env ): Promise< Respons
 	const bodyText = await request.text();
 	const auth = await authenticateDevRequest( request, bodyText, env );
 	if ( ! auth.authenticated ) {
-		return jsonResponse( { error: auth.error ?? 'Unauthorised' }, auth.status ?? 401 );
+		return jsonResponse( { error: auth.error }, auth.status );
 	}
 
 	let body: { usage?: number };
@@ -491,7 +492,7 @@ async function handleDevSetUsage( request: Request, env: Env ): Promise< Respons
 		return jsonResponse( { error: 'Invalid usage value — must be a non-negative number' }, 400 );
 	}
 
-	const key = `usage:${ auth.site_token! }:${ getCurrentMonth() }`;
+	const key = `usage:${ auth.site_token }:${ getCurrentMonth() }`;
 	await env.USAGE_KV.put( key, String( body.usage ), { expirationTtl: getSecondsUntilNextMonth() } );
 
 	return jsonResponse( { ok: true, usage: body.usage } );

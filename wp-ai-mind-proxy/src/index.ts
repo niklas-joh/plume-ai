@@ -410,7 +410,7 @@ async function authenticateDevRequest(
 	}
 
 	const skew = Math.floor( Date.now() / 1000 ) - timestamp;
-	if ( skew > 300 || skew < -60 ) {
+	if ( skew > 60 || skew < -60 ) {
 		return { authenticated: false, error: 'Timestamp out of window', status: 401 };
 	}
 

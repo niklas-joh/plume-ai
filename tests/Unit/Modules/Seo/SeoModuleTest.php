@@ -86,6 +86,122 @@ class SeoModuleTest extends TestCase {
 		$this->assertSame( 'provider_error', $result->get_error_code() );
 	}
 
+	/**
+	 * Verify that a non-empty ProviderException message is surfaced in the WP_Error.
+	 *
+	 * The catch block in generate_for_post must return the provider's own message
+	 * (e.g. "Site not registered.") so the caller can surface it to the user.
+	 *
+	 * @since 1.5.0
+	 * @return void
+	 */
+	public function test_generate_for_post_surfaces_non_empty_provider_exception_message(): void {
+		$post               = new \stdClass();
+		$post->ID           = 1;
+		$post->post_title   = 'Test';
+		$post->post_excerpt = '';
+		$post->post_content = 'Content';
+
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\when( 'wp_strip_all_tags' )->alias( fn( $s ) => $s );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, $default = null ) {
+				if ( 'wp_ai_mind_default_provider' === $key ) {
+					return 'claude';
+				}
+				if ( 'wp_ai_mind_provider_settings' === $key ) {
+					return [];
+				}
+				if ( 'wp_ai_mind_site_tier' === $key ) {
+					return 'pro_byok';
+				}
+				return $default;
+			}
+		);
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
+		Functions\when( 'sanitize_key' )->alias( fn( $v ) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 503 ],
+			'body'     => json_encode( [ 'error' => [ 'message' => 'Site not registered.' ] ] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 503 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+
+		putenv( 'CLAUDE_API_KEY=sk-ant-test' );
+		$result = SeoModule::generate_for_post( 1, 1 );
+		putenv( 'CLAUDE_API_KEY=' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'provider_error', $result->get_error_code() );
+		$this->assertSame( 'Site not registered.', $result->get_error_message() );
+	}
+
+	/**
+	 * Verify that an empty ProviderException message falls back to the generic string.
+	 *
+	 * When the provider returns an empty error message (e.g. a malformed error body),
+	 * generate_for_post must substitute the translatable fallback phrase instead of
+	 * returning an empty message to the user.
+	 *
+	 * @since 1.5.0
+	 * @return void
+	 */
+	public function test_generate_for_post_falls_back_to_generic_message_when_provider_message_is_empty(): void {
+		$post               = new \stdClass();
+		$post->ID           = 1;
+		$post->post_title   = 'Test';
+		$post->post_excerpt = '';
+		$post->post_content = 'Content';
+
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\when( 'wp_strip_all_tags' )->alias( fn( $s ) => $s );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, $default = null ) {
+				if ( 'wp_ai_mind_default_provider' === $key ) {
+					return 'claude';
+				}
+				if ( 'wp_ai_mind_provider_settings' === $key ) {
+					return [];
+				}
+				if ( 'wp_ai_mind_site_tier' === $key ) {
+					return 'pro_byok';
+				}
+				return $default;
+			}
+		);
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
+		Functions\when( 'sanitize_key' )->alias( fn( $v ) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		// An empty error message key forces the ?? fallback to '' which triggers the generic string.
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 500 ],
+			'body'     => json_encode( [ 'error' => [ 'message' => '' ] ] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 500 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+
+		putenv( 'CLAUDE_API_KEY=sk-ant-test' );
+		$result = SeoModule::generate_for_post( 1, 1 );
+		putenv( 'CLAUDE_API_KEY=' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'provider_error', $result->get_error_code() );
+		$this->assertSame( 'Provider error. Please try again later.', $result->get_error_message() );
+	}
+
 	public function test_generate_for_post_returns_error_on_invalid_json_response(): void {
 		// Stub $wpdb so AbstractProvider::maybe_log() -> log_usage() doesn't crash.
 		global $wpdb;
@@ -284,6 +400,88 @@ class SeoModuleTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_REST_Response::class, $response );
 		$this->assertSame( 403, $response->get_status() );
+	}
+
+	/**
+	 * Verify that handle_generate returns 200 and does not double-count token usage.
+	 *
+	 * Usage is logged exactly once by the provider layer (AbstractProvider::maybe_log()).
+	 * handle_generate must NOT call NJ_Usage_Tracker::log_usage() itself; doing so
+	 * would count tokens twice for every successful SEO generation request.
+	 *
+	 * @since 1.5.0
+	 * @return void
+	 */
+	public function test_handle_generate_returns_200_and_does_not_double_count_usage(): void {
+		// Stub $wpdb so AbstractProvider::maybe_log() -> log_usage() doesn't crash.
+		global $wpdb;
+		$wpdb = WpdbStubFactory::create(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional test stub.
+
+		$post               = new \stdClass();
+		$post->ID           = 1;
+		$post->post_title   = 'Great Post';
+		$post->post_excerpt = '';
+		$post->post_content = 'Some content here.';
+
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\when( 'wp_strip_all_tags' )->alias( fn( $s ) => $s );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, $default = null ) {
+				if ( 'wp_ai_mind_default_provider' === $key ) {
+					return 'claude';
+				}
+				if ( 'wp_ai_mind_provider_settings' === $key ) {
+					return [];
+				}
+				// pro_byok is now site-level — routes ClaudeProvider::do_complete() direct.
+				if ( 'wp_ai_mind_site_tier' === $key ) {
+					return 'pro_byok';
+				}
+				return $default;
+			}
+		);
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
+		Functions\when( 'sanitize_key' )->alias( fn( $v ) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+		Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		$seo_json = json_encode( [
+			'meta_title'     => 'SEO Title',
+			'og_description' => 'OG Description',
+			'excerpt'        => 'Short excerpt.',
+			'alt_text'       => 'Alt text for image',
+		] );
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content' => [ [ 'type' => 'text', 'text' => $seo_json ] ],
+				'model'   => 'claude-sonnet-4-6',
+				'usage'   => [ 'input_tokens' => 100, 'output_tokens' => 50 ],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+
+		putenv( 'CLAUDE_API_KEY=sk-ant-test' );
+
+		$request = new \WP_REST_Request( 'POST' );
+		$request->set_param( 'post_id', 1 );
+
+		$response = SeoModule::handle_generate( $request );
+
+		putenv( 'CLAUDE_API_KEY=' );
+
+		$this->assertInstanceOf( \WP_REST_Response::class, $response );
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertArrayHasKey( 'post_id', $response->data );
+		$this->assertArrayHasKey( 'tokens_used', $response->data );
+		// 100 input + 50 output — logged once by the provider layer only.
+		$this->assertSame( 150, $response->data['tokens_used'] );
 	}
 
 	// ── handle_apply happy path ────────────────────────────────────────────────

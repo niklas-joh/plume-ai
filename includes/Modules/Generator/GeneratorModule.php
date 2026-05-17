@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use WP_AI_Mind\Providers\ProviderFactory;
+use WP_AI_Mind\Settings\ProviderSettings;
 use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 
@@ -128,6 +130,8 @@ class GeneratorModule {
 	 * @return \WP_REST_Response 201 on success with post_id, edit_url, content, tokens_used; 500 on error.
 	 */
 	public static function handle_generate( \WP_REST_Request $request ): \WP_REST_Response {
+		\error_log( '[WP_AI_Mind] handle_generate() invoked — user=' . \get_current_user_id() . ' php=' . PHP_VERSION );
+
 		$title    = $request->get_param( 'title' );
 		$keywords = $request->get_param( 'keywords' );
 		$tone     = $request->get_param( 'tone' );
@@ -149,8 +153,11 @@ class GeneratorModule {
 			. 'Return only the post body — no title, no preamble.';
 
 		try {
-			$factory  = new \WP_AI_Mind\Providers\ProviderFactory();
+			\error_log( '[WP_AI_Mind] Instantiating ProviderFactory...' );
+			$factory  = new ProviderFactory( new ProviderSettings() );
+			\error_log( '[WP_AI_Mind] ProviderFactory OK. Calling make_default()...' );
 			$provider = $factory->make_default();
+			\error_log( '[WP_AI_Mind] Provider: ' . get_class( $provider ) . ', model: ' . $provider->get_default_model() );
 			$voice    = new \WP_AI_Mind\Voice\VoiceInjector();
 
 			$req = new \WP_AI_Mind\Providers\CompletionRequest(
@@ -161,7 +168,7 @@ class GeneratorModule {
 					],
 				],
 				system:      $voice->build_system_prompt( 'Post generation', \get_current_user_id() ),
-				model:       $provider->get_models()[0]['id'] ?? '',
+				model:       $provider->get_default_model(),
 				temperature: 0.7,
 				max_tokens:  2000,
 				metadata:    [
@@ -171,7 +178,7 @@ class GeneratorModule {
 			);
 
 			$response = $provider->complete( $req );
-			NJ_Usage_Tracker::log_usage( $response->total_tokens );
+			// Usage logged by the provider layer: proxy for trial/pro_managed, AbstractProvider::maybe_log() for pro_byok.
 			$content = $response->content;
 
 			// Create a draft post.
@@ -200,7 +207,9 @@ class GeneratorModule {
 				201
 			);
 
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
+			\error_log( '[WP_AI_Mind] handle_generate() caught ' . get_class( $e ) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
+			\error_log( '[WP_AI_Mind] Stack trace: ' . $e->getTraceAsString() );
 			return new \WP_REST_Response( [ 'error' => $e->getMessage() ], 500 );
 		}
 	}

@@ -305,7 +305,11 @@ export default {
 
 		// Dev endpoints for the devtools plugin.
 		// Require Bearer token + HMAC-signed timestamp using the per-site tier_sync_secret.
+		// Only active when DEV_ENDPOINTS_ENABLED=1 is set in the Worker environment binding.
 		if ( pathname === '/dev/set-tier' || pathname === '/dev/reset-usage' || pathname === '/dev/set-usage' ) {
+			if ( env.DEV_ENDPOINTS_ENABLED !== '1' ) {
+				return jsonResponse( { error: 'Not found' }, 404 );
+			}
 			if ( request.method !== 'POST' ) {
 				return jsonResponse( { error: 'Method not allowed' }, 405 );
 			}

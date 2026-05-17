@@ -9,6 +9,11 @@ export interface Env {
 	LS_PRO_MONTHLY_VARIANT_ID: string;
 	LS_PRO_ANNUAL_VARIANT_ID: string;
 	// PROXY_SIGNATURE_SECRET intentionally removed — replaced by site token Bearer auth.
+	/**
+	 * Set to '1' in non-production Wrangler environments to enable the /dev/*
+	 * endpoints. Must be absent (or any value other than '1') in production.
+	 */
+	DEV_ENDPOINTS_ENABLED?: string;
 }
 
 /** Tiers handled by this proxy (rate-limited and counted). */

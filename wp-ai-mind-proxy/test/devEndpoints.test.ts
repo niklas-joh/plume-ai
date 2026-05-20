@@ -230,6 +230,16 @@ describe( '/dev/set-tier', () => {
 		expect( res.status ).toBe( 400 );
 	} );
 
+	it( 'returns 405 for a non-POST request', async () => {
+		const env = makeDevEnv();
+		const res = await worker.fetch(
+			new Request( 'https://worker.example.com/dev/set-tier', { method: 'GET' } ),
+			env,
+			makeCtx()
+		);
+		expect( res.status ).toBe( 405 );
+	} );
+
 	it( 'accepts all valid SiteTier values', async () => {
 		const tiers = [ 'free', 'trial', 'pro_managed', 'pro_byok' ] as const;
 		for ( const tier of tiers ) {

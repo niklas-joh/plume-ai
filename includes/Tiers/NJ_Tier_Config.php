@@ -88,7 +88,14 @@ class NJ_Tier_Config {
 	 * @return string Base URL without trailing slash.
 	 */
 	public static function get_proxy_url(): string {
-		return rtrim( defined( 'WP_AI_MIND_PROXY_URL' ) ? WP_AI_MIND_PROXY_URL : 'https://wp-ai-mind-proxy.wp-ai-mind.workers.dev', '/' );
+		if ( defined( 'WP_AI_MIND_PROXY_URL' ) ) {
+			return rtrim( WP_AI_MIND_PROXY_URL, '/' );
+		}
+		$option = (string) get_option( 'wp_ai_mind_proxy_url', '' );
+		if ( '' !== $option ) {
+			return rtrim( $option, '/' );
+		}
+		return 'https://wp-ai-mind-proxy.wp-ai-mind.workers.dev';
 	}
 
 	/**

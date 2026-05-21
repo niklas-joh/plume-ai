@@ -11,6 +11,11 @@ const TEST_TOKEN =
 const TEST_SECRET =
 	'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
 
+/** Dev-environment override: enables the /dev/* routes that are absent in production. */
+function makeDevEnv( overrides: Partial< ReturnType< typeof makeEnv > > = {} ) {
+	return makeEnv( { DEV_ENDPOINTS_ENABLED: '1', ...overrides } );
+}
+
 function makeCtx(): ExecutionContext {
 	return {
 		waitUntil: () => {},
@@ -32,11 +37,6 @@ async function seedSite(
 	};
 	await env.USAGE_KV.put( `site:${ TEST_TOKEN }`, JSON.stringify( record ) );
 	return record;
-}
-
-/** Returns env with DEV_ENDPOINTS_ENABLED=1. */
-function makeDevEnv( overrides: Parameters< typeof makeEnv >[ 0 ] = {} ) {
-	return makeEnv( { DEV_ENDPOINTS_ENABLED: '1', ...overrides } );
 }
 
 function signDevRequest( timestamp: number, body: string, secret = TEST_SECRET ): string {
@@ -69,28 +69,17 @@ function makeDevRequest(
 	} );
 }
 
-// ── Env-gate ─────────────────────────────────────────────────────────────────
+// ── DEV_ENDPOINTS_ENABLED gate ────────────────────────────────────────────────
 
 describe( 'dev endpoints env gate', () => {
 	it( 'returns 404 when DEV_ENDPOINTS_ENABLED is not set', async () => {
-		const env = makeEnv(); // no DEV_ENDPOINTS_ENABLED
-		await seedSite( env );
+		const env = makeEnv(); // intentionally omits DEV_ENDPOINTS_ENABLED
 		const res = await worker.fetch(
-			makeDevRequest( '/dev/set-tier', JSON.stringify( { tier: 'trial' } ) ),
+			new Request( 'https://worker.example.com/dev/set-tier', { method: 'POST' } ),
 			env,
 			makeCtx()
 		);
 		expect( res.status ).toBe( 404 );
-	} );
-
-	it( 'returns 405 for non-POST when DEV_ENDPOINTS_ENABLED=1', async () => {
-		const env = makeDevEnv();
-		const res = await worker.fetch(
-			new Request( 'https://worker.example.com/dev/set-tier', { method: 'GET' } ),
-			env,
-			makeCtx()
-		);
-		expect( res.status ).toBe( 405 );
 	} );
 } );
 
@@ -239,6 +228,16 @@ describe( '/dev/set-tier', () => {
 			makeCtx()
 		);
 		expect( res.status ).toBe( 400 );
+	} );
+
+	it( 'returns 405 for a non-POST request', async () => {
+		const env = makeDevEnv();
+		const res = await worker.fetch(
+			new Request( 'https://worker.example.com/dev/set-tier', { method: 'GET' } ),
+			env,
+			makeCtx()
+		);
+		expect( res.status ).toBe( 405 );
 	} );
 
 	it( 'accepts all valid SiteTier values', async () => {

@@ -91,8 +91,8 @@ class NJ_Tier_Config {
 		if ( defined( 'WP_AI_MIND_PROXY_URL' ) ) {
 			return rtrim( WP_AI_MIND_PROXY_URL, '/' );
 		}
-		$option = (string) get_option( 'wp_ai_mind_proxy_url', '' );
-		if ( '' !== $option ) {
+		$option = esc_url_raw( (string) get_option( 'wp_ai_mind_proxy_url', '' ) );
+		if ( '' !== $option && str_starts_with( $option, 'https://' ) ) {
 			return rtrim( $option, '/' );
 		}
 		return 'https://wp-ai-mind-proxy.wp-ai-mind.workers.dev';

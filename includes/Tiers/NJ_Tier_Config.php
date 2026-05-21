@@ -82,9 +82,13 @@ class NJ_Tier_Config {
 	/**
 	 * Return the base URL of the Cloudflare Worker proxy.
 	 *
-	 * Can be overridden via the WP_AI_MIND_PROXY_URL constant for local dev or staging.
+	 * Resolution order (first match wins):
+	 *   1. WP_AI_MIND_PROXY_URL constant — overrides everything (local dev / staging).
+	 *   2. wp_ai_mind_proxy_url WP option — set via the Settings API; must be HTTPS.
+	 *   3. Hard-coded production default.
 	 *
 	 * @since 1.2.0
+	 * @since 1.8.0 Added WP option fallback (priority 2 above) before the hard-coded default.
 	 * @return string Base URL without trailing slash.
 	 */
 	public static function get_proxy_url(): string {

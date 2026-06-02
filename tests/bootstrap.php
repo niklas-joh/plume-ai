@@ -11,6 +11,10 @@ if ( ! defined( 'WP_AI_MIND_BASENAME' ) ) {
 if ( ! defined( 'WP_AI_MIND_HTTP_TIMEOUT' ) ) {
 	define( 'WP_AI_MIND_HTTP_TIMEOUT', 60 );
 }
+// Prevent get_proxy_url() from calling get_option() in unit tests.
+if ( ! defined( 'WP_AI_MIND_PROXY_URL' ) ) {
+	define( 'WP_AI_MIND_PROXY_URL', 'https://wp-ai-mind-proxy.wp-ai-mind.workers.dev' );
+}
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 

@@ -1,9 +1,10 @@
 // src/index.ts
 
-import { Env, ModelConfig, NormalizedResponse, ProxyRequest, ProxyTier, SiteRecord, ToolParam } from './types';
+import { Env, ModelConfig, NormalizedResponse, ProxyRequest, ProxyTier, SiteRecord, SiteTier, ToolParam } from './types';
 import { authenticateRequest, generateToken } from './auth';
 import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
+import { verifyHmac } from './signature';
 import { TRIAL_PERIOD_MS } from './constants';
 
 const MAX_BODY_BYTES = 1_048_576; // 1 MB
@@ -302,6 +303,22 @@ export default {
 			}
 			return handleRotateSecret( request, env );
 		}
+
+		// Dev endpoints for the devtools plugin.
+		// Require Bearer token + HMAC-signed timestamp using the per-site tier_sync_secret.
+		if ( pathname === '/dev/set-tier' || pathname === '/dev/reset-usage' || pathname === '/dev/set-usage' ) {
+			// Return 404 in any environment where DEV_ENDPOINTS_ENABLED is absent (e.g. production).
+			if ( ! env.DEV_ENDPOINTS_ENABLED ) {
+				return jsonResponse( { error: 'Not found' }, 404 );
+			}
+			if ( request.method !== 'POST' ) {
+				return jsonResponse( { error: 'Method not allowed' }, 405 );
+			}
+			if ( pathname === '/dev/set-tier' ) return handleDevSetTier( request, env );
+			if ( pathname === '/dev/reset-usage' ) return handleDevResetUsage( request, env );
+			return handleDevSetUsage( request, env );
+		}
+
 		if ( pathname === '/v1/chat' ) {
 			if ( request.method !== 'POST' ) {
 				return jsonResponse( { error: 'Method not allowed' }, 405 );
@@ -344,6 +361,144 @@ async function handleRotateSecret(
 		tier: updated.tier,
 	} );
 }
+
+// ── Dev override endpoints ────────────────────────────────────────────────────
+
+/** Replay window applied symmetrically to both past and future timestamps. */
+const DEV_TIMESTAMP_WINDOW_S = 60;
+
+/** Valid tier values accepted by /dev/set-tier. */
+const VALID_TIERS: SiteTier[] = [ 'free', 'trial', 'pro_managed', 'pro_byok' ];
+
+type DevAuthResult =
+	| { authenticated: true;  site_token: string; record: SiteRecord }
+	| { authenticated: false; error: string;       status: number };
+
+/**
+ * Verify a dev endpoint request: Bearer token + HMAC-signed timestamp.
+ *
+ * Two-factor check:
+ *   1. Bearer token lookup (site identity, same as /v1/chat).
+ *   2. HMAC-SHA-256 over `${timestamp}.${rawBodyText}` using the site's
+ *      tier_sync_secret. Mirrors the TierUpdateWebhookController.php pattern
+ *      (Worker→WP) in the reverse direction (WP→Worker).
+ *
+ * Required headers: X-Dev-Signature (hex HMAC) and X-Dev-Timestamp (unix sec).
+ * Timestamp must be within ±60 s of the Worker clock to prevent replay.
+ */
+async function authenticateDevRequest(
+	request: Request,
+	bodyText: string,
+	env: Env
+): Promise< DevAuthResult > {
+	const auth = await authenticateRequest( request, env );
+	if ( ! auth.authenticated || ! auth.site_token || ! auth.record ) {
+		return { authenticated: false, error: 'Unauthorised', status: 401 };
+	}
+
+	const secret = auth.record.tier_sync_secret;
+	if ( ! secret ) {
+		return { authenticated: false, error: 'No dev secret — rotate the site secret first via /rotate-secret', status: 401 };
+	}
+
+	const signatureHex = request.headers.get( 'X-Dev-Signature' ) ?? '';
+	const timestampStr = request.headers.get( 'X-Dev-Timestamp' ) ?? '';
+	if ( ! signatureHex || ! timestampStr ) {
+		return { authenticated: false, error: 'Missing X-Dev-Signature or X-Dev-Timestamp header', status: 401 };
+	}
+
+	const timestamp = parseInt( timestampStr, 10 );
+	if ( isNaN( timestamp ) ) {
+		return { authenticated: false, error: 'Invalid timestamp', status: 401 };
+	}
+
+	const skew = Math.floor( Date.now() / 1000 ) - timestamp;
+	if ( skew > DEV_TIMESTAMP_WINDOW_S || skew < -DEV_TIMESTAMP_WINDOW_S ) {
+		return { authenticated: false, error: 'Timestamp out of window', status: 401 };
+	}
+
+	// Payload mirrors TierUpdateWebhookController.php: `${timestamp}.${body}`.
+	const valid = await verifyHmac( `${ timestamp }.${ bodyText }`, signatureHex, secret );
+	if ( ! valid ) {
+		return { authenticated: false, error: 'Invalid dev signature', status: 401 };
+	}
+
+	return { authenticated: true, site_token: auth.site_token, record: auth.record };
+}
+
+/**
+ * Override the tier stored in the site's KV record.
+ * Mirrors what a real LemonSqueezy webhook would do, but without payment.
+ */
+async function handleDevSetTier( request: Request, env: Env ): Promise< Response > {
+	const bodyText = await request.text();
+	const auth = await authenticateDevRequest( request, bodyText, env );
+	if ( ! auth.authenticated ) {
+		return jsonResponse( { error: auth.error }, auth.status );
+	}
+
+	let body: { tier?: string };
+	try {
+		body = JSON.parse( bodyText ) as { tier?: string };
+	} catch {
+		return jsonResponse( { error: 'Invalid JSON body' }, 400 );
+	}
+
+	if ( ! body.tier || ! VALID_TIERS.includes( body.tier as SiteTier ) ) {
+		return jsonResponse( { error: 'Invalid tier' }, 400 );
+	}
+
+	const updated: SiteRecord = { ...auth.record, tier: body.tier as SiteTier };
+	await env.USAGE_KV.put( `site:${ auth.site_token }`, JSON.stringify( updated ) );
+
+	return jsonResponse( { ok: true, tier: body.tier } );
+}
+
+/**
+ * Zero out this month's usage counter for the authenticated site.
+ */
+async function handleDevResetUsage( request: Request, env: Env ): Promise< Response > {
+	const bodyText = await request.text();
+	const auth = await authenticateDevRequest( request, bodyText, env );
+	if ( ! auth.authenticated ) {
+		return jsonResponse( { error: auth.error }, auth.status );
+	}
+
+	const key = `usage:${ auth.site_token }:${ getCurrentMonth() }`;
+	await env.USAGE_KV.put( key, '0', { expirationTtl: getSecondsUntilNextMonth() } );
+
+	return jsonResponse( { ok: true, usage: 0 } );
+}
+
+/**
+ * Set this month's usage counter to an explicit value for the authenticated site.
+ * Pass the tier's monthly limit to simulate a fully-exhausted quota.
+ */
+async function handleDevSetUsage( request: Request, env: Env ): Promise< Response > {
+	const bodyText = await request.text();
+	const auth = await authenticateDevRequest( request, bodyText, env );
+	if ( ! auth.authenticated ) {
+		return jsonResponse( { error: auth.error }, auth.status );
+	}
+
+	let body: { usage?: number };
+	try {
+		body = JSON.parse( bodyText ) as { usage?: number };
+	} catch {
+		return jsonResponse( { error: 'Invalid JSON body' }, 400 );
+	}
+
+	if ( typeof body.usage !== 'number' || body.usage < 0 ) {
+		return jsonResponse( { error: 'Invalid usage value — must be a non-negative number' }, 400 );
+	}
+
+	const key = `usage:${ auth.site_token }:${ getCurrentMonth() }`;
+	await env.USAGE_KV.put( key, String( body.usage ), { expirationTtl: getSecondsUntilNextMonth() } );
+
+	return jsonResponse( { ok: true, usage: body.usage } );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function handleChatProxy(
 	request: Request,

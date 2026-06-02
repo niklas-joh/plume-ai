@@ -9,6 +9,8 @@ export interface Env {
 	LS_PRO_MONTHLY_VARIANT_ID: string;
 	LS_PRO_ANNUAL_VARIANT_ID: string;
 	// PROXY_SIGNATURE_SECRET intentionally removed — replaced by site token Bearer auth.
+	/** Present only in non-production environments; gates /dev/* endpoints to return 404 in production. */
+	DEV_ENDPOINTS_ENABLED?: string;
 }
 
 /** Tiers handled by this proxy (rate-limited and counted). */

@@ -5,6 +5,7 @@ module.exports = {
 	...defaultConfig,
 	entry: {
 		'admin/index': path.resolve( __dirname, 'src/admin/index.js' ),
+		'admin/dev-tools': path.resolve( __dirname, 'src/admin/dev-tools.js' ),
 		'editor/index': path.resolve( __dirname, 'src/editor/index.js' ),
 		'generator/index': path.resolve( __dirname, 'src/generator/index.js' ),
 		'usage/index': path.resolve( __dirname, 'src/usage/index.js' ),

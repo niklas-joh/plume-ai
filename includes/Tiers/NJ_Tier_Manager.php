@@ -140,6 +140,13 @@ class NJ_Tier_Manager {
 		// every page load, so paying the autoload cost on every request is wasteful.
 		$ok = (bool) update_option( self::SITE_OPTION, $tier, false );
 		if ( $ok ) {
+			// No-op when no secret is registered: is_site_tier_verified() returns true
+			// for unregistered installs, so the tier resolves without a signature.
+			// On a registered staging site that already has a secret, calling
+			// set_site_tier() directly (e.g. via the dev-tools REST endpoint) will
+			// store an unsigned paid tier — needs_tier_verification_resync() will
+			// return true and TierSyncBackfillNotice will appear. Re-register via the
+			// settings page to obtain a properly signed tier from the Worker.
 			$secret = (string) get_option( TierUpdateWebhookController::OPTION_SECRET, '' );
 			if ( '' !== $secret ) {
 				if ( in_array( $tier, [ 'pro_managed', 'pro_byok' ], true ) ) {

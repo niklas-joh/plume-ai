@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use WP_AI_Mind\Providers\ProviderFactory;
+use WP_AI_Mind\Settings\ProviderSettings;
 use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
 
@@ -149,7 +151,7 @@ class GeneratorModule {
 			. 'Return only the post body — no title, no preamble.';
 
 		try {
-			$factory  = new \WP_AI_Mind\Providers\ProviderFactory();
+			$factory  = new ProviderFactory( new ProviderSettings() );
 			$provider = $factory->make_default();
 			$voice    = new \WP_AI_Mind\Voice\VoiceInjector();
 
@@ -161,7 +163,7 @@ class GeneratorModule {
 					],
 				],
 				system:      $voice->build_system_prompt( 'Post generation', \get_current_user_id() ),
-				model:       $provider->get_models()[0]['id'] ?? '',
+				model:       $provider->get_default_model(),
 				temperature: 0.7,
 				max_tokens:  2000,
 				metadata:    [
@@ -171,7 +173,7 @@ class GeneratorModule {
 			);
 
 			$response = $provider->complete( $req );
-			NJ_Usage_Tracker::log_usage( $response->total_tokens );
+			// Usage logged by the provider layer: proxy for trial/pro_managed, AbstractProvider::maybe_log() for pro_byok.
 			$content = $response->content;
 
 			// Create a draft post.
@@ -200,7 +202,11 @@ class GeneratorModule {
 				201
 			);
 
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
+			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				\error_log( '[WP_AI_Mind][Generator] ' . get_class( $e ) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
+			}
 			return new \WP_REST_Response( [ 'error' => $e->getMessage() ], 500 );
 		}
 	}

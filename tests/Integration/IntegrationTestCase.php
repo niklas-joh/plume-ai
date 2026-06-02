@@ -85,10 +85,16 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Reset the REST server and set a fake site token before each test.
+	 * Set a fake site token before each test. Nulls the REST server so the
+	 * first test in a class receives a clean instance; see tearDown() for
+	 * the per-test reset strategy.
 	 *
 	 * The site token prevents NJ_Site_Registration::maybe_register() from
-	 * firing a real outbound HTTP call during the test run.
+	 * firing a real outbound HTTP call during the test run. The REST server
+	 * global is nulled here so the first test in a class is not affected by
+	 * whatever state a previous test class left in $wp_rest_server; tearDown()
+	 * handles the reset for every subsequent test. Lazy-init via
+	 * rest_get_server() fires rest_api_init only when the server is needed.
 	 *
 	 * @since 1.0.0
 	 * @return void
@@ -96,18 +102,21 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		// Prevent the proxy registration flow from making real network calls.
-		update_option( NJ_Site_Registration::OPTION_TOKEN, 'test-site-token' );
-
-		// Force a fresh REST server so routes registered by the plugin are
-		// available without carrying state between tests.
+		// Guarantee a clean server for the first test in a class — lazy-init via
+		// rest_get_server() re-fires rest_api_init only when the server is needed.
 		global $wp_rest_server;
 		$wp_rest_server = null;
-		do_action( 'rest_api_init' );
+
+		// Prevent the proxy registration flow from making real network calls.
+		update_option( NJ_Site_Registration::OPTION_TOKEN, 'test-site-token' );
 	}
 
 	/**
-	 * Remove HTTP mock filter and clean up after each test.
+	 * Null the REST server and remove the HTTP mock filter after each test.
+	 *
+	 * Nulling here (rather than in setUp) avoids a double-init race: the server
+	 * is discarded once at the end of each test so the next test's first call to
+	 * rest_get_server() triggers a single, clean re-initialisation.
 	 *
 	 * @since 1.0.0
 	 * @return void
@@ -120,6 +129,10 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 		$this->last_http_args = null;
 
 		wp_set_current_user( 0 );
+
+		// Discard the server so the next test receives a fresh instance on demand.
+		global $wp_rest_server;
+		$wp_rest_server = null;
 
 		parent::tearDown();
 	}
@@ -169,21 +182,7 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $this->http_mock_callback );
 		}
 
-		$this->http_mock_callback = function ( $preempt, array $parsed_args, string $url ) use ( $response_body ) {
-			// Capture the raw request args so tests can assert on the body.
-			$this->last_http_args = $parsed_args;
-
-			return [
-				'headers'  => [ 'content-type' => 'application/json' ],
-				'body'     => wp_json_encode( $response_body ),
-				'response' => [
-					'code'    => 200,
-					'message' => 'OK',
-				],
-				'cookies'  => [],
-			];
-		};
-
+		$this->http_mock_callback = $this->build_http_mock_callback( $response_body );
 		add_filter( 'pre_http_request', $this->http_mock_callback, 10, 3 );
 	}
 
@@ -204,7 +203,22 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $this->http_mock_callback );
 		}
 
-		$this->http_mock_callback = function ( $preempt, array $parsed_args, string $url ) use ( $response_body ) {
+		$this->http_mock_callback = $this->build_http_mock_callback( $response_body );
+		add_filter( 'pre_http_request', $this->http_mock_callback, 10, 3 );
+	}
+
+	/**
+	 * Build a pre_http_request callback that returns a synthetic JSON 200 response.
+	 *
+	 * Captures the raw request $args into $this->last_http_args so individual
+	 * tests can assert on the payload that would have been sent to the provider.
+	 *
+	 * @since 1.0.0
+	 * @param array<string, mixed> $response_body Decoded response body to return as JSON.
+	 * @return callable
+	 */
+	private function build_http_mock_callback( array $response_body ): callable {
+		return function ( $preempt, array $parsed_args, string $url ) use ( $response_body ) {
 			// Capture the raw request args so tests can assert on the body.
 			$this->last_http_args = $parsed_args;
 
@@ -218,8 +232,6 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 				'cookies'  => [],
 			];
 		};
-
-		add_filter( 'pre_http_request', $this->http_mock_callback, 10, 3 );
 	}
 
 	/**

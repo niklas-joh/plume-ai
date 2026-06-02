@@ -25,13 +25,50 @@ class NJProxyClientTest extends TestCase {
 		Functions\expect( 'get_option' )
 			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
 			->andReturn( '' );
-
+		Functions\when( 'has_action' )->justReturn( false );
+		Functions\when( 'add_action' )->justReturn( null );
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 
 		$result = NJ_Proxy_Client::chat( [] );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'not_registered', $result->code );
+	}
+
+	public function test_chat_schedules_shutdown_hook_when_not_registered_and_no_existing_action(): void {
+		Functions\expect( 'get_option' )
+			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->andReturn( '' );
+		Functions\expect( 'has_action' )
+			->once()
+			->with( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] )
+			->andReturn( false );
+		Functions\expect( 'add_action' )
+			->once()
+			->with( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$result = NJ_Proxy_Client::chat( [] );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'not_registered', $result->get_error_code() );
+	}
+
+	public function test_chat_does_not_schedule_duplicate_shutdown_hook_when_already_registered(): void {
+		Functions\expect( 'get_option' )
+			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->andReturn( '' );
+		Functions\expect( 'has_action' )
+			->once()
+			->with( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] )
+			->andReturn( true );
+		Functions\expect( 'add_action' )->never();
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$result = NJ_Proxy_Client::chat( [] );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'not_registered', $result->get_error_code() );
 	}
 
 	public function test_chat_returns_error_when_usage_limit_exceeded(): void {
@@ -78,6 +115,13 @@ class NJProxyClientTest extends TestCase {
 		Functions\expect( 'delete_option' )
 			->once()
 			->with( NJ_Site_Registration::OPTION_TOKEN );
+		Functions\expect( 'has_action' )
+			->once()
+			->with( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] )
+			->andReturn( false );
+		Functions\expect( 'add_action' )
+			->once()
+			->with( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] );
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 
 		$result = NJ_Proxy_Client::chat( [ [ 'role' => 'user', 'content' => 'hi' ] ] );

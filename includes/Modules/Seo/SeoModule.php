@@ -170,9 +170,11 @@ class SeoModule {
 	 * route permission_callback; any future caller should supply its own guard
 	 * at minimum.
 	 *
-	 * **Side effects:** On success this method fires a live AI provider request
-	 * and records token consumption via NJ_Usage_Tracker::log_usage(). Callers
-	 * are responsible for checking usage limits before invoking this method;
+	 * **Side effects:** On success this method fires a live AI provider request.
+	 * Token usage is logged by the provider layer — the proxy for trial/pro_managed
+	 * tiers and AbstractProvider::maybe_log() for pro_byok. Callers MUST NOT call
+	 * NJ_Usage_Tracker::log_usage() after this method; doing so double-counts tokens.
+	 * Callers are responsible for checking usage limits before invoking this method;
 	 * the token spend is not reversible if the result is discarded.
 	 *
 	 * @since 1.0.0
@@ -233,8 +235,11 @@ class SeoModule {
 			$response = $provider->complete( $req );
 		} catch ( ProviderException $e ) {
 			\error_log( '[Stilus] SeoModule provider error: ' . $e->getMessage() );
-			return new \WP_Error( 'provider_error', __( 'Provider error. Please try again later.', 'wp-ai-mind' ) );
-		} catch ( \Exception $e ) {
+			// Surface the provider message when it is user-actionable (e.g. proxy auth, not registered).
+			$raw_msg = $e->getMessage();
+			$msg     = '' !== $raw_msg ? $raw_msg : __( 'Provider error. Please try again later.', 'wp-ai-mind' );
+			return new \WP_Error( 'provider_error', $msg );
+		} catch ( \Throwable $e ) {
 			\error_log( '[Stilus] SeoModule unexpected error: ' . $e->getMessage() );
 			return new \WP_Error( 'unexpected_error', __( 'An unexpected error occurred. Please try again later.', 'wp-ai-mind' ) );
 		}
@@ -288,7 +293,7 @@ class SeoModule {
 			return new \WP_REST_Response( [ 'error' => $result->get_error_message() ], $status );
 		}
 
-		NJ_Usage_Tracker::log_usage( $result['tokens_used'] );
+		// Usage logged by the provider layer — do not call log_usage() here (see generate_for_post() docblock).
 		return new \WP_REST_Response( array_merge( [ 'post_id' => $post_id ], $result ), 200 );
 	}
 

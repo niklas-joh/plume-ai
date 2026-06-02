@@ -21,6 +21,11 @@ parameters:
 			path: includes/Settings/ProviderSettings.php
 
 		-
+			message: "#^Parameter \\#1 \\$parent_slug of function add_submenu_page expects string, null given\\.$#"
+			count: 1
+			path: includes/Admin/DevToolsPage.php
+
+		-
 			message: "#^Action callback returns WP_AI_Mind\\\\Core\\\\Plugin but should not return anything\\.$#"
 			count: 1
 			path: wp-ai-mind.php

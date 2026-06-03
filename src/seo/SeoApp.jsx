@@ -3,7 +3,7 @@ import PostListTable from '../shared/PostListTable';
 import SeoBadge, { getSeoStatus } from './SeoBadge';
 import SeoWorkArea from './SeoWorkArea';
 
-const { isPro } = window.wpAiMindData ?? {};
+const { isPro } = window.stilusData ?? {};
 
 const SEO_TABS = [
 	{ id: 'all', label: 'All', filter: () => true },
@@ -44,7 +44,7 @@ const SEO_COLUMNS = [
 export default function SeoApp() {
 	if ( ! isPro ) {
 		return (
-			<div className="wpaim-pro-gate">
+			<div className="stilus-pro-gate">
 				<Lock size={ 32 } />
 				<h2>AI SEO requires Stilus Pro</h2>
 				<p>
@@ -62,10 +62,10 @@ export default function SeoApp() {
 	}
 
 	return (
-		<div className="wpaim-page">
-			<div className="wpaim-page-header">
+		<div className="stilus-page">
+			<div className="stilus-page-header">
 				<h1>
-					SEO <span className="wpaim-pro-badge">PRO</span>
+					SEO <span className="stilus-pro-badge">PRO</span>
 				</h1>
 				<p>
 					Generate and apply AI-written SEO metadata for your posts

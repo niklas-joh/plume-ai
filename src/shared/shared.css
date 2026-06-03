@@ -1,15 +1,15 @@
 /* ── Shared: used by both SEO and Images pages ── */
 
 /* Page shell */
-.wpaim-page {
+.stilus-page {
 	max-width: 1200px;
 }
 
-.wpaim-page-header {
+.stilus-page-header {
 	margin-bottom: 20px;
 }
 
-.wpaim-page-header h1 {
+.stilus-page-header h1 {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -19,13 +19,13 @@
 	margin: 0 0 var(--space-1);
 }
 
-.wpaim-page-header p {
+.stilus-page-header p {
 	color: var(--color-text-secondary);
 	margin: 0;
 }
 
 /* Pro gate (lock screen) */
-.wpaim-pro-gate {
+.stilus-pro-gate {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -36,21 +36,21 @@
 	color: var(--color-text-muted);
 }
 
-.wpaim-pro-gate h2 {
+.stilus-pro-gate h2 {
 	font-size: 18px;
 	font-weight: 600;
 	color: var(--color-text-primary);
 	margin: 0;
 }
 
-.wpaim-pro-gate p {
+.stilus-pro-gate p {
 	max-width: 360px;
 	color: var(--color-text-secondary);
 	margin: 0;
 }
 
 /* Status badges */
-.wpaim-badge {
+.stilus-badge {
 	display: inline-block;
 	padding: var(--space-0-5) var(--space-2);
 	border-radius: 99px;
@@ -58,25 +58,25 @@
 	font-weight: 600;
 }
 
-.wpaim-badge--complete,
-.wpaim-badge--has {
+.stilus-badge--complete,
+.stilus-badge--has {
 	background: rgba(22, 163, 74, 0.12);
 	color: #16a34a;
 }
 
-.wpaim-badge--partial {
+.stilus-badge--partial {
 	background: rgba(217, 119, 6, 0.12);
 	color: #d97706;
 }
 
-.wpaim-badge--missing,
-.wpaim-badge--none {
+.stilus-badge--missing,
+.stilus-badge--none {
 	background: rgba(220, 38, 38, 0.12);
 	color: #dc2626;
 }
 
 /* Type badge (post / page) */
-.wpaim-type-badge {
+.stilus-type-badge {
 	display: inline-block;
 	padding: var(--space-0-5) var(--space-2);
 	border-radius: var(--radius-sm);
@@ -87,7 +87,7 @@
 }
 
 /* PostListTable toolbar */
-.wpaim-list-toolbar {
+.stilus-list-toolbar {
 	display: flex;
 	align-items: center;
 	gap: var(--space-3);
@@ -95,12 +95,12 @@
 	flex-wrap: wrap;
 }
 
-.wpaim-list-tabs {
+.stilus-list-tabs {
 	display: flex;
 	gap: var(--space-1);
 }
 
-.wpaim-tab {
+.stilus-tab {
 	padding: var(--space-1) var(--space-3);
 	border-radius: var(--radius-sm);
 	font-size: 13px;
@@ -112,18 +112,18 @@
 	line-height: 1.4;
 }
 
-.wpaim-tab:hover {
+.stilus-tab:hover {
 	background: var(--color-surface-2);
 	color: var(--color-text-primary);
 }
 
-.wpaim-tab.is-active {
+.stilus-tab.is-active {
 	background: var(--color-surface-2);
 	color: var(--color-text-primary);
 	font-weight: 600;
 }
 
-.wpaim-list-search {
+.stilus-list-search {
 	padding: var(--space-1) var(--space-2);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-sm);
@@ -134,13 +134,13 @@
 }
 
 /* Table: expanded row */
-.wpaim-work-row > td {
+.stilus-work-row > td {
 	padding: 0 !important;
 	border-top: 2px solid var(--wp-admin-theme-color);
 }
 
 /* Pagination */
-.wpaim-list-pagination {
+.stilus-list-pagination {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -149,37 +149,37 @@
 	border-top: 1px solid var(--color-border);
 }
 
-.wpaim-list-count {
+.stilus-list-count {
 	font-size: 12px;
 	color: var(--color-text-muted);
 }
 
-.wpaim-list-page-btns {
+.stilus-list-page-btns {
 	display: flex;
 	gap: var(--space-2);
 }
 
 /* Work area base */
-.wpaim-work-area {
+.stilus-work-area {
 	padding: var(--space-4) var(--space-5);
 	background: var(--color-surface);
 }
 
-.wpaim-work-header {
+.stilus-work-header {
 	display: flex;
 	align-items: center;
 	gap: var(--space-3);
 	margin-bottom: var(--space-4);
 }
 
-.wpaim-work-title {
+.stilus-work-title {
 	flex: 1;
 	font-weight: 600;
 	font-size: 14px;
 	color: var(--color-text-primary);
 }
 
-.wpaim-work-actions {
+.stilus-work-actions {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -189,23 +189,23 @@
 	border-top: 1px solid var(--color-border);
 }
 
-.wpaim-action-link {
+.stilus-action-link {
 	font-size: 12px;
 	color: var(--color-text-muted);
 	margin-right: auto;
 }
 
-.wpaim-action-link:hover {
+.stilus-action-link:hover {
 	color: var(--wp-admin-theme-color);
 }
 
-.wpaim-work-error {
+.stilus-work-error {
 	color: var(--color-error);
 	font-size: 12px;
 	margin: var(--space-2) 0 0;
 }
 
-.wpaim-work-warning {
+.stilus-work-warning {
 	color: var(--color-warning);
 	font-size: 12px;
 	margin: var(--space-2) 0 0;
@@ -214,7 +214,7 @@
 	gap: var(--space-2);
 }
 
-.wpaim-dismiss {
+.stilus-dismiss {
 	background: none;
 	border: none;
 	cursor: pointer;
@@ -224,22 +224,22 @@
 }
 
 /* Spinner */
-@keyframes wpaim-spin {
+@keyframes stilus-spin {
 
 	to {
 		transform: rotate(360deg);
 	}
 }
 
-.wpaim-spin {
-	animation: wpaim-spin 0.7s linear infinite;
+.stilus-spin {
+	animation: stilus-spin 0.7s linear infinite;
 	display: inline-block;
 	vertical-align: middle;
 	margin-right: var(--space-1);
 }
 
-.wpaim-list-loading,
-.wpaim-list-error {
+.stilus-list-loading,
+.stilus-list-error {
 	padding: 24px;
 	color: var(--color-text-muted);
 	font-size: 13px;

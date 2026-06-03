@@ -19,12 +19,12 @@ export default function StatusBanner( { bannerState, urls } ) {
 
 	return (
 		<div
-			className={ `wpaim-dash-banner wpaim-dash-banner--${
+			className={ `stilus-dash-banner stilus-dash-banner--${
 				isError ? 'error' : 'warning'
 			}` }
 		>
-			<div className="wpaim-dash-banner__dot" />
-			<div className="wpaim-dash-banner__text">
+			<div className="stilus-dash-banner__dot" />
+			<div className="stilus-dash-banner__text">
 				{ isError ? (
 					<>
 						<strong>Your API key appears to be invalid.</strong>
@@ -42,13 +42,13 @@ export default function StatusBanner( { bannerState, urls } ) {
 				) }
 			</div>
 			{ ! isError && (
-				<div className="wpaim-dash-banner__actions">
-					<a href={ urls.settings } className="wpaim-dash-btn">
+				<div className="stilus-dash-banner__actions">
+					<a href={ urls.settings } className="stilus-dash-btn">
 						Add API key
 					</a>
 					<a
 						href={ urls.upgrade }
-						className="wpaim-dash-btn wpaim-dash-btn--primary"
+						className="stilus-dash-btn stilus-dash-btn--primary"
 						target="_blank"
 						rel="nofollow noreferrer"
 					>
@@ -57,10 +57,10 @@ export default function StatusBanner( { bannerState, urls } ) {
 				</div>
 			) }
 			{ isError && (
-				<div className="wpaim-dash-banner__actions">
+				<div className="stilus-dash-banner__actions">
 					<a
 						href={ urls.settings }
-						className="wpaim-dash-btn wpaim-dash-btn--primary"
+						className="stilus-dash-btn stilus-dash-btn--primary"
 					>
 						Go to Settings
 					</a>

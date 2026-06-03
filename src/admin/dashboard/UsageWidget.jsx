@@ -29,12 +29,12 @@ export default function UsageWidget( { usage } ) {
 		: 0;
 
 	return (
-		<div className="wpaim-usage-widget">
-			<div className="wpaim-usage-widget__header">
-				<span className="wpaim-dash-section-title">
+		<div className="stilus-usage-widget">
+			<div className="stilus-usage-widget__header">
+				<span className="stilus-dash-section-title">
 					{ __( 'Usage', 'wp-ai-mind' ) }
 				</span>
-				<span className="wpaim-usage-widget__tier-badge">
+				<span className="stilus-usage-widget__tier-badge">
 					{
 						/* translators: %s: the user's current subscription tier slug */
 						sprintf( __( 'Tier: %s', 'wp-ai-mind' ), tier )
@@ -42,12 +42,12 @@ export default function UsageWidget( { usage } ) {
 				</span>
 			</div>
 
-			<div className="wpaim-usage-widget__value-row">
+			<div className="stilus-usage-widget__value-row">
 				<span
-					className={ `wpaim-usage-widget__value${
+					className={ `stilus-usage-widget__value${
 						canUse
 							? ''
-							: ' wpaim-usage-widget__value--limit-reached'
+							: ' stilus-usage-widget__value--limit-reached'
 					}` }
 				>
 					{ hasLimit
@@ -55,14 +55,14 @@ export default function UsageWidget( { usage } ) {
 						: __( 'Unlimited', 'wp-ai-mind' ) }
 				</span>
 				{ hasLimit && (
-					<span className="wpaim-usage-widget__sub-label">
+					<span className="stilus-usage-widget__sub-label">
 						{ __( 'of quota used', 'wp-ai-mind' ) }
 					</span>
 				) }
 			</div>
 
 			{ hasLimit && (
-				<div className="wpaim-usage-widget__token-count">
+				<div className="stilus-usage-widget__token-count">
 					{ sprintf(
 						/* translators: 1: used tokens, 2: limit tokens */
 						__( '%1$s / %2$s tokens', 'wp-ai-mind' ),
@@ -73,12 +73,12 @@ export default function UsageWidget( { usage } ) {
 			) }
 
 			{ hasLimit && (
-				<div className="wpaim-usage-widget__bar-track">
+				<div className="stilus-usage-widget__bar-track">
 					<div
-						className={ `wpaim-usage-widget__bar-fill${
+						className={ `stilus-usage-widget__bar-fill${
 							canUse
 								? ''
-								: ' wpaim-usage-widget__bar-fill--limit-reached'
+								: ' stilus-usage-widget__bar-fill--limit-reached'
 						}` }
 						style={ { width: `${ usedPct }%` } }
 					/>
@@ -86,7 +86,7 @@ export default function UsageWidget( { usage } ) {
 			) }
 
 			{ hasLimit && ! canUse && (
-				<p className="wpaim-usage-widget__limit-message">
+				<p className="stilus-usage-widget__limit-message">
 					{ __(
 						'Monthly limit reached. Upgrade your plan to continue.',
 						'wp-ai-mind'

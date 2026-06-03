@@ -62,8 +62,8 @@ export default function MiniChat( { postId } ) {
 	}
 
 	return (
-		<div className="wpaim-editor-mini-chat">
-			<div className="wpaim-editor-mini-chat__messages">
+		<div className="stilus-editor-mini-chat">
+			<div className="stilus-editor-mini-chat__messages">
 				{ messages.length === 0 && (
 					<p
 						style={ {
@@ -79,7 +79,7 @@ export default function MiniChat( { postId } ) {
 				{ messages.map( ( m, i ) => (
 					<div
 						key={ i }
-						className={ `wpaim-editor-mini-chat__bubble wpaim-editor-mini-chat__bubble--${
+						className={ `stilus-editor-mini-chat__bubble stilus-editor-mini-chat__bubble--${
 							m.role === 'user' ? 'user' : 'ai'
 						}` }
 					>
@@ -91,15 +91,15 @@ export default function MiniChat( { postId } ) {
 					</div>
 				) ) }
 				{ isLoading && (
-					<div className="wpaim-editor-mini-chat__bubble wpaim-editor-mini-chat__bubble--ai">
-						<Loader2 size={ 14 } className="wpaim-spin" />
+					<div className="stilus-editor-mini-chat__bubble stilus-editor-mini-chat__bubble--ai">
+						<Loader2 size={ 14 } className="stilus-spin" />
 					</div>
 				) }
 				<div ref={ endRef } />
 			</div>
-			<div className="wpaim-editor-mini-chat__composer">
+			<div className="stilus-editor-mini-chat__composer">
 				<input
-					className="wpaim-editor-mini-chat__input"
+					className="stilus-editor-mini-chat__input"
 					value={ input }
 					onChange={ ( e ) => setInput( e.target.value ) }
 					onKeyDown={ ( e ) =>
@@ -111,12 +111,12 @@ export default function MiniChat( { postId } ) {
 					disabled={ isLoading }
 				/>
 				<button
-					className="wpaim-editor-mini-chat__send"
+					className="stilus-editor-mini-chat__send"
 					onClick={ send }
 					disabled={ isLoading || ! input.trim() }
 				>
 					{ isLoading ? (
-						<Loader2 size={ 14 } className="wpaim-spin" />
+						<Loader2 size={ 14 } className="stilus-spin" />
 					) : (
 						<Send size={ 14 } />
 					) }

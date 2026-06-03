@@ -62,14 +62,14 @@ export default function GeneratorWizard() {
 
 	if ( step === 2 ) {
 		return (
-			<div className="wpaim-generator">
+			<div className="stilus-generator">
 				<div
-					className="wpaim-generator__card"
+					className="stilus-generator__card"
 					style={ { textAlign: 'center', padding: 'var(--space-8)' } }
 				>
 					<Loader2
 						size={ 32 }
-						className="wpaim-spin"
+						className="stilus-spin"
 						style={ { color: 'var(--wp-admin-theme-color)' } }
 					/>
 					<p
@@ -87,8 +87,8 @@ export default function GeneratorWizard() {
 
 	if ( step === 3 && result ) {
 		return (
-			<div className="wpaim-generator">
-				<div className="wpaim-generator__success">
+			<div className="stilus-generator">
+				<div className="stilus-generator__success">
 					<CheckCircle2
 						size={ 40 }
 						style={ { color: 'var(--wp-admin-theme-color)' } }
@@ -101,7 +101,7 @@ export default function GeneratorWizard() {
 					</p>
 					<a
 						href={ result.edit_url }
-						className="wpaim-generator__btn wpaim-generator__btn--primary"
+						className="stilus-generator__btn stilus-generator__btn--primary"
 						style={ {
 							display: 'inline-flex',
 							alignItems: 'center',
@@ -114,7 +114,7 @@ export default function GeneratorWizard() {
 					</a>
 				</div>
 				<div
-					className="wpaim-generator__card"
+					className="stilus-generator__card"
 					style={ { marginTop: 'var(--space-4)' } }
 				>
 					<h3
@@ -127,12 +127,12 @@ export default function GeneratorWizard() {
 						Preview
 					</h3>
 					<div
-						className="wpaim-generator__preview"
+						className="stilus-generator__preview"
 						dangerouslySetInnerHTML={ { __html: result.content } }
 					/>
 				</div>
 				<div
-					className="wpaim-generator__actions"
+					className="stilus-generator__actions"
 					style={ { marginTop: 'var(--space-4)' } }
 				>
 					<Button
@@ -151,8 +151,8 @@ export default function GeneratorWizard() {
 
 	// Step 1 — Brief form
 	return (
-		<div className="wpaim-generator">
-			<div className="wpaim-generator__header">
+		<div className="stilus-generator">
+			<div className="stilus-generator__header">
 				<h1
 					style={ {
 						display: 'flex',
@@ -188,7 +188,7 @@ export default function GeneratorWizard() {
 				</div>
 			) }
 
-			<div className="wpaim-generator__card">
+			<div className="stilus-generator__card">
 				<TextControl
 					label="Post title *"
 					value={ form.title }
@@ -231,7 +231,7 @@ export default function GeneratorWizard() {
 					/>
 				</div>
 
-				<div className="wpaim-generator__actions">
+				<div className="stilus-generator__actions">
 					<Button
 						variant="primary"
 						isBusy={ step === 2 }

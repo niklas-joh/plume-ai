@@ -56,19 +56,19 @@ export default function ContextPicker( { onSelect, onClose } ) {
 
 	return (
 		<div
-			className="wpaim-context-picker"
+			className="stilus-context-picker"
 			role="search"
 			aria-label="Search post context"
 		>
-			<div className="wpaim-context-picker__search">
+			<div className="stilus-context-picker__search">
 				<Search
 					size={ 12 }
 					strokeWidth={ 1.5 }
-					className="wpaim-context-picker__icon"
+					className="stilus-context-picker__icon"
 				/>
 				<input
 					ref={ inputRef }
-					className="wpaim-context-picker__input"
+					className="stilus-context-picker__input"
 					placeholder="Search posts, pages, products…"
 					value={ query }
 					onChange={ ( e ) => setQuery( e.target.value ) }
@@ -77,7 +77,7 @@ export default function ContextPicker( { onSelect, onClose } ) {
 			</div>
 			{ loading && (
 				<div
-					className="wpaim-context-picker__status"
+					className="stilus-context-picker__status"
 					aria-live="polite"
 				>
 					Searching…
@@ -85,25 +85,25 @@ export default function ContextPicker( { onSelect, onClose } ) {
 			) }
 			{ ! loading && results.length === 0 && query.length >= 2 && (
 				<div
-					className="wpaim-context-picker__status"
+					className="stilus-context-picker__status"
 					aria-live="polite"
 				>
 					No results
 				</div>
 			) }
 			{ results.length > 0 && (
-				<ul className="wpaim-context-picker__list" aria-live="polite">
+				<ul className="stilus-context-picker__list" aria-live="polite">
 					{ results.map( ( post ) => (
 						<li key={ post.id }>
 							<button
-								className="wpaim-context-picker__item"
+								className="stilus-context-picker__item"
 								type="button"
 								onClick={ () => onSelect( post ) }
 							>
-								<span className="wpaim-context-picker__title">
+								<span className="stilus-context-picker__title">
 									{ post.title }
 								</span>
-								<span className="wpaim-context-picker__badge">
+								<span className="stilus-context-picker__badge">
 									{ post.type_label }
 								</span>
 							</button>

@@ -20,9 +20,9 @@ test.describe('P3 — Chat admin page', () => {
     test('Chat shell renders with sidebar and composer', async ({ page }) => {
         await page.goto('/wp-admin/admin.php?page=wp-ai-mind-chat');
         // Wait for React to hydrate
-        await page.waitForSelector('.wpaim-shell', { timeout: 10000 });
-        await expect(page.locator('.wpaim-sidebar')).toBeVisible();
-        await expect(page.locator('.wpaim-composer')).toBeVisible();
+        await page.waitForSelector('.stilus-shell', { timeout: 10000 });
+        await expect(page.locator('.stilus-sidebar')).toBeVisible();
+        await expect(page.locator('.stilus-composer')).toBeVisible();
     });
 
     test('Settings page loads with React mount point', async ({ page }) => {
@@ -32,8 +32,8 @@ test.describe('P3 — Chat admin page', () => {
 
     test('Settings tabs render after hydration', async ({ page }) => {
         await page.goto('/wp-admin/admin.php?page=wp-ai-mind-settings');
-        await page.waitForSelector('.wpaim-settings-shell', { timeout: 10000 });
-        await expect(page.locator('.wpaim-settings-tabpanel')).toBeVisible();
+        await page.waitForSelector('.stilus-settings-shell', { timeout: 10000 });
+        await expect(page.locator('.stilus-settings-tabpanel')).toBeVisible();
     });
 
     test('REST endpoint /wp-ai-mind/v1/providers responds', async ({ page }) => {

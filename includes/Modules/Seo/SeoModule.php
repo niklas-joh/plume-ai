@@ -72,7 +72,7 @@ class SeoModule {
 
 		\wp_localize_script(
 			'wp-ai-mind-seo',
-			'wpAiMindData',
+			'stilusData',
 			[
 				'nonce'    => \wp_create_nonce( 'wp_rest' ),
 				'restUrl'  => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),

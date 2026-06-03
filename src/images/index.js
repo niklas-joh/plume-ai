@@ -4,7 +4,7 @@ import ImagesApp from './ImagesApp';
 import '../styles/tokens.css';
 import './images.css';
 
-const { nonce } = window.wpAiMindData ?? {};
+const { nonce } = window.stilusData ?? {};
 if ( nonce ) {
 	apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 }

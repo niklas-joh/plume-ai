@@ -32,14 +32,14 @@ export default function QuickActions( {
 	}
 
 	return (
-		<div className="wpaim-panel-section">
-			<div className="wpaim-panel-label">Quick actions</div>
-			<div className="wpaim-quick-actions">
+		<div className="stilus-panel-section">
+			<div className="stilus-panel-label">Quick actions</div>
+			<div className="stilus-quick-actions">
 				{ actions.map( ( action ) => (
 					<Button
 						key={ action.id }
 						variant="tertiary"
-						className="wpaim-quick-action"
+						className="stilus-quick-action"
 						onClick={ () => handleClick( action ) }
 					>
 						<action.icon size={ 12 } strokeWidth={ 1.5 } />
@@ -47,7 +47,7 @@ export default function QuickActions( {
 					</Button>
 				) ) }
 				{ ! isPro && (
-					<div className="wpaim-pro-teaser">
+					<div className="stilus-pro-teaser">
 						<span>More actions with Pro</span>
 					</div>
 				) }

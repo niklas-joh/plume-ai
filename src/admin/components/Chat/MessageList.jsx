@@ -20,17 +20,17 @@ export default function MessageList( { messages, isLoading } ) {
 	}, [ messages, isLoading ] );
 
 	return (
-		<div className="wpaim-messages">
+		<div className="stilus-messages">
 			{ messages.map( ( msg, i ) => (
 				<MessageBubble key={ i } message={ msg } />
 			) ) }
 			{ isLoading && (
-				<div className="wpaim-bubble wpaim-bubble--ai">
-					<div className="wpaim-bubble__content">
+				<div className="stilus-bubble stilus-bubble--ai">
+					<div className="stilus-bubble__content">
 						<Loader2
 							size={ 14 }
 							strokeWidth={ 1.5 }
-							className="wpaim-spinner"
+							className="stilus-spinner"
 						/>
 					</div>
 				</div>

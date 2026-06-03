@@ -36,23 +36,23 @@ export default function DashboardApp() {
 	}
 
 	return (
-		<div className="wpaim-dashboard">
+		<div className="stilus-dashboard">
 			{ /* Top bar */ }
-			<div className="wpaim-dash-topbar">
+			<div className="stilus-dash-topbar">
 				<div>
-					<div className="wpaim-dash-title">
+					<div className="stilus-dash-title">
 						Stilus - Write and Design
 					</div>
-					<div className="wpaim-dash-subtitle">
+					<div className="stilus-dash-subtitle">
 						AI-powered content creation for WordPress
 					</div>
 				</div>
-				<span className="wpaim-dash-version">v{ version }</span>
+				<span className="stilus-dash-version">v{ version }</span>
 			</div>
 
 			<StatusBanner bannerState={ bannerState } urls={ urls } />
 
-			<div className="wpaim-dash-body">
+			<div className="stilus-dash-body">
 				<StartTiles urls={ urls } />
 				<UsageWidget usage={ usage } />
 				<ResourceList

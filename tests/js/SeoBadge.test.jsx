@@ -60,8 +60,8 @@ describe( 'SeoBadge', () => {
 		act( () => {
 			root.render( <SeoBadge status="complete" /> );
 		} );
-		// SeoBadge renders a <span> with class wpaim-badge--{status} (SeoBadge.jsx line 38).
-		expect( container.querySelector( 'span.wpaim-badge' ) ).not.toBeNull();
+		// SeoBadge renders a <span> with class stilus-badge--{status} (SeoBadge.jsx line 38).
+		expect( container.querySelector( 'span.stilus-badge' ) ).not.toBeNull();
 	} );
 
 	it( 'applies the correct modifier class for each status', () => {
@@ -72,7 +72,7 @@ describe( 'SeoBadge', () => {
 				root.render( <SeoBadge status={ status } /> );
 			} );
 
-			const badge = container.querySelector( `span.wpaim-badge--${ status }` );
+			const badge = container.querySelector( `span.stilus-badge--${ status }` );
 			expect( badge ).not.toBeNull();
 		} );
 	} );
@@ -82,7 +82,7 @@ describe( 'SeoBadge', () => {
 			root.render( <SeoBadge status="complete" /> );
 		} );
 		// STATUS_LABELS maps 'complete' → 'Complete' (SeoBadge.jsx line 1).
-		expect( container.querySelector( '.wpaim-badge' ).textContent ).toBe( 'Complete' );
+		expect( container.querySelector( '.stilus-badge' ).textContent ).toBe( 'Complete' );
 	} );
 
 	it( 'renders the status value as text when status is not in STATUS_LABELS', () => {
@@ -90,6 +90,6 @@ describe( 'SeoBadge', () => {
 			root.render( <SeoBadge status="unknown-status" /> );
 		} );
 		// Fallback: `STATUS_LABELS[status] ?? status` (SeoBadge.jsx line 39).
-		expect( container.querySelector( '.wpaim-badge' ).textContent ).toBe( 'unknown-status' );
+		expect( container.querySelector( '.stilus-badge' ).textContent ).toBe( 'unknown-status' );
 	} );
 } );

@@ -21,22 +21,22 @@ export default function MessageBubble( { message } ) {
 
 	return (
 		<div
-			className={ `wpaim-bubble wpaim-bubble--${ isAI ? 'ai' : 'user' }${
-				message.isError ? ' wpaim-bubble--error' : ''
+			className={ `stilus-bubble stilus-bubble--${ isAI ? 'ai' : 'user' }${
+				message.isError ? ' stilus-bubble--error' : ''
 			}` }
 		>
-			<div className="wpaim-bubble__content">
+			<div className="stilus-bubble__content">
 				{ isAI ? (
 					<MarkdownContent
 						content={ message.content }
-						className="wpaim-bubble__markdown"
+						className="stilus-bubble__markdown"
 					/>
 				) : (
 					<p>{ message.content }</p>
 				) }
 			</div>
 			{ isAI && message.model && (
-				<div className="wpaim-bubble__meta">
+				<div className="stilus-bubble__meta">
 					<Cpu size={ 10 } strokeWidth={ 1.5 } />
 					<span>{ message.model }</span>
 					{ message.tokens && <span>{ message.tokens } tokens</span> }

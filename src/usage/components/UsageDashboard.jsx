@@ -28,12 +28,12 @@ export default function UsageDashboard() {
 	if ( isLoading ) {
 		return (
 			<div
-				className="wpaim-usage"
+				className="stilus-usage"
 				style={ { textAlign: 'center', paddingTop: 'var(--space-12)' } }
 			>
 				<Loader2
 					size={ 32 }
-					className="wpaim-spin"
+					className="stilus-spin"
 					style={ { color: 'var(--wp-admin-theme-color)' } }
 				/>
 			</div>
@@ -42,8 +42,8 @@ export default function UsageDashboard() {
 
 	if ( error ) {
 		return (
-			<div className="wpaim-usage">
-				<div className="wpaim-usage__empty">{ error }</div>
+			<div className="stilus-usage">
+				<div className="stilus-usage__empty">{ error }</div>
 			</div>
 		);
 	}
@@ -58,8 +58,8 @@ export default function UsageDashboard() {
 		: 0;
 
 	return (
-		<div className="wpaim-usage">
-			<div className="wpaim-usage__header">
+		<div className="stilus-usage">
+			<div className="stilus-usage__header">
 				<h1
 					style={ {
 						display: 'flex',
@@ -73,11 +73,11 @@ export default function UsageDashboard() {
 					/>{ ' ' }
 					Usage
 				</h1>
-				<span className="wpaim-usage__period">Tier: { tier }</span>
+				<span className="stilus-usage__period">Tier: { tier }</span>
 			</div>
 
-			<div className="wpaim-usage__stats">
-				<div className="wpaim-usage__stat-card">
+			<div className="stilus-usage__stats">
+				<div className="stilus-usage__stat-card">
 					<Zap
 						size={ 20 }
 						style={ {
@@ -85,12 +85,12 @@ export default function UsageDashboard() {
 							marginBottom: 'var(--space-2)',
 						} }
 					/>
-					<div className="wpaim-usage__stat-value">
+					<div className="stilus-usage__stat-value">
 						{ hasLimit ? usedPctRounded + '%' : '∞' }
 					</div>
-					<div className="wpaim-usage__stat-label">of quota used</div>
+					<div className="stilus-usage__stat-label">of quota used</div>
 				</div>
-				<div className="wpaim-usage__stat-card">
+				<div className="stilus-usage__stat-card">
 					<BarChart2
 						size={ 20 }
 						style={ {
@@ -98,12 +98,12 @@ export default function UsageDashboard() {
 							marginBottom: 'var(--space-2)',
 						} }
 					/>
-					<div className="wpaim-usage__stat-value">
+					<div className="stilus-usage__stat-value">
 						{ hasLimit ? 100 - usedPctRounded + '%' : '∞' }
 					</div>
-					<div className="wpaim-usage__stat-label">remaining</div>
+					<div className="stilus-usage__stat-label">remaining</div>
 				</div>
-				<div className="wpaim-usage__stat-card">
+				<div className="stilus-usage__stat-card">
 					<BarChart2
 						size={ 20 }
 						style={ {
@@ -111,17 +111,17 @@ export default function UsageDashboard() {
 							marginBottom: 'var(--space-2)',
 						} }
 					/>
-					<div className="wpaim-usage__stat-value">
+					<div className="stilus-usage__stat-value">
 						{ hasLimit ? limit.toLocaleString() : '∞' }
 					</div>
-					<div className="wpaim-usage__stat-label">Monthly limit</div>
+					<div className="stilus-usage__stat-label">Monthly limit</div>
 				</div>
 			</div>
 
 			{ hasLimit && (
-				<div className="wpaim-usage__quota">
+				<div className="stilus-usage__quota">
 					<div
-						className="wpaim-usage__quota-bar"
+						className="stilus-usage__quota-bar"
 						style={ {
 							background: 'var(--color-border, #ddd)',
 							borderRadius: '4px',

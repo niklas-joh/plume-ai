@@ -41,14 +41,14 @@ export default function VoiceTab( { settings, saveSettings, isSaving } ) {
 	const isOverLimit = charCount > MAX_CHARS;
 
 	return (
-		<div className="wpaim-voice-tab">
-			<section className="wpaim-settings-section">
-				<div className="wpaim-settings-section-header">
-					<h3 className="wpaim-settings-section-title">
+		<div className="stilus-voice-tab">
+			<section className="stilus-settings-section">
+				<div className="stilus-settings-section-header">
+					<h3 className="stilus-settings-section-title">
 						<Mic size={ 14 } />
 						Site Voice &amp; Persona
 					</h3>
-					<p className="wpaim-settings-section-desc">
+					<p className="stilus-settings-section-desc">
 						Define the writing style, tone, and persona the AI
 						should adopt across all features. These instructions are
 						applied site-wide.
@@ -56,7 +56,7 @@ export default function VoiceTab( { settings, saveSettings, isSaving } ) {
 				</div>
 
 				<div
-					className={ `wpaim-voice-textarea-wrap${
+					className={ `stilus-voice-textarea-wrap${
 						isOverLimit ? ' is-error' : ''
 					}` }
 				>
@@ -69,10 +69,10 @@ export default function VoiceTab( { settings, saveSettings, isSaving } ) {
 					/>
 				</div>
 
-				<div className="wpaim-voice-footer">
+				<div className="stilus-voice-footer">
 					<span
-						className={ `wpaim-char-count${
-							isOverLimit ? ' wpaim-char-count--error' : ''
+						className={ `stilus-char-count${
+							isOverLimit ? ' stilus-char-count--error' : ''
 						}` }
 					>
 						{ charCount } / { MAX_CHARS } characters

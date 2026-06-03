@@ -10,7 +10,7 @@ test.describe( 'Generator journey', () => {
 	test( 'generates content and renders it in the output area', async ( { page } ) => {
 		// Route the generate endpoint to return a verifiable fixture post.
 		// GeneratorWizard.jsx posts to /wp-ai-mind/v1/generate and on success
-		// transitions to step 3, rendering result.content in .wpaim-generator__preview.
+		// transitions to step 3, rendering result.content in .stilus-generator__preview.
 		// URL predicate is used instead of a glob — wp-env may serve REST via
 		// /?rest_route= (plain permalinks) or /wp-json/ (pretty), and both forms
 		// contain the same path segment so the predicate matches either.
@@ -40,18 +40,18 @@ test.describe( 'Generator journey', () => {
 		// (GeneratorPage.php line 33, generator/index.js line 6).
 		await page.waitForSelector( '#wp-ai-mind-generator', { timeout: 10000 } );
 
-		// The title TextControl is the first input inside .wpaim-generator__card
+		// The title TextControl is the first input inside .stilus-generator__card
 		// (GeneratorWizard.jsx line 193 — "Post title *" label).
 		// @wordpress/components renders TextControl as a labelled <input>.
-		await page.fill( '.wpaim-generator__card input[type="text"]:first-of-type', 'Test Post Title' );
+		await page.fill( '.stilus-generator__card input[type="text"]:first-of-type', 'Test Post Title' );
 
 		// The submit button text is "Generate Post" (GeneratorWizard.jsx line 246).
 		await page.locator( 'button', { hasText: 'Generate Post' } ).click();
 
-		// On success, step 3 renders .wpaim-generator__preview with the HTML
+		// On success, step 3 renders .stilus-generator__preview with the HTML
 		// content from the fixture (GeneratorWizard.jsx line 132).
 		await expect(
-			page.locator( '.wpaim-generator__preview' )
+			page.locator( '.stilus-generator__preview' )
 		).toContainText( 'uniquely identifiable generator test output for validation', { timeout: 10000 } );
 	} );
 
@@ -81,14 +81,14 @@ test.describe( 'Generator journey', () => {
 
 		// Fill the required title field so the submit button is enabled
 		// (GeneratorWizard.jsx line 238 — disabled when title is empty).
-		await page.fill( '.wpaim-generator__card input[type="text"]:first-of-type', 'Error Test Title' );
+		await page.fill( '.stilus-generator__card input[type="text"]:first-of-type', 'Error Test Title' );
 
 		await page.locator( 'button', { hasText: 'Generate Post' } ).click();
 
 		// The error div renders the e.message from the caught rejection
 		// (GeneratorWizard.jsx line 59 / lines 174–189).
 		await expect(
-			page.locator( '.wpaim-generator' )
+			page.locator( '.stilus-generator' )
 		).toContainText( 'Uniquely identifiable error message from generator test', { timeout: 10000 } );
 	} );
 
@@ -104,7 +104,7 @@ test.describe( 'Generator journey', () => {
 		await expect( generateBtn ).toBeDisabled( { timeout: 10000 } );
 
 		// Entering a title should enable it.
-		await page.fill( '.wpaim-generator__card input[type="text"]:first-of-type', 'A title' );
+		await page.fill( '.stilus-generator__card input[type="text"]:first-of-type', 'A title' );
 		await expect( generateBtn ).toBeEnabled();
 	} );
 } );

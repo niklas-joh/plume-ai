@@ -3,7 +3,7 @@ import PostListTable from '../shared/PostListTable';
 import ImagesBadge from './ImagesBadge';
 import ImagesWorkArea from './ImagesWorkArea';
 
-const { isPro } = window.wpAiMindData ?? {};
+const { isPro } = window.stilusData ?? {};
 
 const IMAGES_TABS = [
 	{ id: 'all', label: 'All', filter: () => true },
@@ -35,7 +35,7 @@ const IMAGES_COLUMNS = [
 export default function ImagesApp() {
 	if ( ! isPro ) {
 		return (
-			<div className="wpaim-pro-gate">
+			<div className="stilus-pro-gate">
 				<Lock size={ 32 } />
 				<h2>AI image generation requires Stilus Pro</h2>
 				<p>
@@ -53,10 +53,10 @@ export default function ImagesApp() {
 	}
 
 	return (
-		<div className="wpaim-page">
-			<div className="wpaim-page-header">
+		<div className="stilus-page">
+			<div className="stilus-page-header">
 				<h1>
-					Images <span className="wpaim-pro-badge">PRO</span>
+					Images <span className="stilus-pro-badge">PRO</span>
 				</h1>
 				<p>
 					Generate featured images for your posts and pages with AI.

@@ -25,7 +25,7 @@ const IMAGE_PROVIDER_OPTIONS = [
  *
  * API keys are stored per-provider in a dirty-state map and only persisted
  * when the user explicitly clicks Save, preventing accidental overwrites.
- * Pro feature gates (model_selection, own_api_key) are read from wpAiMindData.
+ * Pro feature gates (model_selection, own_api_key) are read from stilusData.
  *
  * @param {Object}   props
  * @param {Object}   props.settings      Full settings object from the REST API.
@@ -34,9 +34,9 @@ const IMAGE_PROVIDER_OPTIONS = [
  * @return {ReactElement}
  */
 export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
-	const features = window.wpAiMindData?.features ?? {};
+	const features = window.stilusData?.features ?? {};
 	const upgradeUrl =
-		window.wpAiMindData?.upgradeUrl ?? 'admin.php?page=wp-ai-mind-upgrade';
+		window.stilusData?.upgradeUrl ?? 'admin.php?page=wp-ai-mind-upgrade';
 	const apiKeys = settings?.api_keys ?? {};
 	const [ dirty, setDirty ] = useState( {} ); // { [provider]: string }
 
@@ -69,15 +69,15 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 	}
 
 	return (
-		<div className="wpaim-providers-tab">
+		<div className="stilus-providers-tab">
 			{ /* Default & image provider selects */ }
-			<section className="wpaim-settings-section">
-				<h3 className="wpaim-settings-section-title">
+			<section className="stilus-settings-section">
+				<h3 className="stilus-settings-section-title">
 					Default Providers
 				</h3>
 
 				{ ! features.model_selection && (
-					<p className="wpaim-upgrade-notice">
+					<p className="stilus-upgrade-notice">
 						{ __(
 							'Model selection is available on the Pro plan.',
 							'wp-ai-mind'
@@ -112,11 +112,11 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 			</section>
 
 			{ /* API key inputs */ }
-			<section className="wpaim-settings-section">
-				<h3 className="wpaim-settings-section-title">API Keys</h3>
+			<section className="stilus-settings-section">
+				<h3 className="stilus-settings-section-title">API Keys</h3>
 
 				{ ! features.own_api_key && (
-					<p className="wpaim-upgrade-notice">
+					<p className="stilus-upgrade-notice">
 						{ __(
 							'API key management is available on the Pro BYOK plan.',
 							'wp-ai-mind'
@@ -130,9 +130,9 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 				{ API_KEY_PROVIDERS.map( ( { id, label } ) => (
 					<div
 						key={ id }
-						className="wpaim-field-row wpaim-field-row--key"
+						className="stilus-field-row stilus-field-row--key"
 					>
-						<div className="wpaim-field-input-group">
+						<div className="stilus-field-input-group">
 							<TextControl
 								label={ label }
 								type="password"
@@ -166,13 +166,13 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 			</section>
 
 			{ /* Ollama URL */ }
-			<section className="wpaim-settings-section">
-				<h3 className="wpaim-settings-section-title">
+			<section className="stilus-settings-section">
+				<h3 className="stilus-settings-section-title">
 					Ollama (Self-hosted)
 				</h3>
 
-				<div className="wpaim-field-row wpaim-field-row--key">
-					<div className="wpaim-field-input-group">
+				<div className="stilus-field-row stilus-field-row--key">
+					<div className="stilus-field-input-group">
 						<TextControl
 							label="Ollama URL"
 							type="url"

@@ -51,7 +51,7 @@ export default function SettingsApp() {
 	}
 
 	const handleRunSetup = async () => {
-		const data = window.wpAiMindData ?? {};
+		const data = window.stilusData ?? {};
 		await window.fetch( `${ data.restUrl ?? '' }/onboarding`, {
 			method: 'POST',
 			headers: {
@@ -66,9 +66,9 @@ export default function SettingsApp() {
 	const tabProps = { settings, saveSettings, isSaving };
 
 	return (
-		<div className="wpaim-settings-shell">
-			<div className="wpaim-settings-header">
-				<div className="wpaim-settings-title">
+		<div className="stilus-settings-shell">
+			<div className="stilus-settings-header">
+				<div className="stilus-settings-title">
 					<Settings size={ 16 } />
 					<span>Stilus — Settings</span>
 				</div>
@@ -88,11 +88,11 @@ export default function SettingsApp() {
 				) }
 			</div>
 
-			<TabPanel tabs={ TABS } className="wpaim-settings-tabpanel">
+			<TabPanel tabs={ TABS } className="stilus-settings-tabpanel">
 				{ ( tab ) => {
 					if ( settings === null ) {
 						return (
-							<div className="wpaim-settings-loading">
+							<div className="stilus-settings-loading">
 								Loading settings…
 							</div>
 						);
@@ -110,21 +110,21 @@ export default function SettingsApp() {
 			</TabPanel>
 
 			<div
-				className="wpaim-settings-section"
+				className="stilus-settings-section"
 				style={ {
 					borderTop: '1px solid var(--color-border-subtle)',
 					paddingTop: 'var(--space-4)',
 					marginTop: 'var(--space-4)',
 				} }
 			>
-				<div className="wpaim-settings-label">Setup</div>
-				<p className="wpaim-settings-description">
+				<div className="stilus-settings-label">Setup</div>
+				<p className="stilus-settings-description">
 					Re-run the onboarding wizard to change your API connection
 					or provider settings.
 				</p>
 				<button
 					type="button"
-					className="wpaim-btn wpaim-btn--secondary"
+					className="stilus-btn stilus-btn--secondary"
 					onClick={ handleRunSetup }
 				>
 					Run setup again

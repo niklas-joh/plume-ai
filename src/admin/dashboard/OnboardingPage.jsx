@@ -86,27 +86,27 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 
 	return (
 		<>
-			<div className="wpaim-ob-header">
-				<div className="wpaim-ob-pips">
-					<div className="wpaim-ob-pip wpaim-ob-pip--active" />
+			<div className="stilus-ob-header">
+				<div className="stilus-ob-pips">
+					<div className="stilus-ob-pip stilus-ob-pip--active" />
 					{ /* Second pip only shown on own-key path — hidden here */ }
 				</div>
-				<div className="wpaim-ob-title">
+				<div className="stilus-ob-title">
 					Welcome to Stilus - Write and Design
 				</div>
-				<div className="wpaim-ob-sub">
+				<div className="stilus-ob-sub">
 					How would you like to connect? You can change this anytime
 					in Settings.
 				</div>
 			</div>
 
-			<div className="wpaim-ob-body">
+			<div className="stilus-ob-body">
 				{ choices.map( ( c ) => (
 					<div
 						key={ c.id }
-						className={ `wpaim-ob-choice${
+						className={ `stilus-ob-choice${
 							selection === c.id
-								? ' wpaim-ob-choice--selected'
+								? ' stilus-ob-choice--selected'
 								: ''
 						}` }
 						role="button"
@@ -119,22 +119,22 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 							}
 						} }
 					>
-						<div className="wpaim-ob-radio">
-							<div className="wpaim-ob-radio__dot" />
+						<div className="stilus-ob-radio">
+							<div className="stilus-ob-radio__dot" />
 						</div>
 						<div>
-							<div className="wpaim-ob-choice__title">
+							<div className="stilus-ob-choice__title">
 								{ c.title }
 								{ c.badge && (
 									<span
-										className="wpaim-pro-badge"
+										className="stilus-pro-badge"
 										style={ { marginLeft: 6 } }
 									>
 										{ c.badge }
 									</span>
 								) }
 							</div>
-							<div className="wpaim-ob-choice__desc">
+							<div className="stilus-ob-choice__desc">
 								{ c.desc }
 							</div>
 						</div>
@@ -142,14 +142,14 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 				) ) }
 			</div>
 
-			<div className="wpaim-ob-footer">
-				<button className="wpaim-ob-skip" onClick={ onSkip }>
+			<div className="stilus-ob-footer">
+				<button className="stilus-ob-skip" onClick={ onSkip }>
 					Skip setup
 				</button>
 				{ isPro ? (
 					<a
 						href={ upgradeUrl }
-						className="wpaim-dash-btn wpaim-dash-btn--primary"
+						className="stilus-dash-btn stilus-dash-btn--primary"
 						target="_blank"
 						rel="nofollow noreferrer"
 						onClick={ onSkip }
@@ -158,7 +158,7 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 					</a>
 				) : (
 					<button
-						className="wpaim-dash-btn wpaim-dash-btn--primary"
+						className="stilus-dash-btn stilus-dash-btn--primary"
 						onClick={ onContinue }
 					>
 						Get started &#x2192;
@@ -243,28 +243,28 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 
 	return (
 		<>
-			<div className="wpaim-ob-header">
-				<div className="wpaim-ob-pips">
-					<div className="wpaim-ob-pip wpaim-ob-pip--done" />
-					<div className="wpaim-ob-pip wpaim-ob-pip--active" />
+			<div className="stilus-ob-header">
+				<div className="stilus-ob-pips">
+					<div className="stilus-ob-pip stilus-ob-pip--done" />
+					<div className="stilus-ob-pip stilus-ob-pip--active" />
 				</div>
-				<div className="wpaim-ob-title">Choose your AI providers</div>
-				<div className="wpaim-ob-sub">
+				<div className="stilus-ob-title">Choose your AI providers</div>
+				<div className="stilus-ob-sub">
 					Pick a text provider and paste your key. Image generation is
 					optional.
 				</div>
 			</div>
 
-			<div className="wpaim-ob-body">
-				<div className="wpaim-ob-section-label">Text model</div>
+			<div className="stilus-ob-body">
+				<div className="stilus-ob-section-label">Text model</div>
 
-				<div className="wpaim-ob-providers">
+				<div className="stilus-ob-providers">
 					{ PROVIDERS.map( ( p ) => (
 						<div
 							key={ p.id }
-							className={ `wpaim-ob-provider${
+							className={ `stilus-ob-provider${
 								selectedProvider === p.id
-									? ' wpaim-ob-provider--selected'
+									? ' stilus-ob-provider--selected'
 									: ''
 							}` }
 							role="button"
@@ -277,16 +277,16 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 								}
 							} }
 						>
-							<div className="wpaim-ob-provider__check">
+							<div className="stilus-ob-provider__check">
 								&#x2713;
 							</div>
-							<div className="wpaim-ob-provider__name">
+							<div className="stilus-ob-provider__name">
 								{ p.name }
 							</div>
 							{ p.docsUrl && (
 								<a
 									href={ p.docsUrl }
-									className="wpaim-ob-provider__link"
+									className="stilus-ob-provider__link"
 									target="_blank"
 									rel="nofollow noreferrer"
 									onClick={ ( e ) => e.stopPropagation() }
@@ -296,7 +296,7 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 							) }
 							<a
 								href={ p.keyUrl }
-								className="wpaim-ob-provider__link"
+								className="stilus-ob-provider__link"
 								target="_blank"
 								rel="nofollow noreferrer"
 								onClick={ ( e ) => e.stopPropagation() }
@@ -309,9 +309,9 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 
 				{ selectedProvider && (
 					<>
-						<div className="wpaim-ob-key-row">
+						<div className="stilus-ob-key-row">
 							<input
-								className="wpaim-ob-key-input"
+								className="stilus-ob-key-input"
 								type="password"
 								value={ apiKeys[ selectedProvider ] ?? '' }
 								onChange={ ( e ) => {
@@ -333,7 +333,7 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 							/>
 							<button
 								type="button"
-								className="wpaim-ob-test-btn"
+								className="stilus-ob-test-btn"
 								disabled={
 									! apiKeys[ selectedProvider ] ||
 									testStatus[ selectedProvider ] === 'testing'
@@ -348,14 +348,14 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 							</button>
 						</div>
 						{ testStatus[ selectedProvider ] === 'valid' && (
-							<span className="wpaim-ob-key-status wpaim-ob-key-status--valid">
+							<span className="stilus-ob-key-status stilus-ob-key-status--valid">
 								&#x2713; Valid
 							</span>
 						) }
 						{ testStatus[ selectedProvider ]?.startsWith(
 							'error:'
 						) && (
-							<span className="wpaim-ob-key-status wpaim-ob-key-status--error">
+							<span className="stilus-ob-key-status stilus-ob-key-status--error">
 								&#x2717;{ ' ' }
 								{ testStatus[ selectedProvider ].slice( 6 ) }
 							</span>
@@ -364,20 +364,20 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 				) }
 
 				{ /* Image provider — optional, collapsible */ }
-				<div className="wpaim-ob-optional">
+				<div className="stilus-ob-optional">
 					<button
 						type="button"
-						className="wpaim-ob-optional__toggle"
+						className="stilus-ob-optional__toggle"
 						onClick={ () => setImageOpen( ( o ) => ! o ) }
 					>
-						<span className="wpaim-ob-optional__label">
+						<span className="stilus-ob-optional__label">
 							Image model
 						</span>
-						<span className="wpaim-ob-optional__tag">Optional</span>
+						<span className="stilus-ob-optional__tag">Optional</span>
 						<span
-							className={ `wpaim-ob-optional__chevron${
+							className={ `stilus-ob-optional__chevron${
 								imageOpen
-									? ' wpaim-ob-optional__chevron--open'
+									? ' stilus-ob-optional__chevron--open'
 									: ''
 							}` }
 						>
@@ -386,19 +386,19 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 					</button>
 
 					{ imageOpen && (
-						<div className="wpaim-ob-optional__body">
-							<p className="wpaim-ob-optional__desc">
+						<div className="stilus-ob-optional__body">
+							<p className="stilus-ob-optional__desc">
 								Add an image generation provider. Can be
 								configured later in Settings.
 							</p>
 
-							<div className="wpaim-ob-providers">
+							<div className="stilus-ob-providers">
 								{ IMAGE_PROVIDERS.map( ( p ) => (
 									<div
 										key={ p.id }
-										className={ `wpaim-ob-provider${
+										className={ `stilus-ob-provider${
 											imageProvider === p.id
-												? ' wpaim-ob-provider--selected'
+												? ' stilus-ob-provider--selected'
 												: ''
 										}` }
 										role="button"
@@ -420,15 +420,15 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 											}
 										} }
 									>
-										<div className="wpaim-ob-provider__check">
+										<div className="stilus-ob-provider__check">
 											&#x2713;
 										</div>
-										<div className="wpaim-ob-provider__name">
+										<div className="stilus-ob-provider__name">
 											{ p.name }
 										</div>
 										<a
 											href={ p.docsUrl }
-											className="wpaim-ob-provider__link"
+											className="stilus-ob-provider__link"
 											target="_blank"
 											rel="nofollow noreferrer"
 											onClick={ ( e ) =>
@@ -440,7 +440,7 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 									</div>
 								) ) }
 								<div
-									className="wpaim-ob-provider"
+									className="stilus-ob-provider"
 									aria-hidden="true"
 									style={ {
 										opacity: 0.4,
@@ -449,7 +449,7 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 									} }
 								>
 									<div
-										className="wpaim-ob-provider__name"
+										className="stilus-ob-provider__name"
 										style={ {
 											color: 'var(--color-text-muted)',
 											fontSize: '0.625rem',
@@ -462,9 +462,9 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 
 							{ imageNeedsSeparateKey && (
 								<>
-									<div className="wpaim-ob-key-row">
+									<div className="stilus-ob-key-row">
 										<input
-											className="wpaim-ob-key-input"
+											className="stilus-ob-key-input"
 											type="password"
 											value={
 												apiKeys[ imageProvider ] ?? ''
@@ -491,7 +491,7 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 										/>
 										<button
 											type="button"
-											className="wpaim-ob-test-btn"
+											className="stilus-ob-test-btn"
 											disabled={
 												! apiKeys[ imageProvider ] ||
 												testStatus[ imageProvider ] ===
@@ -509,14 +509,14 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 									</div>
 									{ testStatus[ imageProvider ] ===
 										'valid' && (
-										<span className="wpaim-ob-key-status wpaim-ob-key-status--valid">
+										<span className="stilus-ob-key-status stilus-ob-key-status--valid">
 											&#x2713; Valid
 										</span>
 									) }
 									{ testStatus[ imageProvider ]?.startsWith(
 										'error:'
 									) && (
-										<span className="wpaim-ob-key-status wpaim-ob-key-status--error">
+										<span className="stilus-ob-key-status stilus-ob-key-status--error">
 											&#x2717;{ ' ' }
 											{ testStatus[ imageProvider ].slice(
 												6
@@ -530,12 +530,12 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 				</div>
 			</div>
 
-			<div className="wpaim-ob-footer">
-				<button className="wpaim-ob-skip" onClick={ onBack }>
+			<div className="stilus-ob-footer">
+				<button className="stilus-ob-skip" onClick={ onBack }>
 					&#x2190; Back
 				</button>
 				<button
-					className="wpaim-dash-btn wpaim-dash-btn--primary"
+					className="stilus-dash-btn stilus-dash-btn--primary"
 					onClick={ handleFinish }
 					disabled={ saving }
 				>
@@ -559,34 +559,34 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 function DoneScreen( { apiTierLabel, urls } ) {
 	return (
 		<>
-			<div className="wpaim-ob-header">
-				<div className="wpaim-ob-pips">
-					<div className="wpaim-ob-pip wpaim-ob-pip--done" />
-					<div className="wpaim-ob-pip wpaim-ob-pip--done" />
+			<div className="stilus-ob-header">
+				<div className="stilus-ob-pips">
+					<div className="stilus-ob-pip stilus-ob-pip--done" />
+					<div className="stilus-ob-pip stilus-ob-pip--done" />
 				</div>
-				<div className="wpaim-ob-title">You&apos;re all set</div>
-				<div className="wpaim-ob-sub">
+				<div className="stilus-ob-title">You&apos;re all set</div>
+				<div className="stilus-ob-sub">
 					Stilus - Write and Design is ready to use.
 				</div>
 			</div>
 
-			<div className="wpaim-ob-body">
-				<div className="wpaim-ob-success">
-					<div className="wpaim-ob-success__title">
+			<div className="stilus-ob-body">
+				<div className="stilus-ob-success">
+					<div className="stilus-ob-success__title">
 						Setup complete
 					</div>
-					<div className="wpaim-ob-success__sub">
+					<div className="stilus-ob-success__sub">
 						{ apiTierLabel }.<br />
 						Change this anytime in Settings.
 					</div>
-					<a href={ urls.chat } className="wpaim-ob-success__cta">
+					<a href={ urls.chat } className="stilus-ob-success__cta">
 						Open Chat &#x2192;
 					</a>
 				</div>
 			</div>
 
 			<div
-				className="wpaim-ob-footer"
+				className="stilus-ob-footer"
 				style={ {
 					borderTop: 'none',
 					paddingTop: 0,
@@ -595,7 +595,7 @@ function DoneScreen( { apiTierLabel, urls } ) {
 			>
 				<button
 					type="button"
-					className="wpaim-ob-skip"
+					className="stilus-ob-skip"
 					onClick={ () => window.location.reload() }
 				>
 					Go to Dashboard instead
@@ -679,8 +679,8 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 	);
 
 	return (
-		<div className="wpaim-ob-page">
-			<div className="wpaim-ob-page__inner">
+		<div className="stilus-ob-page">
+			<div className="stilus-ob-page__inner">
 				{ step === 'step1' && (
 					<Step1
 						selection={ connection }

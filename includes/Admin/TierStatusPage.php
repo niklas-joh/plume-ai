@@ -53,8 +53,8 @@ class TierStatusPage {
 			return;
 		}
 		wp_enqueue_style(
-			'wpaim-admin-widgets',
-			WP_AI_MIND_URL . 'assets/admin/wpaim-admin-widgets.css',
+			'stilus-admin-widgets',
+			WP_AI_MIND_URL . 'assets/admin/stilus-admin-widgets.css',
 			[],
 			WP_AI_MIND_VERSION
 		);
@@ -89,9 +89,9 @@ class TierStatusPage {
 					<th scope="row"><?php esc_html_e( 'Service connection', 'wp-ai-mind' ); ?></th>
 					<td>
 						<?php if ( $registered ) : ?>
-							<span class="wpaim-status--active">&#10003; <?php esc_html_e( 'Connected', 'wp-ai-mind' ); ?></span>
+							<span class="stilus-status--active">&#10003; <?php esc_html_e( 'Connected', 'wp-ai-mind' ); ?></span>
 						<?php else : ?>
-							<span class="wpaim-status--expired"><?php esc_html_e( 'Not connected — will auto-connect on next page load', 'wp-ai-mind' ); ?></span>
+							<span class="stilus-status--expired"><?php esc_html_e( 'Not connected — will auto-connect on next page load', 'wp-ai-mind' ); ?></span>
 						<?php endif; ?>
 					</td>
 				</tr>
@@ -106,7 +106,7 @@ class TierStatusPage {
 						?>
 						<br>
 						<progress
-							class="wpaim-usage-meter"
+							class="stilus-usage-meter"
 							max="<?php echo esc_attr( (string) $usage['limit'] ); ?>"
 							value="<?php echo esc_attr( (string) $usage['used'] ); ?>">
 						</progress>
@@ -125,10 +125,10 @@ class TierStatusPage {
 			</table>
 
 			<?php if ( 'free' === $tier || 'trial' === $tier ) : ?>
-			<div class="card wpaim-upgrade-card">
+			<div class="card stilus-upgrade-card">
 				<h2><?php esc_html_e( 'Upgrade your plan', 'wp-ai-mind' ); ?></h2>
 				<p><?php esc_html_e( 'Pro Managed gives you 2M tokens/month with model selection. Pro BYOK gives you unlimited usage with your own API key.', 'wp-ai-mind' ); ?></p>
-				<div class="wpaim-upgrade-actions">
+				<div class="stilus-upgrade-actions">
 					<a href="<?php echo esc_url( NJ_Site_Registration::checkout_url_pro_managed_monthly() ); ?>" class="button button-primary">
 						<?php esc_html_e( 'Pro Managed — Monthly', 'wp-ai-mind' ); ?>
 					</a>

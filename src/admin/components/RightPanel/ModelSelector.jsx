@@ -37,7 +37,7 @@ export default function ModelSelector( {
 	onModelChange,
 	isPro = false,
 } ) {
-	const { defaultModelLabel = 'AI' } = window.wpAiMindData || {};
+	const { defaultModelLabel = 'AI' } = window.stilusData || {};
 
 	const [ isAdvanced, setIsAdvanced ] = useState(
 		() => isPro && storageGet( STORAGE_KEY ) === '1'
@@ -56,19 +56,19 @@ export default function ModelSelector( {
 	const models = active ? Object.entries( active.models ) : [];
 
 	return (
-		<div className="wpaim-panel-section">
-			<div className="wpaim-panel-label">Model</div>
+		<div className="stilus-panel-section">
+			<div className="stilus-panel-label">Model</div>
 
 			{ ! isAdvanced ? (
-				<div className="wpaim-model-simple">
-					<div className="wpaim-model-selector__row">
+				<div className="stilus-model-simple">
+					<div className="stilus-model-selector__row">
 						<Cpu size={ 12 } strokeWidth={ 1.5 } />
-						<span className="wpaim-model-default-label">
+						<span className="stilus-model-default-label">
 							Plugin default — { defaultModelLabel }
 						</span>
 					</div>
 					<button
-						className="wpaim-model-advanced-toggle"
+						className="stilus-model-advanced-toggle"
 						type="button"
 						onClick={ () => toggleAdvanced( true ) }
 						disabled={ ! isPro }
@@ -86,12 +86,12 @@ export default function ModelSelector( {
 					</button>
 				</div>
 			) : (
-				<div className="wpaim-model-selector">
-					<div className="wpaim-model-selector__row">
+				<div className="stilus-model-selector">
+					<div className="stilus-model-selector__row">
 						<Cpu size={ 12 } strokeWidth={ 1.5 } />
 						<select
 							aria-label="AI provider"
-							className="wpaim-select"
+							className="stilus-select"
 							value={ selectedProvider }
 							onChange={ ( e ) => {
 								onProviderChange( e.target.value );
@@ -106,7 +106,7 @@ export default function ModelSelector( {
 						</select>
 					</div>
 					{ active && ! active.is_available && (
-						<p className="wpaim-model-no-key">
+						<p className="stilus-model-no-key">
 							No API key configured —{ ' ' }
 							<a href="options-general.php?page=wp-ai-mind-settings">
 								Settings
@@ -116,7 +116,7 @@ export default function ModelSelector( {
 					{ models.length > 0 && active?.is_available && (
 						<select
 							aria-label="Model"
-							className="wpaim-select wpaim-select--sm"
+							className="stilus-select stilus-select--sm"
 							value={ selectedModel }
 							onChange={ ( e ) =>
 								onModelChange( e.target.value )
@@ -131,7 +131,7 @@ export default function ModelSelector( {
 						</select>
 					) }
 					<button
-						className="wpaim-model-advanced-toggle"
+						className="stilus-model-advanced-toggle"
 						type="button"
 						onClick={ () => toggleAdvanced( false ) }
 					>

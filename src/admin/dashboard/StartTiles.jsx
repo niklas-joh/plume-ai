@@ -35,25 +35,25 @@ const TILES = [
 export default function StartTiles( { urls } ) {
 	return (
 		<div>
-			<div className="wpaim-dash-section-head">
-				<span className="wpaim-dash-section-title">Start</span>
+			<div className="stilus-dash-section-head">
+				<span className="stilus-dash-section-title">Start</span>
 			</div>
-			<div className="wpaim-dash-tiles">
+			<div className="stilus-dash-tiles">
 				{ TILES.map( ( tile ) => (
 					<a
 						key={ tile.urlKey }
 						href={ urls[ tile.urlKey ] }
-						className={ `wpaim-dash-tile${
-							tile.primary ? ' wpaim-dash-tile--primary' : ''
+						className={ `stilus-dash-tile${
+							tile.primary ? ' stilus-dash-tile--primary' : ''
 						}` }
 					>
-						<div className="wpaim-dash-tile__verb">
+						<div className="stilus-dash-tile__verb">
 							{ tile.verb }
 						</div>
-						<div className="wpaim-dash-tile__desc">
+						<div className="stilus-dash-tile__desc">
 							{ tile.desc }
 						</div>
-						<span className="wpaim-dash-tile__arrow">&#x2197;</span>
+						<span className="stilus-dash-tile__arrow">&#x2197;</span>
 					</a>
 				) ) }
 			</div>

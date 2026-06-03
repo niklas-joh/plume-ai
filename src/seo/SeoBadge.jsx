@@ -35,7 +35,7 @@ export function getSeoStatus( post ) {
  */
 export default function SeoBadge( { status } ) {
 	return (
-		<span className={ `wpaim-badge wpaim-badge--${ status }` }>
+		<span className={ `stilus-badge stilus-badge--${ status }` }>
 			{ STATUS_LABELS[ status ] ?? status }
 		</span>
 	);

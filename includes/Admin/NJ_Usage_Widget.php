@@ -45,8 +45,8 @@ class NJ_Usage_Widget {
 			return;
 		}
 		wp_enqueue_style(
-			'wpaim-admin-widgets',
-			WP_AI_MIND_URL . 'assets/admin/wpaim-admin-widgets.css',
+			'stilus-admin-widgets',
+			WP_AI_MIND_URL . 'assets/admin/stilus-admin-widgets.css',
 			[],
 			WP_AI_MIND_VERSION
 		);
@@ -98,12 +98,12 @@ class NJ_Usage_Widget {
 			}
 
 			printf(
-				'<div class="wpaim-progress-track"><div class="wpaim-progress-bar wpaim-progress-bar--%s" style="width:%d%%"></div></div>',
+				'<div class="stilus-progress-track"><div class="stilus-progress-bar stilus-progress-bar--%s" style="width:%d%%"></div></div>',
 				esc_attr( $bar_modifier ),
 				absint( $pct )
 			);
 			printf(
-				'<p class="wpaim-meta-text">%s / %s %s (%s %s)</p>',
+				'<p class="stilus-meta-text">%s / %s %s (%s %s)</p>',
 				esc_html( number_format_i18n( (int) $usage['used'] ) ),
 				esc_html( number_format_i18n( (int) $usage['limit'] ) ),
 				esc_html__( 'tokens', 'wp-ai-mind' ),

@@ -46,20 +46,20 @@ function WpAiMindSidebar() {
 				title="AI Mind"
 				icon={ <Sparkles size={ 16 } /> }
 			>
-				<div className="wpaim-editor-sidebar">
-					<div className="wpaim-editor-panel">
-						<h3 className="wpaim-panel__heading">Chat</h3>
+				<div className="stilus-editor-sidebar">
+					<div className="stilus-editor-panel">
+						<h3 className="stilus-panel__heading">Chat</h3>
 						<MiniChat postId={ postId } />
 					</div>
-					<div className="wpaim-editor-panel">
-						<h3 className="wpaim-panel__heading">Block Actions</h3>
+					<div className="stilus-editor-panel">
+						<h3 className="stilus-panel__heading">Block Actions</h3>
 						<BlockActions
 							convId={ convId }
 							onResult={ handleBlockResult }
 						/>
 					</div>
-					<div className="wpaim-editor-panel">
-						<h3 className="wpaim-panel__heading">SEO</h3>
+					<div className="stilus-editor-panel">
+						<h3 className="stilus-panel__heading">SEO</h3>
 						<SeoPanel />
 					</div>
 				</div>

@@ -1,6 +1,6 @@
 /* ── Dashboard shell ──────────────────────────────────────────────────────── */
 
-.wpaim-dashboard {
+.stilus-dashboard {
 	display: flex;
 	flex-direction: column;
 	min-height: 100vh;
@@ -11,7 +11,7 @@
 }
 
 /* Top bar */
-.wpaim-dash-topbar {
+.stilus-dash-topbar {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -20,20 +20,20 @@
 	flex-shrink: 0;
 }
 
-.wpaim-dash-title {
+.stilus-dash-title {
 	font-size: 1.0625rem;
 	font-weight: 700;
 	color: var(--color-text-primary);
 	letter-spacing: -0.025em;
 }
 
-.wpaim-dash-subtitle {
+.stilus-dash-subtitle {
 	font-size: 0.75rem;
 	color: var(--color-text-secondary);
 	margin-top: var(--space-0-5);
 }
 
-.wpaim-dash-version {
+.stilus-dash-version {
 	font-family: var(--font-mono, monospace);
 	font-size: 0.625rem;
 	padding: var(--space-1) var(--space-2);
@@ -45,7 +45,7 @@
 
 /* ── Status banner ──────────────────────────────────────────────────────────── */
 
-.wpaim-dash-banner {
+.stilus-dash-banner {
 	margin: var(--space-4) var(--space-6) 0;
 	border-radius: var(--radius);
 	padding: var(--space-2) var(--space-3);
@@ -55,43 +55,43 @@
 	font-size: 0.75rem;
 }
 
-.wpaim-dash-banner--warning {
+.stilus-dash-banner--warning {
 	background: rgba(217, 119, 6, 0.07);
 	border: 1px solid rgba(217, 119, 6, 0.2);
 }
 
-.wpaim-dash-banner--error {
+.stilus-dash-banner--error {
 	background: rgba(220, 38, 38, 0.07);
 	border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
-.wpaim-dash-banner__dot {
+.stilus-dash-banner__dot {
 	width: 6px;
 	height: 6px;
 	border-radius: 50%;
 	flex-shrink: 0;
 }
 
-.wpaim-dash-banner--warning .wpaim-dash-banner__dot {
+.stilus-dash-banner--warning .stilus-dash-banner__dot {
 	background: var(--color-warning);
 	box-shadow: 0 0 5px rgba(217, 119, 6, 0.5);
 }
 
-.wpaim-dash-banner--error .wpaim-dash-banner__dot {
+.stilus-dash-banner--error .stilus-dash-banner__dot {
 	background: var(--color-error);
 	box-shadow: 0 0 5px rgba(220, 38, 38, 0.5);
 }
 
-.wpaim-dash-banner__text strong {
+.stilus-dash-banner__text strong {
 	color: var(--color-text-primary);
 	font-weight: 600;
 }
 
-.wpaim-dash-banner__text span {
+.stilus-dash-banner__text span {
 	color: var(--color-text-secondary);
 }
 
-.wpaim-dash-banner__actions {
+.stilus-dash-banner__actions {
 	margin-left: auto;
 	display: flex;
 	gap: var(--space-1);
@@ -100,7 +100,7 @@
 
 /* ── Page body ──────────────────────────────────────────────────────────────── */
 
-.wpaim-dash-body {
+.stilus-dash-body {
 	flex: 1;
 	padding: var(--space-5) var(--space-6) 0;
 	display: flex;
@@ -108,14 +108,14 @@
 	gap: var(--space-5);
 }
 
-.wpaim-dash-section-head {
+.stilus-dash-section-head {
 	display: flex;
 	align-items: baseline;
 	justify-content: space-between;
 	margin-bottom: var(--space-2);
 }
 
-.wpaim-dash-section-title {
+.stilus-dash-section-title {
 	font-size: 0.625rem;
 	font-weight: 600;
 	color: var(--color-text-muted);
@@ -126,13 +126,13 @@
 
 /* ── Start tiles ────────────────────────────────────────────────────────────── */
 
-.wpaim-dash-tiles {
+.stilus-dash-tiles {
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
 	gap: var(--space-2);
 }
 
-.wpaim-dash-tile {
+.stilus-dash-tile {
 	background: #f8f9fa;
 	border: 1px solid #e0e1e6;
 	border-radius: var(--radius);
@@ -145,7 +145,7 @@
 	transition: border-color 0.12s, background 0.12s, transform 0.1s;
 }
 
-.wpaim-dash-tile::before {
+.stilus-dash-tile::before {
 	content: "";
 	position: absolute;
 	top: 0;
@@ -155,14 +155,14 @@
 	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
 }
 
-.wpaim-dash-tile:hover {
+.stilus-dash-tile:hover {
 	border-color: #dcdcde;
 	background: #f0f0f1;
 	transform: translateY(-1px);
 	text-decoration: none;
 }
 
-.wpaim-dash-tile__arrow {
+.stilus-dash-tile__arrow {
 	position: absolute;
 	bottom: var(--space-3);
 	right: var(--space-3);
@@ -171,22 +171,22 @@
 	transition: color 0.12s, transform 0.12s;
 }
 
-.wpaim-dash-tile:hover .wpaim-dash-tile__arrow {
+.stilus-dash-tile:hover .stilus-dash-tile__arrow {
 	color: var(--wp-admin-theme-color);
 	transform: translate(2px, -2px);
 }
 
-.wpaim-dash-tile--primary {
+.stilus-dash-tile--primary {
 	border-color: rgba(var(--wp-admin-theme-color--rgb), 0.3);
 	background: rgba(var(--wp-admin-theme-color--rgb), 0.12);
 }
 
-.wpaim-dash-tile--primary:hover {
+.stilus-dash-tile--primary:hover {
 	border-color: rgba(var(--wp-admin-theme-color--rgb), 0.45);
 	background: rgba(var(--wp-admin-theme-color--rgb), 0.15);
 }
 
-.wpaim-dash-tile__verb {
+.stilus-dash-tile__verb {
 	font-size: 0.8125rem;
 	font-weight: 700;
 	color: var(--color-text-primary);
@@ -194,7 +194,7 @@
 	letter-spacing: -0.01em;
 }
 
-.wpaim-dash-tile__desc {
+.stilus-dash-tile__desc {
 	font-size: 0.6875rem;
 	color: var(--color-text-secondary);
 	line-height: 1.45;
@@ -203,14 +203,14 @@
 
 /* ── Resource list ──────────────────────────────────────────────────────────── */
 
-.wpaim-dash-resources {
+.stilus-dash-resources {
 	background: #f8f9fa;
 	border: 1px solid #e0e1e6;
 	border-radius: var(--radius);
 	overflow: hidden;
 }
 
-.wpaim-dash-resource {
+.stilus-dash-resource {
 	display: flex;
 	align-items: center;
 	padding: var(--space-3) var(--space-3);
@@ -220,46 +220,46 @@
 	gap: var(--space-3);
 }
 
-.wpaim-dash-resource:last-child {
+.stilus-dash-resource:last-child {
 	border-bottom: none;
 }
 
-.wpaim-dash-resource:hover {
+.stilus-dash-resource:hover {
 	background: #f0f0f1;
 	text-decoration: none;
 }
 
-.wpaim-dash-resource__body {
+.stilus-dash-resource__body {
 	flex: 1;
 }
 
-.wpaim-dash-resource__title {
+.stilus-dash-resource__title {
 	font-size: 0.75rem;
 	font-weight: 600;
 	color: var(--color-text-primary);
 	margin-bottom: 1px;
 }
 
-.wpaim-dash-resource__desc {
+.stilus-dash-resource__desc {
 	font-size: 0.6875rem;
 	color: var(--color-text-secondary);
 	line-height: 1.4;
 }
 
-.wpaim-dash-resource__arrow {
+.stilus-dash-resource__arrow {
 	font-size: 0.75rem;
 	color: var(--color-text-muted);
 	transition: color 0.12s;
 	flex-shrink: 0;
 }
 
-.wpaim-dash-resource:hover .wpaim-dash-resource__arrow {
+.stilus-dash-resource:hover .stilus-dash-resource__arrow {
 	color: var(--wp-admin-theme-color);
 }
 
 /* ── Page footer ────────────────────────────────────────────────────────────── */
 
-.wpaim-dash-footer {
+.stilus-dash-footer {
 	padding: var(--space-3) var(--space-6) var(--space-4);
 	margin-top: auto;
 	display: flex;
@@ -268,7 +268,7 @@
 	border-top: 1px solid #e0e1e6;
 }
 
-.wpaim-dash-footer__link {
+.stilus-dash-footer__link {
 	font-size: 0.6875rem;
 	color: var(--color-text-muted);
 	text-decoration: none;
@@ -280,12 +280,12 @@
 	font-family: inherit;
 }
 
-.wpaim-dash-footer__link:hover {
+.stilus-dash-footer__link:hover {
 	color: var(--color-text-secondary);
 	text-decoration: none;
 }
 
-.wpaim-dash-footer__sep {
+.stilus-dash-footer__sep {
 	width: 1px;
 	height: 11px;
 	background: var(--color-border-subtle);
@@ -294,7 +294,7 @@
 
 /* ── Buttons (shared small) ─────────────────────────────────────────────────── */
 
-.wpaim-dash-btn {
+.stilus-dash-btn {
 	font-size: 0.6875rem;
 	font-weight: 600;
 	padding: var(--space-1) var(--space-3);
@@ -309,13 +309,13 @@
 	transition: border-color 0.12s, color 0.12s;
 }
 
-.wpaim-dash-btn--primary {
+.stilus-dash-btn--primary {
 	background: var(--wp-admin-theme-color);
 	border-color: var(--wp-admin-theme-color);
 	color: #fff;
 }
 
-.wpaim-dash-btn--primary:hover {
+.stilus-dash-btn--primary:hover {
 	background: var(--wp-admin-theme-color-darker-10);
 	border-color: var(--wp-admin-theme-color-darker-10);
 	color: #fff;
@@ -323,7 +323,7 @@
 }
 
 /* ── Onboarding page layout ─────────────────────────────────────────── */
-.wpaim-ob-page {
+.stilus-ob-page {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -331,19 +331,19 @@
 	min-height: 100%;
 }
 
-.wpaim-ob-page__inner {
+.stilus-ob-page__inner {
 	width: 100%;
 	max-width: 580px;
 }
 
 /* ── Test key row ───────────────────────────────────────────────────── */
-.wpaim-ob-key-row {
+.stilus-ob-key-row {
 	display: flex;
 	gap: var(--space-2);
 	align-items: center;
 }
 
-.wpaim-ob-test-btn {
+.stilus-ob-test-btn {
 	font-size: 0.6875rem;
 	padding: var(--space-2) var(--space-3);
 	background: #f0f0f1;
@@ -356,42 +356,42 @@
 	transition: border-color 0.1s;
 }
 
-.wpaim-ob-test-btn:disabled {
+.stilus-ob-test-btn:disabled {
 	opacity: 0.5;
 	cursor: default;
 }
 
-.wpaim-ob-test-btn:hover:not(:disabled) {
+.stilus-ob-test-btn:hover:not(:disabled) {
 	border-color: var(--wp-admin-theme-color);
 	color: var(--color-text);
 }
 
-.wpaim-ob-key-status {
+.stilus-ob-key-status {
 	display: block;
 	font-size: 0.6875rem;
 	margin-top: var(--space-1);
 }
 
-.wpaim-ob-key-status--valid {
+.stilus-ob-key-status--valid {
 	color: var(--color-success);
 }
 
-.wpaim-ob-key-status--error {
+.stilus-ob-key-status--error {
 	color: var(--color-error, #ef4444);
 }
 
-.wpaim-ob-header {
+.stilus-ob-header {
 	padding: var(--space-4) var(--space-5) var(--space-3);
 	border-bottom: 1px solid #e0e1e6;
 }
 
-.wpaim-ob-pips {
+.stilus-ob-pips {
 	display: flex;
 	gap: var(--space-1);
 	margin-bottom: var(--space-3);
 }
 
-.wpaim-ob-pip {
+.stilus-ob-pip {
 	height: 2px;
 	flex: 1;
 	border-radius: 2px;
@@ -399,35 +399,35 @@
 	transition: background 0.2s;
 }
 
-.wpaim-ob-pip--active {
+.stilus-ob-pip--active {
 	background: var(--wp-admin-theme-color);
 }
 
-.wpaim-ob-pip--done {
+.stilus-ob-pip--done {
 	background: var(--color-success);
 }
 
-.wpaim-ob-title {
+.stilus-ob-title {
 	font-size: 0.9375rem;
 	font-weight: 700;
 	color: var(--color-text-primary);
 	margin-bottom: var(--space-1);
 }
 
-.wpaim-ob-sub {
+.stilus-ob-sub {
 	font-size: 0.6875rem;
 	color: var(--color-text-secondary);
 	line-height: 1.5;
 }
 
-.wpaim-ob-body {
+.stilus-ob-body {
 	padding: var(--space-3) var(--space-5);
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-2);
 }
 
-.wpaim-ob-footer {
+.stilus-ob-footer {
 	padding: var(--space-2) var(--space-5) var(--space-3);
 	border-top: 1px solid #e0e1e6;
 	display: flex;
@@ -436,7 +436,7 @@
 }
 
 /* Choice radio cards */
-.wpaim-ob-choice {
+.stilus-ob-choice {
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
 	padding: var(--space-2) var(--space-3);
@@ -448,17 +448,17 @@
 	transition: border-color 0.12s, background 0.12s;
 }
 
-.wpaim-ob-choice:hover {
+.stilus-ob-choice:hover {
 	border-color: #8c8f94;
 	background: var(--color-surface-2);
 }
 
-.wpaim-ob-choice--selected {
+.stilus-ob-choice--selected {
 	border-color: var(--wp-admin-theme-color);
 	background: color-mix(in srgb, var(--wp-admin-theme-color) 6%, #fff);
 }
 
-.wpaim-ob-radio {
+.stilus-ob-radio {
 	width: 15px;
 	height: 15px;
 	border-radius: 50%;
@@ -471,12 +471,12 @@
 	transition: border-color 0.12s, background 0.12s;
 }
 
-.wpaim-ob-choice--selected .wpaim-ob-radio {
+.stilus-ob-choice--selected .stilus-ob-radio {
 	border-color: var(--wp-admin-theme-color);
 	background: var(--wp-admin-theme-color);
 }
 
-.wpaim-ob-radio__dot {
+.stilus-ob-radio__dot {
 	display: none;
 	width: 5px;
 	height: 5px;
@@ -484,25 +484,25 @@
 	background: var(--color-bg);
 }
 
-.wpaim-ob-choice--selected .wpaim-ob-radio__dot {
+.stilus-ob-choice--selected .stilus-ob-radio__dot {
 	display: block;
 }
 
-.wpaim-ob-choice__title {
+.stilus-ob-choice__title {
 	font-size: 0.75rem;
 	font-weight: 600;
 	color: var(--color-text-primary);
 	margin-bottom: var(--space-0-5);
 }
 
-.wpaim-ob-choice__desc {
+.stilus-ob-choice__desc {
 	font-size: 0.6875rem;
 	color: var(--color-text-secondary);
 	line-height: 1.4;
 }
 
 /* Provider cards (Step 2) */
-.wpaim-ob-section-label {
+.stilus-ob-section-label {
 	font-size: 0.625rem;
 	font-weight: 600;
 	color: #787c82;
@@ -512,13 +512,13 @@
 	margin-bottom: var(--space-1);
 }
 
-.wpaim-ob-providers {
+.stilus-ob-providers {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	gap: var(--space-1);
 }
 
-.wpaim-ob-provider {
+.stilus-ob-provider {
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
 	padding: var(--space-2) var(--space-2) var(--space-1);
@@ -531,16 +531,16 @@
 	transition: border-color 0.12s, background 0.12s;
 }
 
-.wpaim-ob-provider:hover {
+.stilus-ob-provider:hover {
 	border-color: #8c8f94;
 }
 
-.wpaim-ob-provider--selected {
+.stilus-ob-provider--selected {
 	border-color: var(--wp-admin-theme-color);
 	background: color-mix(in srgb, var(--wp-admin-theme-color) 6%, #fff);
 }
 
-.wpaim-ob-provider__check {
+.stilus-ob-provider__check {
 	display: none;
 	position: absolute;
 	top: var(--space-1);
@@ -555,17 +555,17 @@
 	color: #fff;
 }
 
-.wpaim-ob-provider--selected .wpaim-ob-provider__check {
+.stilus-ob-provider--selected .stilus-ob-provider__check {
 	display: flex;
 }
 
-.wpaim-ob-provider__name {
+.stilus-ob-provider__name {
 	font-size: 0.6875rem;
 	font-weight: 600;
 	color: var(--color-text-primary);
 }
 
-.wpaim-ob-provider__link {
+.stilus-ob-provider__link {
 	font-size: 0.625rem;
 	color: var(--wp-admin-theme-color);
 	text-decoration: none;
@@ -574,12 +574,12 @@
 	gap: var(--space-0-5);
 }
 
-.wpaim-ob-provider__link:hover {
+.stilus-ob-provider__link:hover {
 	text-decoration: underline;
 }
 
 /* API key input */
-.wpaim-ob-key-input {
+.stilus-ob-key-input {
 	width: 100%;
 	background: #fff;
 	border: 1px solid #dcdcde;
@@ -591,33 +591,33 @@
 	transition: border-color 0.12s;
 }
 
-.wpaim-ob-key-input:focus {
+.stilus-ob-key-input:focus {
 	outline: none;
 	border-color: var(--wp-admin-theme-color);
 }
 
-.wpaim-ob-key-input:focus-visible {
+.stilus-ob-key-input:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color);
 	outline-offset: 2px;
 }
 
-.wpaim-ob-key-input::placeholder {
+.stilus-ob-key-input::placeholder {
 	color: var(--color-text-muted);
 }
 
-.wpaim-ob-key-row .wpaim-ob-key-input {
+.stilus-ob-key-row .stilus-ob-key-input {
 	flex: 1;
 }
 
 /* Optional collapsible */
-.wpaim-ob-optional {
+.stilus-ob-optional {
 	border: 1px solid #e0e1e6;
 	border-radius: var(--radius);
 	background: #fff;
 	overflow: hidden;
 }
 
-.wpaim-ob-optional__toggle {
+.stilus-ob-optional__toggle {
 	width: 100%;
 	display: flex;
 	align-items: center;
@@ -630,13 +630,13 @@
 	gap: var(--space-2);
 }
 
-.wpaim-ob-optional__label {
+.stilus-ob-optional__label {
 	font-size: 0.75rem;
 	font-weight: 600;
 	color: var(--color-text-secondary);
 }
 
-.wpaim-ob-optional__tag {
+.stilus-ob-optional__tag {
 	font-size: 0.5625rem;
 	font-weight: 600;
 	padding: var(--space-0-5) var(--space-2);
@@ -647,18 +647,18 @@
 	letter-spacing: 0.05em;
 }
 
-.wpaim-ob-optional__chevron {
+.stilus-ob-optional__chevron {
 	color: var(--color-text-muted);
 	font-size: 0.6875rem;
 	margin-left: auto;
 	transition: transform 0.15s;
 }
 
-.wpaim-ob-optional__chevron--open {
+.stilus-ob-optional__chevron--open {
 	transform: rotate(180deg);
 }
 
-.wpaim-ob-optional__body {
+.stilus-ob-optional__body {
 	padding: var(--space-2) var(--space-3) var(--space-3);
 	border-top: 1px solid #e0e1e6;
 	display: flex;
@@ -666,14 +666,14 @@
 	gap: var(--space-2);
 }
 
-.wpaim-ob-optional__desc {
+.stilus-ob-optional__desc {
 	font-size: 0.6875rem;
 	color: var(--color-text-secondary);
 	line-height: 1.4;
 }
 
 /* Dev note */
-.wpaim-ob-devnote {
+.stilus-ob-devnote {
 	display: flex;
 	gap: var(--space-2);
 	align-items: flex-start;
@@ -687,7 +687,7 @@
 	margin-top: var(--space-1);
 }
 
-.wpaim-ob-devnote code {
+.stilus-ob-devnote code {
 	background: rgba(0, 0, 0, 0.08);
 	padding: var(--space-0-5) var(--space-1);
 	border-radius: var(--radius-sm);
@@ -695,26 +695,26 @@
 }
 
 /* Success / Done */
-.wpaim-ob-success {
+.stilus-ob-success {
 	text-align: center;
 	padding: var(--space-3) 0 var(--space-1);
 }
 
-.wpaim-ob-success__title {
+.stilus-ob-success__title {
 	font-size: 0.875rem;
 	font-weight: 700;
 	color: var(--color-text-primary);
 	margin-bottom: var(--space-1);
 }
 
-.wpaim-ob-success__sub {
+.stilus-ob-success__sub {
 	font-size: 0.6875rem;
 	color: var(--color-text-secondary);
 	line-height: 1.5;
 	margin-bottom: var(--space-3);
 }
 
-.wpaim-ob-success__cta {
+.stilus-ob-success__cta {
 	display: block;
 	width: 100%;
 	padding: var(--space-2) 0;
@@ -731,14 +731,14 @@
 	transition: background 0.12s;
 }
 
-.wpaim-ob-success__cta:hover {
+.stilus-ob-success__cta:hover {
 	background: color-mix(in srgb, var(--color-success) 85%, #000);
 	color: #fff;
 	text-decoration: none;
 }
 
 /* Skip / back button */
-.wpaim-ob-skip {
+.stilus-ob-skip {
 	font-size: 0.6875rem;
 	color: var(--color-text-muted);
 	background: none;
@@ -750,28 +750,28 @@
 	text-decoration: none;
 }
 
-.wpaim-ob-skip:hover {
+.stilus-ob-skip:hover {
 	color: var(--color-text-secondary);
 	text-decoration: none;
 }
 
 /* ── Usage widget ──────────────────────────────────────────────────────────── */
 
-.wpaim-usage-widget {
+.stilus-usage-widget {
 	background: var(--color-surface);
 	border: 1px solid var(--color-border-subtle);
 	border-radius: var(--radius);
 	padding: var(--space-4);
 }
 
-.wpaim-usage-widget__header {
+.stilus-usage-widget__header {
 	display: flex;
 	align-items: baseline;
 	justify-content: space-between;
 	margin-bottom: var(--space-3);
 }
 
-.wpaim-usage-widget__tier-badge {
+.stilus-usage-widget__tier-badge {
 	font-size: 0.625rem;
 	padding: var(--space-0-5) var(--space-2);
 	border-radius: var(--radius-sm);
@@ -782,36 +782,36 @@
 	letter-spacing: 0.05em;
 }
 
-.wpaim-usage-widget__value-row {
+.stilus-usage-widget__value-row {
 	display: flex;
 	align-items: baseline;
 	gap: var(--space-2);
 }
 
-.wpaim-usage-widget__value {
+.stilus-usage-widget__value {
 	font-size: 1.5rem;
 	font-weight: 700;
 	color: var(--color-text-primary, #1d2327);
 	line-height: 1;
 }
 
-.wpaim-usage-widget__value--limit-reached {
+.stilus-usage-widget__value--limit-reached {
 	color: #d63638;
 }
 
-.wpaim-usage-widget__sub-label {
+.stilus-usage-widget__sub-label {
 	font-size: 0.6875rem;
 	color: var(--color-text-secondary);
 }
 
-.wpaim-usage-widget__token-count {
+.stilus-usage-widget__token-count {
 	font-size: 0.625rem;
 	color: var(--color-text-muted);
 	margin-top: var(--space-0-5);
 	margin-bottom: var(--space-2);
 }
 
-.wpaim-usage-widget__bar-track {
+.stilus-usage-widget__bar-track {
 	background: var(--color-border, #ddd);
 	border-radius: var(--radius-sm);
 	height: 6px;
@@ -819,17 +819,17 @@
 	margin-top: var(--space-2);
 }
 
-.wpaim-usage-widget__bar-fill {
+.stilus-usage-widget__bar-fill {
 	height: 100%;
 	background: var(--wp-admin-theme-color);
 	transition: width 0.3s ease;
 }
 
-.wpaim-usage-widget__bar-fill--limit-reached {
+.stilus-usage-widget__bar-fill--limit-reached {
 	background: #d63638;
 }
 
-.wpaim-usage-widget__limit-message {
+.stilus-usage-widget__limit-message {
 	color: #d63638;
 	margin: var(--space-2) 0 0;
 	font-size: 0.6875rem;

@@ -33,7 +33,7 @@ const LAUNCH_SUGGESTIONS = [
  * @return {ReactElement}
  */
 export default function ChatApp() {
-	const { isPro } = window.wpAiMindData || {};
+	const { isPro } = window.stilusData || {};
 
 	const [ conversations, setConversations ] = useState( [] );
 	const [ activeConvId, setActiveConvId ] = useState( null );
@@ -43,7 +43,7 @@ export default function ChatApp() {
 	const [ selectedModel, setSelectedModel ] = useState( '' );
 	const [ providers, setProviders ] = useState( [] );
 	const [ isSidebarCollapsed, setIsSidebarCollapsed ] = useState(
-		() => storageGet( 'wpaim-sidebar-collapsed' ) === '1'
+		() => storageGet( 'stilus-sidebar-collapsed' ) === '1'
 	);
 	const [ attachedPost, setAttachedPost ] = useState( null );
 	const [ pendingQuickAction, setPendingQuickAction ] = useState( null );
@@ -86,7 +86,7 @@ export default function ChatApp() {
 			const data = await apiFetch( { path: '/wp-ai-mind/v1/providers' } );
 			setProviders( data );
 			if ( data.length > 0 ) {
-				const storedDefault = window.wpAiMindData?.defaultProvider;
+				const storedDefault = window.stilusData?.defaultProvider;
 				const match = data.find( ( p ) => p.slug === storedDefault );
 				setSelectedProvider( ( match ?? data[ 0 ] ).slug );
 			}
@@ -294,20 +294,20 @@ export default function ChatApp() {
 
 	return (
 		<div
-			className={ `wpaim-shell${
-				isSidebarCollapsed ? ' wpaim-shell--sidebar-collapsed' : ''
+			className={ `stilus-shell${
+				isSidebarCollapsed ? ' stilus-shell--sidebar-collapsed' : ''
 			}` }
 		>
-			<aside className="wpaim-sidebar">
-				<div className="wpaim-sidebar__header">
+			<aside className="stilus-sidebar">
+				<div className="stilus-sidebar__header">
 					{ ! isSidebarCollapsed && (
-						<span className="wpaim-sidebar__title">
+						<span className="stilus-sidebar__title">
 							{ __( 'Conversations', 'wp-ai-mind' ) }
 						</span>
 					) }
 					{ ! isSidebarCollapsed && (
 						<button
-							className="wpaim-btn wpaim-btn--ghost wpaim-btn--icon"
+							className="stilus-btn stilus-btn--ghost stilus-btn--icon"
 							onClick={ newConversation }
 							title={ NEW_CONVERSATION_TITLE }
 							aria-label={ NEW_CONVERSATION_TITLE }
@@ -317,12 +317,12 @@ export default function ChatApp() {
 						</button>
 					) }
 					<button
-						className="wpaim-btn wpaim-btn--ghost wpaim-btn--icon wpaim-sidebar__toggle"
+						className="stilus-btn stilus-btn--ghost stilus-btn--icon stilus-sidebar__toggle"
 						onClick={ () =>
 							setIsSidebarCollapsed( ( prev ) => {
 								const next = ! prev;
 								storageSet(
-									'wpaim-sidebar-collapsed',
+									'stilus-sidebar-collapsed',
 									next ? '1' : '0'
 								);
 								return next;
@@ -350,7 +350,7 @@ export default function ChatApp() {
 				/>
 			</aside>
 
-			<main className="wpaim-main">
+			<main className="stilus-main">
 				{ messages.length === 0 && ! isLoading ? (
 					<CenteredLaunch
 						suggestions={ LAUNCH_SUGGESTIONS }
@@ -381,7 +381,7 @@ export default function ChatApp() {
 				) }
 			</main>
 
-			<aside className="wpaim-right-panel">
+			<aside className="stilus-right-panel">
 				<ModelSelector
 					providers={ providers }
 					selectedProvider={ selectedProvider }
@@ -429,16 +429,16 @@ function CenteredLaunch( {
 	onPickerClose,
 } ) {
 	return (
-		<div className="wpaim-launch">
-			<div className="wpaim-launch__inner">
-				<p className="wpaim-launch__title">
+		<div className="stilus-launch">
+			<div className="stilus-launch__inner">
+				<p className="stilus-launch__title">
 					{ __( 'How can I help you today?', 'wp-ai-mind' ) }
 				</p>
-				<div className="wpaim-launch__suggestions">
+				<div className="stilus-launch__suggestions">
 					{ suggestions.map( ( s ) => (
 						<button
 							key={ s.id }
-							className="wpaim-suggestion-chip"
+							className="stilus-suggestion-chip"
 							type="button"
 							onClick={ () => onSend( s.prompt, s.requiresPost ) }
 						>

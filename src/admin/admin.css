@@ -2,8 +2,8 @@
 @import "../styles/animations.css";
 
 :root {
-	--wpaim-sidebar-width: 220px;
-	--wpaim-sidebar-collapsed-width: 40px;
+	--stilus-sidebar-width: 220px;
+	--stilus-sidebar-collapsed-width: 40px;
 }
 
 /* ── WP admin viewport fix ──
@@ -23,9 +23,9 @@
 }
 
 /* ── Shell layout ── */
-.wpaim-shell {
+.stilus-shell {
 	display: grid;
-	grid-template-columns: var(--wpaim-sidebar-width) 1fr 240px;
+	grid-template-columns: var(--stilus-sidebar-width) 1fr 240px;
 	height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
 	background: #fff;
 	color: #1d2327;
@@ -35,12 +35,12 @@
 	transition: grid-template-columns 0.15s ease;
 }
 
-.wpaim-shell--sidebar-collapsed {
-	grid-template-columns: var(--wpaim-sidebar-collapsed-width) 1fr 240px;
+.stilus-shell--sidebar-collapsed {
+	grid-template-columns: var(--stilus-sidebar-collapsed-width) 1fr 240px;
 }
 
 /* ── Sidebar ── */
-.wpaim-sidebar {
+.stilus-sidebar {
 	background: var(--color-surface-2);
 	border-right: 1px solid var(--color-border);
 	display: flex;
@@ -48,7 +48,7 @@
 	overflow: hidden;
 }
 
-.wpaim-sidebar__toggle {
+.stilus-sidebar__toggle {
 	flex-shrink: 0;
 	display: flex;
 	align-items: center;
@@ -56,7 +56,7 @@
 	color: var(--color-text-muted);
 }
 
-.wpaim-sidebar__header {
+.stilus-sidebar__header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -64,7 +64,7 @@
 	border-bottom: 1px solid var(--color-border);
 }
 
-.wpaim-sidebar__title {
+.stilus-sidebar__title {
 	font-size: var(--text-xs);
 	font-weight: 600;
 	text-transform: uppercase;
@@ -72,14 +72,14 @@
 	color: var(--color-text-muted);
 }
 
-.wpaim-sidebar__empty {
+.stilus-sidebar__empty {
 	padding: var(--space-4);
 	font-size: var(--text-sm);
 	color: var(--color-text-muted);
 	text-align: center;
 }
 
-.wpaim-sidebar__error {
+.stilus-sidebar__error {
 	margin: var(--space-2) var(--space-4);
 	padding: var(--space-2) var(--space-3);
 	font-size: var(--text-sm);
@@ -88,7 +88,7 @@
 	border-radius: var(--radius-sm);
 }
 
-.wpaim-conv-list {
+.stilus-conv-list {
 	flex: 1;
 	overflow-y: auto;
 	padding: var(--space-2);
@@ -96,24 +96,24 @@
 
 /* Collapsed sidebar: hide list and title, centre the toggle.
    Placed after all base selectors to satisfy no-descending-specificity. */
-.wpaim-shell--sidebar-collapsed .wpaim-sidebar__title,
-.wpaim-shell--sidebar-collapsed .wpaim-conv-list,
-.wpaim-shell--sidebar-collapsed .wpaim-sidebar__empty {
+.stilus-shell--sidebar-collapsed .stilus-sidebar__title,
+.stilus-shell--sidebar-collapsed .stilus-conv-list,
+.stilus-shell--sidebar-collapsed .stilus-sidebar__empty {
 	display: none;
 }
 
-.wpaim-shell--sidebar-collapsed .wpaim-sidebar__header {
+.stilus-shell--sidebar-collapsed .stilus-sidebar__header {
 	justify-content: center;
 	padding: var(--space-2) 0;
 	border-bottom: none;
 }
 
-.wpaim-shell--sidebar-collapsed .wpaim-sidebar__toggle {
+.stilus-shell--sidebar-collapsed .stilus-sidebar__toggle {
 	width: 100%;
 	height: 36px;
 }
 
-.wpaim-conv-item {
+.stilus-conv-item {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
@@ -122,13 +122,13 @@
 	padding: 0;
 }
 
-.wpaim-conv-item:hover,
-.wpaim-conv-item.is-active {
+.stilus-conv-item:hover,
+.stilus-conv-item.is-active {
 	background: #f0f0f1;
 	background: color-mix(in srgb, var(--wp-admin-theme-color) 8%, #fff);
 }
 
-.wpaim-conv-item__body {
+.stilus-conv-item__body {
 	display: flex;
 	flex-direction: column;
 	flex: 1;
@@ -142,7 +142,7 @@
 	font-family: inherit;
 }
 
-.wpaim-conv-item__title {
+.stilus-conv-item__title {
 	font-size: var(--text-sm);
 	color: var(--color-text-primary);
 	white-space: nowrap;
@@ -150,12 +150,12 @@
 	text-overflow: ellipsis;
 }
 
-.wpaim-conv-item__date {
+.stilus-conv-item__date {
 	font-size: var(--text-xs);
 	color: var(--color-text-muted);
 }
 
-.wpaim-conv-item__delete {
+.stilus-conv-item__delete {
 	flex-shrink: 0;
 	display: flex;
 	align-items: center;
@@ -169,26 +169,26 @@
 	transition: opacity 0.1s, color 0.1s, background 0.1s;
 }
 
-.wpaim-conv-item__delete:hover {
+.stilus-conv-item__delete:hover {
 	color: var(--color-error);
 	background: color-mix(in srgb, var(--color-error) 10%, #fff);
 }
 
-.wpaim-conv-item:hover .wpaim-conv-item__delete,
-.wpaim-conv-item.is-active .wpaim-conv-item__delete {
+.stilus-conv-item:hover .stilus-conv-item__delete,
+.stilus-conv-item.is-active .stilus-conv-item__delete {
 	opacity: 1;
 	pointer-events: auto;
 }
 
 /* ── Main area ── */
-.wpaim-main {
+.stilus-main {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
 }
 
 /* ── Messages ── */
-.wpaim-messages {
+.stilus-messages {
 	flex: 1;
 	overflow-y: auto;
 	padding: var(--space-6) var(--space-8);
@@ -198,31 +198,31 @@
 }
 
 /* ── Bubbles ── */
-.wpaim-bubble {
+.stilus-bubble {
 	max-width: 640px;
 }
 
-.wpaim-bubble--ai {
+.stilus-bubble--ai {
 	align-self: flex-start;
 }
 
-.wpaim-bubble--user {
+.stilus-bubble--user {
 	align-self: flex-end;
 }
 
-.wpaim-bubble__content {
+.stilus-bubble__content {
 	padding: var(--space-3) var(--space-4);
 	border-radius: var(--radius-md);
 	line-height: 1.6;
 }
 
-.wpaim-bubble--ai .wpaim-bubble__content {
+.stilus-bubble--ai .stilus-bubble__content {
 	background: #f0f0f1;
 	border: 1px solid #e0e1e6;
 	border-top-left-radius: var(--radius-sm);
 }
 
-.wpaim-bubble--error .wpaim-bubble__content {
+.stilus-bubble--error .stilus-bubble__content {
 	background: #fde8e8;
 	background: color-mix(in srgb, #cc1818 8%, #fff);
 	border-color: #efb8b8;
@@ -230,13 +230,13 @@
 	color: var(--wp-components-color-error, #cc1818);
 }
 
-.wpaim-bubble--user .wpaim-bubble__content {
+.stilus-bubble--user .stilus-bubble__content {
 	background: rgba(var(--wp-admin-theme-color--rgb), 0.12);
 	border: 1px solid rgba(var(--wp-admin-theme-color--rgb), 0.3);
 	border-top-right-radius: var(--radius-sm);
 }
 
-.wpaim-bubble__meta {
+.stilus-bubble__meta {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -246,7 +246,7 @@
 }
 
 /* ── Composer ── */
-.wpaim-composer {
+.stilus-composer {
 	display: flex;
 	flex-direction: column;
 	gap: 0;
@@ -256,13 +256,13 @@
 	position: relative;
 }
 
-.wpaim-composer__row {
+.stilus-composer__row {
 	display: flex;
 	align-items: flex-end;
 	gap: var(--space-2);
 }
 
-.wpaim-composer__input {
+.stilus-composer__input {
 	flex: 1;
 	background: var(--color-bg);
 	border: 1px solid var(--color-border);
@@ -277,25 +277,25 @@
 	line-height: 1.5;
 }
 
-.wpaim-composer__input:focus {
+.stilus-composer__input:focus {
 	outline: none;
 	border-color: var(--wp-admin-theme-color);
 }
 
-.wpaim-composer__input:focus-visible {
+.stilus-composer__input:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color);
 	outline-offset: 2px;
 }
 
-.wpaim-composer__input::placeholder {
+.stilus-composer__input::placeholder {
 	color: var(--color-text-muted);
 }
 
-.wpaim-composer__attachment {
+.stilus-composer__attachment {
 	padding-bottom: var(--space-2);
 }
 
-.wpaim-composer__attachment-pill {
+.stilus-composer__attachment-pill {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-1);
@@ -311,7 +311,7 @@
 	white-space: nowrap;
 }
 
-.wpaim-composer__attachment-dismiss {
+.stilus-composer__attachment-dismiss {
 	background: none;
 	border: none;
 	cursor: pointer;
@@ -322,12 +322,12 @@
 	align-items: center;
 }
 
-.wpaim-composer__attachment-dismiss:hover {
+.stilus-composer__attachment-dismiss:hover {
 	color: var(--color-text-primary);
 }
 
 /* ── Context picker ── */
-.wpaim-context-picker {
+.stilus-context-picker {
 	position: absolute;
 	bottom: calc(100% + var(--space-2));
 	left: var(--space-6);
@@ -340,7 +340,7 @@
 	overflow: hidden;
 }
 
-.wpaim-context-picker__search {
+.stilus-context-picker__search {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -348,12 +348,12 @@
 	border-bottom: 1px solid #e0e1e6;
 }
 
-.wpaim-context-picker__icon {
+.stilus-context-picker__icon {
 	color: var(--color-text-muted);
 	flex-shrink: 0;
 }
 
-.wpaim-context-picker__input {
+.stilus-context-picker__input {
 	flex: 1;
 	background: none;
 	border: none;
@@ -363,22 +363,22 @@
 	font-family: var(--font-sans);
 }
 
-.wpaim-context-picker__input:focus-visible {
+.stilus-context-picker__input:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color);
 	outline-offset: 2px;
 }
 
-.wpaim-context-picker__input::placeholder {
+.stilus-context-picker__input::placeholder {
 	color: var(--color-text-muted);
 }
 
-.wpaim-context-picker__status {
+.stilus-context-picker__status {
 	padding: var(--space-2) var(--space-3);
 	font-size: var(--text-xs);
 	color: var(--color-text-muted);
 }
 
-.wpaim-context-picker__list {
+.stilus-context-picker__list {
 	list-style: none;
 	margin: 0;
 	padding: var(--space-1) 0;
@@ -386,7 +386,7 @@
 	overflow-y: auto;
 }
 
-.wpaim-context-picker__item {
+.stilus-context-picker__item {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -402,18 +402,18 @@
 	font-family: var(--font-sans);
 }
 
-.wpaim-context-picker__item:hover {
+.stilus-context-picker__item:hover {
 	background: var(--color-surface-2);
 }
 
-.wpaim-context-picker__title {
+.stilus-context-picker__title {
 	flex: 1;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.wpaim-context-picker__badge {
+.stilus-context-picker__badge {
 	flex-shrink: 0;
 	font-size: var(--text-xs);
 	color: var(--color-text-muted);
@@ -424,13 +424,13 @@
 }
 
 /* ── Model selector simple/advanced ── */
-.wpaim-model-simple {
+.stilus-model-simple {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-2);
 }
 
-.wpaim-model-default-label {
+.stilus-model-default-label {
 	font-size: var(--text-sm);
 	color: var(--color-text-secondary);
 	overflow: hidden;
@@ -438,7 +438,7 @@
 	white-space: nowrap;
 }
 
-.wpaim-model-advanced-toggle {
+.stilus-model-advanced-toggle {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-0-5);
@@ -451,22 +451,22 @@
 	font-family: var(--font-sans);
 }
 
-.wpaim-model-advanced-toggle:hover {
+.stilus-model-advanced-toggle:hover {
 	color: var(--color-text-secondary);
 }
 
-.wpaim-model-no-key {
+.stilus-model-no-key {
 	font-size: var(--text-xs);
 	color: var(--color-warning);
 	margin: var(--space-1) 0 0;
 }
 
-.wpaim-model-no-key a {
+.stilus-model-no-key a {
 	color: var(--color-warning);
 }
 
 /* ── Right panel ── */
-.wpaim-right-panel {
+.stilus-right-panel {
 	background: var(--color-surface);
 	border-left: 1px solid var(--color-border);
 	overflow-y: auto;
@@ -476,13 +476,13 @@
 	gap: var(--space-5);
 }
 
-.wpaim-panel-section {
+.stilus-panel-section {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-2);
 }
 
-.wpaim-panel-label {
+.stilus-panel-label {
 	font-size: var(--text-xs);
 	font-weight: 600;
 	text-transform: uppercase;
@@ -491,26 +491,26 @@
 }
 
 /* ── Model selector ── */
-.wpaim-model-selector {
+.stilus-model-selector {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-1);
 }
 
-.wpaim-model-selector__row {
+.stilus-model-selector__row {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
 }
 
 /* ── Quick actions ── */
-.wpaim-quick-actions {
+.stilus-quick-actions {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-1);
 }
 
-.wpaim-quick-action {
+.stilus-quick-action {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -525,13 +525,13 @@
 	transition: background 0.1s, color 0.1s, border-color 0.1s;
 }
 
-.wpaim-quick-action:hover {
+.stilus-quick-action:hover {
 	background: #f0f0f1;
 	border-color: #dcdcde;
 	color: #1d2327;
 }
 
-.wpaim-pro-teaser {
+.stilus-pro-teaser {
 	padding: var(--space-2) var(--space-3);
 	font-size: var(--text-xs);
 	color: var(--color-text-muted);
@@ -544,19 +544,19 @@
 
 /* Shared base for any remaining raw <button> elements
    (attachment dismiss, etc.) */
-.wpaim-btn--ghost {
+.stilus-btn--ghost {
 	background: transparent;
 	color: var(--color-text-secondary);
 	border: 1px solid transparent;
 	cursor: pointer;
 }
 
-.wpaim-btn--ghost:hover {
+.stilus-btn--ghost:hover {
 	background: var(--color-surface-2);
 	color: var(--color-text-primary);
 }
 
-.wpaim-btn--icon {
+.stilus-btn--icon {
 	padding: 0;
 	width: 36px;
 	height: 36px;
@@ -566,7 +566,7 @@
 }
 
 /* ── Select ── */
-.wpaim-select {
+.stilus-select {
 	width: 100%;
 	background: var(--color-bg);
 	border: 1px solid var(--color-border);
@@ -577,24 +577,24 @@
 	height: 30px;
 }
 
-.wpaim-select:focus {
+.stilus-select:focus {
 	outline: none;
 	border-color: var(--wp-admin-theme-color);
 }
 
-.wpaim-select:focus-visible {
+.stilus-select:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color);
 	outline-offset: 2px;
 }
 
-.wpaim-select--sm {
+.stilus-select--sm {
 	font-size: var(--text-xs);
 	height: 26px;
 	margin-top: var(--space-1);
 }
 
 /* ── Centred launch state ── */
-.wpaim-launch {
+.stilus-launch {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
@@ -603,7 +603,7 @@
 	overflow: hidden;
 }
 
-.wpaim-launch__inner {
+.stilus-launch__inner {
 	width: 100%;
 	max-width: 640px;
 	display: flex;
@@ -611,7 +611,7 @@
 	gap: var(--space-4);
 }
 
-.wpaim-launch__title {
+.stilus-launch__title {
 	font-size: var(--text-xl);
 	font-weight: 600;
 	color: var(--color-text-secondary);
@@ -619,14 +619,14 @@
 	margin: 0;
 }
 
-.wpaim-launch__suggestions {
+.stilus-launch__suggestions {
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--space-2);
 	justify-content: center;
 }
 
-.wpaim-suggestion-chip {
+.stilus-suggestion-chip {
 	padding: var(--space-2) var(--space-3);
 	border: 1px solid var(--color-border-subtle);
 	border-radius: var(--radius);
@@ -638,20 +638,20 @@
 	transition: background 0.1s, border-color 0.1s, color 0.1s;
 }
 
-.wpaim-suggestion-chip:hover {
+.stilus-suggestion-chip:hover {
 	background: var(--color-surface-2);
 	border-color: var(--color-border);
 	color: var(--color-text-primary);
 }
 
-.wpaim-composer--borderless {
+.stilus-composer--borderless {
 	border-top: none;
 	padding-top: 0;
 }
 
 /* ── Animations ── */
-.wpaim-spinner {
-	animation: wpaim-spin 0.8s linear infinite;
+.stilus-spinner {
+	animation: stilus-spin 0.8s linear infinite;
 }
 
 /* ════════════════════════════════════════════════
@@ -659,7 +659,7 @@
    ════════════════════════════════════════════════ */
 
 /* Shell — structural only; background/colour provided by WP admin */
-.wpaim-settings-shell {
+.stilus-settings-shell {
 	display: flex;
 	flex-direction: column;
 	font-family: var(--font-sans);
@@ -668,7 +668,7 @@
 }
 
 /* Header bar */
-.wpaim-settings-header {
+.stilus-settings-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -677,7 +677,7 @@
 	background: #f8f9fa;
 }
 
-.wpaim-settings-title {
+.stilus-settings-title {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -686,13 +686,13 @@
 	color: var(--color-text-primary);
 }
 
-.wpaim-settings-loading {
+.stilus-settings-loading {
 	color: var(--color-text-muted);
 	font-size: var(--text-sm);
 }
 
 /* Section */
-.wpaim-settings-section {
+.stilus-settings-section {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-4);
@@ -700,13 +700,13 @@
 	margin-bottom: var(--space-8);
 }
 
-.wpaim-settings-section-header {
+.stilus-settings-section-header {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-1);
 }
 
-.wpaim-settings-section-title {
+.stilus-settings-section-title {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -716,7 +716,7 @@
 	margin: 0;
 }
 
-.wpaim-settings-section-desc {
+.stilus-settings-section-desc {
 	font-size: var(--text-sm);
 	color: var(--color-text-secondary);
 	margin: 0;
@@ -724,41 +724,41 @@
 }
 
 /* Field rows */
-.wpaim-field-row {
+.stilus-field-row {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-2);
 }
 
-.wpaim-field-input-group {
+.stilus-field-input-group {
 	display: flex;
 	gap: var(--space-2);
 }
 
 /* Voice footer */
-.wpaim-voice-footer {
+.stilus-voice-footer {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 }
 
-.wpaim-char-count {
+.stilus-char-count {
 	font-size: var(--text-xs);
 	color: var(--color-text-muted);
 }
 
-.wpaim-char-count--error {
+.stilus-char-count--error {
 	color: var(--color-error);
 }
 
 /* Features grid */
-.wpaim-features-grid {
+.stilus-features-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 	gap: var(--space-4);
 }
 
-.wpaim-feature-card {
+.stilus-feature-card {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-2);
@@ -769,39 +769,39 @@
 	transition: border-color 0.1s;
 }
 
-.wpaim-feature-card--enabled {
+.stilus-feature-card--enabled {
 	border-color: rgba(var(--wp-admin-theme-color--rgb), 0.3);
 }
 
-.wpaim-feature-card--locked {
+.stilus-feature-card--locked {
 	opacity: 0.6;
 }
 
-.wpaim-feature-card-header {
+.stilus-feature-card-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 }
 
-.wpaim-feature-card-meta {
+.stilus-feature-card-meta {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
 }
 
-.wpaim-feature-card-label {
+.stilus-feature-card-label {
 	font-size: var(--text-md);
 	font-weight: 600;
 }
 
-.wpaim-feature-card-desc {
+.stilus-feature-card-desc {
 	font-size: var(--text-sm);
 	color: var(--color-text-secondary);
 	line-height: 1.5;
 	margin: 0;
 }
 
-.wpaim-feature-card-locked-msg {
+.stilus-feature-card-locked-msg {
 	display: flex;
 	align-items: center;
 	gap: var(--space-1);
@@ -811,7 +811,7 @@
 }
 
 /* Pro badge */
-.wpaim-pro-badge {
+.stilus-pro-badge {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-1);
@@ -829,17 +829,17 @@
 
 
 /* ── Toggle switch ── */
-.wpaim-toggle {
+.stilus-toggle {
 	display: inline-flex;
 	align-items: center;
 	cursor: pointer;
 }
 
-.wpaim-toggle--disabled {
+.stilus-toggle--disabled {
 	cursor: not-allowed;
 }
 
-.wpaim-toggle__input {
+.stilus-toggle__input {
 	position: absolute;
 	width: 1px;
 	height: 1px;
@@ -849,7 +849,7 @@
 	white-space: nowrap;
 }
 
-.wpaim-toggle__track {
+.stilus-toggle__track {
 	display: block;
 	width: 36px;
 	height: 20px;
@@ -860,7 +860,7 @@
 	transition: background 0.15s, border-color 0.15s;
 }
 
-.wpaim-toggle__track::after {
+.stilus-toggle__track::after {
 	content: "";
 	position: absolute;
 	top: 2px;
@@ -872,18 +872,18 @@
 	transition: transform 0.15s, background 0.15s;
 }
 
-.wpaim-toggle__input:checked + .wpaim-toggle__track {
+.stilus-toggle__input:checked + .stilus-toggle__track {
 	background: var(--wp-admin-theme-color);
 	border-color: var(--wp-admin-theme-color);
 }
 
-.wpaim-toggle__input:checked + .wpaim-toggle__track::after {
+.stilus-toggle__input:checked + .stilus-toggle__track::after {
 	background: var(--color-bg);
 	transform: translateX(16px);
 }
 
 /* ── "Run setup again" section ── */
-.wpaim-settings-label {
+.stilus-settings-label {
 	font-size: 0.6875rem;
 	font-weight: 600;
 	color: #50575e;
@@ -892,14 +892,14 @@
 	margin-bottom: var(--space-1);
 }
 
-.wpaim-settings-description {
+.stilus-settings-description {
 	font-size: 0.75rem;
 	color: var(--color-text-secondary);
 	line-height: 1.5;
 	margin-bottom: var(--space-3);
 }
 
-.wpaim-btn--secondary {
+.stilus-btn--secondary {
 	font-size: 0.75rem;
 	font-weight: 500;
 	padding: var(--space-1) var(--space-3);
@@ -912,7 +912,7 @@
 	transition: border-color 0.12s, color 0.12s;
 }
 
-.wpaim-btn--secondary:hover {
+.stilus-btn--secondary:hover {
 	border-color: #8c8f94;
 	color: var(--color-text-primary);
 }
@@ -922,18 +922,18 @@
    ════════════════════════════════════════════════ */
 
 /* VoiceTab — error state on TextareaControl */
-.wpaim-voice-textarea-wrap.is-error .components-textarea-control__input {
+.stilus-voice-textarea-wrap.is-error .components-textarea-control__input {
 	border-color: var(--color-error);
 }
 
 /* ProvidersTab — TextControl + Button side-by-side alignment */
-.wpaim-field-input-group .components-base-control {
+.stilus-field-input-group .components-base-control {
 	flex: 1;
 	margin-bottom: 0;
 }
 
 /* QuickActions — WP admin colour overrides for tertiary Button */
-.wpaim-quick-action.components-button {
+.stilus-quick-action.components-button {
 	color: #50575e;
 	height: auto;
 	padding: var(--space-2) var(--space-3);
@@ -941,7 +941,7 @@
 	justify-content: flex-start;
 }
 
-.wpaim-quick-action.components-button:hover:not(:disabled) {
+.stilus-quick-action.components-button:hover:not(:disabled) {
 	color: #1d2327;
 	background: #f0f0f1;
 	border-color: #dcdcde;

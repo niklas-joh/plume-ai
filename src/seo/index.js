@@ -4,7 +4,7 @@ import SeoApp from './SeoApp';
 import '../styles/tokens.css';
 import './seo.css';
 
-const { nonce } = window.wpAiMindData ?? {};
+const { nonce } = window.stilusData ?? {};
 if ( nonce ) {
 	apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 }

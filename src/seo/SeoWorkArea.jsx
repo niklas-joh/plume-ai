@@ -3,7 +3,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { Loader2 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 
-const { nonce, restUrl, adminUrl = '/wp-admin/' } = window.wpAiMindData ?? {};
+const { nonce, restUrl, adminUrl = '/wp-admin/' } = window.stilusData ?? {};
 
 const EMPTY_FIELDS = {
 	meta_title: '',
@@ -106,14 +106,14 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 		}
 	};
 
-	const inputClass = ( base = 'wpaim-field-input' ) =>
+	const inputClass = ( base = 'stilus-field-input' ) =>
 		`${ base }${ hasGenerated ? ' is-generated' : '' }`;
 
 	return (
-		<div className="wpaim-work-area">
-			<div className="wpaim-work-header">
+		<div className="stilus-work-area">
+			<div className="stilus-work-header">
 				<span
-					className="wpaim-work-title"
+					className="stilus-work-title"
 					dangerouslySetInnerHTML={ {
 						__html: DOMPurify.sanitize( post.title.rendered ),
 					} }
@@ -125,7 +125,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 				>
 					{ generating ? (
 						<>
-							<Loader2 size={ 12 } className="wpaim-spin" />{ ' ' }
+							<Loader2 size={ 12 } className="stilus-spin" />{ ' ' }
 							Generating…
 						</>
 					) : (
@@ -136,7 +136,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 
 			{ confirmReplace && (
 				<div
-					className="wpaim-confirm-replace"
+					className="stilus-confirm-replace"
 					role="alertdialog"
 					aria-live="assertive"
 					aria-label="Replace confirmation"
@@ -158,14 +158,14 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 				</div>
 			) }
 
-			<div className="wpaim-seo-fields-grid">
-				<div className="wpaim-field">
+			<div className="stilus-seo-fields-grid">
+				<div className="stilus-field">
 					<label
 						htmlFor="seo-meta-title"
-						className="wpaim-field-label"
+						className="stilus-field-label"
 					>
 						Meta title
-						<span className="wpaim-char-count">
+						<span className="stilus-char-count">
 							{ fields.meta_title.length } / 60
 						</span>
 					</label>
@@ -179,10 +179,10 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					/>
 				</div>
 
-				<div className="wpaim-field">
-					<label htmlFor="seo-og-desc" className="wpaim-field-label">
+				<div className="stilus-field">
+					<label htmlFor="seo-og-desc" className="stilus-field-label">
 						OG description
-						<span className="wpaim-char-count">
+						<span className="stilus-char-count">
 							{ fields.og_description.length } / 160
 						</span>
 					</label>
@@ -196,8 +196,8 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					/>
 				</div>
 
-				<div className="wpaim-field wpaim-field--full">
-					<label htmlFor="seo-excerpt" className="wpaim-field-label">
+				<div className="stilus-field stilus-field--full">
+					<label htmlFor="seo-excerpt" className="stilus-field-label">
 						Excerpt
 					</label>
 					<textarea
@@ -210,8 +210,8 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					/>
 				</div>
 
-				<div className="wpaim-field wpaim-field--full">
-					<label htmlFor="seo-alt-text" className="wpaim-field-label">
+				<div className="stilus-field stilus-field--full">
+					<label htmlFor="seo-alt-text" className="stilus-field-label">
 						Featured image alt text
 					</label>
 					<input
@@ -225,14 +225,14 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 				</div>
 			</div>
 
-			{ error && <p className="wpaim-work-error">{ error }</p> }
+			{ error && <p className="stilus-work-error">{ error }</p> }
 
-			<div className="wpaim-work-actions">
+			<div className="stilus-work-actions">
 				<a
 					href={ editUrl }
 					target="_blank"
 					rel="noreferrer"
-					className="wpaim-action-link"
+					className="stilus-action-link"
 				>
 					Edit post →
 				</a>

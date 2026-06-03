@@ -115,7 +115,7 @@ class TierStatusPageTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Not connected', $output );
-		$this->assertStringNotContainsString( 'wpaim-status--active', $output );
+		$this->assertStringNotContainsString( 'stilus-status--active', $output );
 	}
 
 	// ── Upgrade section — checkout URLs ──────────────────────────────────────

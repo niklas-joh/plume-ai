@@ -27,10 +27,10 @@ jest.mock( '../../src/admin/utils/storage', () => ( {
 	storageSet: jest.fn(),
 } ) );
 
-// Provide the global wpAiMindData the component reads on initialisation
+// Provide the global stilusData the component reads on initialisation
 // (ChatApp.jsx line 36).
 beforeAll( () => {
-	global.window.wpAiMindData = {
+	global.window.stilusData = {
 		isPro: false,
 		defaultProvider: 'claude',
 		restUrl: 'http://localhost/wp-json/wp-ai-mind/v1',
@@ -39,7 +39,7 @@ beforeAll( () => {
 } );
 
 afterAll( () => {
-	delete global.window.wpAiMindData;
+	delete global.window.stilusData;
 } );
 
 describe( 'ChatApp', () => {
@@ -73,8 +73,8 @@ describe( 'ChatApp', () => {
 			root.render( <ChatApp /> );
 		} );
 
-		// .wpaim-shell is the root CSS class (ChatApp.jsx line 297).
-		expect( container.querySelector( '.wpaim-shell' ) ).not.toBeNull();
+		// .stilus-shell is the root CSS class (ChatApp.jsx line 297).
+		expect( container.querySelector( '.stilus-shell' ) ).not.toBeNull();
 	} );
 
 	it( 'renders the composer input in the DOM', async () => {
@@ -82,9 +82,9 @@ describe( 'ChatApp', () => {
 			root.render( <ChatApp /> );
 		} );
 
-		// The launch view's Composer always renders .wpaim-composer__input
+		// The launch view's Composer always renders .stilus-composer__input
 		// (Composer.jsx line 98 — a <textarea>).
-		const input = container.querySelector( '.wpaim-composer__input' );
+		const input = container.querySelector( '.stilus-composer__input' );
 		expect( input ).not.toBeNull();
 		expect( input.tagName.toLowerCase() ).toBe( 'textarea' );
 	} );
@@ -94,7 +94,7 @@ describe( 'ChatApp', () => {
 			root.render( <ChatApp /> );
 		} );
 
-		// ChatApp.jsx line 301 — <aside className="wpaim-sidebar">.
-		expect( container.querySelector( '.wpaim-sidebar' ) ).not.toBeNull();
+		// ChatApp.jsx line 301 — <aside className="stilus-sidebar">.
+		expect( container.querySelector( '.stilus-sidebar' ) ).not.toBeNull();
 	} );
 } );

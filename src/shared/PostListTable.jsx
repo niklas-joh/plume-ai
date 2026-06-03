@@ -122,20 +122,20 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 	};
 
 	if ( loading ) {
-		return <div className="wpaim-list-loading">Loading posts…</div>;
+		return <div className="stilus-list-loading">Loading posts…</div>;
 	}
 	if ( error ) {
-		return <div className="wpaim-list-error">Error: { error }</div>;
+		return <div className="stilus-list-error">Error: { error }</div>;
 	}
 
 	return (
-		<div className="wpaim-post-list">
-			<div className="wpaim-list-toolbar">
-				<div className="wpaim-list-tabs">
+		<div className="stilus-post-list">
+			<div className="stilus-list-toolbar">
+				<div className="stilus-list-tabs">
 					{ tabs.map( ( tab ) => (
 						<button
 							key={ tab.id }
-							className={ `wpaim-tab${
+							className={ `stilus-tab${
 								activeTab === tab.id ? ' is-active' : ''
 							}` }
 							onClick={ () => handleTabChange( tab.id ) }
@@ -146,7 +146,7 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 				</div>
 				<input
 					type="search"
-					className="wpaim-list-search"
+					className="stilus-list-search"
 					placeholder="Search posts…"
 					value={ search }
 					onChange={ handleSearch }
@@ -201,12 +201,12 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 			</table>
 
 			{ totalPages > 1 && (
-				<div className="wpaim-list-pagination">
-					<span className="wpaim-list-count">
+				<div className="stilus-list-pagination">
+					<span className="stilus-list-count">
 						Showing { visible.length } of { filtered.length } posts
 						and pages
 					</span>
-					<div className="wpaim-list-page-btns">
+					<div className="stilus-list-page-btns">
 						<button
 							className="button"
 							onClick={ () => setPage( ( p ) => p - 1 ) }
@@ -268,7 +268,7 @@ function PostRow( {
 					} }
 				/>
 				<td>
-					<span className="wpaim-type-badge">{ post.type }</span>
+					<span className="stilus-type-badge">{ post.type }</span>
 				</td>
 				{ columns.map( ( col ) => (
 					<td key={ col.label }>{ col.render( post ) }</td>
@@ -284,7 +284,7 @@ function PostRow( {
 				</td>
 			</tr>
 			{ expanded && (
-				<tr className="wpaim-work-row">
+				<tr className="stilus-work-row">
 					<td colSpan={ colSpan }>
 						<WorkArea
 							post={ post }

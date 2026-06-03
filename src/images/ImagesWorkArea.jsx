@@ -3,7 +3,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { Loader2 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 
-const { nonce, restUrl, adminUrl = '/wp-admin/' } = window.wpAiMindData ?? {};
+const { nonce, restUrl, adminUrl = '/wp-admin/' } = window.stilusData ?? {};
 
 const ASPECT_RATIOS = [ '16:9', '1:1', '4:3', '9:16' ];
 
@@ -119,35 +119,35 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 	};
 
 	return (
-		<div className="wpaim-work-area">
-			<div className="wpaim-work-header">
+		<div className="stilus-work-area">
+			<div className="stilus-work-header">
 				<span
-					className="wpaim-work-title"
+					className="stilus-work-title"
 					dangerouslySetInnerHTML={ {
 						__html: DOMPurify.sanitize( post.title.rendered ),
 					} }
 				/>
 			</div>
 
-			<div className="wpaim-images-prompt-row">
+			<div className="stilus-images-prompt-row">
 				<textarea
-					className="wpaim-prompt-input"
+					className="stilus-prompt-input"
 					placeholder="Describe the image you want to generate…"
 					value={ prompt }
 					onChange={ ( e ) => setPrompt( e.target.value ) }
 					rows={ 4 }
 				/>
-				<div className="wpaim-images-controls">
-					<div className="wpaim-control">
+				<div className="stilus-images-controls">
+					<div className="stilus-control">
 						<label
 							htmlFor="img-aspect-ratio"
-							className="wpaim-field-label"
+							className="stilus-field-label"
 						>
 							Aspect ratio
 						</label>
 						<select
 							id="img-aspect-ratio"
-							className="wpaim-field-input"
+							className="stilus-field-input"
 							value={ aspectRatio }
 							onChange={ ( e ) =>
 								setAspectRatio( e.target.value )
@@ -160,13 +160,13 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 							) ) }
 						</select>
 					</div>
-					<div className="wpaim-control">
-						<span className="wpaim-field-label">Count</span>
-						<div className="wpaim-count-pills">
+					<div className="stilus-control">
+						<span className="stilus-field-label">Count</span>
+						<div className="stilus-count-pills">
 							{ [ 1, 2, 3 ].map( ( n ) => (
 								<button
 									key={ n }
-									className={ `wpaim-pill${
+									className={ `stilus-pill${
 										count === n ? ' is-active' : ''
 									}` }
 									onClick={ () => setCount( n ) }
@@ -183,7 +183,7 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 					>
 						{ generating ? (
 							<>
-								<Loader2 size={ 12 } className="wpaim-spin" />{ ' ' }
+								<Loader2 size={ 12 } className="stilus-spin" />{ ' ' }
 								Generating…
 							</>
 						) : (
@@ -194,10 +194,10 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 			</div>
 
 			{ warning && (
-				<p className="wpaim-work-warning">
+				<p className="stilus-work-warning">
 					⚠ { warning }
 					<button
-						className="wpaim-dismiss"
+						className="stilus-dismiss"
 						onClick={ () => setWarning( null ) }
 					>
 						✕
@@ -206,11 +206,11 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 			) }
 
 			{ images.length > 0 && (
-				<div className="wpaim-image-grid">
+				<div className="stilus-image-grid">
 					{ images.map( ( img ) => (
 						<div
 							key={ img.attachment_id }
-							className={ `wpaim-image-card${
+							className={ `stilus-image-card${
 								selectedId === img.attachment_id
 									? ' is-selected'
 									: ''
@@ -226,14 +226,14 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 							<img
 								src={ img.url }
 								alt={ prompt }
-								className="wpaim-image-thumb"
+								className="stilus-image-thumb"
 							/>
 							{ selectedId === img.attachment_id && (
-								<span className="wpaim-selected-badge">
+								<span className="stilus-selected-badge">
 									✓ Selected
 								</span>
 							) }
-							<div className="wpaim-image-footer">
+							<div className="stilus-image-footer">
 								<a
 									href={ `${ adminUrl }post.php?post=${ img.attachment_id }&action=edit` }
 									target="_blank"
@@ -248,14 +248,14 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 				</div>
 			) }
 
-			{ error && <p className="wpaim-work-error">{ error }</p> }
+			{ error && <p className="stilus-work-error">{ error }</p> }
 
-			<div className="wpaim-work-actions">
+			<div className="stilus-work-actions">
 				<a
 					href={ editUrl }
 					target="_blank"
 					rel="noreferrer"
-					className="wpaim-action-link"
+					className="stilus-action-link"
 				>
 					Edit post →
 				</a>

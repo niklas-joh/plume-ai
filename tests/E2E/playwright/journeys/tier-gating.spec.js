@@ -13,14 +13,14 @@ test.describe( 'Tier gating', () => {
 		// the plugin is active and the page loads without a fatal error.
 		// .first() avoids a strict-mode violation if the fallback selector also matches.
 		await expect(
-			page.locator( '#wp-ai-mind-generator, .wpaim-generator-app' ).first()
+			page.locator( '#wp-ai-mind-generator, .stilus-generator-app' ).first()
 		).toBeVisible();
 	} );
 
 	test( 'images page loads for authenticated user', async ( { page } ) => {
 		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-images' );
 		await expect(
-			page.locator( '#wp-ai-mind-images, .wpaim-images-app' ).first()
+			page.locator( '#wp-ai-mind-images, .stilus-images-app' ).first()
 		).toBeVisible();
 	} );
 
@@ -60,13 +60,13 @@ test.describe( 'Tier gating', () => {
 	} );
 
 	test( 'SEO page shows Pro-gate upgrade link for free-tier users', async ( { page } ) => {
-		// Override window.wpAiMindData to simulate free tier before React boots.
-		// A getter/setter proxy is used so PHP's inline `var wpAiMindData = {...}`
+		// Override window.stilusData to simulate free tier before React boots.
+		// A getter/setter proxy is used so PHP's inline `var stilusData = {...}`
 		// triggers the setter and gets isPro forced to false, while still receiving
 		// the real restUrl, nonce, and other values from the server.
 		await page.addInitScript( () => {
 			let _data = {};
-			Object.defineProperty( window, 'wpAiMindData', {
+			Object.defineProperty( window, 'stilusData', {
 				get() { return _data; },
 				set( val ) { _data = { ...val, isPro: false }; },
 				configurable: false,
@@ -76,28 +76,28 @@ test.describe( 'Tier gating', () => {
 		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-seo' );
 		await page.waitForSelector( '#wp-ai-mind-seo', { timeout: 10000 } );
 
-		// Free-tier renders .wpaim-pro-gate with an upgrade link (SeoApp.jsx line 47).
-		await expect( page.locator( '.wpaim-pro-gate' ) ).toBeVisible( { timeout: 10000 } );
+		// Free-tier renders .stilus-pro-gate with an upgrade link (SeoApp.jsx line 47).
+		await expect( page.locator( '.stilus-pro-gate' ) ).toBeVisible( { timeout: 10000 } );
 		await expect(
-			page.locator( '.wpaim-pro-gate a[href*="pricing"]' )
+			page.locator( '.stilus-pro-gate a[href*="pricing"]' )
 		).toBeVisible();
 	} );
 
 	test( 'settings page shows provider configuration options', async ( { page } ) => {
 		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-settings' );
-		// .wpaim-settings-shell hydrates after React boots (confirmed in p3-chat.spec.js line 35).
-		await page.waitForSelector( '.wpaim-settings-shell', { timeout: 10000 } );
-		await expect( page.locator( '.wpaim-settings-shell' ) ).toBeVisible();
-		// The settings page renders tabs via .wpaim-settings-tabpanel (p3-chat.spec.js line 37).
-		await expect( page.locator( '.wpaim-settings-tabpanel' ) ).toBeVisible();
+		// .stilus-settings-shell hydrates after React boots (confirmed in p3-chat.spec.js line 35).
+		await page.waitForSelector( '.stilus-settings-shell', { timeout: 10000 } );
+		await expect( page.locator( '.stilus-settings-shell' ) ).toBeVisible();
+		// The settings page renders tabs via .stilus-settings-tabpanel (p3-chat.spec.js line 37).
+		await expect( page.locator( '.stilus-settings-tabpanel' ) ).toBeVisible();
 	} );
 
 	test( 'chat page remains accessible for free-tier users', async ( { page } ) => {
-		// Chat is not Pro-gated — ensure it still renders .wpaim-shell regardless of tier.
+		// Chat is not Pro-gated — ensure it still renders .stilus-shell regardless of tier.
 		// Getter/setter proxy forces isPro: false while preserving restUrl, nonce, etc.
 		await page.addInitScript( () => {
 			let _data = {};
-			Object.defineProperty( window, 'wpAiMindData', {
+			Object.defineProperty( window, 'stilusData', {
 				get() { return _data; },
 				set( val ) { _data = { ...val, isPro: false }; },
 				configurable: false,
@@ -105,11 +105,11 @@ test.describe( 'Tier gating', () => {
 		} );
 
 		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-chat' );
-		// .wpaim-shell is the root chat element (ChatApp.jsx line 297).
-		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
-		await expect( page.locator( '.wpaim-shell' ) ).toBeVisible();
+		// .stilus-shell is the root chat element (ChatApp.jsx line 297).
+		await page.waitForSelector( '.stilus-shell', { timeout: 10000 } );
+		await expect( page.locator( '.stilus-shell' ) ).toBeVisible();
 		// Sidebar and composer must also be present for free-tier users.
-		await expect( page.locator( '.wpaim-sidebar' ) ).toBeVisible();
-		await expect( page.locator( '.wpaim-composer' ) ).toBeVisible();
+		await expect( page.locator( '.stilus-sidebar' ) ).toBeVisible();
+		await expect( page.locator( '.stilus-composer' ) ).toBeVisible();
 	} );
 } );

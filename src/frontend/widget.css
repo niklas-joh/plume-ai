@@ -1,6 +1,6 @@
 /* Stilus — Frontend floating chat widget styles */
 
-.wpaim-widget {
+.stilus-widget {
 	position: fixed;
 	bottom: 24px;
 	right: 24px;
@@ -9,7 +9,7 @@
 }
 
 /* Toggle button (FAB) */
-.wpaim-widget__toggle {
+.stilus-widget__toggle {
 	width: 52px;
 	height: 52px;
 	border-radius: 50%;
@@ -24,13 +24,13 @@
 	color: #fff;
 }
 
-.wpaim-widget__toggle:hover {
+.stilus-widget__toggle:hover {
 	background: var(--wp-admin-theme-color-darker-10, #1d4ed8);
 	transform: scale(1.05);
 }
 
 /* Floating panel */
-.wpaim-widget__panel {
+.stilus-widget__panel {
 	position: absolute;
 	bottom: 64px;
 	right: 0;
@@ -44,12 +44,12 @@
 	flex-direction: column;
 }
 
-.wpaim-widget__panel--hidden {
+.stilus-widget__panel--hidden {
 	display: none;
 }
 
 /* Panel header */
-.wpaim-widget__header {
+.stilus-widget__header {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
@@ -60,7 +60,7 @@
 }
 
 /* Message area */
-.wpaim-widget__messages {
+.stilus-widget__messages {
 	height: 280px;
 	overflow-y: auto;
 	padding: var(--space-3) var(--space-4);
@@ -70,21 +70,21 @@
 	scroll-behavior: smooth;
 }
 
-.wpaim-widget__messages::-webkit-scrollbar {
+.stilus-widget__messages::-webkit-scrollbar {
 	width: 4px;
 }
 
-.wpaim-widget__messages::-webkit-scrollbar-track {
+.stilus-widget__messages::-webkit-scrollbar-track {
 	background: transparent;
 }
 
-.wpaim-widget__messages::-webkit-scrollbar-thumb {
+.stilus-widget__messages::-webkit-scrollbar-thumb {
 	background: var(--color-border);
 	border-radius: 2px;
 }
 
 /* Message bubbles */
-.wpaim-widget__bubble {
+.stilus-widget__bubble {
 	padding: var(--space-2) var(--space-3);
 	border-radius: var(--radius-md);
 	margin-bottom: 0;
@@ -94,14 +94,14 @@
 	word-break: break-word;
 }
 
-.wpaim-widget__bubble--user {
+.stilus-widget__bubble--user {
 	background: rgba(var(--wp-admin-theme-color--rgb, 37, 99, 235), 0.12);
 	color: var(--color-text-primary);
 	margin-left: auto;
 	border-bottom-right-radius: var(--radius-sm);
 }
 
-.wpaim-widget__bubble--ai {
+.stilus-widget__bubble--ai {
 	background: var(--color-surface-2);
 	color: var(--color-text-secondary);
 	margin-right: auto;
@@ -109,7 +109,7 @@
 }
 
 /* Composer */
-.wpaim-widget__composer {
+.stilus-widget__composer {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
@@ -118,7 +118,7 @@
 	border-top: 1px solid var(--color-border-subtle);
 }
 
-.wpaim-widget__input {
+.stilus-widget__input {
 	flex: 1;
 	background: var(--color-surface-2);
 	border: 1px solid var(--color-border);
@@ -132,22 +132,22 @@
 	min-width: 0;
 }
 
-.wpaim-widget__input:focus {
+.stilus-widget__input:focus {
 	border-color: rgba(var(--wp-admin-theme-color--rgb, 37, 99, 235), 0.3);
 	box-shadow: 0 0 0 2px rgba(var(--wp-admin-theme-color--rgb, 37, 99, 235), 0.12);
 }
 
-.wpaim-widget__input::placeholder {
+.stilus-widget__input::placeholder {
 	color: var(--color-text-muted);
 }
 
-.wpaim-widget__input:disabled {
+.stilus-widget__input:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
 }
 
 /* Send button */
-.wpaim-widget__send {
+.stilus-widget__send {
 	background: var(--wp-admin-theme-color, #2563eb);
 	color: #fff;
 	border: none;
@@ -161,17 +161,17 @@
 	flex-shrink: 0;
 }
 
-.wpaim-widget__send:disabled {
+.stilus-widget__send:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
 }
 
-.wpaim-widget__send:hover:not(:disabled) {
+.stilus-widget__send:hover:not(:disabled) {
 	background: var(--wp-admin-theme-color-darker-10, #1d4ed8);
 }
 
 /* Spin animation */
-@keyframes wpaim-spin {
+@keyframes stilus-spin {
 
 	from {
 		transform: rotate(0deg);
@@ -182,6 +182,6 @@
 	}
 }
 
-.wpaim-spin {
-	animation: wpaim-spin 0.8s linear infinite;
+.stilus-spin {
+	animation: stilus-spin 0.8s linear infinite;
 }

@@ -54,21 +54,21 @@ test.describe( 'Chat journey', () => {
 		} );
 
 		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-chat' );
-		// Wait for React to hydrate — .wpaim-shell is the root chat element.
-		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
+		// Wait for React to hydrate — .stilus-shell is the root chat element.
+		await page.waitForSelector( '.stilus-shell', { timeout: 10000 } );
 
-		// The composer textarea is .wpaim-composer__input (Composer.jsx line 98).
-		// On the launch screen the composer is inside .wpaim-launch; after first
-		// message it moves inside .wpaim-main — both render the same class.
-		await page.fill( '.wpaim-composer__input', 'Summarise the benefits of integration testing' );
+		// The composer textarea is .stilus-composer__input (Composer.jsx line 98).
+		// On the launch screen the composer is inside .stilus-launch; after first
+		// message it moves inside .stilus-main — both render the same class.
+		await page.fill( '.stilus-composer__input', 'Summarise the benefits of integration testing' );
 
 		// Composer submits on Enter (without Shift) — handleKeyDown in Composer.jsx.
-		await page.locator( '.wpaim-composer__input' ).press( 'Enter' );
+		await page.locator( '.stilus-composer__input' ).press( 'Enter' );
 
-		// AI message bubbles carry .wpaim-bubble--ai (MessageBubble.jsx line 24).
-		// The text is rendered inside .wpaim-bubble__content via MarkdownContent.
+		// AI message bubbles carry .stilus-bubble--ai (MessageBubble.jsx line 24).
+		// The text is rendered inside .stilus-bubble__content via MarkdownContent.
 		await expect(
-			page.locator( '.wpaim-bubble--ai .wpaim-bubble__content' ).last()
+			page.locator( '.stilus-bubble--ai .stilus-bubble__content' ).last()
 		).toContainText( 'uniquely identifiable integration test response', { timeout: 10000 } );
 	} );
 
@@ -103,13 +103,13 @@ test.describe( 'Chat journey', () => {
 		} );
 
 		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-chat' );
-		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
+		await page.waitForSelector( '.stilus-shell', { timeout: 10000 } );
 
-		// The sidebar is <aside class="wpaim-sidebar"> (ChatApp.jsx line 301).
-		// Conversation titles are rendered in .wpaim-conv-item__title
-		// (ConversationHistory.jsx line 54) inside the .wpaim-conv-list <nav>.
+		// The sidebar is <aside class="stilus-sidebar"> (ChatApp.jsx line 301).
+		// Conversation titles are rendered in .stilus-conv-item__title
+		// (ConversationHistory.jsx line 54) inside the .stilus-conv-list <nav>.
 		await expect(
-			page.locator( '.wpaim-sidebar .wpaim-conv-list' )
+			page.locator( '.stilus-sidebar .stilus-conv-list' )
 		).toContainText( 'Journey Test Conversation', { timeout: 10000 } );
 	} );
 
@@ -134,12 +134,12 @@ test.describe( 'Chat journey', () => {
 		} );
 
 		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-chat' );
-		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
+		await page.waitForSelector( '.stilus-shell', { timeout: 10000 } );
 
-		// Each .wpaim-conv-item has a .wpaim-conv-item__delete button
+		// Each .stilus-conv-item has a .stilus-conv-item__delete button
 		// (ConversationHistory.jsx line 101).
 		await expect(
-			page.locator( '.wpaim-conv-item .wpaim-conv-item__delete' ).first()
+			page.locator( '.stilus-conv-item .stilus-conv-item__delete' ).first()
 		).toBeVisible( { timeout: 10000 } );
 	} );
 
@@ -158,11 +158,11 @@ test.describe( 'Chat journey', () => {
 		} );
 
 		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-chat' );
-		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
+		await page.waitForSelector( '.stilus-shell', { timeout: 10000 } );
 
-		// Empty-state node is .wpaim-sidebar__empty (ConversationHistory.jsx line 34).
+		// Empty-state node is .stilus-sidebar__empty (ConversationHistory.jsx line 34).
 		await expect(
-			page.locator( '.wpaim-sidebar .wpaim-sidebar__empty' )
+			page.locator( '.stilus-sidebar .stilus-sidebar__empty' )
 		).toBeVisible( { timeout: 10000 } );
 	} );
 } );

@@ -235,10 +235,7 @@ export default function ChatApp() {
 						} )
 						.catch( ( err ) =>
 							// eslint-disable-next-line no-console
-							console.warn(
-								'[stilus] title update failed',
-								err
-							)
+							console.warn( '[stilus] title update failed', err )
 						);
 				}
 			}

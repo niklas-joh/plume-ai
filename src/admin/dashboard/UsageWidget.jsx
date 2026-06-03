@@ -50,9 +50,7 @@ export default function UsageWidget( { usage } ) {
 							: ' wpaim-usage-widget__value--limit-reached'
 					}` }
 				>
-					{ hasLimit
-						? usedPct + '%'
-						: __( 'Unlimited', 'stilus' ) }
+					{ hasLimit ? usedPct + '%' : __( 'Unlimited', 'stilus' ) }
 				</span>
 				{ hasLimit && (
 					<span className="wpaim-usage-widget__sub-label">

@@ -202,7 +202,7 @@ class SiteRegistration {
 	public static function rotate_secret(): string|WP_Error {
 		$token = self::get_site_token();
 		if ( '' === $token ) {
-			return new WP_Error( 'not_registered', 'This site is not registered with the proxy.' );
+			return new WP_Error( 'not_registered', __( 'This site is not registered with Stilus - Write and Design.', 'stilus' ) );
 		}
 
 		$response = wp_remote_post(

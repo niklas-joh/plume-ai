@@ -103,7 +103,7 @@ class ActivationVerifyRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_REST_Response::class, $response );
 		$this->assertSame( 403, $response->get_status() );
-		$this->assertArrayHasKey( 'error', $response->data );
+		$this->assertSame( 'Challenge not found', $response->data['error'] );
 	}
 
 	// ── handle — get_transient uses the correct key ─────────────────────────────

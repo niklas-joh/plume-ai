@@ -86,7 +86,7 @@ class TierStatusPage {
 					<td><strong><?php echo esc_html( $tier_label ); ?></strong></td>
 				</tr>
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Proxy connection', 'stilus' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Service connection', 'stilus' ); ?></th>
 					<td>
 						<?php if ( $registered ) : ?>
 							<span class="wpaim-status--active">&#10003; <?php esc_html_e( 'Connected', 'stilus' ); ?></span>

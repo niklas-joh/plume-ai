@@ -315,6 +315,7 @@ class SiteRegistrationTest extends TestCase {
 		Functions\expect( 'get_option' )
 			->with( SiteRegistration::OPTION_TOKEN, '' )
 			->andReturn( '' );
+		Functions\when( '__' )->returnArg();
 
 		$result = SiteRegistration::rotate_secret();
 

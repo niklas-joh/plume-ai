@@ -132,11 +132,14 @@ class SeoGenerateTest extends IntegrationTestCase {
 	}
 
 	/**
-	 * Verify that calling the apply endpoint with SEO field values returns 200.
+	 * Verify that calling the apply endpoint with SEO field values returns 200
+	 * and persists all three fields to the database.
 	 *
 	 * A trial-tier editor creates a post and submits meta_title, og_description,
-	 * and excerpt. The handler writes the values to post meta via apply_for_post();
-	 * the test asserts the response is 200.
+	 * and excerpt. The handler writes the values via apply_for_post(): meta_title
+	 * and og_description go to both the Yoast and Rank Math meta keys; excerpt is
+	 * written to post_excerpt via wp_update_post(). All three writes are verified
+	 * after the HTTP 200 check to catch silent persistence failures.
 	 *
 	 * @since 1.0.0
 	 * @return void
@@ -164,5 +167,81 @@ class SeoGenerateTest extends IntegrationTestCase {
 		);
 
 		$this->assertSame( 200, $response->get_status(), 'Apply endpoint must return 200 for a valid trial-tier editor.' );
+
+		// Dual-write means both meta keys must be set; assert each individually.
+		$this->assertSame(
+			'Integration Meta Title',
+			get_post_meta( $post_id, '_yoast_wpseo_title', true ),
+			'meta_title must be persisted to the Yoast meta key'
+		);
+		$this->assertSame(
+			'Integration Meta Title',
+			get_post_meta( $post_id, 'rank_math_title', true ),
+			'meta_title must be persisted to the Rank Math meta key'
+		);
+
+		$this->assertSame(
+			'Integration OG Description',
+			get_post_meta( $post_id, '_yoast_wpseo_metadesc', true ),
+			'og_description must be persisted to the Yoast meta key'
+		);
+		$this->assertSame(
+			'Integration OG Description',
+			get_post_meta( $post_id, 'rank_math_description', true ),
+			'og_description must be persisted to the Rank Math meta key'
+		);
+
+		// excerpt is stored in the post row via wp_update_post(), not in post meta.
+		$this->assertSame(
+			'Integration excerpt text.',
+			get_post_field( 'post_excerpt', $post_id ),
+			'excerpt must be persisted to post_excerpt'
+		);
+	}
+
+	/**
+	 * Verify that apply_for_post() writes alt_text to the featured image attachment meta.
+	 *
+	 * The fourth write path in apply_for_post() calls update_post_meta() on the thumbnail
+	 * only when a featured image is set and alt_text is non-empty. A featured image is
+	 * attached here so the branch is exercised and a regression in it would fail this test.
+	 *
+	 * @since 1.0.0
+	 * @return void
+	 */
+	public function test_apply_persists_alt_text_to_featured_image(): void {
+		$this->set_user_tier( self::$editor_user_id, 'trial' );
+		wp_set_current_user( self::$editor_user_id );
+
+		$post_id = self::factory()->post->create(
+			[
+				'post_status' => 'publish',
+				'post_author' => self::$editor_user_id,
+			]
+		);
+
+		$thumb_id = self::factory()->attachment->create(
+			[
+				'post_parent'    => $post_id,
+				'post_mime_type' => 'image/jpeg',
+			]
+		);
+		set_post_thumbnail( $post_id, $thumb_id );
+
+		$response = $this->rest_do(
+			'POST',
+			'/wp-ai-mind/v1/seo/apply',
+			[
+				'post_id'  => $post_id,
+				'alt_text' => 'Integration Alt Text',
+			]
+		);
+
+		$this->assertSame( 200, $response->get_status(), 'Apply endpoint must return 200 for a valid trial-tier editor' );
+		$this->assertSame(
+			'Integration Alt Text',
+			get_post_meta( $thumb_id, '_wp_attachment_image_alt', true ),
+			'alt_text must be written to _wp_attachment_image_alt on the featured image'
+		);
 	}
 }

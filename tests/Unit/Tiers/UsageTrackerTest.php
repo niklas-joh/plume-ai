@@ -142,6 +142,13 @@ class UsageTrackerTest extends TestCase {
 		$this->addToAssertionCount( 1 );
 	}
 
+	public function test_get_current_month_key_returns_expected_format(): void {
+	$key = UsageTracker::get_current_month_key();
+
+		$this->assertMatchesRegularExpression( '/^stilus_usage_\d{4}_\d{2}$/', $key );
+		$this->assertSame( 'stilus_usage_' . gmdate( 'Y_m' ), $key );
+	}
+
 	public function test_check_limit_returns_false_when_exhausted(): void {
 		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 

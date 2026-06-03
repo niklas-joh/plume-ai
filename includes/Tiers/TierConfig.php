@@ -25,6 +25,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class TierConfig {
 
+	/**
+	 * All recognised tier slugs.
+	 *
+	 * @since 1.2.0
+	 * @var string[]
+	 */
 	const TIERS = [ 'free', 'trial', 'pro_managed', 'pro_byok' ];
 
 	/**

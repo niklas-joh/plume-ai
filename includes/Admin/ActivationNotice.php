@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Displays a one-time admin notice after plugin activation disclosing
- * that the plugin connects to the Stilus proxy service and to
+ * that the plugin connects to Stilus - Write and Design and to
  * third-party AI providers.
  *
  * Uses the stilus_just_activated option as a single-use flag.
@@ -59,12 +59,12 @@ class ActivationNotice {
 		?>
 		<div class="notice notice-info is-dismissible">
 			<p>
-				<strong><?php \esc_html_e( 'Stilus - Write and Design - External Services & Privacy Notice', 'stilus' ); ?></strong>
+			<strong><?php \esc_html_e( 'Stilus - Write and Design — External Services & Privacy Notice', 'stilus' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				\esc_html_e(
-					'This plugin connects to a secure relay service (Stilus proxy) and to third-party AI providers (Anthropic Claude, OpenAI, Google Gemini). Only your site address is shared during setup — no content leaves your site until you start a conversation. Your messages are then forwarded to the AI provider on your behalf.',
+					'This plugin connects to Stilus - Write and Design and to third-party AI providers (Anthropic Claude, OpenAI, Google Gemini). Only your site address is shared during setup — no content leaves your site until you start a conversation. Your messages are then forwarded to the AI provider on your behalf.',
 					'stilus'
 				);
 				?>

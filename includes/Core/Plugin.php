@@ -110,6 +110,10 @@ class Plugin {
 		\Stilus\Admin\UsageWidget::register_hooks();
 		\Stilus\Admin\ActivationNotice::register();
 		\Stilus\Admin\TierSyncBackfillNotice::register();
+		if ( defined( 'STILUS_DEV_KEY' ) ) {
+			\Stilus\Admin\DevToolsPage::register_hooks();
+			add_action( 'stilus_register_rest_routes', [ \Stilus\Admin\DevToolsRestController::class, 'register_routes' ] );
+		}
 		if ( $this->modules->is_enabled( 'chat' ) ) {
 			add_action( 'plugins_loaded', [ \Stilus\Modules\Chat\ChatModule::class, 'register' ], 20 );
 			\Stilus\Modules\Editor\EditorModule::register();

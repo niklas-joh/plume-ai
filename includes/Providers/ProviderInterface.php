@@ -2,12 +2,12 @@
 /**
  * Common contract for all AI completion providers.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Providers;
+namespace Stilus\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

@@ -66,7 +66,7 @@ jobs:
                is immediately visible in the existing PR without any additional review step.
 
             Constraints:
-            - PHP: follow WordPress Coding Standards (PHPCS ruleset in phpcs.xml.dist). Prefix functions with `nj_` or use `WP_AI_Mind\` namespace.
+            - PHP: follow WordPress Coding Standards (PHPCS ruleset in phpcs.xml.dist). Prefix functions with `nj_` or use `Stilus\` namespace.
             - JS/CSS: fix only what the linter flags — do not change formatting elsewhere.
             - PHPUnit: fix the code under test, not the tests themselves, unless the test assertion is clearly wrong.
             - Do NOT bump version numbers, modify composer.lock, or change package-lock.json.

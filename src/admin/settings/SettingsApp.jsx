@@ -27,7 +27,7 @@ export default function SettingsApp() {
 	const [ saveResult, setSaveResult ] = useState( null ); // 'success' | 'error' | null
 
 	useEffect( () => {
-		apiFetch( { path: '/wp-ai-mind/v1/settings' } )
+		apiFetch( { path: '/stilus/v1/settings' } )
 			.then( setSettings )
 			.catch( () => {} );
 	}, [] );
@@ -37,7 +37,7 @@ export default function SettingsApp() {
 		setSaveResult( null );
 		try {
 			await apiFetch( {
-				path: '/wp-ai-mind/v1/settings',
+				path: '/stilus/v1/settings',
 				method: 'POST',
 				data: patch,
 			} );
@@ -60,7 +60,7 @@ export default function SettingsApp() {
 			},
 			body: JSON.stringify( { seen: false } ),
 		} );
-		window.location.href = 'admin.php?page=wp-ai-mind';
+		window.location.href = 'admin.php?page=stilus';
 	};
 
 	const tabProps = { settings, saveSettings, isSaving };

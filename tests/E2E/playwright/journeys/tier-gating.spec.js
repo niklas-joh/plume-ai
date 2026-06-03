@@ -8,19 +8,19 @@ test.describe( 'Tier gating', () => {
 	} );
 
 	test( 'generator page loads for authenticated user', async ( { page } ) => {
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-generator' );
-		// #wp-ai-mind-generator is the PHP-rendered mount point — always present when
+		await page.goto( '/wp-admin/admin.php?page=stilus-generator' );
+		// #stilus-generator is the PHP-rendered mount point — always present when
 		// the plugin is active and the page loads without a fatal error.
 		// .first() avoids a strict-mode violation if the fallback selector also matches.
 		await expect(
-			page.locator( '#wp-ai-mind-generator, .wpaim-generator-app' ).first()
+			page.locator( '#stilus-generator, .wpaim-generator-app' ).first()
 		).toBeVisible();
 	} );
 
 	test( 'images page loads for authenticated user', async ( { page } ) => {
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-images' );
+		await page.goto( '/wp-admin/admin.php?page=stilus-images' );
 		await expect(
-			page.locator( '#wp-ai-mind-images, .wpaim-images-app' ).first()
+			page.locator( '#stilus-images, .wpaim-images-app' ).first()
 		).toBeVisible();
 	} );
 
@@ -41,13 +41,13 @@ test.describe( 'Tier gating', () => {
 
 		// Navigate into the admin so the browser context is initialised with
 		// the authenticated session from beforeEach.
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-seo' );
+		await page.goto( '/wp-admin/admin.php?page=stilus-seo' );
 
 		// Trigger the fetch from the page (browser) context so page.route()
 		// intercepts it. page.request bypasses route intercepts entirely.
 		const status = await page.evaluate( async () => {
 			const response = await fetch(
-				'/wp-json/wp-ai-mind/v1/seo/generate',
+				'/wp-json/stilus/v1/seo/generate',
 				{
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -73,8 +73,8 @@ test.describe( 'Tier gating', () => {
 			} );
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-seo' );
-		await page.waitForSelector( '#wp-ai-mind-seo', { timeout: 10000 } );
+		await page.goto( '/wp-admin/admin.php?page=stilus-seo' );
+		await page.waitForSelector( '#stilus-seo', { timeout: 10000 } );
 
 		// Free-tier renders .wpaim-pro-gate with an upgrade link (SeoApp.jsx line 47).
 		await expect( page.locator( '.wpaim-pro-gate' ) ).toBeVisible( { timeout: 10000 } );
@@ -84,7 +84,7 @@ test.describe( 'Tier gating', () => {
 	} );
 
 	test( 'settings page shows provider configuration options', async ( { page } ) => {
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-settings' );
+		await page.goto( '/wp-admin/admin.php?page=stilus-settings' );
 		// .wpaim-settings-shell hydrates after React boots (confirmed in p3-chat.spec.js line 35).
 		await page.waitForSelector( '.wpaim-settings-shell', { timeout: 10000 } );
 		await expect( page.locator( '.wpaim-settings-shell' ) ).toBeVisible();
@@ -104,7 +104,7 @@ test.describe( 'Tier gating', () => {
 			} );
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-chat' );
+		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
 		// .wpaim-shell is the root chat element (ChatApp.jsx line 297).
 		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
 		await expect( page.locator( '.wpaim-shell' ) ).toBeVisible();

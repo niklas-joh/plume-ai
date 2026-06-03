@@ -2,19 +2,19 @@
 /**
  * Usage module — REST routes and asset enqueuing for the usage dashboard.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Modules\Usage;
+namespace Stilus\Modules\Usage;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Tiers\TierManager;
+use Stilus\Tiers\UsageTracker;
 
 /**
  * Registers the Usage admin page assets and REST endpoint.
@@ -40,55 +40,55 @@ class UsageModule {
 	 * @return void
 	 */
 	public static function enqueue_assets( string $hook ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by admin_enqueue_scripts hook signature.
-		if ( ! isset( $_GET['page'] ) || 'wp-ai-mind-usage' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ! isset( $_GET['page'] ) || 'stilus-usage' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return;
 		}
 
-		$asset_file = WP_AI_MIND_DIR . 'assets/usage/index.asset.php';
+		$asset_file = STILUS_DIR . 'assets/usage/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => WP_AI_MIND_VERSION,
+				'version'      => STILUS_VERSION,
 			];
 
 		\wp_enqueue_script(
-			'wp-ai-mind-usage',
-			WP_AI_MIND_URL . 'assets/usage/index.js',
+			'stilus-usage',
+			STILUS_URL . 'assets/usage/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-api-fetch', 'wp-i18n' ] ),
 			$asset['version'],
 			true
 		);
 
 		\wp_localize_script(
-			'wp-ai-mind-usage',
+			'stilus-usage',
 			'wpAiMindData',
 			[
 				'nonce'         => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'       => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
+				'restUrl'       => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
 				'currentPostId' => 0,
-				'isPro'         => NJ_Tier_Manager::user_can( 'generator' ),
+				'isPro'         => TierManager::user_can( 'generator' ),
 				'siteTitle'     => \get_bloginfo( 'name' ),
 			]
 		);
 
 		\wp_enqueue_style(
-			'wp-ai-mind-usage',
-			WP_AI_MIND_URL . 'assets/usage/index.css',
+			'stilus-usage',
+			STILUS_URL . 'assets/usage/index.css',
 			[],
 			$asset['version']
 		);
 	}
 
 	/**
-	 * Register the /wp-ai-mind/v1/usage REST route.
+	 * Register the /stilus/v1/usage REST route.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
 	public static function register_routes(): void {
 		\register_rest_route(
-			'wp-ai-mind/v1',
+			'stilus/v1',
 			'/usage',
 			[
 				'methods'             => \WP_REST_Server::READABLE,
@@ -106,7 +106,7 @@ class UsageModule {
 	 * @return \WP_REST_Response
 	 */
 	public static function get_usage( \WP_REST_Request $request ): \WP_REST_Response { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by WP_REST_Server callback signature.
-		$usage = NJ_Usage_Tracker::get_usage();
+		$usage = UsageTracker::get_usage();
 
 		return new \WP_REST_Response(
 			[

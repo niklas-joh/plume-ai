@@ -2,48 +2,47 @@
 /**
  * REST controller handling conversation and message endpoints for the chat feature.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Modules\Chat;
+namespace Stilus\Modules\Chat;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\DB\ConversationStore;
-use WP_AI_Mind\Providers\ProviderFactory;
-use WP_AI_Mind\Providers\CompletionRequest;
-use WP_AI_Mind\Providers\CompletionResponse;
-use WP_AI_Mind\Providers\ProviderException;
-use WP_AI_Mind\Settings\ProviderSettings;
-use WP_AI_Mind\Tools\ToolRegistry;
-use WP_AI_Mind\Tools\ToolExecutor;
-use WP_AI_Mind\Voice\VoiceInjector;
-// TODO: NJ_Tier_Manager and NJ_Usage_Tracker predate the WP_AI_Mind\ namespace; rename to WP_AI_Mind\Tiers\TierManager etc. in a future refactor.
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\DB\ConversationStore;
+use Stilus\Providers\ProviderFactory;
+use Stilus\Providers\CompletionRequest;
+use Stilus\Providers\CompletionResponse;
+use Stilus\Providers\ProviderException;
+use Stilus\Settings\ProviderSettings;
+use Stilus\Tools\ToolRegistry;
+use Stilus\Tools\ToolExecutor;
+use Stilus\Voice\VoiceInjector;
+use Stilus\Tiers\TierManager;
+use Stilus\Tiers\UsageTracker;
 
 /**
  * REST controller for chat conversations, providers, and post search.
  *
  * Routes:
- *   GET    /wp-ai-mind/v1/conversations               — list conversations
- *   POST   /wp-ai-mind/v1/conversations               — create conversation
- *   GET    /wp-ai-mind/v1/conversations/{id}/messages — get messages
- *   POST   /wp-ai-mind/v1/conversations/{id}/messages — send message (AI turn)
- *   PATCH  /wp-ai-mind/v1/conversations/{id}          — update conversation title
- *   DELETE /wp-ai-mind/v1/conversations/{id}          — delete conversation
- *   GET    /wp-ai-mind/v1/providers                   — list available providers
- *   GET    /wp-ai-mind/v1/search-posts                — search posts
+ *   GET    /stilus/v1/conversations               — list conversations
+ *   POST   /stilus/v1/conversations               — create conversation
+ *   GET    /stilus/v1/conversations/{id}/messages — get messages
+ *   POST   /stilus/v1/conversations/{id}/messages — send message (AI turn)
+ *   PATCH  /stilus/v1/conversations/{id}          — update conversation title
+ *   DELETE /stilus/v1/conversations/{id}          — delete conversation
+ *   GET    /stilus/v1/providers                   — list available providers
+ *   GET    /stilus/v1/search-posts                — search posts
  *
  * All routes require the edit_posts capability except delete, which also
  * allows manage_options to delete any conversation.
  */
 class ChatRestController {
 
-	private const NAMESPACE = 'wp-ai-mind/v1';
+	private const NAMESPACE = 'stilus/v1';
 
 	/**
 	 * Inject the tool registry and executor used during AI tool-call loops.
@@ -217,11 +216,11 @@ class ChatRestController {
 			! empty( $post_id_param ) ? (int) $post_id_param : null
 		);
 		if ( 0 === $id ) {
-			return new \WP_REST_Response( [ 'message' => __( 'Failed to create conversation.', 'wp-ai-mind' ) ], 500 );
+			return new \WP_REST_Response( [ 'message' => __( 'Failed to create conversation.', 'stilus' ) ], 500 );
 		}
 		$conversation = $store->get_conversation( $id );
 		if ( null === $conversation ) {
-			return new \WP_REST_Response( [ 'message' => __( 'Failed to retrieve conversation.', 'wp-ai-mind' ) ], 500 );
+			return new \WP_REST_Response( [ 'message' => __( 'Failed to retrieve conversation.', 'stilus' ) ], 500 );
 		}
 		return new \WP_REST_Response(
 			[
@@ -263,7 +262,7 @@ class ChatRestController {
 		$conv_id        = (int) $request->get_param( 'id' );
 		$content        = $request->get_param( 'content' );
 		$provider_param = $request->get_param( 'provider' );
-		$provider_slug  = ! empty( $provider_param ) ? $provider_param : \get_option( 'wp_ai_mind_default_provider', 'claude' );
+		$provider_slug  = ! empty( $provider_param ) ? $provider_param : \get_option( 'stilus_default_provider', 'claude' );
 		$model          = $request->get_param( 'model' );
 
 		$store = $this->make_store();
@@ -307,7 +306,7 @@ class ChatRestController {
 					[
 						'message' => sprintf(
 												/* translators: %s: provider slug */
-							__( 'No API key configured for "%s". Please add one in Stilus → Settings.', 'wp-ai-mind' ),
+							__( 'No API key configured for "%s". Please add one in Stilus → Settings.', 'stilus' ),
 							$provider_slug
 						),
 					],
@@ -431,17 +430,17 @@ class ChatRestController {
 		$conv    = $store->get_conversation( $conv_id );
 
 		if ( ! $conv ) {
-			return new \WP_Error( 'not_found', __( 'Not found.', 'wp-ai-mind' ), [ 'status' => 404 ] );
+			return new \WP_Error( 'not_found', __( 'Not found.', 'stilus' ), [ 'status' => 404 ] );
 		}
 		if ( get_current_user_id() !== (int) $conv['user_id'] ) {
-			return new \WP_Error( 'forbidden', __( 'You cannot update this conversation.', 'wp-ai-mind' ), [ 'status' => 403 ] );
+			return new \WP_Error( 'forbidden', __( 'You cannot update this conversation.', 'stilus' ), [ 'status' => 403 ] );
 		}
 
 		// Sanitise explicitly: the route schema runs sanitize_callback in production,
 		// but unit tests bypass the schema, so a second call here ensures correctness.
 		$updated = $store->update_title( $conv_id, sanitize_text_field( $request->get_param( 'title' ) ) );
 		if ( ! $updated ) {
-			return new \WP_Error( 'db_error', __( 'Failed to update conversation.', 'wp-ai-mind' ), [ 'status' => 500 ] );
+			return new \WP_Error( 'db_error', __( 'Failed to update conversation.', 'stilus' ), [ 'status' => 500 ] );
 		}
 		return rest_ensure_response( [ 'updated' => true ] );
 	}
@@ -459,10 +458,10 @@ class ChatRestController {
 		$conv    = $store->get_conversation( $conv_id );
 
 		if ( ! $conv ) {
-			return new \WP_Error( 'not_found', __( 'Not found.', 'wp-ai-mind' ), [ 'status' => 404 ] );
+			return new \WP_Error( 'not_found', __( 'Not found.', 'stilus' ), [ 'status' => 404 ] );
 		}
 		if ( get_current_user_id() !== (int) $conv['user_id'] && ! current_user_can( 'manage_options' ) ) {
-			return new \WP_Error( 'forbidden', __( 'You cannot delete this conversation.', 'wp-ai-mind' ), [ 'status' => 403 ] );
+			return new \WP_Error( 'forbidden', __( 'You cannot delete this conversation.', 'stilus' ), [ 'status' => 403 ] );
 		}
 
 		$store->delete( $conv_id );
@@ -545,7 +544,7 @@ class ChatRestController {
 		if ( ! current_user_can( 'edit_posts' ) ) {
 			return new \WP_Error(
 				'rest_forbidden',
-				__( 'Insufficient permissions.', 'wp-ai-mind' ),
+				__( 'Insufficient permissions.', 'stilus' ),
 				[ 'status' => 403 ]
 			);
 		}
@@ -555,7 +554,7 @@ class ChatRestController {
 		if ( ! $this->user_can_chat( $user_id ) ) {
 			return new \WP_Error(
 				'rest_tier_denied',
-				__( 'Your current plan does not include chat access.', 'wp-ai-mind' ),
+				__( 'Your current plan does not include chat access.', 'stilus' ),
 				[ 'status' => 403 ]
 			);
 		}
@@ -563,7 +562,7 @@ class ChatRestController {
 		if ( ! $this->user_within_quota( $user_id ) ) {
 			return new \WP_Error(
 				'rest_quota_exceeded',
-				__( 'You have reached your monthly usage limit.', 'wp-ai-mind' ),
+				__( 'You have reached your monthly usage limit.', 'stilus' ),
 				[ 'status' => 403 ]
 			);
 		}
@@ -575,28 +574,28 @@ class ChatRestController {
 	 * Returns whether the user's tier grants chat access.
 	 *
 	 * Isolated as a protected method so tests can override without stubbing
-	 * static calls on NJ_Tier_Manager.
+	 * static calls on TierManager.
 	 *
 	 * @since 1.8.0
 	 * @param int $user_id WordPress user ID.
 	 * @return bool
 	 */
 	protected function user_can_chat( int $user_id ): bool {
-		return NJ_Tier_Manager::user_can( 'chat', $user_id );
+		return TierManager::user_can( 'chat', $user_id );
 	}
 
 	/**
 	 * Returns whether the user is within their monthly quota.
 	 *
 	 * Isolated as a protected method so tests can override without stubbing
-	 * static calls on NJ_Usage_Tracker.
+	 * static calls on UsageTracker.
 	 *
 	 * @since 1.8.0
 	 * @param int $user_id WordPress user ID.
 	 * @return bool
 	 */
 	protected function user_within_quota( int $user_id ): bool {
-		return NJ_Usage_Tracker::check_limit( $user_id );
+		return UsageTracker::check_limit( $user_id );
 	}
 
 	// ── Overridable factory methods (for testing) ─────────────────────────────

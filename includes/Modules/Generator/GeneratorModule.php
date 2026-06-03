@@ -2,20 +2,20 @@
 /**
  * Generator module — REST routes and asset enqueuing for the post-generation wizard.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Modules\Generator;
+namespace Stilus\Modules\Generator;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Providers\ProviderFactory;
-use WP_AI_Mind\Settings\ProviderSettings;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Providers\ProviderFactory;
+use Stilus\Settings\ProviderSettings;
+use Stilus\Tiers\TierManager;
+use Stilus\Tiers\UsageTracker;
 
 /**
  * Registers the post-generator admin assets and REST route.
@@ -42,55 +42,55 @@ class GeneratorModule {
 	 */
 	public static function enqueue_assets( string $hook ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by admin_enqueue_scripts hook signature.
 		// Only load on the generator admin page.
-		if ( ! isset( $_GET['page'] ) || 'wp-ai-mind-generator' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ! isset( $_GET['page'] ) || 'stilus-generator' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return;
 		}
 
-		$asset_file = WP_AI_MIND_DIR . 'assets/generator/index.asset.php';
+		$asset_file = STILUS_DIR . 'assets/generator/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => WP_AI_MIND_VERSION,
+				'version'      => STILUS_VERSION,
 			];
 
 		\wp_enqueue_script(
-			'wp-ai-mind-generator',
-			WP_AI_MIND_URL . 'assets/generator/index.js',
+			'stilus-generator',
+			STILUS_URL . 'assets/generator/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-api-fetch', 'wp-i18n' ] ),
 			$asset['version'],
 			true
 		);
 
 		\wp_localize_script(
-			'wp-ai-mind-generator',
+			'stilus-generator',
 			'wpAiMindData',
 			[
 				'nonce'         => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'       => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
+				'restUrl'       => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
 				'currentPostId' => 0,
-				'isPro'         => NJ_Tier_Manager::user_can( 'generator' ),
+				'isPro'         => TierManager::user_can( 'generator' ),
 				'siteTitle'     => \get_bloginfo( 'name' ),
 			]
 		);
 	}
 
 	/**
-	 * Register the /wp-ai-mind/v1/generate REST route.
+	 * Register the /stilus/v1/generate REST route.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
 	public static function register_routes(): void {
 		\register_rest_route(
-			'wp-ai-mind/v1',
+			'stilus/v1',
 			'/generate',
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_generate' ],
 				'permission_callback' => function () {
 						$user_id = \get_current_user_id();
-						return \current_user_can( 'edit_posts' ) && NJ_Tier_Manager::user_can( 'generator', $user_id ) && NJ_Usage_Tracker::check_limit( $user_id );
+						return \current_user_can( 'edit_posts' ) && TierManager::user_can( 'generator', $user_id ) && UsageTracker::check_limit( $user_id );
 				},
 				'args'                => [
 					'title'    => [
@@ -153,9 +153,9 @@ class GeneratorModule {
 		try {
 			$factory  = new ProviderFactory( new ProviderSettings() );
 			$provider = $factory->make_default();
-			$voice    = new \WP_AI_Mind\Voice\VoiceInjector();
+			$voice    = new \Stilus\Voice\VoiceInjector();
 
-			$req = new \WP_AI_Mind\Providers\CompletionRequest(
+			$req = new \Stilus\Providers\CompletionRequest(
 				messages:    [
 					[
 						'role'    => 'user',
@@ -205,7 +205,7 @@ class GeneratorModule {
 		} catch ( \Throwable $e ) {
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				\error_log( '[WP_AI_Mind][Generator] ' . get_class( $e ) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
+				\error_log( '[Stilus][Generator] ' . get_class( $e ) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
 			}
 			return new \WP_REST_Response( [ 'error' => $e->getMessage() ], 500 );
 		}

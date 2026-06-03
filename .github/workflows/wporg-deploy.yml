@@ -63,13 +63,13 @@ jobs:
           for attempt in $(seq 1 10); do
             if gh release download "$TAG" \
                  --repo "${{ github.repository }}" \
-                 --pattern "wp-ai-mind-${VERSION}.zip" \
+                 --pattern "stilus-${VERSION}.zip" \
                  --output plugin.zip 2>/dev/null; then
-              echo "Downloaded wp-ai-mind-${VERSION}.zip"
+              echo "Downloaded stilus-${VERSION}.zip"
               break
             fi
             if [[ $attempt -eq 10 ]]; then
-              echo "::error::Release asset wp-ai-mind-${VERSION}.zip not available after 5 minutes"
+              echo "::error::Release asset stilus-${VERSION}.zip not available after 5 minutes"
               exit 1
             fi
             echo "Asset not ready, retrying in 30 s (attempt ${attempt}/10)..."
@@ -80,12 +80,12 @@ jobs:
         run: |
           unzip -q plugin.zip
           echo "Plugin directory contents:"
-          ls wp-ai-mind/
+          ls stilus/
 
       - name: Deploy to WordPress.org
         uses: 10up/action-wordpress-org-deploy@v1
         with:
-          plugin-slug: wp-ai-mind
-          build-dir: ./wp-ai-mind
+          plugin-slug: stilus
+          build-dir: ./stilus
           wordpress-username: ${{ secrets.WPORG_USERNAME }}
           wordpress-password: ${{ secrets.WPORG_PASSWORD }}

@@ -2,14 +2,14 @@
 /**
  * WordPress admin dashboard widget showing current-user token usage.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
-use WP_AI_Mind\Tiers\NJ_Tier_Config;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Tiers\TierConfig;
+use Stilus\Tiers\UsageTracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 1.2.0
  */
-class NJ_Usage_Widget {
+class UsageWidget {
 
 	/**
 	 * Register WordPress hooks for this widget.
@@ -46,9 +46,9 @@ class NJ_Usage_Widget {
 		}
 		wp_enqueue_style(
 			'wpaim-admin-widgets',
-			WP_AI_MIND_URL . 'assets/admin/wpaim-admin-widgets.css',
+			STILUS_URL . 'assets/admin/wpaim-admin-widgets.css',
 			[],
-			WP_AI_MIND_VERSION
+			STILUS_VERSION
 		);
 	}
 
@@ -63,8 +63,8 @@ class NJ_Usage_Widget {
 			return;
 		}
 		wp_add_dashboard_widget(
-			'wp_ai_mind_usage',
-			__( 'Stilus Usage', 'wp-ai-mind' ),
+			'stilus_usage',
+			__( 'Stilus Usage', 'stilus' ),
 			[ self::class, 'render' ]
 		);
 	}
@@ -77,14 +77,14 @@ class NJ_Usage_Widget {
 	 */
 	public static function render(): void {
 		$user_id = get_current_user_id();
-		$usage   = NJ_Usage_Tracker::get_usage( $user_id );
+		$usage   = UsageTracker::get_usage( $user_id );
 		$tier    = $usage['tier'];
 
-		$tier_labels = NJ_Tier_Config::get_tier_labels();
+		$tier_labels = TierConfig::get_tier_labels();
 		$tier_label  = $tier_labels[ $tier ] ?? ucwords( str_replace( '_', ' ', $tier ) );
 
-		echo '<div class="wp-ai-mind-usage-widget">';
-		echo '<p><strong>' . esc_html( $tier_label ) . ' ' . esc_html__( 'Plan', 'wp-ai-mind' ) . '</strong></p>';
+		echo '<div class="stilus-usage-widget">';
+		echo '<p><strong>' . esc_html( $tier_label ) . ' ' . esc_html__( 'Plan', 'stilus' ) . '</strong></p>';
 
 		if ( null !== $usage['limit'] && $usage['limit'] > 0 ) {
 			$pct = min( 100, (int) round( ( $usage['used'] / $usage['limit'] ) * 100 ) );
@@ -106,15 +106,15 @@ class NJ_Usage_Widget {
 				'<p class="wpaim-meta-text">%s / %s %s (%s %s)</p>',
 				esc_html( number_format_i18n( (int) $usage['used'] ) ),
 				esc_html( number_format_i18n( (int) $usage['limit'] ) ),
-				esc_html__( 'tokens', 'wp-ai-mind' ),
+				esc_html__( 'tokens', 'stilus' ),
 				esc_html( number_format_i18n( (int) $usage['remaining'] ) ),
-				esc_html__( 'remaining', 'wp-ai-mind' )
+				esc_html__( 'remaining', 'stilus' )
 			);
 			if ( $pct > 80 ) {
-				echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Over 80% of monthly tokens used. Consider upgrading.', 'wp-ai-mind' ) . '</p></div>';
+				echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Over 80% of monthly tokens used. Consider upgrading.', 'stilus' ) . '</p></div>';
 			}
 		} else {
-			echo '<p>' . esc_html__( 'Unlimited — using your own API key.', 'wp-ai-mind' ) . '</p>';
+			echo '<p>' . esc_html__( 'Unlimited — using your own API key.', 'stilus' ) . '</p>';
 		}
 
 		echo '</div>';

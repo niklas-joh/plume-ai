@@ -1,4 +1,4 @@
-# WP AI Mind — Architecture Overhaul: Master Tracking Document
+# Stilus — Architecture Overhaul: Master Tracking Document
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -99,7 +99,7 @@ Total: ~4 weeks (vs original 7 weeks = 45% faster)
 
 | File | Phase | Why It Matters |
 |------|-------|----------------|
-| `wp-ai-mind.php:25-101` | 1 | Freemius bootstrap + `wam_fs()` — entire block removed in Phase 1 |
+| `stilus.php:25-101` | 1 | Freemius bootstrap + `wam_fs()` — entire block removed in Phase 1 |
 | `includes/Core/ProGate.php` | 1 | 13 call sites; global `wp_ai_mind_is_pro()` — all replaced in Phase 1 |
 | `includes/DB/UsageLogger.php` | 1 | Removed in Phase 1; replaced with WordPress-native tracking |
 | `includes/Providers/AbstractProvider.php` | 2 | Integration point for proxy routing |
@@ -183,7 +183,7 @@ This applies to **every phase**. Agentic workers must follow this policy before 
 
 ### Pre-implementation (start of each phase)
 1. Run `grep -r "class\|function\|interface" --include="*.php" includes/` and review existing PHP abstractions that may apply.
-2. For Worker phases: read `src/` files in `wp-ai-mind-proxy/` and list any existing utilities (`utils.ts`, `db.ts`, `middleware.ts`) that can be called instead of reimplemented.
+2. For Worker phases: read `src/` files in `stilus-proxy/` and list any existing utilities (`utils.ts`, `db.ts`, `middleware.ts`) that can be called instead of reimplemented.
 3. Check `ProviderInterface` / `AbstractProvider` before creating any new PHP class that touches AI providers.
 4. Use existing WordPress provider patterns for consistency.
 5. Document which existing files/functions you are reusing in the phase commit message.
@@ -201,7 +201,7 @@ This applies to **every phase**. Agentic workers must follow this policy before 
 | Phase | Unit Tests | Integration / E2E |
 |-------|-----------|-------------------|
 | 1 | `tests/Unit/Tiers/`, `tests/Unit/Usage/` (PHPUnit) | WordPress user tier management, usage tracking |
-| 2 | `wp-ai-mind-proxy/test/*.test.ts` | curl: signed request verification, rate limiting |
+| 2 | `stilus-proxy/test/*.test.ts` | curl: signed request verification, rate limiting |
 | 3 | `tests/Unit/Providers/` (PHPUnit) | Provider routing logic, proxy vs direct calls |
 
 ---
@@ -245,7 +245,7 @@ Run these checks before declaring the overhaul complete.
 
 | Method | Path | Auth | Phase | Status |
 |--------|------|------|-------|--------|
-| POST | `/wp-json/wp-ai-mind/v1/webhook` | LemonSqueezy HMAC | 1 | ⛔ Disabled (Phase 2.1 — webhook moved to Worker) |
+| POST | `/wp-json/stilus/v1/webhook` | LemonSqueezy HMAC | 1 | ⛔ Disabled (Phase 2.1 — webhook moved to Worker) |
 
 ---
 

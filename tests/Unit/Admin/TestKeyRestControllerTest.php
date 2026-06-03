@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Admin;
+namespace Stilus\Tests\Unit\Admin;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Admin\TestKeyRestController;
+use Stilus\Admin\TestKeyRestController;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -47,7 +47,7 @@ class TestKeyRestControllerTest extends TestCase {
 
 		TestKeyRestController::register_routes();
 
-		$this->assertSame( 'wp-ai-mind/v1', $registered_ns );
+		$this->assertSame( 'stilus/v1', $registered_ns );
 		$this->assertSame( '/test-key', $registered_route );
 	}
 

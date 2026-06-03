@@ -6,15 +6,15 @@
  * including a live database and a functional REST server. Shared helpers
  * cover tier assignment, HTTP interception, and REST dispatch.
  *
- * @package WP_AI_Mind\Tests\Integration
+ * @package Stilus\Tests\Integration
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Integration;
+namespace Stilus\Tests\Integration;
 
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-use WP_AI_Mind\Proxy\NJ_Site_Registration;
+use Stilus\Tiers\TierManager;
+use Stilus\Proxy\SiteRegistration;
 
 /**
  * Base integration test case.
@@ -89,7 +89,7 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 	 * first test in a class receives a clean instance; see tearDown() for
 	 * the per-test reset strategy.
 	 *
-	 * The site token prevents NJ_Site_Registration::maybe_register() from
+	 * The site token prevents SiteRegistration::maybe_register() from
 	 * firing a real outbound HTTP call during the test run. The REST server
 	 * global is nulled here so the first test in a class is not affected by
 	 * whatever state a previous test class left in $wp_rest_server; tearDown()
@@ -102,13 +102,13 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		// Guarantee a clean server for the first test in a class — lazy-init via
+	// Guarantee a clean server for the first test in a class — lazy-init via
 		// rest_get_server() re-fires rest_api_init only when the server is needed.
 		global $wp_rest_server;
 		$wp_rest_server = null;
 
 		// Prevent the proxy registration flow from making real network calls.
-		update_option( NJ_Site_Registration::OPTION_TOKEN, 'test-site-token' );
+		update_option( SiteRegistration::OPTION_TOKEN, 'test-site-token' );
 	}
 
 	/**
@@ -140,7 +140,7 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 	// ── Helpers ────────────────────────────────────────────────────────────────
 
 	/**
-	 * Assign a tier to a user via the canonical NJ_Tier_Manager meta key.
+	 * Assign a tier to a user via the canonical TierManager meta key.
 	 *
 	 * For the 'trial' tier this also writes a fresh trial-started timestamp so
 	 * is_trial_active() considers the trial valid for the duration of the test.
@@ -151,17 +151,17 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 	 * @return void
 	 */
 	protected function set_user_tier( int $user_id, string $tier ): void {
-		update_user_meta( $user_id, NJ_Tier_Manager::META_KEY, $tier );
+		update_user_meta( $user_id, TierManager::META_KEY, $tier );
 
 		if ( 'trial' === $tier ) {
 			// Record the trial start as now so is_trial_active() returns true.
-			update_user_meta( $user_id, NJ_Tier_Manager::TRIAL_STARTED_META, time() );
+			update_user_meta( $user_id, TierManager::TRIAL_STARTED_META, time() );
 		}
 
 		// Ensure the site-level option does not shadow the user meta for the
 		// tiers under test — reset it to 'free' so paid-tier short-circuit in
 		// get_user_tier() does not override the per-user meta we just set.
-		update_option( NJ_Tier_Manager::SITE_OPTION, 'free', false );
+		update_option( TierManager::SITE_OPTION, 'free', false );
 	}
 
 	/**
@@ -243,7 +243,7 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 	 *
 	 * @since 1.0.0
 	 * @param string               $method HTTP method ('GET', 'POST', 'PATCH', 'DELETE').
-	 * @param string               $route  REST route path, e.g. '/wp-ai-mind/v1/conversations'.
+	 * @param string               $route  REST route path, e.g. '/stilus/v1/conversations'.
 	 * @param array<string, mixed> $params Request parameters (query string or body).
 	 * @return \WP_REST_Response
 	 */

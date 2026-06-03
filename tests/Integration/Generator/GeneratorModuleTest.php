@@ -6,17 +6,17 @@
  * including permission checks, tier gating, prompt construction, draft
  * post creation, and response shape.
  *
- * @package WP_AI_Mind\Tests\Integration\Generator
+ * @package Stilus\Tests\Integration\Generator
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Integration\Generator;
+namespace Stilus\Tests\Integration\Generator;
 
-use WP_AI_Mind\Tests\Integration\IntegrationTestCase;
+use Stilus\Tests\Integration\IntegrationTestCase;
 
 /**
- * Integration tests for POST /wp-ai-mind/v1/generate.
+ * Integration tests for POST /stilus/v1/generate.
  *
  * @since 1.0.0
  */
@@ -34,7 +34,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 	public function test_generate_requires_edit_posts_capability(): void {
 		wp_set_current_user( self::$subscriber_user_id );
 
-		$response = $this->rest_do( 'POST', '/wp-ai-mind/v1/generate', [ 'title' => 'Test Post' ] );
+		$response = $this->rest_do( 'POST', '/stilus/v1/generate', [ 'title' => 'Test Post' ] );
 
 		$this->assertSame( 403, $response->get_status() );
 	}
@@ -42,7 +42,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 	/**
 	 * Verify that an editor on the free tier cannot access the generate endpoint.
 	 *
-	 * The free tier has generator=false in NJ_Tier_Config::FEATURES, so the
+	 * The free tier has generator=false in TierConfig::FEATURES, so the
 	 * permission_callback must reject with 403 even though the user has edit_posts.
 	 *
 	 * @since 1.0.0
@@ -52,7 +52,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 		$this->set_user_tier( self::$editor_user_id, 'free' );
 		wp_set_current_user( self::$editor_user_id );
 
-		$response = $this->rest_do( 'POST', '/wp-ai-mind/v1/generate', [ 'title' => 'Test Post' ] );
+		$response = $this->rest_do( 'POST', '/stilus/v1/generate', [ 'title' => 'Test Post' ] );
 
 		$this->assertSame( 403, $response->get_status() );
 	}
@@ -87,7 +87,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 
 		$response = $this->rest_do(
 			'POST',
-			'/wp-ai-mind/v1/generate',
+			'/stilus/v1/generate',
 			[
 				'title'    => 'My Integration Test Post',
 				'keywords' => 'integration, testing',
@@ -138,7 +138,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 
 		$this->rest_do(
 			'POST',
-			'/wp-ai-mind/v1/generate',
+			'/stilus/v1/generate',
 			[
 				'title'    => 'Distinctive Generator Title',
 				'keywords' => 'distinctive-keyword-xyz',
@@ -166,7 +166,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 	 * Verify that a proxy-level error returns 500 with an 'error' key.
 	 *
 	 * An HTTP filter returns a proxy 401 (stale/missing site token). This causes
-	 * NJ_Proxy_Client to return WP_Error → ProviderException → the generator
+	 * ProxyClient to return WP_Error → ProviderException → the generator
 	 * handler catches it and returns 500. Importantly, this validates that the
 	 * handler does NOT crash PHP (i.e. the catch block works correctly).
 	 *
@@ -191,7 +191,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 
 		$response = $this->rest_do(
 			'POST',
-			'/wp-ai-mind/v1/generate',
+			'/stilus/v1/generate',
 			[ 'title' => 'Test Post For Error Path' ]
 		);
 

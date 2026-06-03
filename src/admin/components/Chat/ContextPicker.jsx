@@ -5,7 +5,7 @@ import apiFetch from '@wordpress/api-fetch';
 /**
  * Debounced search popover for attaching a post as chat context.
  *
- * Queries /wp-ai-mind/v1/search-posts after 300 ms of inactivity.
+ * Queries /stilus/v1/search-posts after 300 ms of inactivity.
  * Closes on Escape key. Minimum 2 characters before a search is triggered.
  *
  * @param {Object}   props
@@ -35,7 +35,7 @@ export default function ContextPicker( { onSelect, onClose } ) {
 			setLoading( true );
 			try {
 				const data = await apiFetch( {
-					path: `/wp-ai-mind/v1/search-posts?q=${ encodeURIComponent(
+					path: `/stilus/v1/search-posts?q=${ encodeURIComponent(
 						query
 					) }`,
 				} );

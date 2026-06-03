@@ -2,11 +2,11 @@
 /**
  * Manages the plugin's custom database tables via dbDelta.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\DB;
+namespace Stilus\DB;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

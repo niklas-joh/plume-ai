@@ -1,16 +1,16 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Admin;
+namespace Stilus\Tests\Unit\Admin;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use WP_AI_Mind\Admin\DevToolsPage;
+use Stilus\Admin\DevToolsPage;
 
 // Ensure the constant is defined for all tests in this class.
-if ( ! defined( 'WP_AI_MIND_DEV_KEY' ) ) {
-	define( 'WP_AI_MIND_DEV_KEY', 'test-dev-key' );
+if ( ! defined( 'STILUS_DEV_KEY' ) ) {
+	define( 'STILUS_DEV_KEY', 'test-dev-key' );
 }
 
 class DevToolsPageTest extends TestCase {

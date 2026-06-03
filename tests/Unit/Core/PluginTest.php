@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Core;
+namespace Stilus\Tests\Unit\Core;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Core\Plugin;
+use Stilus\Core\Plugin;
 use PHPUnit\Framework\TestCase;
 
 class PluginTest extends TestCase {

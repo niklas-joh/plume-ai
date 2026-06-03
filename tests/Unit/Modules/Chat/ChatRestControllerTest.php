@@ -1,12 +1,12 @@
 <?php
-namespace WP_AI_Mind\Tests\Unit\Modules\Chat;
+namespace Stilus\Tests\Unit\Modules\Chat;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Modules\Chat\ChatRestController;
-use WP_AI_Mind\Tools\ToolRegistry;
-use WP_AI_Mind\Tools\ToolExecutor;
-use WP_AI_Mind\Providers\CompletionResponse;
+use Stilus\Modules\Chat\ChatRestController;
+use Stilus\Tools\ToolRegistry;
+use Stilus\Tools\ToolExecutor;
+use Stilus\Providers\CompletionResponse;
 use PHPUnit\Framework\TestCase;
 
 class ChatRestControllerTest extends TestCase {
@@ -31,21 +31,21 @@ class ChatRestControllerTest extends TestCase {
     /**
      * Helper: build an anonymous ChatRestController subclass with an injected store mock.
      *
-     * @param \WP_AI_Mind\DB\ConversationStore $store_mock
+     * @param \Stilus\DB\ConversationStore $store_mock
      * @return ChatRestController
      */
-    private function make_controller_with_store( \WP_AI_Mind\DB\ConversationStore $store_mock ): ChatRestController {
+    private function make_controller_with_store( \Stilus\DB\ConversationStore $store_mock ): ChatRestController {
         return new class( $this->tool_registry, $this->tool_executor, $store_mock ) extends ChatRestController {
-            private \WP_AI_Mind\DB\ConversationStore $store_override;
+            private \Stilus\DB\ConversationStore $store_override;
             public function __construct(
                 ToolRegistry $tr,
                 ToolExecutor $te,
-                \WP_AI_Mind\DB\ConversationStore $store
+                \Stilus\DB\ConversationStore $store
             ) {
                 parent::__construct( $tr, $te );
                 $this->store_override = $store;
             }
-            protected function make_store(): \WP_AI_Mind\DB\ConversationStore {
+            protected function make_store(): \Stilus\DB\ConversationStore {
                 return $this->store_override;
             }
         };
@@ -54,7 +54,7 @@ class ChatRestControllerTest extends TestCase {
     public function test_update_conversation_returns_404_when_not_found(): void {
         Functions\when( '__' )->alias( fn( $s ) => $s );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( null );
 
         $controller = $this->make_controller_with_store( $store_mock );
@@ -73,7 +73,7 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( '__' )->alias( fn( $s ) => $s );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => '999' ] );
 
         $controller = $this->make_controller_with_store( $store_mock );
@@ -92,7 +92,7 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'get_current_user_id' )->justReturn( 5 );
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->with( 7 )->willReturn( [ 'user_id' => '5' ] );
         $store_mock->expects( $this->once() )
             ->method( 'update_title' )
@@ -116,7 +116,7 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'get_current_user_id' )->justReturn( 3 );
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => strip_tags( $v ) );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => '3' ] );
         $store_mock->expects( $this->once() )
             ->method( 'update_title' )
@@ -138,7 +138,7 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'get_current_user_id' )->justReturn( 5 );
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => '5' ] );
         $store_mock->method( 'update_title' )->willReturn( false );
 
@@ -160,7 +160,7 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
         // Store returns rows with extra internal columns that must not be exposed.
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'list_for_user' )->with( 1 )->willReturn( [
             [
                 'id'         => '5',
@@ -172,16 +172,16 @@ class ChatRestControllerTest extends TestCase {
         ] );
 
         $controller = new class( $this->tool_registry, $this->tool_executor, $store_mock ) extends ChatRestController {
-            private \WP_AI_Mind\DB\ConversationStore $store_override;
+            private \Stilus\DB\ConversationStore $store_override;
             public function __construct(
                 ToolRegistry $tr,
                 ToolExecutor $te,
-                \WP_AI_Mind\DB\ConversationStore $store
+                \Stilus\DB\ConversationStore $store
             ) {
                 parent::__construct( $tr, $te );
                 $this->store_override = $store;
             }
-            protected function make_store(): \WP_AI_Mind\DB\ConversationStore {
+            protected function make_store(): \Stilus\DB\ConversationStore {
                 return $this->store_override;
             }
         };
@@ -205,22 +205,22 @@ class ChatRestControllerTest extends TestCase {
     public function test_list_conversations_casts_id_to_int(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'list_for_user' )->willReturn( [
             [ 'id' => '99', 'title' => 'Test', 'updated_at' => '2026-02-01 00:00:00', 'user_id' => '1' ],
         ] );
 
         $controller = new class( $this->tool_registry, $this->tool_executor, $store_mock ) extends ChatRestController {
-            private \WP_AI_Mind\DB\ConversationStore $store_override;
+            private \Stilus\DB\ConversationStore $store_override;
             public function __construct(
                 ToolRegistry $tr,
                 ToolExecutor $te,
-                \WP_AI_Mind\DB\ConversationStore $store
+                \Stilus\DB\ConversationStore $store
             ) {
                 parent::__construct( $tr, $te );
                 $this->store_override = $store;
             }
-            protected function make_store(): \WP_AI_Mind\DB\ConversationStore {
+            protected function make_store(): \Stilus\DB\ConversationStore {
                 return $this->store_override;
             }
         };
@@ -234,20 +234,20 @@ class ChatRestControllerTest extends TestCase {
     public function test_list_conversations_returns_empty_array_when_no_conversations(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'list_for_user' )->willReturn( [] );
 
         $controller = new class( $this->tool_registry, $this->tool_executor, $store_mock ) extends ChatRestController {
-            private \WP_AI_Mind\DB\ConversationStore $store_override;
+            private \Stilus\DB\ConversationStore $store_override;
             public function __construct(
                 ToolRegistry $tr,
                 ToolExecutor $te,
-                \WP_AI_Mind\DB\ConversationStore $store
+                \Stilus\DB\ConversationStore $store
             ) {
                 parent::__construct( $tr, $te );
                 $this->store_override = $store;
             }
-            protected function make_store(): \WP_AI_Mind\DB\ConversationStore {
+            protected function make_store(): \Stilus\DB\ConversationStore {
                 return $this->store_override;
             }
         };
@@ -263,23 +263,23 @@ class ChatRestControllerTest extends TestCase {
     // ── create_conversation ───────────────────────────────────────────────────
 
     public function test_create_conversation_returns_201_with_conversation_data(): void {
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'create' )->willReturn( 7 );
         $store_mock->method( 'get_conversation' )->with( 7 )->willReturn(
             [ 'id' => 7, 'title' => 'My convo', 'updated_at' => '2026-01-01 00:00:00' ]
         );
 
         $controller = new class( $this->tool_registry, $this->tool_executor, $store_mock ) extends ChatRestController {
-            private \WP_AI_Mind\DB\ConversationStore $store_override;
+            private \Stilus\DB\ConversationStore $store_override;
             public function __construct(
                 ToolRegistry $tr,
                 ToolExecutor $te,
-                \WP_AI_Mind\DB\ConversationStore $store
+                \Stilus\DB\ConversationStore $store
             ) {
                 parent::__construct( $tr, $te );
                 $this->store_override = $store;
             }
-            protected function make_store(): \WP_AI_Mind\DB\ConversationStore {
+            protected function make_store(): \Stilus\DB\ConversationStore {
                 return $this->store_override;
             }
         };
@@ -299,21 +299,21 @@ class ChatRestControllerTest extends TestCase {
     public function test_create_conversation_returns_500_when_db_insert_fails(): void {
         Functions\when( '__' )->alias( fn( $s ) => $s );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'create' )->willReturn( 0 );
         $store_mock->method( 'get_conversation' )->willReturn( null );
 
         $controller = new class( $this->tool_registry, $this->tool_executor, $store_mock ) extends ChatRestController {
-            private \WP_AI_Mind\DB\ConversationStore $store_override;
+            private \Stilus\DB\ConversationStore $store_override;
             public function __construct(
                 ToolRegistry $tr,
                 ToolExecutor $te,
-                \WP_AI_Mind\DB\ConversationStore $store
+                \Stilus\DB\ConversationStore $store
             ) {
                 parent::__construct( $tr, $te );
                 $this->store_override = $store;
             }
-            protected function make_store(): \WP_AI_Mind\DB\ConversationStore {
+            protected function make_store(): \Stilus\DB\ConversationStore {
                 return $this->store_override;
             }
         };
@@ -332,21 +332,21 @@ class ChatRestControllerTest extends TestCase {
     public function test_create_conversation_returns_500_when_get_conversation_returns_null(): void {
         Functions\when( '__' )->alias( fn( $s ) => $s );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'create' )->willReturn( 7 );
         $store_mock->method( 'get_conversation' )->with( 7 )->willReturn( null );
 
         $controller = new class( $this->tool_registry, $this->tool_executor, $store_mock ) extends ChatRestController {
-            private \WP_AI_Mind\DB\ConversationStore $store_override;
+            private \Stilus\DB\ConversationStore $store_override;
             public function __construct(
                 ToolRegistry $tr,
                 ToolExecutor $te,
-                \WP_AI_Mind\DB\ConversationStore $store
+                \Stilus\DB\ConversationStore $store
             ) {
                 parent::__construct( $tr, $te );
                 $this->store_override = $store;
             }
-            protected function make_store(): \WP_AI_Mind\DB\ConversationStore {
+            protected function make_store(): \Stilus\DB\ConversationStore {
                 return $this->store_override;
             }
         };
@@ -376,10 +376,10 @@ class ChatRestControllerTest extends TestCase {
         $controller = new ChatRestController( $this->tool_registry, $this->tool_executor );
         $controller->register_routes();
 
-        $this->assertContains( 'wp-ai-mind/v1/conversations', $registered );
-        $this->assertContains( 'wp-ai-mind/v1/conversations/(?P<id>\\d+)', $registered, 'PATCH /conversations/{id} route must be registered.' );
-        $this->assertContains( 'wp-ai-mind/v1/conversations/(?P<id>\\d+)/messages', $registered );
-        $this->assertContains( 'wp-ai-mind/v1/providers', $registered );
+        $this->assertContains( 'stilus/v1/conversations', $registered );
+        $this->assertContains( 'stilus/v1/conversations/(?P<id>\\d+)', $registered, 'PATCH /conversations/{id} route must be registered.' );
+        $this->assertContains( 'stilus/v1/conversations/(?P<id>\\d+)/messages', $registered );
+        $this->assertContains( 'stilus/v1/providers', $registered );
     }
 
     // ── Permission check ───────────────────────────────────────────────────────
@@ -512,21 +512,21 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( 'claude' );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 999 ] );
 
         // Use an anonymous subclass to inject the store mock.
         $controller = new class( $this->tool_registry, $this->tool_executor, $store_mock ) extends ChatRestController {
-            private \WP_AI_Mind\DB\ConversationStore $store_override;
+            private \Stilus\DB\ConversationStore $store_override;
             public function __construct(
                 ToolRegistry $tr,
                 ToolExecutor $te,
-                \WP_AI_Mind\DB\ConversationStore $store
+                \Stilus\DB\ConversationStore $store
             ) {
                 parent::__construct( $tr, $te );
                 $this->store_override = $store;
             }
-            protected function make_store(): \WP_AI_Mind\DB\ConversationStore {
+            protected function make_store(): \Stilus\DB\ConversationStore {
                 return $this->store_override;
             }
         };
@@ -549,14 +549,14 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->alias( function( $key, $default = '' ) {
             return match ( $key ) {
-                'wp_ai_mind_default_provider' => 'claude',
+                'stilus_default_provider' => 'claude',
                 default                       => $default,
             };
         } );
         Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 
         // Store mock.
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
         $store_mock->method( 'get_messages' )->willReturn( [
             [ 'role' => 'user', 'content' => 'Hello' ],
@@ -595,15 +595,15 @@ class ChatRestControllerTest extends TestCase {
             ->willReturn( [ 'posts' => [] ] );
 
         // Provider mock.
-        $provider_mock = $this->createMock( \WP_AI_Mind\Providers\ProviderInterface::class );
+        $provider_mock = $this->createMock( \Stilus\Providers\ProviderInterface::class );
         $provider_mock->method( 'is_available' )->willReturn( true );
         $provider_mock->method( 'supports_tools' )->willReturn( true );
         $provider_mock->method( 'complete' )->willReturnOnConsecutiveCalls( $tool_response, $final_response );
 
-        $factory_mock = $this->createMock( \WP_AI_Mind\Providers\ProviderFactory::class );
+        $factory_mock = $this->createMock( \Stilus\Providers\ProviderFactory::class );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
-        $voice_mock = $this->createMock( \WP_AI_Mind\Voice\VoiceInjector::class );
+        $voice_mock = $this->createMock( \Stilus\Voice\VoiceInjector::class );
         $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
 
         $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
@@ -624,23 +624,23 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( 'claude' );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
         $store_mock->method( 'get_messages' )->willReturn( [] );
 
         $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
 
-        $provider_mock = $this->createMock( \WP_AI_Mind\Providers\ProviderInterface::class );
+        $provider_mock = $this->createMock( \Stilus\Providers\ProviderInterface::class );
         $provider_mock->method( 'is_available' )->willReturn( true );
         $provider_mock->method( 'supports_tools' )->willReturn( false );
         $provider_mock->method( 'complete' )->willThrowException(
-            new \WP_AI_Mind\Providers\ProviderException( 'Rate limit exceeded', 'claude', 429 )
+            new \Stilus\Providers\ProviderException( 'Rate limit exceeded', 'claude', 429 )
         );
 
-        $factory_mock = $this->createMock( \WP_AI_Mind\Providers\ProviderFactory::class );
+        $factory_mock = $this->createMock( \Stilus\Providers\ProviderFactory::class );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
-        $voice_mock = $this->createMock( \WP_AI_Mind\Voice\VoiceInjector::class );
+        $voice_mock = $this->createMock( \Stilus\Voice\VoiceInjector::class );
         $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
 
         $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
@@ -663,23 +663,23 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( 'claude' );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
         $store_mock->method( 'get_messages' )->willReturn( [] );
 
         $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
 
-        $provider_mock = $this->createMock( \WP_AI_Mind\Providers\ProviderInterface::class );
+        $provider_mock = $this->createMock( \Stilus\Providers\ProviderInterface::class );
         $provider_mock->method( 'is_available' )->willReturn( true );
         $provider_mock->method( 'supports_tools' )->willReturn( false );
         $provider_mock->method( 'complete' )->willThrowException(
-            new \WP_AI_Mind\Providers\ProviderException( 'Forbidden', 'claude', 403 )
+            new \Stilus\Providers\ProviderException( 'Forbidden', 'claude', 403 )
         );
 
-        $factory_mock = $this->createMock( \WP_AI_Mind\Providers\ProviderFactory::class );
+        $factory_mock = $this->createMock( \Stilus\Providers\ProviderFactory::class );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
-        $voice_mock = $this->createMock( \WP_AI_Mind\Voice\VoiceInjector::class );
+        $voice_mock = $this->createMock( \Stilus\Voice\VoiceInjector::class );
         $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
 
         $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
@@ -700,7 +700,7 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'get_option' )->justReturn( 'claude' );
         Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
         $store_mock->method( 'get_messages' )->willReturn( [
             [ 'role' => 'user', 'content' => 'Hi' ],
@@ -719,16 +719,16 @@ class ChatRestControllerTest extends TestCase {
         $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
         $this->tool_executor->method( 'execute' )->willReturn( [ 'name' => 'Test Site' ] );
 
-        $provider_mock = $this->createMock( \WP_AI_Mind\Providers\ProviderInterface::class );
+        $provider_mock = $this->createMock( \Stilus\Providers\ProviderInterface::class );
         $provider_mock->method( 'is_available' )->willReturn( true );
         $provider_mock->method( 'supports_tools' )->willReturn( true );
         // Always returns a tool call response.
         $provider_mock->method( 'complete' )->willReturn( $tool_response );
 
-        $factory_mock = $this->createMock( \WP_AI_Mind\Providers\ProviderFactory::class );
+        $factory_mock = $this->createMock( \Stilus\Providers\ProviderFactory::class );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
-        $voice_mock = $this->createMock( \WP_AI_Mind\Voice\VoiceInjector::class );
+        $voice_mock = $this->createMock( \Stilus\Voice\VoiceInjector::class );
         $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
 
         $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
@@ -747,7 +747,7 @@ class ChatRestControllerTest extends TestCase {
     // ── context_post_id system-prompt injection ───────────────────────────────
 
     /**
-     * @covers \WP_AI_Mind\Modules\Chat\ChatRestController::send_message
+     * @covers \Stilus\Modules\Chat\ChatRestController::send_message
      */
     public function test_send_message_augments_system_prompt_with_post_title_when_authorised(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
@@ -763,14 +763,14 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'get_post' )->justReturn( $post );
         Functions\when( 'current_user_can' )->justReturn( true );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
         $store_mock->method( 'get_messages' )->willReturn( [] );
 
         $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
 
         $captured_system = null;
-        $provider_mock   = $this->createMock( \WP_AI_Mind\Providers\ProviderInterface::class );
+        $provider_mock   = $this->createMock( \Stilus\Providers\ProviderInterface::class );
         $provider_mock->method( 'is_available' )->willReturn( true );
         $provider_mock->method( 'supports_tools' )->willReturn( false );
         $provider_mock->method( 'complete' )->willReturnCallback(
@@ -785,10 +785,10 @@ class ChatRestControllerTest extends TestCase {
             }
         );
 
-        $factory_mock = $this->createMock( \WP_AI_Mind\Providers\ProviderFactory::class );
+        $factory_mock = $this->createMock( \Stilus\Providers\ProviderFactory::class );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
-        $voice_mock = $this->createMock( \WP_AI_Mind\Voice\VoiceInjector::class );
+        $voice_mock = $this->createMock( \Stilus\Voice\VoiceInjector::class );
         $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
 
         $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
@@ -807,7 +807,7 @@ class ChatRestControllerTest extends TestCase {
     }
 
     /**
-     * @covers \WP_AI_Mind\Modules\Chat\ChatRestController::send_message
+     * @covers \Stilus\Modules\Chat\ChatRestController::send_message
      */
     public function test_send_message_does_not_augment_system_prompt_when_user_lacks_read_post(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
@@ -823,14 +823,14 @@ class ChatRestControllerTest extends TestCase {
         // User lacks read_post capability — prompt must not be augmented.
         Functions\when( 'current_user_can' )->justReturn( false );
 
-        $store_mock = $this->createMock( \WP_AI_Mind\DB\ConversationStore::class );
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
         $store_mock->method( 'get_messages' )->willReturn( [] );
 
         $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
 
         $captured_system = null;
-        $provider_mock   = $this->createMock( \WP_AI_Mind\Providers\ProviderInterface::class );
+        $provider_mock   = $this->createMock( \Stilus\Providers\ProviderInterface::class );
         $provider_mock->method( 'is_available' )->willReturn( true );
         $provider_mock->method( 'supports_tools' )->willReturn( false );
         $provider_mock->method( 'complete' )->willReturnCallback(
@@ -845,10 +845,10 @@ class ChatRestControllerTest extends TestCase {
             }
         );
 
-        $factory_mock = $this->createMock( \WP_AI_Mind\Providers\ProviderFactory::class );
+        $factory_mock = $this->createMock( \Stilus\Providers\ProviderFactory::class );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
-        $voice_mock = $this->createMock( \WP_AI_Mind\Voice\VoiceInjector::class );
+        $voice_mock = $this->createMock( \Stilus\Voice\VoiceInjector::class );
         $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
 
         $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
@@ -864,9 +864,9 @@ class ChatRestControllerTest extends TestCase {
     }
 
     private function make_controller(
-        \WP_AI_Mind\DB\ConversationStore $store,
-        \WP_AI_Mind\Providers\ProviderFactory $factory,
-        \WP_AI_Mind\Voice\VoiceInjector $voice
+        \Stilus\DB\ConversationStore $store,
+        \Stilus\Providers\ProviderFactory $factory,
+        \Stilus\Voice\VoiceInjector $voice
     ): ChatRestController {
         return new class(
             $this->tool_registry,
@@ -875,29 +875,29 @@ class ChatRestControllerTest extends TestCase {
             $factory,
             $voice
         ) extends ChatRestController {
-            private \WP_AI_Mind\DB\ConversationStore $store_override;
-            private \WP_AI_Mind\Providers\ProviderFactory $factory_override;
-            private \WP_AI_Mind\Voice\VoiceInjector $voice_override;
+            private \Stilus\DB\ConversationStore $store_override;
+            private \Stilus\Providers\ProviderFactory $factory_override;
+            private \Stilus\Voice\VoiceInjector $voice_override;
 
             public function __construct(
                 ToolRegistry $tr,
                 ToolExecutor $te,
-                \WP_AI_Mind\DB\ConversationStore $store,
-                \WP_AI_Mind\Providers\ProviderFactory $factory,
-                \WP_AI_Mind\Voice\VoiceInjector $voice
+                \Stilus\DB\ConversationStore $store,
+                \Stilus\Providers\ProviderFactory $factory,
+                \Stilus\Voice\VoiceInjector $voice
             ) {
                 parent::__construct( $tr, $te );
                 $this->store_override   = $store;
                 $this->factory_override = $factory;
                 $this->voice_override   = $voice;
             }
-            protected function make_store(): \WP_AI_Mind\DB\ConversationStore {
+            protected function make_store(): \Stilus\DB\ConversationStore {
                 return $this->store_override;
             }
-            protected function make_provider_factory(): \WP_AI_Mind\Providers\ProviderFactory {
+            protected function make_provider_factory(): \Stilus\Providers\ProviderFactory {
                 return $this->factory_override;
             }
-            protected function make_voice_injector(): \WP_AI_Mind\Voice\VoiceInjector {
+            protected function make_voice_injector(): \Stilus\Voice\VoiceInjector {
                 return $this->voice_override;
             }
         };

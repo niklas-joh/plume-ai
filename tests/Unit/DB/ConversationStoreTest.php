@@ -1,9 +1,9 @@
 <?php
-namespace WP_AI_Mind\Tests\Unit\DB;
+namespace Stilus\Tests\Unit\DB;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\DB\ConversationStore;
+use Stilus\DB\ConversationStore;
 use PHPUnit\Framework\TestCase;
 
 /**

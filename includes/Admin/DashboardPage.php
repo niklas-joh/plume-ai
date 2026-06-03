@@ -2,19 +2,19 @@
 /**
  * Admin page rendering the Stilus dashboard.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Settings\ProviderSettings;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Settings\ProviderSettings;
+use Stilus\Tiers\TierManager;
+use Stilus\Tiers\UsageTracker;
 
 /**
  * Renders the Stilus dashboard admin page.
@@ -37,13 +37,13 @@ class DashboardPage {
 			wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'wpaim_run_setup' ) &&
 			current_user_can( 'manage_options' )
 		) {
-			delete_option( 'wp_ai_mind_onboarding_seen' );
-			wp_safe_redirect( admin_url( 'admin.php?page=wp-ai-mind' ) );
+			delete_option( 'stilus_onboarding_seen' );
+			wp_safe_redirect( admin_url( 'admin.php?page=stilus' ) );
 			exit;
 		}
 
 		self::enqueue_assets();
-		echo '<div id="wp-ai-mind-dashboard" class="wp-ai-mind-page"></div>';
+		echo '<div id="stilus-dashboard" class="stilus-page"></div>';
 	}
 
 	/**
@@ -53,31 +53,31 @@ class DashboardPage {
 	 * @return void
 	 */
 	private static function enqueue_assets(): void {
-		$asset_file = WP_AI_MIND_DIR . 'assets/admin/index.asset.php';
+		$asset_file = STILUS_DIR . 'assets/admin/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => WP_AI_MIND_VERSION,
+				'version'      => STILUS_VERSION,
 			];
 
 		wp_enqueue_script(
-			'wp-ai-mind-admin',
-			WP_AI_MIND_URL . 'assets/admin/index.js',
+			'stilus-admin',
+			STILUS_URL . 'assets/admin/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-i18n', 'wp-api-fetch' ] ),
 			$asset['version'],
 			true
 		);
 
 		wp_enqueue_style(
-			'wp-ai-mind-admin',
-			WP_AI_MIND_URL . 'assets/admin/index.css',
+			'stilus-admin',
+			STILUS_URL . 'assets/admin/index.css',
 			[],
 			$asset['version']
 		);
 
 		wp_localize_script(
-			'wp-ai-mind-admin',
+			'stilus-admin',
 			'wpAiMindDashboard',
 			self::get_dashboard_data()
 		);
@@ -94,9 +94,9 @@ class DashboardPage {
 	 */
 	private static function get_dashboard_data(): array {
 		$provider_settings = new ProviderSettings();
-		$provider          = (string) get_option( 'wp_ai_mind_default_provider', '' );
+		$provider          = (string) get_option( 'stilus_default_provider', '' );
 		$has_own_key       = $provider && $provider_settings->has_key( $provider );
-		$is_pro            = NJ_Tier_Manager::user_can( 'generator' );
+		$is_pro            = TierManager::user_can( 'generator' );
 
 		// Suppress the upgrade banner when the user has generator access (pro_managed, pro_byok, or
 		// trial tiers all have generator = true) or when they supply their own API key. Trial users
@@ -110,31 +110,31 @@ class DashboardPage {
 
 		return [
 			'bannerState'    => $banner_state,
-			'onboardingSeen' => (bool) get_option( 'wp_ai_mind_onboarding_seen', false ),
+			'onboardingSeen' => (bool) get_option( 'stilus_onboarding_seen', false ),
 			'isPro'          => $is_pro,
-			'usage'          => current_user_can( 'manage_options' ) ? NJ_Usage_Tracker::get_usage() : null,
-			'version'        => WP_AI_MIND_VERSION,
+			'usage'          => current_user_can( 'manage_options' ) ? UsageTracker::get_usage() : null,
+			'version'        => STILUS_VERSION,
 			'nonce'          => wp_create_nonce( 'wp_rest' ),
-			'restUrl'        => esc_url_raw( rest_url( 'wp-ai-mind/v1' ) ),
+			'restUrl'        => esc_url_raw( rest_url( 'stilus/v1' ) ),
 			'runSetupUrl'    => wp_nonce_url(
-				admin_url( 'admin.php?page=wp-ai-mind&run_setup=1' ),
+				admin_url( 'admin.php?page=stilus&run_setup=1' ),
 				'wpaim_run_setup'
 			),
 			'urls'           => [
-				'chat'      => admin_url( 'admin.php?page=wp-ai-mind-chat' ),
-				'generator' => admin_url( 'admin.php?page=wp-ai-mind-generator' ),
-				'images'    => admin_url( 'admin.php?page=wp-ai-mind-images' ),
-				'seo'       => admin_url( 'admin.php?page=wp-ai-mind-seo' ),
-				'usage'     => admin_url( 'admin.php?page=wp-ai-mind-usage' ),
-				'settings'  => admin_url( 'admin.php?page=wp-ai-mind-settings' ),
+				'chat'      => admin_url( 'admin.php?page=stilus-chat' ),
+				'generator' => admin_url( 'admin.php?page=stilus-generator' ),
+				'images'    => admin_url( 'admin.php?page=stilus-images' ),
+				'seo'       => admin_url( 'admin.php?page=stilus-seo' ),
+				'usage'     => admin_url( 'admin.php?page=stilus-usage' ),
+				'settings'  => admin_url( 'admin.php?page=stilus-settings' ),
 				'posts'     => admin_url( 'edit.php' ),
-				'upgrade'   => 'https://wpaimind.com/pricing',
+				'upgrade'   => 'https://[TODO-stilus-domain]/pricing',
 			],
 			'resourceUrls'   => [
-				'gettingStarted' => 'https://wpaimind.com/docs/getting-started',
-				'promptTips'     => 'https://wpaimind.com/docs/prompt-tips',
-				'apiKeySetup'    => 'https://wpaimind.com/docs/api-key-setup',
-				'changelog'      => 'https://wpaimind.com/changelog',
+				'gettingStarted' => 'https://[TODO-stilus-domain]/docs/getting-started',
+				'promptTips'     => 'https://[TODO-stilus-domain]/docs/prompt-tips',
+				'apiKeySetup'    => 'https://[TODO-stilus-domain]/docs/api-key-setup',
+				'changelog'      => 'https://[TODO-stilus-domain]/changelog',
 			],
 		];
 	}

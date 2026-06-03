@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the React UI for the two Pro-gated WP AI Mind admin pages — SEO and Images — using a shared `PostListTable` component, matching the design spec at `docs/superpowers/specs/2026-03-27-seo-images-admin-pages-design.md`.
+**Goal:** Build the React UI for the two Pro-gated Stilus admin pages — SEO and Images — using a shared `PostListTable` component, matching the design spec at `docs/superpowers/specs/2026-03-27-seo-images-admin-pages-design.md`.
 
 **Architecture:** Two new webpack entries (`seo/index`, `images/index`) each mount a standalone React app. Both apps share a `PostListTable` component that handles the list + inline-expand UX pattern. The SEO page adds a `wpaim_seo_status` field to the WP REST API (registered in PHP) to surface metadata gap status per post.
 
@@ -13,7 +13,7 @@
 ## Pre-flight
 
 ```bash
-cd /Users/niklas/Documents/Homepages/wp-ai-mind
+cd /Users/niklas/Documents/Homepages/stilus
 docker compose up -d          # WordPress must be running for manual checks
 ./vendor/bin/phpunit tests/Unit/ --colors=always   # all green before you start
 npm run build                 # confirm baseline build passes
@@ -101,11 +101,11 @@ Create `tests/Unit/Modules/Seo/SeoStatusFieldTest.php`:
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Modules\Seo;
+namespace Stilus\Tests\Unit\Modules\Seo;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Modules\Seo\SeoModule;
+use Stilus\Modules\Seo\SeoModule;
 use PHPUnit\Framework\TestCase;
 
 class SeoStatusFieldTest extends TestCase {
@@ -239,11 +239,11 @@ public static function register(): void {
 
 ```php
 \wp_localize_script(
-    'wp-ai-mind-seo',
+    'stilus-seo',
     'wpAiMindData',
     [
         'nonce'    => \wp_create_nonce( 'wp_rest' ),
-        'restUrl'  => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
+        'restUrl'  => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
         'isPro'    => \wp_ai_mind_is_pro(),
         'adminUrl' => \esc_url_raw( \admin_url() ),
     ]
@@ -308,11 +308,11 @@ In `includes/Modules/Images/ImagesModule.php`, in `enqueue_assets()`, update the
 
 ```php
 \wp_localize_script(
-    'wp-ai-mind-images',
+    'stilus-images',
     'wpAiMindData',
     [
         'nonce'    => \wp_create_nonce( 'wp_rest' ),
-        'restUrl'  => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
+        'restUrl'  => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
         'isPro'    => \wp_ai_mind_is_pro(),
         'adminUrl' => \esc_url_raw( \admin_url() ),
     ]
@@ -841,7 +841,7 @@ if ( nonce ) {
     apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 }
 
-const root = document.getElementById( 'wp-ai-mind-seo' );
+const root = document.getElementById( 'stilus-seo' );
 if ( root ) {
     render( <SeoApp />, root );
 }
@@ -877,7 +877,7 @@ export default function SeoApp() {
         return (
             <div className="wpaim-pro-gate">
                 <Lock size={ 32 } />
-                <h2>AI SEO requires WP AI Mind Pro</h2>
+                <h2>AI SEO requires Stilus Pro</h2>
                 <p>
                     Automatically generate meta titles, OG descriptions, excerpts, and image alt
                     text for every post — in one click.
@@ -1249,7 +1249,7 @@ Expected: build completes with no errors. `assets/seo/index.js` and `assets/seo/
 
 - [ ] **Step 3: Smoke-test in browser**
 
-1. Navigate to `http://localhost:8080/wp-admin/admin.php?page=wp-ai-mind-seo`
+1. Navigate to `http://localhost:8080/wp-admin/admin.php?page=stilus-seo`
 2. If `isPro` is false: lock screen renders.
 3. If `isPro` is true: page header + table of posts and pages loads.
 
@@ -1282,7 +1282,7 @@ if ( nonce ) {
     apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 }
 
-const root = document.getElementById( 'wp-ai-mind-images' );
+const root = document.getElementById( 'stilus-images' );
 if ( root ) {
     render( <ImagesApp />, root );
 }
@@ -1317,7 +1317,7 @@ export default function ImagesApp() {
         return (
             <div className="wpaim-pro-gate">
                 <Lock size={ 32 } />
-                <h2>AI image generation requires WP AI Mind Pro</h2>
+                <h2>AI image generation requires Stilus Pro</h2>
                 <p>
                     Generate beautiful featured images from a text prompt and set them directly
                     on any post or page.
@@ -1811,7 +1811,7 @@ Expected: all green.
 
 Use Docker local environment at `http://localhost:8080`.
 
-**SEO page** (`/wp-admin/admin.php?page=wp-ai-mind-seo`):
+**SEO page** (`/wp-admin/admin.php?page=stilus-seo`):
 - [ ] List of posts and pages loads with Complete/Partial/Missing badges
 - [ ] "Missing" tab shows only posts with no SEO fields
 - [ ] Search input filters by post title
@@ -1823,7 +1823,7 @@ Use Docker local environment at `http://localhost:8080`.
 - [ ] "Discard" → row closes → no changes saved
 - [ ] "Edit post →" opens Gutenberg in a new tab
 
-**Images page** (`/wp-admin/admin.php?page=wp-ai-mind-images`):
+**Images page** (`/wp-admin/admin.php?page=stilus-images`):
 - [ ] List loads; posts with featured images show 36×36px thumbnails + "Has image" badge
 - [ ] "No image" tab filters correctly
 - [ ] Prompt textarea + aspect ratio + count controls render
@@ -1854,8 +1854,8 @@ Commit the plan document to the repo:
 
 ```bash
 cp /Users/niklas/.claude/plans/snuggly-marinating-lighthouse.md \
-   /Users/niklas/Documents/Homepages/wp-ai-mind/docs/superpowers/plans/2026-03-27-seo-images-admin-pages.md
-cd /Users/niklas/Documents/Homepages/wp-ai-mind
+   /Users/niklas/Documents/Homepages/stilus/docs/superpowers/plans/2026-03-27-seo-images-admin-pages.md
+cd /Users/niklas/Documents/Homepages/stilus
 git add docs/superpowers/plans/2026-03-27-seo-images-admin-pages.md
 git commit -m "docs: add implementation plan for SEO and Images admin pages"
 ```

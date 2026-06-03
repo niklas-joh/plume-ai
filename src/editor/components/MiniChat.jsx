@@ -40,7 +40,7 @@ export default function MiniChat( { postId } ) {
 			let cid = convId;
 			if ( ! cid ) {
 				const conv = await apiFetch( {
-					path: '/wp-ai-mind/v1/conversations',
+					path: '/stilus/v1/conversations',
 					method: 'POST',
 					data: { title: text.slice( 0, 60 ), post_id: postId },
 				} );
@@ -48,7 +48,7 @@ export default function MiniChat( { postId } ) {
 				setConvId( cid ); // capture new ID — stale closure fix
 			}
 			const res = await apiFetch( {
-				path: `/wp-ai-mind/v1/conversations/${ cid }/messages`,
+				path: `/stilus/v1/conversations/${ cid }/messages`,
 				method: 'POST',
 				data: { content: text, context_post_id: postId ?? 0 },
 			} );

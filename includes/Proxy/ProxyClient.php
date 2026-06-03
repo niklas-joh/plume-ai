@@ -2,16 +2,16 @@
 /**
  * Sends authenticated requests to the Cloudflare Worker AI proxy.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Proxy;
+namespace Stilus\Proxy;
 
 use WP_Error;
-use WP_AI_Mind\Tiers\NJ_Tier_Config;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Tiers\TierConfig;
+use Stilus\Tiers\UsageTracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 1.2.0
  */
-class NJ_Proxy_Client {
+class ProxyClient {
 
 	/**
 	 * Send a chat request through the Cloudflare proxy.
@@ -38,22 +38,22 @@ class NJ_Proxy_Client {
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function chat( array $messages, array $options = [], string $provider = 'claude' ): array|WP_Error {
-		$token = NJ_Site_Registration::get_site_token();
+		$token = SiteRegistration::get_site_token();
 		if ( empty( $token ) ) {
 			// Inline registration risks a loopback deadlock on single-worker setups because
 			// the Worker's challenge callback is a fresh HTTP request that would queue behind
 			// the in-flight request.
-			if ( ! has_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] ) ) {
-				add_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] );
+			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
+				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'not_registered', __( 'Site not connected to Stilus - Write and Design. Please reload the page.', 'wp-ai-mind' ) );
+			return new WP_Error( 'not_registered', __( 'Site not connected to Stilus - Write and Design. Please reload the page.', 'stilus' ) );
 		}
 
 		$user_id = get_current_user_id();
 
 		// Fail-fast pre-check (WordPress meta). Cloudflare KV is authoritative for enforcement.
-		if ( ! NJ_Usage_Tracker::check_limit( $user_id ) ) {
-			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'wp-ai-mind' ) );
+		if ( ! UsageTracker::check_limit( $user_id ) ) {
+			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'stilus' ) );
 		}
 
 		$payload = [
@@ -76,11 +76,11 @@ class NJ_Proxy_Client {
 
 		$body_json = wp_json_encode( $payload );
 		if ( false === $body_json ) {
-			return new WP_Error( 'json_encode_failed', __( 'Failed to encode request payload.', 'wp-ai-mind' ) );
+			return new WP_Error( 'json_encode_failed', __( 'Failed to encode request payload.', 'stilus' ) );
 		}
 
 		$response = wp_remote_post(
-			NJ_Tier_Config::get_proxy_url() . '/v1/chat',
+			TierConfig::get_proxy_url() . '/v1/chat',
 			[
 				'headers' => [
 					'Content-Type'  => 'application/json',
@@ -99,23 +99,23 @@ class NJ_Proxy_Client {
 		$body = json_decode( wp_remote_retrieve_body( $response ), true ) ?? [];
 
 		if ( 429 === $code ) {
-			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'wp-ai-mind' ) );
+			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'stilus' ) );
 		}
 
 		if ( 401 === $code ) {
 			// Token may be stale — clear it so maybe_register() re-issues on next admin_init.
 			// Re-registration is async; the current request cannot be retried transparently.
 			// TODO #326: inline register() + retry once to avoid user-visible auth errors.
-			delete_option( NJ_Site_Registration::OPTION_TOKEN );
-			if ( ! has_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] ) ) {
-				add_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] );
+			delete_option( SiteRegistration::OPTION_TOKEN );
+			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
+				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'auth_failed', __( 'Connection to Stilus - Write and Design failed. Please reload the page and try again.', 'wp-ai-mind' ) );
+			return new WP_Error( 'auth_failed', __( 'Connection to Stilus - Write and Design failed. Please reload the page and try again.', 'stilus' ) );
 		}
 
 		if ( $code < 200 || $code >= 300 ) {
 			// translators: %d is the HTTP status code returned by the service.
-			return new WP_Error( 'service_error', $body['error'] ?? sprintf( __( 'Stilus - Write and Design returned HTTP %d', 'wp-ai-mind' ), $code ) );
+			return new WP_Error( 'service_error', $body['error'] ?? sprintf( __( 'Stilus - Write and Design returned HTTP %d', 'stilus' ), $code ) );
 		}
 
 		// Mirror usage locally for dashboard display only — KV is authoritative for quota enforcement.
@@ -125,7 +125,7 @@ class NJ_Proxy_Client {
 		// weighted tokens in KV to keep billing proportional across providers and models.
 		if ( isset( $body['usage']['input_tokens'], $body['usage']['output_tokens'] ) ) {
 			$tokens = (int) $body['usage']['input_tokens'] + (int) $body['usage']['output_tokens'];
-			NJ_Usage_Tracker::log_usage( $tokens, $user_id );
+			UsageTracker::log_usage( $tokens, $user_id );
 		}
 
 		return $body;

@@ -2,12 +2,12 @@
 /**
  * Tracks per-user monthly API request consumption against tier limits.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tiers;
+namespace Stilus\Tiers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 1.2.0
  */
-class NJ_Usage_Tracker {
+class UsageTracker {
 
 	/**
 	 * Returns the wp_usermeta key for the current calendar month's token counter.
@@ -28,10 +28,10 @@ class NJ_Usage_Tracker {
 	 * only this method needs updating.
 	 *
 	 * @since 1.11.0
-	 * @return string Meta key in the form wp_ai_mind_usage_YYYY_MM.
+	 * @return string Meta key in the form stilus_usage_YYYY_MM.
 	 */
 	public static function get_current_month_key(): string {
-		return 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		return 'stilus_usage_' . gmdate( 'Y_m' );
 	}
 
 	/**
@@ -43,8 +43,8 @@ class NJ_Usage_Tracker {
 	 */
 	public static function get_usage( ?int $user_id = null ): array {
 		$user_id = $user_id ?? get_current_user_id();
-		$tier    = NJ_Tier_Manager::get_user_tier( $user_id );
-		$limit   = NJ_Tier_Manager::get_monthly_limit( $tier );
+		$tier    = TierManager::get_user_tier( $user_id );
+		$limit   = TierManager::get_monthly_limit( $tier );
 
 		$key  = self::get_current_month_key();
 		$used = (int) get_user_meta( $user_id, $key, true );

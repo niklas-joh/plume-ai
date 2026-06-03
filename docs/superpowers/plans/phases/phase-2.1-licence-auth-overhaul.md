@@ -11,7 +11,7 @@
 
 **Tech Stack:** Cloudflare Workers (TypeScript), Cloudflare KV, WordPress PHP, LemonSqueezy Webhooks API
 
-**Depends on:** Phase 2 complete — Worker deployed at `https://wp-ai-mind-proxy.wp-ai-mind.workers.dev`, KV namespaces created, `ANTHROPIC_API_KEY` and `LS_WEBHOOK_SECRET` secrets set.
+**Depends on:** Phase 2 complete — Worker deployed at `https://stilus-proxy.stilus.workers.dev`, KV namespaces created, `ANTHROPIC_API_KEY` and `LS_WEBHOOK_SECRET` secrets set.
 
 ---
 
@@ -45,7 +45,7 @@
 
 ## File Map
 
-### Cloudflare Worker (`wp-ai-mind-proxy/`)
+### Cloudflare Worker (`stilus-proxy/`)
 
 | File | Action | Responsibility |
 |---|---|---|
@@ -147,7 +147,7 @@ This keeps the proxy URL in one place — both `NJ_Site_Registration` and `NJ_Pr
 In `includes/Tiers/NJ_Tier_Config.php`, add alongside the existing constants:
 
 ```php
-const PROXY_URL = 'https://wp-ai-mind-proxy.wp-ai-mind.workers.dev';
+const PROXY_URL = 'https://stilus-proxy.stilus.workers.dev';
 ```
 
 - [x] **Step 2.2: Run full suite — expect no regressions**
@@ -166,7 +166,7 @@ git commit -m "chore(tiers): add PROXY_URL constant"
 ## Task 3: Worker — Update Types
 
 **Files:**
-- Modify: `wp-ai-mind-proxy/src/types.ts`
+- Modify: `stilus-proxy/src/types.ts`
 
 - [x] **Step 3.1: Replace types.ts**
 
@@ -212,12 +212,12 @@ export interface MessageParam {
 
 - [x] **Step 3.2: Typecheck**
 ```bash
-cd wp-ai-mind-proxy && npx tsc --noEmit
+cd stilus-proxy && npx tsc --noEmit
 ```
 
 - [x] **Step 3.3: Commit**
 ```bash
-git add wp-ai-mind-proxy/src/types.ts
+git add stilus-proxy/src/types.ts
 git commit -m "chore(proxy): update types for site-token auth, KV schema, system prompt"
 ```
 
@@ -226,7 +226,7 @@ git commit -m "chore(proxy): update types for site-token auth, KV schema, system
 ## Task 4: Worker — Bearer Token Auth Module
 
 **Files:**
-- Create: `wp-ai-mind-proxy/src/auth.ts`
+- Create: `stilus-proxy/src/auth.ts`
 
 - [x] **Step 4.1: Create auth.ts**
 
@@ -280,12 +280,12 @@ export function generateToken(): string {
 
 - [x] **Step 4.2: Typecheck**
 ```bash
-cd wp-ai-mind-proxy && npx tsc --noEmit
+cd stilus-proxy && npx tsc --noEmit
 ```
 
 - [x] **Step 4.3: Commit**
 ```bash
-git add wp-ai-mind-proxy/src/auth.ts
+git add stilus-proxy/src/auth.ts
 git commit -m "feat(proxy): add Bearer token auth module"
 ```
 
@@ -294,7 +294,7 @@ git commit -m "feat(proxy): add Bearer token auth module"
 ## Task 5: Worker — Site Registration Endpoint
 
 **Files:**
-- Create: `wp-ai-mind-proxy/src/registration.ts`
+- Create: `stilus-proxy/src/registration.ts`
 
 - [x] **Step 5.1: Create registration.ts**
 
@@ -369,12 +369,12 @@ function jsonResponse(data: unknown, status = 200): Response {
 
 - [x] **Step 5.2: Typecheck**
 ```bash
-cd wp-ai-mind-proxy && npx tsc --noEmit
+cd stilus-proxy && npx tsc --noEmit
 ```
 
 - [x] **Step 5.3: Commit**
 ```bash
-git add wp-ai-mind-proxy/src/registration.ts
+git add stilus-proxy/src/registration.ts
 git commit -m "feat(proxy): add /register endpoint — idempotent site token issuance"
 ```
 
@@ -383,8 +383,8 @@ git commit -m "feat(proxy): add /register endpoint — idempotent site token iss
 ## Task 6: Worker — LemonSqueezy Webhook Endpoint
 
 **Files:**
-- Modify: `wp-ai-mind-proxy/src/signature.ts`
-- Create: `wp-ai-mind-proxy/src/webhook.ts`
+- Modify: `stilus-proxy/src/signature.ts`
+- Create: `stilus-proxy/src/webhook.ts`
 
 - [x] **Step 6.1: Repurpose signature.ts for LS webhook verification**
 
@@ -426,7 +426,7 @@ export async function verifyLsSignature(
 
 - [x] **Step 6.2: Get your LemonSqueezy variant IDs**
 
-In the LemonSqueezy dashboard go to **Products → WP AI Mind Pro → Variants**. For each variant, open it and copy the numeric **Variant ID** from the URL or the variant settings. You need:
+In the LemonSqueezy dashboard go to **Products → Stilus Pro → Variants**. For each variant, open it and copy the numeric **Variant ID** from the URL or the variant settings. You need:
 - Pro Monthly variant ID
 - Pro Annual variant ID
 
@@ -435,7 +435,7 @@ You will paste these into the `VARIANT_TIER_MAP` in the next step.
 - [x] **Step 6.3: Create webhook.ts**
 
 Replace the variant IDs in the map below. The Pro Monthly variant ID is **988108**.
-The Pro Annual variant ID must be confirmed from the LS dashboard (Products → WP AI Mind Pro → Variants → Annual → copy the numeric ID from the URL).
+The Pro Annual variant ID must be confirmed from the LS dashboard (Products → Stilus Pro → Variants → Annual → copy the numeric ID from the URL).
 Pro BYOK (1550517) is a one-time purchase that bypasses the proxy — it is not in this map; BYOK webhook handling is Phase 3 scope.
 
 ```typescript
@@ -445,7 +445,7 @@ import { Env, SiteRecord, LicenceRecord, ProxyTier } from './types';
 import { verifyLsSignature } from './signature';
 
 // Map LemonSqueezy variant IDs → plugin tier.
-// Pro Monthly: 988108. Pro Annual: confirm ID in LS dashboard (Products → WP AI Mind Pro → Variants).
+// Pro Monthly: 988108. Pro Annual: confirm ID in LS dashboard (Products → Stilus Pro → Variants).
 // Pro BYOK (1550517) is not here — it bypasses the proxy; handled in Phase 3.
 const VARIANT_TIER_MAP: Record<string, ProxyTier> = {
   '988108': 'pro_managed', // Pro Monthly
@@ -577,12 +577,12 @@ async function downgradeSiteTier(token: string, env: Env): Promise<void> {
 
 - [x] **Step 6.4: Typecheck**
 ```bash
-cd wp-ai-mind-proxy && npx tsc --noEmit
+cd stilus-proxy && npx tsc --noEmit
 ```
 
 - [x] **Step 6.5: Commit**
 ```bash
-git add wp-ai-mind-proxy/src/signature.ts wp-ai-mind-proxy/src/webhook.ts
+git add stilus-proxy/src/signature.ts stilus-proxy/src/webhook.ts
 git commit -m "feat(proxy): add /webhook endpoint for LemonSqueezy events"
 ```
 
@@ -591,8 +591,8 @@ git commit -m "feat(proxy): add /webhook endpoint for LemonSqueezy events"
 ## Task 7: Worker — Update index.ts (Routes + Bearer Auth + System Prompt)
 
 **Files:**
-- Modify: `wp-ai-mind-proxy/src/index.ts`
-- Modify: `wp-ai-mind-proxy/wrangler.toml`
+- Modify: `stilus-proxy/src/index.ts`
+- Modify: `stilus-proxy/wrangler.toml`
 
 - [x] **Step 7.1: Replace index.ts**
 
@@ -756,7 +756,7 @@ function jsonResponse(data: unknown, status = 200): Response {
 
 - [x] **Step 7.2: Update wrangler.toml secrets comment**
 
-In `wp-ai-mind-proxy/wrangler.toml`, replace the secrets comment block:
+In `stilus-proxy/wrangler.toml`, replace the secrets comment block:
 
 ```toml
 # Secrets (set via CLI — never commit values):
@@ -768,7 +768,7 @@ In `wp-ai-mind-proxy/wrangler.toml`, replace the secrets comment block:
 
 - [x] **Step 7.3: Typecheck**
 ```bash
-cd wp-ai-mind-proxy && npx tsc --noEmit
+cd stilus-proxy && npx tsc --noEmit
 ```
 
 - [x] **Step 7.4: Smoke test — missing token → 401**
@@ -790,7 +790,7 @@ kill %1
 
 - [x] **Step 7.5: Commit**
 ```bash
-git add wp-ai-mind-proxy/src/index.ts wp-ai-mind-proxy/wrangler.toml
+git add stilus-proxy/src/index.ts stilus-proxy/wrangler.toml
 git commit -m "feat(proxy): wire /register + /webhook routes; replace HMAC with Bearer auth"
 ```
 
@@ -800,22 +800,22 @@ git commit -m "feat(proxy): wire /register + /webhook routes; replace HMAC with 
 
 - [x] **Step 8.1: Deploy**
 ```bash
-cd wp-ai-mind-proxy && wrangler deploy
+cd stilus-proxy && wrangler deploy
 ```
-Expected: `Deployed wp-ai-mind-proxy` — `https://wp-ai-mind-proxy.wp-ai-mind.workers.dev`
+Expected: `Deployed stilus-proxy` — `https://stilus-proxy.stilus.workers.dev`
 
 - [x] **Step 8.2: Smoke test registration (production)**
 ```bash
 # First call — expect 201
 curl -s -o /dev/null -w "%{http_code}" -X POST \
-  https://wp-ai-mind-proxy.wp-ai-mind.workers.dev/register \
+  https://stilus-proxy.stilus.workers.dev/register \
   -H "Content-Type: application/json" \
   -d '{"site_url":"https://test.example.com"}'
 # Expected: 201
 
 # Second call same URL — expect 200 (idempotent)
 curl -s -o /dev/null -w "%{http_code}" -X POST \
-  https://wp-ai-mind-proxy.wp-ai-mind.workers.dev/register \
+  https://stilus-proxy.stilus.workers.dev/register \
   -H "Content-Type: application/json" \
   -d '{"site_url":"https://test.example.com"}'
 # Expected: 200
@@ -823,7 +823,7 @@ curl -s -o /dev/null -w "%{http_code}" -X POST \
 
 - [x] **Step 8.3: Commit**
 ```bash
-git add wp-ai-mind-proxy/
+git add stilus-proxy/
 git commit -m "chore(proxy): deploy updated Worker with Bearer auth, /register, /webhook"
 ```
 
@@ -843,9 +843,9 @@ Create `tests/Unit/Proxy/NJSiteRegistrationTest.php`:
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Proxy;
+namespace Stilus\Tests\Unit\Proxy;
 
-use WP_AI_Mind\Proxy\NJ_Site_Registration;
+use Stilus\Proxy\NJ_Site_Registration;
 use WP_Mock\Tools\TestCase;
 
 class NJSiteRegistrationTest extends TestCase {
@@ -918,10 +918,10 @@ Create `includes/Proxy/NJ_Site_Registration.php`:
 ```php
 <?php
 declare( strict_types=1 );
-namespace WP_AI_Mind\Proxy;
+namespace Stilus\Proxy;
 
 use WP_Error;
-use WP_AI_Mind\Tiers\NJ_Tier_Config;
+use Stilus\Tiers\NJ_Tier_Config;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -950,7 +950,7 @@ class NJ_Site_Registration {
         $result = self::register();
         if ( is_wp_error( $result ) ) {
             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-            error_log( '[WP AI Mind] Site registration failed: ' . $result->get_error_message() );
+            error_log( '[Stilus] Site registration failed: ' . $result->get_error_message() );
         }
     }
 
@@ -986,7 +986,7 @@ class NJ_Site_Registration {
      */
     public static function checkout_url( string $variant_id ): string {
         $token = self::get_site_token();
-        $url   = 'https://wp-ai-mind.lemonsqueezy.com/checkout/buy/' . rawurlencode( $variant_id );
+        $url   = 'https://stilus.lemonsqueezy.com/checkout/buy/' . rawurlencode( $variant_id );
         if ( $token ) {
             $url .= '?checkout[custom][site_token]=' . rawurlencode( $token );
         }
@@ -1027,9 +1027,9 @@ Create `tests/Unit/Proxy/NJProxyClientTest.php`:
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Proxy;
+namespace Stilus\Tests\Unit\Proxy;
 
-use WP_AI_Mind\Proxy\NJ_Proxy_Client;
+use Stilus\Proxy\NJ_Proxy_Client;
 use WP_Mock\Tools\TestCase;
 
 class NJProxyClientTest extends TestCase {
@@ -1067,12 +1067,12 @@ class NJProxyClientTest extends TestCase {
 ```php
 <?php
 declare( strict_types=1 );
-namespace WP_AI_Mind\Proxy;
+namespace Stilus\Proxy;
 
 use WP_Error;
-use WP_AI_Mind\Tiers\NJ_Tier_Config;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Tiers\NJ_Tier_Config;
+use Stilus\Tiers\NJ_Tier_Manager;
+use Stilus\Tiers\NJ_Usage_Tracker;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -1081,14 +1081,14 @@ class NJ_Proxy_Client {
     public static function chat( array $messages, array $options = [] ): array|WP_Error {
         $token = NJ_Site_Registration::get_site_token();
         if ( empty( $token ) ) {
-            return new WP_Error( 'not_registered', __( 'Site not registered with AI proxy.', 'wp-ai-mind' ) );
+            return new WP_Error( 'not_registered', __( 'Site not registered with AI proxy.', 'stilus' ) );
         }
 
         $user_id = get_current_user_id();
 
         // Fail-fast pre-check (WordPress meta). KV is authoritative.
         if ( ! NJ_Usage_Tracker::check_limit( $user_id ) ) {
-            return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'wp-ai-mind' ) );
+            return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'stilus' ) );
         }
 
         $payload = array_filter( [
@@ -1120,13 +1120,13 @@ class NJ_Proxy_Client {
         $body = json_decode( wp_remote_retrieve_body( $response ), true ) ?? [];
 
         if ( $code === 429 ) {
-            return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'wp-ai-mind' ) );
+            return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'stilus' ) );
         }
 
         if ( $code === 401 ) {
             // Token may be stale — clear it so maybe_register() re-issues on next init.
             delete_option( 'wp_ai_mind_site_token' );
-            return new WP_Error( 'proxy_auth_failed', __( 'Proxy authentication failed. Please try again.', 'wp-ai-mind' ) );
+            return new WP_Error( 'proxy_auth_failed', __( 'Proxy authentication failed. Please try again.', 'stilus' ) );
         }
 
         if ( $code < 200 || $code >= 300 ) {
@@ -1203,8 +1203,8 @@ public function test_complete_routes_free_tier_through_proxy(): void {
         ] )
     );
 
-    $provider = new \WP_AI_Mind\Providers\ClaudeProvider( '' );
-    $request  = new \WP_AI_Mind\Providers\CompletionRequest(
+    $provider = new \Stilus\Providers\ClaudeProvider( '' );
+    $request  = new \Stilus\Providers\CompletionRequest(
         messages: [ [ 'role' => 'user', 'content' => 'Hi' ] ],
         max_tokens: 100,
     );
@@ -1236,7 +1236,7 @@ Add these two methods to `ClaudeProvider`, before `do_complete()`:
 
 ```php
 public function complete( CompletionRequest $request ): CompletionResponse {
-    $tier = \WP_AI_Mind\Tiers\NJ_Tier_Manager::get_user_tier( get_current_user_id() );
+    $tier = \Stilus\Tiers\NJ_Tier_Manager::get_user_tier( get_current_user_id() );
 
     if ( in_array( $tier, [ 'free', 'trial', 'pro_managed' ], true ) ) {
         return $this->complete_via_proxy( $request );
@@ -1246,7 +1246,7 @@ public function complete( CompletionRequest $request ): CompletionResponse {
 }
 
 private function complete_via_proxy( CompletionRequest $request ): CompletionResponse {
-    $result = \WP_AI_Mind\Proxy\NJ_Proxy_Client::chat(
+    $result = \Stilus\Proxy\NJ_Proxy_Client::chat(
         $request->messages,
         array_filter( [
             'model'      => $request->model ?: null,
@@ -1265,7 +1265,7 @@ private function complete_via_proxy( CompletionRequest $request ): CompletionRes
 
 Also add at the top of the class with the existing `use` declarations (if not already present):
 ```php
-use WP_AI_Mind\Proxy\NJ_Proxy_Client;
+use Stilus\Proxy\NJ_Proxy_Client;
 ```
 
 - [x] **Step 11.5: Run — expect pass**
@@ -1300,7 +1300,7 @@ git commit -m "feat(providers): route free/trial/pro_managed through proxy; pro_
 
 In `includes/Core/Plugin.php`:
 
-1. Add `use WP_AI_Mind\Proxy\NJ_Site_Registration;` with the other `use` statements.
+1. Add `use Stilus\Proxy\NJ_Site_Registration;` with the other `use` statements.
 
 2. In the method that registers `init` hooks (wherever other `add_action( 'init', ... )` calls live), add:
 ```php
@@ -1356,7 +1356,7 @@ Expected: a 64-character hex token.
 
 Tail the Worker logs in a separate terminal:
 ```bash
-cd wp-ai-mind-proxy && wrangler tail
+cd stilus-proxy && wrangler tail
 ```
 Make a chat request via the WP admin as a free-tier user. Confirm the Worker receives a `POST /v1/chat` with `Authorization: Bearer <token>` and responds (or rate-limits).
 
@@ -1387,7 +1387,7 @@ Make a chat request — expect a user-facing error. Reload any admin page (trigg
 - [x] Pro BYOK chat requests bypass the proxy and call Anthropic directly
 - [x] LemonSqueezy checkout URLs embed site token via `NJ_Site_Registration::checkout_url()` — purchase upgrades tier automatically, no user action needed
 - [x] Stale/invalid token clears itself and re-registers on next `init`
-- [x] Old WordPress `/wp-json/wp-ai-mind/v1/webhook` endpoint is disabled
+- [x] Old WordPress `/wp-json/stilus/v1/webhook` endpoint is disabled
 - [x] `./vendor/bin/phpunit tests/Unit/ --colors=always` — all pass
-- [x] `npx tsc --noEmit` in `wp-ai-mind-proxy/` — no errors
+- [x] `npx tsc --noEmit` in `stilus-proxy/` — no errors
 - [x] `./vendor/bin/phpcs --standard=phpcs.xml.dist` — no violations on modified files

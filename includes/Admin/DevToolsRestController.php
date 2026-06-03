@@ -2,18 +2,18 @@
 /**
  * REST controller for developer tools: tier switching and usage manipulation.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
-use WP_AI_Mind\Tiers\NJ_Tier_Config;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Tiers\TierConfig;
+use Stilus\Tiers\TierManager;
+use Stilus\Tiers\UsageTracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * REST endpoints for the developer tools page.
  *
  * All routes live under /wp-ai-mind/v1/dev/ and require both the manage_options
- * capability and a valid WP_AI_MIND_DEV_KEY constant. Routes are only registered
+ * capability and a valid STILUS_DEV_KEY constant. Routes are only registered
  * when the constant is defined, so they return 404 on sites without the key.
  *
  * @since 1.11.0
@@ -65,7 +65,7 @@ class DevToolsRestController {
 					'tier' => [
 						'type'     => 'string',
 						'required' => true,
-						'enum'     => NJ_Tier_Config::TIERS,
+						'enum'     => TierConfig::TIERS,
 					],
 				],
 			]
@@ -100,13 +100,13 @@ class DevToolsRestController {
 	 */
 	public static function handle_status(): WP_REST_Response {
 		$user_id     = get_current_user_id();
-		$usage       = NJ_Usage_Tracker::get_usage( $user_id );
-		$tier_labels = NJ_Tier_Config::get_tier_labels();
+		$usage       = UsageTracker::get_usage( $user_id );
+		$tier_labels = TierConfig::get_tier_labels();
 
 		if ( null === $usage['limit'] ) {
-			$display = __( 'Unlimited', 'wp-ai-mind' );
+			$display = __( 'Unlimited', 'stilus' );
 		} else {
-			$display = number_format_i18n( $usage['used'] ) . ' / ' . number_format_i18n( $usage['limit'] ) . ' ' . __( 'tokens', 'wp-ai-mind' );
+			$display = number_format_i18n( $usage['used'] ) . ' / ' . number_format_i18n( $usage['limit'] ) . ' ' . __( 'tokens', 'stilus' );
 		}
 
 		return new WP_REST_Response(
@@ -126,7 +126,7 @@ class DevToolsRestController {
 	/**
 	 * Switch the site-wide tier to the requested slug.
 	 *
-	 * Calls NJ_Tier_Manager::set_site_tier() which handles HMAC signing so the
+	 * Calls TierManager::set_site_tier() which handles HMAC signing so the
 	 * new value passes signature verification on all subsequent requests.
 	 *
 	 * @since 1.11.0
@@ -135,24 +135,24 @@ class DevToolsRestController {
 	 */
 	public static function handle_set_tier( WP_REST_Request $request ): WP_REST_Response {
 		$tier = $request->get_param( 'tier' );
-		$ok   = NJ_Tier_Manager::set_site_tier( $tier );
+		$ok   = TierManager::set_site_tier( $tier );
 
 		if ( ! $ok ) {
 			return new WP_REST_Response(
 				[
 					'success' => false,
-					'message' => __( 'Failed to update tier.', 'wp-ai-mind' ),
+					'message' => __( 'Failed to update tier.', 'stilus' ),
 				],
 				500
 			);
 		}
 
-		$labels = NJ_Tier_Config::get_tier_labels();
+		$labels = TierConfig::get_tier_labels();
 		return new WP_REST_Response(
 			[
 				'success' => true,
 				/* translators: %s: human-readable tier name e.g. "Pro Managed" */
-				'message' => sprintf( __( 'Tier switched to %s.', 'wp-ai-mind' ), $labels[ $tier ] ?? $tier ),
+				'message' => sprintf( __( 'Tier switched to %s.', 'stilus' ), $labels[ $tier ] ?? $tier ),
 			],
 			200
 		);
@@ -166,13 +166,13 @@ class DevToolsRestController {
 	 */
 	public static function handle_reset_usage(): WP_REST_Response {
 		$user_id = get_current_user_id();
-		$key     = NJ_Usage_Tracker::get_current_month_key();
+		$key     = UsageTracker::get_current_month_key();
 		update_user_meta( $user_id, $key, 0 );
 
 		return new WP_REST_Response(
 			[
 				'success' => true,
-				'message' => __( 'Usage reset to zero.', 'wp-ai-mind' ),
+				'message' => __( 'Usage reset to zero.', 'stilus' ),
 			],
 			200
 		);
@@ -189,27 +189,27 @@ class DevToolsRestController {
 	 */
 	public static function handle_set_ceiling(): WP_REST_Response {
 		$user_id = get_current_user_id();
-		$tier    = NJ_Tier_Manager::get_user_tier( $user_id );
-		$limit   = NJ_Tier_Manager::get_monthly_limit( $tier );
+		$tier    = TierManager::get_user_tier( $user_id );
+		$limit   = TierManager::get_monthly_limit( $tier );
 
 		if ( null === $limit ) {
 			return new WP_REST_Response(
 				[
 					'success' => true,
-					'message' => __( 'Pro BYOK has no ceiling — usage is unlimited.', 'wp-ai-mind' ),
+					'message' => __( 'Pro BYOK has no ceiling — usage is unlimited.', 'stilus' ),
 				],
 				200
 			);
 		}
 
-		$key = NJ_Usage_Tracker::get_current_month_key();
+		$key = UsageTracker::get_current_month_key();
 		update_user_meta( $user_id, $key, $limit );
 
 		return new WP_REST_Response(
 			[
 				'success' => true,
 				/* translators: %s: formatted token count e.g. "50,000" */
-				'message' => sprintf( __( 'Usage set to ceiling: %s tokens.', 'wp-ai-mind' ), number_format_i18n( $limit ) ),
+				'message' => sprintf( __( 'Usage set to ceiling: %s tokens.', 'stilus' ), number_format_i18n( $limit ) ),
 			],
 			200
 		);
@@ -228,7 +228,7 @@ class DevToolsRestController {
 		if ( ! DevToolsPage::is_active() ) {
 			return new \WP_Error(
 				'rest_forbidden',
-				__( 'Developer tools are not enabled on this site.', 'wp-ai-mind' ),
+				__( 'Developer tools are not enabled on this site.', 'stilus' ),
 				[ 'status' => 403 ]
 			);
 		}

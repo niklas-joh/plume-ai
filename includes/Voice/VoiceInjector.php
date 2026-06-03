@@ -2,11 +2,11 @@
 /**
  * Builds system prompts by merging site-wide and per-user voice preferences.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Voice;
+namespace Stilus\Voice;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -19,8 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class VoiceInjector {
 
-	private const SITE_OPTION = 'wp_ai_mind_site_voice';
-	private const USER_META   = 'wp_ai_mind_voice';
+	private const SITE_OPTION = 'stilus_site_voice';
+	private const USER_META   = 'stilus_voice';
 
 	/**
 	 * Build a system prompt combining voice preferences and a feature-specific instruction.

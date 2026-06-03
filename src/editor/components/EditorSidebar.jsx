@@ -17,7 +17,7 @@ import '../editor.css';
  *
  * @return {ReactElement}
  */
-function WpAiMindSidebar() {
+function StilusSidebar() {
 	const postId = useSelect( ( select ) =>
 		select( 'core/editor' ).getCurrentPostId()
 	);
@@ -38,11 +38,11 @@ function WpAiMindSidebar() {
 
 	return (
 		<>
-			<PluginSidebarMoreMenuItem target="wp-ai-mind-sidebar">
+			<PluginSidebarMoreMenuItem target="stilus-sidebar">
 				AI Mind
 			</PluginSidebarMoreMenuItem>
 			<PluginSidebar
-				name="wp-ai-mind-sidebar"
+				name="stilus-sidebar"
 				title="AI Mind"
 				icon={ <Sparkles size={ 16 } /> }
 			>
@@ -68,4 +68,4 @@ function WpAiMindSidebar() {
 	);
 }
 
-registerPlugin( 'wp-ai-mind', { render: WpAiMindSidebar } );
+registerPlugin( 'stilus', { render: StilusSidebar } );

@@ -10,18 +10,18 @@ import apiFetch from '@wordpress/api-fetch';
 import { LAUNCH_ACTIONS } from './actions';
 import { storageGet, storageSet } from '../../utils/storage';
 
-const NEW_CONVERSATION_TITLE = __( 'New conversation', 'wp-ai-mind' );
+const NEW_CONVERSATION_TITLE = __( 'New conversation', 'stilus' );
 
 const LAUNCH_SUGGESTIONS = [
 	{
 		...LAUNCH_ACTIONS[ 0 ],
-		label: __( 'Summarise this post', 'wp-ai-mind' ),
+		label: __( 'Summarise this post', 'stilus' ),
 	},
 	{
 		...LAUNCH_ACTIONS[ 1 ],
-		label: __( 'Improve readability', 'wp-ai-mind' ),
+		label: __( 'Improve readability', 'stilus' ),
 	},
-	{ ...LAUNCH_ACTIONS[ 2 ], label: __( 'Write a post', 'wp-ai-mind' ) },
+	{ ...LAUNCH_ACTIONS[ 2 ], label: __( 'Write a post', 'stilus' ) },
 ];
 
 /**
@@ -73,7 +73,7 @@ export default function ChatApp() {
 	async function loadConversations() {
 		try {
 			const data = await apiFetch( {
-				path: '/wp-ai-mind/v1/conversations',
+				path: '/stilus/v1/conversations',
 			} );
 			setConversations( data );
 		} catch ( e ) {
@@ -83,7 +83,7 @@ export default function ChatApp() {
 
 	async function loadProviders() {
 		try {
-			const data = await apiFetch( { path: '/wp-ai-mind/v1/providers' } );
+			const data = await apiFetch( { path: '/stilus/v1/providers' } );
 			setProviders( data );
 			if ( data.length > 0 ) {
 				const storedDefault = window.wpAiMindData?.defaultProvider;
@@ -97,14 +97,14 @@ export default function ChatApp() {
 
 	async function loadMessages( convId ) {
 		const data = await apiFetch( {
-			path: `/wp-ai-mind/v1/conversations/${ convId }/messages`,
+			path: `/stilus/v1/conversations/${ convId }/messages`,
 		} );
 		setMessages( data );
 	}
 
 	async function newConversation() {
 		const conv = await apiFetch( {
-			path: '/wp-ai-mind/v1/conversations',
+			path: '/stilus/v1/conversations',
 			method: 'POST',
 			data: { title: NEW_CONVERSATION_TITLE },
 		} );
@@ -133,7 +133,7 @@ export default function ChatApp() {
 		setDeletingIds( ( prev ) => new Set( [ ...prev, convId ] ) );
 		try {
 			await apiFetch( {
-				path: `/wp-ai-mind/v1/conversations/${ convId }`,
+				path: `/stilus/v1/conversations/${ convId }`,
 				method: 'DELETE',
 			} );
 			removeConversationFromState( convId );
@@ -148,7 +148,7 @@ export default function ChatApp() {
 					...prev,
 					[ convId ]: __(
 						'Failed to delete. Please try again.',
-						'wp-ai-mind'
+						'stilus'
 					),
 				} ) );
 			}
@@ -169,7 +169,7 @@ export default function ChatApp() {
 
 		if ( ! convId ) {
 			const conv = await apiFetch( {
-				path: '/wp-ai-mind/v1/conversations',
+				path: '/stilus/v1/conversations',
 				method: 'POST',
 				data: { title: content.slice( 0, 60 ) },
 			} );
@@ -195,7 +195,7 @@ export default function ChatApp() {
 
 		try {
 			const res = await apiFetch( {
-				path: `/wp-ai-mind/v1/conversations/${ convId }/messages`,
+				path: `/stilus/v1/conversations/${ convId }/messages`,
 				method: 'POST',
 				data: {
 					content,
@@ -219,7 +219,7 @@ export default function ChatApp() {
 				const newTitle = rawTitle.replace( /\s+\S*$/, '' ) || rawTitle;
 				if ( newTitle.trim() ) {
 					apiFetch( {
-						path: `/wp-ai-mind/v1/conversations/${ convId }`,
+						path: `/stilus/v1/conversations/${ convId }`,
 						method: 'PATCH',
 						data: { title: newTitle },
 					} )
@@ -235,10 +235,7 @@ export default function ChatApp() {
 						} )
 						.catch( ( err ) =>
 							// eslint-disable-next-line no-console
-							console.warn(
-								'[wp-ai-mind] title update failed',
-								err
-							)
+							console.warn( '[stilus] title update failed', err )
 						);
 				}
 			}
@@ -289,8 +286,8 @@ export default function ChatApp() {
 	}
 
 	const toggleLabel = isSidebarCollapsed
-		? __( 'Expand sidebar', 'wp-ai-mind' )
-		: __( 'Collapse sidebar', 'wp-ai-mind' );
+		? __( 'Expand sidebar', 'stilus' )
+		: __( 'Collapse sidebar', 'stilus' );
 
 	return (
 		<div
@@ -302,7 +299,7 @@ export default function ChatApp() {
 				<div className="wpaim-sidebar__header">
 					{ ! isSidebarCollapsed && (
 						<span className="wpaim-sidebar__title">
-							{ __( 'Conversations', 'wp-ai-mind' ) }
+							{ __( 'Conversations', 'stilus' ) }
 						</span>
 					) }
 					{ ! isSidebarCollapsed && (
@@ -432,7 +429,7 @@ function CenteredLaunch( {
 		<div className="wpaim-launch">
 			<div className="wpaim-launch__inner">
 				<p className="wpaim-launch__title">
-					{ __( 'How can I help you today?', 'wp-ai-mind' ) }
+					{ __( 'How can I help you today?', 'stilus' ) }
 				</p>
 				<div className="wpaim-launch__suggestions">
 					{ suggestions.map( ( s ) => (

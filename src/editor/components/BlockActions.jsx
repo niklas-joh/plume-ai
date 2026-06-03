@@ -54,13 +54,13 @@ export default function BlockActions( { convId, onResult } ) {
 				convId ||
 				(
 					await apiFetch( {
-						path: '/wp-ai-mind/v1/conversations',
+						path: '/stilus/v1/conversations',
 						method: 'POST',
 						data: { title: action.label },
 					} )
 				).id;
 			const res = await apiFetch( {
-				path: `/wp-ai-mind/v1/conversations/${ cid }/messages`,
+				path: `/stilus/v1/conversations/${ cid }/messages`,
 				method: 'POST',
 				data: { content: action.prompt + blockText },
 			} );

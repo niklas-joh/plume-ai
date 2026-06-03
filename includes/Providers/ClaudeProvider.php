@@ -2,19 +2,19 @@
 /**
  * AI provider implementation for the Anthropic Claude API.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Providers;
+namespace Stilus\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Proxy\NJ_Proxy_Client;
-use WP_AI_Mind\Proxy\NJ_Site_Registration;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use Stilus\Proxy\ProxyClient;
+use Stilus\Proxy\SiteRegistration;
+use Stilus\Tiers\TierManager;
 
 /**
  * Handles completions, streaming, and tier-aware routing for Anthropic Claude.
@@ -30,7 +30,7 @@ class ClaudeProvider extends AbstractProvider {
 	private const API_VERSION   = '2023-06-01';
 	private const DEFAULT_MODEL = 'claude-sonnet-4-6';
 
-	// Mirrors TIER_MODELS in wp-ai-mind-proxy/src/index.ts — update both when adding models.
+	// Mirrors TIER_MODELS in stilus-proxy/src/index.ts — update both when adding models.
 	private const MODELS = [
 		'claude-opus-4-6'           => 'Claude Opus 4.6',
 		'claude-sonnet-4-6'         => 'Claude Sonnet 4.6',
@@ -111,14 +111,14 @@ class ClaudeProvider extends AbstractProvider {
 		if ( '' !== $this->api_key ) {
 			return true;
 		}
-		$tier = NJ_Tier_Manager::get_user_tier( get_current_user_id() );
+		$tier = TierManager::get_user_tier( get_current_user_id() );
 		return in_array( $tier, [ 'free', 'trial', 'pro_managed' ], true )
-			&& NJ_Site_Registration::is_registered();
+			&& SiteRegistration::is_registered();
 	}
 
 	/**
 	 * Route completion by tier:
-	 *   - free / trial / pro_managed → proxy (NJ_Proxy_Client handles usage logging)
+	 *   - free / trial / pro_managed → proxy (ProxyClient handles usage logging)
 	 *   - pro_byok                   → direct Anthropic API call (AbstractProvider logs usage)
 	 *
 	 * @since 1.0.0
@@ -127,7 +127,7 @@ class ClaudeProvider extends AbstractProvider {
 	 * @throws ProviderException On API or proxy failure.
 	 */
 	protected function do_complete( CompletionRequest $request ): CompletionResponse {
-		$tier = NJ_Tier_Manager::get_user_tier( get_current_user_id() );
+		$tier = TierManager::get_user_tier( get_current_user_id() );
 
 		if ( in_array( $tier, [ 'free', 'trial', 'pro_managed' ], true ) ) {
 			return $this->complete_via_proxy( $request );
@@ -182,13 +182,13 @@ class ClaudeProvider extends AbstractProvider {
 				$request->tools
 			);
 		}
-		$result = NJ_Proxy_Client::chat( $request->messages, $options, 'claude' );
+		$result = ProxyClient::chat( $request->messages, $options, 'claude' );
 
 		if ( is_wp_error( $result ) ) {
 			throw new ProviderException( $result->get_error_message(), 'claude' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
-		// NJ_Proxy_Client::chat() already called NJ_Usage_Tracker::log_usage() — flag to suppress parent logging.
+		// ProxyClient::chat() already called UsageTracker::log_usage() — flag to suppress parent logging.
 		$this->proxy_logged = true;
 
 		// Build CompletionResponse directly from the proxy's normalised shape { content, usage, tool_call? }.
@@ -303,7 +303,7 @@ class ClaudeProvider extends AbstractProvider {
 		$response = wp_remote_post(
 			self::API_BASE . $path,
 			[
-				'timeout' => WP_AI_MIND_HTTP_TIMEOUT,
+				'timeout' => STILUS_HTTP_TIMEOUT,
 				'headers' => [
 					'x-api-key'         => $this->api_key,
 					'anthropic-version' => self::API_VERSION,

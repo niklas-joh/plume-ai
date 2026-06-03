@@ -36,7 +36,7 @@ const IMAGE_PROVIDER_OPTIONS = [
 export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 	const features = window.wpAiMindData?.features ?? {};
 	const upgradeUrl =
-		window.wpAiMindData?.upgradeUrl ?? 'admin.php?page=wp-ai-mind-upgrade';
+		window.wpAiMindData?.upgradeUrl ?? 'admin.php?page=stilus-upgrade';
 	const apiKeys = settings?.api_keys ?? {};
 	const [ dirty, setDirty ] = useState( {} ); // { [provider]: string }
 
@@ -80,17 +80,17 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 					<p className="wpaim-upgrade-notice">
 						{ __(
 							'Model selection is available on the Pro plan.',
-							'wp-ai-mind'
+							'stilus'
 						) }{ ' ' }
 						<a href={ upgradeUrl }>
-							{ __( 'Upgrade →', 'wp-ai-mind' ) }
+							{ __( 'Upgrade →', 'stilus' ) }
 						</a>
 					</p>
 				) }
 
 				<fieldset disabled={ ! features.model_selection }>
 					<SelectControl
-						label={ __( 'Default AI Provider', 'wp-ai-mind' ) }
+						label={ __( 'Default AI Provider', 'stilus' ) }
 						options={ PROVIDER_OPTIONS }
 						value={ settings?.default_provider ?? '' }
 						onChange={ ( val ) =>
@@ -100,7 +100,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 					/>
 
 					<SelectControl
-						label={ __( 'Image Provider', 'wp-ai-mind' ) }
+						label={ __( 'Image Provider', 'stilus' ) }
 						options={ IMAGE_PROVIDER_OPTIONS }
 						value={ settings?.image_provider ?? '' }
 						onChange={ ( val ) =>
@@ -119,10 +119,10 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 					<p className="wpaim-upgrade-notice">
 						{ __(
 							'API key management is available on the Pro BYOK plan.',
-							'wp-ai-mind'
+							'stilus'
 						) }{ ' ' }
 						<a href={ upgradeUrl }>
-							{ __( 'Upgrade →', 'wp-ai-mind' ) }
+							{ __( 'Upgrade →', 'stilus' ) }
 						</a>
 					</p>
 				) }

@@ -211,7 +211,7 @@ jobs:
             ## Constraints
 
             - PHP: follow WordPress Coding Standards (PHPCS ruleset in `phpcs.xml.dist`).
-              Prefix functions with `nj_` or use `WP_AI_Mind\` namespace.
+              Prefix functions with `nj_` or use `Stilus\` namespace.
             - JS/CSS: fix only what is reported — do not reformat unrelated code.
             - PHPUnit: fix the code under test, not the tests, unless the assertion is clearly wrong.
             - Do NOT bump version numbers, modify `composer.lock`, or change `package-lock.json`.

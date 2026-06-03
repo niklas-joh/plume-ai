@@ -8,18 +8,18 @@ test.describe( 'SEO journey', () => {
 	} );
 
 	test( 'SEO page renders its root container', async ( { page } ) => {
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-seo' );
+		await page.goto( '/wp-admin/admin.php?page=stilus-seo' );
 		// SeoApp renders either .wpaim-pro-gate (free) or .wpaim-page (Pro).
 		await expect(
-			page.locator( '#wp-ai-mind-seo' )
+			page.locator( '#stilus-seo' )
 		).toBeVisible( { timeout: 10000 } );
 	} );
 
 	test( 'Pro SEO page shows post list table when Pro is active', async ( { page } ) => {
 		// This test is conditional: if the site is free-tier, the gate renders instead.
 		// We check for one of the two valid states rather than assuming Pro.
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-seo' );
-		await page.waitForSelector( '#wp-ai-mind-seo', { timeout: 10000 } );
+		await page.goto( '/wp-admin/admin.php?page=stilus-seo' );
+		await page.waitForSelector( '#stilus-seo', { timeout: 10000 } );
 
 		const isProGate = await page.locator( '.wpaim-pro-gate' ).isVisible();
 		if ( isProGate ) {
@@ -52,8 +52,8 @@ test.describe( 'SEO journey', () => {
 			} );
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-seo' );
-		await page.waitForSelector( '#wp-ai-mind-seo', { timeout: 10000 } );
+		await page.goto( '/wp-admin/admin.php?page=stilus-seo' );
+		await page.waitForSelector( '#stilus-seo', { timeout: 10000 } );
 
 		// Skip this test if we hit the Pro gate — generation requires Pro.
 		const isProGate = await page.locator( '.wpaim-pro-gate' ).isVisible();
@@ -95,8 +95,8 @@ test.describe( 'SEO journey', () => {
 	} );
 
 	test( 'SEO field inputs are present after work area is expanded', async ( { page } ) => {
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-seo' );
-		await page.waitForSelector( '#wp-ai-mind-seo', { timeout: 10000 } );
+		await page.goto( '/wp-admin/admin.php?page=stilus-seo' );
+		await page.waitForSelector( '#stilus-seo', { timeout: 10000 } );
 
 		const isProGate = await page.locator( '.wpaim-pro-gate' ).isVisible();
 		if ( isProGate ) {

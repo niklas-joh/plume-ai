@@ -2,17 +2,17 @@
 /**
  * Factory for instantiating AI provider instances.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Providers;
+namespace Stilus\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Settings\ProviderSettings;
+use Stilus\Settings\ProviderSettings;
 
 /**
  * Creates concrete provider instances from a slug and decrypted API keys.
@@ -43,8 +43,8 @@ class ProviderFactory {
 			'openai' => new OpenAIProvider( $this->settings->get_api_key( 'openai' ) ),
 			'gemini' => new GeminiProvider( $this->settings->get_api_key( 'gemini' ) ),
 			'ollama' => new OllamaProvider(
-				(string) get_option( 'wp_ai_mind_ollama_url', 'http://localhost:11434' ),
-				(string) get_option( 'wp_ai_mind_ollama_model', 'llama3.2' )
+				(string) get_option( 'stilus_ollama_url', 'http://localhost:11434' ),
+				(string) get_option( 'stilus_ollama_model', 'llama3.2' )
 			),
 			default  => throw new \InvalidArgumentException( "Unknown provider: {$slug}" ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		};
@@ -57,7 +57,7 @@ class ProviderFactory {
 	 * @return ProviderInterface
 	 */
 	public function make_default(): ProviderInterface {
-		$slug = get_option( 'wp_ai_mind_default_provider', 'claude' );
+		$slug = get_option( 'stilus_default_provider', 'claude' );
 		return $this->make( ! empty( $slug ) ? $slug : 'claude' );
 	}
 
@@ -68,7 +68,7 @@ class ProviderFactory {
 	 * @return ProviderInterface
 	 */
 	public function make_image_provider(): ProviderInterface {
-		$slug = get_option( 'wp_ai_mind_image_provider', 'gemini' );
+		$slug = get_option( 'stilus_image_provider', 'gemini' );
 		return $this->make( ! empty( $slug ) ? $slug : 'gemini' );
 	}
 

@@ -84,12 +84,12 @@ grep -rn "get_user_meta\|update_user_meta" includes/ --include="*.php" | head -1
 
 ```php
 <?php
-namespace WP_AI_Mind\Tests\Unit\Tiers;
+namespace Stilus\Tests\Unit\Tiers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use Stilus\Tiers\NJ_Tier_Manager;
 
 class NJTierManagerTest extends TestCase {
 
@@ -124,7 +124,7 @@ class NJTierManagerTest extends TestCase {
 
 ```php
 <?php
-namespace WP_AI_Mind\Tiers;
+namespace Stilus\Tiers;
 
 class NJ_Tier_Manager {
 
@@ -190,12 +190,12 @@ git commit -m "feat: add tier management system with WordPress user meta"
 
 ```php
 <?php
-namespace WP_AI_Mind\Tests\Unit\Tiers;
+namespace Stilus\Tests\Unit\Tiers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Tiers\NJ_Usage_Tracker;
 
 class NJUsageTrackerTest extends TestCase {
 
@@ -227,7 +227,7 @@ class NJUsageTrackerTest extends TestCase {
 
 ```php
 <?php
-namespace WP_AI_Mind\Tiers;
+namespace Stilus\Tiers;
 
 class NJ_Usage_Tracker {
 
@@ -274,17 +274,17 @@ class NJ_Usage_Tracker {
 
 ```php
 <?php
-namespace WP_AI_Mind\Payments;
+namespace Stilus\Payments;
 
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use Stilus\Tiers\NJ_Tier_Manager;
 
 class NJ_LemonSqueezy {
 
     public static function register_routes(): void {
-        register_rest_route( 'wp-ai-mind/v1', '/webhook', [
+        register_rest_route( 'stilus/v1', '/webhook', [
             'methods' => 'POST',
             'callback' => [ self::class, 'handle_webhook' ],
             'permission_callback' => '__return_true', // Signature verified in handler
@@ -345,39 +345,39 @@ class NJ_LemonSqueezy {
 
 ## Task 4: Global Helper Functions
 
-**Files:** Modify `wp-ai-mind.php`
+**Files:** Modify `stilus.php`
 
 - [ ] **Step 4.1: Add global helpers to main plugin file**
 
 ```php
-// Add to wp-ai-mind.php after existing code
+// Add to stilus.php after existing code
 
 /**
  * Global helper to get current user's tier
  */
 function nj_get_user_tier( $user_id = null ): string {
-    return \WP_AI_Mind\Tiers\NJ_Tier_Manager::get_user_tier( $user_id );
+    return \Stilus\Tiers\NJ_Tier_Manager::get_user_tier( $user_id );
 }
 
 /**
  * Global helper to check user capabilities
  */
 function nj_can_user( string $feature, $user_id = null ): bool {
-    return \WP_AI_Mind\Tiers\NJ_Tier_Manager::user_can( $feature, $user_id );
+    return \Stilus\Tiers\NJ_Tier_Manager::user_can( $feature, $user_id );
 }
 
 /**
  * Global helper to check usage limits
  */
 function nj_check_usage_limit( $user_id = null ): bool {
-    return \WP_AI_Mind\Tiers\NJ_Usage_Tracker::check_rate_limit( $user_id );
+    return \Stilus\Tiers\NJ_Usage_Tracker::check_rate_limit( $user_id );
 }
 
 /**
  * Global helper to log token usage
  */
 function nj_log_usage( int $tokens, $user_id = null ): void {
-    \WP_AI_Mind\Tiers\NJ_Usage_Tracker::log_usage( $tokens, $user_id );
+    \Stilus\Tiers\NJ_Usage_Tracker::log_usage( $tokens, $user_id );
 }
 ```
 
@@ -421,7 +421,7 @@ Map ProGate features to tier features:
 
 ```php
 <?php
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
 class NJ_Tier_Settings {
 
@@ -432,17 +432,17 @@ class NJ_Tier_Settings {
 
     public static function add_menu_page(): void {
         add_options_page(
-            __( 'WP AI Mind Tiers', 'wp-ai-mind' ),
-            __( 'AI Mind Tiers', 'wp-ai-mind' ),
+            __( 'Stilus Tiers', 'stilus' ),
+            __( 'AI Mind Tiers', 'stilus' ),
             'manage_options',
-            'wp-ai-mind-tiers',
+            'stilus-tiers',
             [ self::class, 'settings_page' ]
         );
     }
 
     public static function settings_page(): void {
         $current_user_tier = nj_get_user_tier();
-        $usage = \WP_AI_Mind\Tiers\NJ_Usage_Tracker::get_current_usage();
+        $usage = \Stilus\Tiers\NJ_Usage_Tracker::get_current_usage();
 
         ?>
         <div class="wrap">
@@ -510,7 +510,7 @@ class NJ_Tier_Settings {
 - [ ] WordPress user meta stores tier: `wp_ai_mind_tier`
 - [ ] Usage tracking via user meta: `wp_ai_mind_usage_YYYY_MM` (atomic SQL increment)
 - [ ] Rate limiting works: `NJ_Usage_Tracker::check_limit()` returns false when exceeded
-- [ ] LemonSqueezy webhook endpoint: `/wp-json/wp-ai-mind/v1/webhook` (HMAC verified by `NJ_Webhook_Verifier`)
+- [ ] LemonSqueezy webhook endpoint: `/wp-json/stilus/v1/webhook` (HMAC verified by `NJ_Webhook_Verifier`)
 - [ ] Pro BYOK users can store per-provider encrypted API keys (`wp_ai_mind_api_key_{provider}`)
 - [ ] All ProGate calls and global `nj_*` helper calls replaced with direct class method calls
 - [ ] `NJ_Tier_Status_Page`: read-only tier + usage display

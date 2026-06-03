@@ -32,12 +32,12 @@ export default function UsageWidget( { usage } ) {
 		<div className="wpaim-usage-widget">
 			<div className="wpaim-usage-widget__header">
 				<span className="wpaim-dash-section-title">
-					{ __( 'Usage', 'wp-ai-mind' ) }
+					{ __( 'Usage', 'stilus' ) }
 				</span>
 				<span className="wpaim-usage-widget__tier-badge">
 					{
 						/* translators: %s: the user's current subscription tier slug */
-						sprintf( __( 'Tier: %s', 'wp-ai-mind' ), tier )
+						sprintf( __( 'Tier: %s', 'stilus' ), tier )
 					}
 				</span>
 			</div>
@@ -50,13 +50,11 @@ export default function UsageWidget( { usage } ) {
 							: ' wpaim-usage-widget__value--limit-reached'
 					}` }
 				>
-					{ hasLimit
-						? usedPct + '%'
-						: __( 'Unlimited', 'wp-ai-mind' ) }
+					{ hasLimit ? usedPct + '%' : __( 'Unlimited', 'stilus' ) }
 				</span>
 				{ hasLimit && (
 					<span className="wpaim-usage-widget__sub-label">
-						{ __( 'of quota used', 'wp-ai-mind' ) }
+						{ __( 'of quota used', 'stilus' ) }
 					</span>
 				) }
 			</div>
@@ -65,7 +63,7 @@ export default function UsageWidget( { usage } ) {
 				<div className="wpaim-usage-widget__token-count">
 					{ sprintf(
 						/* translators: 1: used tokens, 2: limit tokens */
-						__( '%1$s / %2$s tokens', 'wp-ai-mind' ),
+						__( '%1$s / %2$s tokens', 'stilus' ),
 						used.toLocaleString(),
 						limit.toLocaleString()
 					) }
@@ -89,7 +87,7 @@ export default function UsageWidget( { usage } ) {
 				<p className="wpaim-usage-widget__limit-message">
 					{ __(
 						'Monthly limit reached. Upgrade your plan to continue.',
-						'wp-ai-mind'
+						'stilus'
 					) }
 				</p>
 			) }

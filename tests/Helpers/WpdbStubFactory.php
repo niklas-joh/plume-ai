@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Helpers;
+namespace Stilus\Tests\Helpers;
 
 /**
  * Factory for the minimal $wpdb stub shared across the test suite.
  *
- * This stub satisfies NJ_Usage_Tracker::log_usage() without requiring a real database
+ * This stub satisfies UsageTracker::log_usage() without requiring a real database
  * connection. Individual tests that need specific $wpdb behaviour use Mockery instead.
  *
  * @since 1.4.1

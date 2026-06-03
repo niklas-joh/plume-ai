@@ -2,32 +2,32 @@
 /**
  * REST controller for reading and updating plugin settings.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Modules\Chat;
+namespace Stilus\Modules\Chat;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Settings\ProviderSettings;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use Stilus\Settings\ProviderSettings;
+use Stilus\Tiers\TierManager;
 
 /**
  * REST controller for plugin settings.
  *
  * Routes:
- *   GET  /wp-ai-mind/v1/settings — returns all plugin settings (api_keys masked).
- *   POST /wp-ai-mind/v1/settings — saves plugin settings.
+ *   GET  /stilus/v1/settings — returns all plugin settings (api_keys masked).
+ *   POST /stilus/v1/settings — saves plugin settings.
  *
  * Both routes require the `manage_options` capability.
  */
 class SettingsRestController {
 
-	private const NAMESPACE = 'wp-ai-mind/v1';
+	private const NAMESPACE = 'stilus/v1';
 
 	/**
 	 * Register the /settings REST routes.
@@ -70,21 +70,21 @@ class SettingsRestController {
 		$provider_settings = $this->make_provider_settings();
 
 		$data = [
-			'default_provider'     => sanitize_text_field( (string) get_option( 'wp_ai_mind_default_provider', 'claude' ) ),
-			'image_provider'       => sanitize_text_field( (string) get_option( 'wp_ai_mind_image_provider', '' ) ),
-			'site_voice'           => sanitize_text_field( (string) get_option( 'wp_ai_mind_site_voice', '' ) ),
-			'enabled_modules'      => array_keys( array_filter( (array) get_option( 'wp_ai_mind_modules', [] ) ) ),
+			'default_provider'     => sanitize_text_field( (string) get_option( 'stilus_default_provider', 'claude' ) ),
+			'image_provider'       => sanitize_text_field( (string) get_option( 'stilus_image_provider', '' ) ),
+			'site_voice'           => sanitize_text_field( (string) get_option( 'stilus_site_voice', '' ) ),
+			'enabled_modules'      => array_keys( array_filter( (array) get_option( 'stilus_modules', [] ) ) ),
 			'api_keys'             => [
 				'claude'     => $this->mask_key( $provider_settings->has_key( 'claude' ) ),
 				'openai'     => $this->mask_key( $provider_settings->has_key( 'openai' ) ),
 				'gemini'     => $this->mask_key( $provider_settings->has_key( 'gemini' ) ),
-				'ollama_url' => sanitize_text_field( (string) get_option( 'wp_ai_mind_ollama_url', '' ) ),
+				'ollama_url' => sanitize_text_field( (string) get_option( 'stilus_ollama_url', '' ) ),
 			],
-			'allowed_post_types'   => \get_option( 'wp_ai_mind_allowed_post_types', [ 'post', 'page' ] ),
+			'allowed_post_types'   => \get_option( 'stilus_allowed_post_types', [ 'post', 'page' ] ),
 			'available_post_types' => $this->get_public_post_types(),
-			'enable_write_tools'   => (bool) \get_option( 'wp_ai_mind_enable_write_tools', false ),
+			'enable_write_tools'   => (bool) \get_option( 'stilus_enable_write_tools', false ),
 			// Note: intentionally snake_case to match WP REST convention; JS reads this as `settings.is_pro` (see FeaturesTab.jsx).
-			'is_pro'               => NJ_Tier_Manager::user_can( 'generator' ),
+			'is_pro'               => TierManager::user_can( 'generator' ),
 		];
 
 		return rest_ensure_response( $data );
@@ -106,52 +106,52 @@ class SettingsRestController {
 		// Scalar options.
 		$default_provider = $request->get_param( 'default_provider' );
 		if ( null !== $default_provider ) {
-			if ( ! NJ_Tier_Manager::user_can( 'model_selection' ) ) {
+			if ( ! TierManager::user_can( 'model_selection' ) ) {
 				return new \WP_Error(
 					'rest_plan_required',
-					__( 'Model selection requires the Pro Managed or Pro BYOK plan.', 'wp-ai-mind' ),
+					__( 'Model selection requires the Pro Managed or Pro BYOK plan.', 'stilus' ),
 					[ 'status' => 403 ]
 				);
 			}
-			update_option( 'wp_ai_mind_default_provider', sanitize_text_field( (string) $default_provider ) );
+			update_option( 'stilus_default_provider', sanitize_text_field( (string) $default_provider ) );
 		}
 
 		$image_provider = $request->get_param( 'image_provider' );
 		if ( null !== $image_provider ) {
-			if ( ! NJ_Tier_Manager::user_can( 'model_selection' ) ) {
+			if ( ! TierManager::user_can( 'model_selection' ) ) {
 				return new \WP_Error(
 					'rest_plan_required',
-					__( 'Model selection requires the Pro Managed or Pro BYOK plan.', 'wp-ai-mind' ),
+					__( 'Model selection requires the Pro Managed or Pro BYOK plan.', 'stilus' ),
 					[ 'status' => 403 ]
 				);
 			}
-			update_option( 'wp_ai_mind_image_provider', sanitize_text_field( (string) $image_provider ) );
+			update_option( 'stilus_image_provider', sanitize_text_field( (string) $image_provider ) );
 		}
 
 		$site_voice = $request->get_param( 'site_voice' );
 		if ( null !== $site_voice ) {
-			update_option( 'wp_ai_mind_site_voice', sanitize_text_field( (string) $site_voice ) );
+			update_option( 'stilus_site_voice', sanitize_text_field( (string) $site_voice ) );
 		}
 
 		// Module toggles — convert string list to boolean map matching ModuleRegistry.
 		$enabled_modules = $request->get_param( 'enabled_modules' );
 		if ( null !== $enabled_modules ) {
 			$enabled_list = array_map( 'sanitize_text_field', (array) $enabled_modules );
-			$all_slugs    = array_keys( ( new \WP_AI_Mind\Core\ModuleRegistry() )->get_all() );
+			$all_slugs    = array_keys( ( new \Stilus\Core\ModuleRegistry() )->get_all() );
 			$bool_map     = [];
 			foreach ( $all_slugs as $slug ) {
 				$bool_map[ $slug ] = in_array( $slug, $enabled_list, true );
 			}
-			update_option( 'wp_ai_mind_modules', $bool_map );
+			update_option( 'stilus_modules', $bool_map );
 		}
 
 		// API keys — skip any that are the mask placeholder (i.e. unchanged).
 		$api_keys = $request->get_param( 'api_keys' );
 		if ( is_array( $api_keys ) ) {
-			if ( ! NJ_Tier_Manager::user_can( 'own_api_key' ) ) {
+			if ( ! TierManager::user_can( 'own_api_key' ) ) {
 				return new \WP_Error(
 					'rest_plan_required',
-					__( 'API key management requires the Pro BYOK plan.', 'wp-ai-mind' ),
+					__( 'API key management requires the Pro BYOK plan.', 'stilus' ),
 					[ 'status' => 403 ]
 				);
 			}
@@ -165,7 +165,7 @@ class SettingsRestController {
 			}
 
 			if ( isset( $api_keys['ollama_url'] ) && '••••••' !== $api_keys['ollama_url'] ) {
-				update_option( 'wp_ai_mind_ollama_url', esc_url_raw( (string) $api_keys['ollama_url'] ) );
+				update_option( 'stilus_ollama_url', esc_url_raw( (string) $api_keys['ollama_url'] ) );
 			}
 		}
 
@@ -173,11 +173,11 @@ class SettingsRestController {
 			$sanitised = \array_map( 'sanitize_key', $params['allowed_post_types'] );
 			$valid     = \array_keys( \get_post_types( [ 'public' => true ] ) );
 			$sanitised = \array_values( \array_intersect( $sanitised, $valid ) );
-			\update_option( 'wp_ai_mind_allowed_post_types', $sanitised );
+			\update_option( 'stilus_allowed_post_types', $sanitised );
 		}
 
 		if ( isset( $params['enable_write_tools'] ) ) {
-			\update_option( 'wp_ai_mind_enable_write_tools', (bool) $params['enable_write_tools'] );
+			\update_option( 'stilus_enable_write_tools', (bool) $params['enable_write_tools'] );
 		}
 
 		return rest_ensure_response( [ 'saved' => true ] );
@@ -195,7 +195,7 @@ class SettingsRestController {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return new \WP_Error(
 				'rest_forbidden',
-				__( 'Insufficient permissions.', 'wp-ai-mind' ),
+				__( 'Insufficient permissions.', 'stilus' ),
 				[ 'status' => 403 ]
 			);
 		}

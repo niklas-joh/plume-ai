@@ -314,7 +314,7 @@ The key insight for the batch prompt: give Claude a numbered list of issues to f
             ---
 
             ## Constraints
-            - PHP: follow WordPress Coding Standards. Prefix functions `nj_` or use `WP_AI_Mind\` namespace.
+            - PHP: follow WordPress Coding Standards. Prefix functions `nj_` or use `Stilus\` namespace.
             - JS/CSS: fix only what is reported.
             - PHPUnit: fix the code under test, not the tests, unless the assertion is clearly wrong.
             - Do NOT bump versions, modify `composer.lock`, or change `package-lock.json`.

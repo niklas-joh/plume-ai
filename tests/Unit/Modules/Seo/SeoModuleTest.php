@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Modules\Seo;
+namespace Stilus\Tests\Unit\Modules\Seo;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Modules\Seo\SeoModule;
-use WP_AI_Mind\Tests\Helpers\WpdbStubFactory;
+use Stilus\Modules\Seo\SeoModule;
+use Stilus\Tests\Helpers\WpdbStubFactory;
 use PHPUnit\Framework\TestCase;
 
 class SeoModuleTest extends TestCase {
@@ -51,14 +51,14 @@ class SeoModuleTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default = null ) {
-				if ( 'wp_ai_mind_default_provider' === $key ) {
+				if ( 'stilus_default_provider' === $key ) {
 					return 'claude';
 				}
-				if ( 'wp_ai_mind_provider_settings' === $key ) {
+				if ( 'stilus_provider_settings' === $key ) {
 					return [];
 				}
 				// pro_byok is now site-level — routes ClaudeProvider::do_complete() direct.
-				if ( 'wp_ai_mind_site_tier' === $key ) {
+				if ( 'stilus_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				return $default;
@@ -108,13 +108,13 @@ class SeoModuleTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default = null ) {
-				if ( 'wp_ai_mind_default_provider' === $key ) {
+				if ( 'stilus_default_provider' === $key ) {
 					return 'claude';
 				}
-				if ( 'wp_ai_mind_provider_settings' === $key ) {
+				if ( 'stilus_provider_settings' === $key ) {
 					return [];
 				}
-				if ( 'wp_ai_mind_site_tier' === $key ) {
+				if ( 'stilus_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				return $default;
@@ -166,13 +166,13 @@ class SeoModuleTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default = null ) {
-				if ( 'wp_ai_mind_default_provider' === $key ) {
+				if ( 'stilus_default_provider' === $key ) {
 					return 'claude';
 				}
-				if ( 'wp_ai_mind_provider_settings' === $key ) {
+				if ( 'stilus_provider_settings' === $key ) {
 					return [];
 				}
-				if ( 'wp_ai_mind_site_tier' === $key ) {
+				if ( 'stilus_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				return $default;
@@ -219,14 +219,14 @@ class SeoModuleTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default = null ) {
-				if ( 'wp_ai_mind_default_provider' === $key ) {
+				if ( 'stilus_default_provider' === $key ) {
 					return 'claude';
 				}
-				if ( 'wp_ai_mind_provider_settings' === $key ) {
+				if ( 'stilus_provider_settings' === $key ) {
 					return [];
 				}
 				// pro_byok is now site-level — routes ClaudeProvider::do_complete() direct.
-				if ( 'wp_ai_mind_site_tier' === $key ) {
+				if ( 'stilus_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				return $default;
@@ -276,14 +276,14 @@ class SeoModuleTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default = null ) {
-				if ( 'wp_ai_mind_default_provider' === $key ) {
+				if ( 'stilus_default_provider' === $key ) {
 					return 'claude';
 				}
-				if ( 'wp_ai_mind_provider_settings' === $key ) {
+				if ( 'stilus_provider_settings' === $key ) {
 					return [];
 				}
 				// pro_byok is now site-level — routes ClaudeProvider::do_complete() direct.
-				if ( 'wp_ai_mind_site_tier' === $key ) {
+				if ( 'stilus_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				return $default;
@@ -406,7 +406,7 @@ class SeoModuleTest extends TestCase {
 	 * Verify that handle_generate returns 200 and does not double-count token usage.
 	 *
 	 * Usage is logged exactly once by the provider layer (AbstractProvider::maybe_log()).
-	 * handle_generate must NOT call NJ_Usage_Tracker::log_usage() itself; doing so
+	 * handle_generate must NOT call UsageTracker::log_usage() itself; doing so
 	 * would count tokens twice for every successful SEO generation request.
 	 *
 	 * @since 1.5.0
@@ -429,14 +429,14 @@ class SeoModuleTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default = null ) {
-				if ( 'wp_ai_mind_default_provider' === $key ) {
+				if ( 'stilus_default_provider' === $key ) {
 					return 'claude';
 				}
-				if ( 'wp_ai_mind_provider_settings' === $key ) {
+				if ( 'stilus_provider_settings' === $key ) {
 					return [];
 				}
 				// pro_byok is now site-level — routes ClaudeProvider::do_complete() direct.
-				if ( 'wp_ai_mind_site_tier' === $key ) {
+				if ( 'stilus_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				return $default;
@@ -558,12 +558,12 @@ class SeoModuleTest extends TestCase {
 		$permission_callback = $captured_args['/seo/generate']['permission_callback'];
 
 		// User has permission but is over the free monthly limit.
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function( $user_id, $key, $single ) use ( $month_key ) {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return 'free';
 				}
 				if ( $month_key === $key ) {

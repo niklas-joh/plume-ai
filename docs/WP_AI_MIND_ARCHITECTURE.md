@@ -1,4 +1,4 @@
-# WP AI Mind — Technical Architecture Spec (Hybrid Approach)
+# Stilus — Technical Architecture Spec (Hybrid Approach)
 ## Three-Tier WordPress Plugin with Minimal API Proxy
 
 > **Purpose:** Reference document for hybrid WordPress-native architecture with minimal external proxy for API key protection only. This design prioritizes WordPress plugin conventions while solving the core API key security requirement.
@@ -7,7 +7,7 @@
 
 ## Context: What Exists Today
 
-The plugin (`wp-ai-mind`) currently:
+The plugin (`stilus`) currently:
 
 - Uses **Freemius SDK** (product ID 26475) with a 7-day trial (`is_require_payment: true`)
 - Supports 4 AI providers: **Claude, OpenAI, Gemini, Ollama** — each requires the user's own API key
@@ -168,7 +168,7 @@ Token limits are defined once in `NJ_Tier_Config::MONTHLY_LIMITS` — not in the
 ### Project Structure
 
 ```
-wp-ai-mind-proxy/
+stilus-proxy/
 ├── src/
 │   ├── index.ts          # Main proxy logic (~150 lines)
 │   ├── types.ts          # Simple interfaces
@@ -180,7 +180,7 @@ wp-ai-mind-proxy/
 ### `wrangler.toml`
 
 ```toml
-name = "wp-ai-mind-proxy"
+name = "stilus-proxy"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
@@ -303,7 +303,7 @@ wrangler dev                             # local dev at localhost:8787
 
 # Deploy
 wrangler deploy
-# → live at: https://wp-ai-mind-proxy.your-account.workers.dev
+# → live at: https://stilus-proxy.your-account.workers.dev
 ```
 
 ---
@@ -317,7 +317,7 @@ The plugin's responsibility: full user management, payments, rate limiting, UI, 
 **New classes / files needed:**
 
 ```
-wp-ai-mind/
+stilus/
 └── includes/
     ├── Tiers/
     │   ├── NJ_Tier_Config.php           # Constants: TIERS, FEATURES, MONTHLY_LIMITS (no WP calls)
@@ -345,7 +345,7 @@ UsageLogger   → deleted; NJ_Usage_Tracker::log_usage() handles token counting
 **Proxy URL storage (Phase 2):** Use a PHP constant in wp-config.php with a wp_options fallback:
 ```php
 // wp-config.php (server-level, takes priority):
-define( 'WP_AI_MIND_PROXY_URL', 'https://wp-ai-mind-proxy.your-account.workers.dev' );
+define( 'WP_AI_MIND_PROXY_URL', 'https://stilus-proxy.your-account.workers.dev' );
 
 // In NJ_Proxy_Client — reads at runtime:
 private static function get_proxy_url(): string {
@@ -455,7 +455,7 @@ class NJ_Usage_Tracker {
 
 class NJ_Proxy_Client {
 
-    const PROXY_URL = 'https://wp-ai-mind-proxy.your-account.workers.dev/v1/chat';
+    const PROXY_URL = 'https://stilus-proxy.your-account.workers.dev/v1/chat';
 
     public static function chat( array $messages, array $options = [] ): array|WP_Error {
         $user_id = get_current_user_id();
@@ -492,7 +492,7 @@ class NJ_Proxy_Client {
         $body = json_decode( wp_remote_retrieve_body( $response ), true );
 
         if ( $code === 429 ) {
-            return new WP_Error( 'limit_exceeded', __( 'Monthly AI credit limit reached.', 'wp-ai-mind' ) );
+            return new WP_Error( 'limit_exceeded', __( 'Monthly AI credit limit reached.', 'stilus' ) );
         }
 
         if ( $code !== 200 ) {
@@ -512,7 +512,7 @@ class NJ_Proxy_Client {
         // Pro BYOK: direct API call using user's own encrypted API key
         $api_key = self::get_user_api_key();
         if ( ! $api_key ) {
-            return new WP_Error( 'no_api_key', __( 'API key not configured.', 'wp-ai-mind' ) );
+            return new WP_Error( 'no_api_key', __( 'API key not configured.', 'stilus' ) );
         }
 
         $response = wp_remote_post( 'https://api.anthropic.com/v1/messages', [
@@ -570,7 +570,7 @@ class NJ_Proxy_Client {
 1. Checkout: Embed LemonSqueezy checkout overlay in plugin upgrade CTA
    → Use LS overlay JS: opens checkout without leaving wp-admin
 
-2. Webhook → WordPress endpoint (/wp-json/wp-ai-mind/v1/webhook):
+2. Webhook → WordPress endpoint (/wp-json/stilus/v1/webhook):
    → subscription_created / order_created → update user meta to 'pro_managed'
    → subscription_cancelled / subscription_expired → update user meta to 'free'
    → WordPress verifies HMAC signature before processing

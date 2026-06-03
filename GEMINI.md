@@ -322,7 +322,7 @@ If you are in a freshly cloned environment and `.claude/agents/` symlinks are mi
 
 ## WordPress Coding Standards
 
-- Prefix all custom functions: `nj_` (theme/site plugins; WP AI Mind plugin uses `WP_AI_Mind\` namespace instead)
+- Prefix all custom functions: `nj_` (theme/site plugins; Stilus plugin uses `Stilus\` namespace instead)
 - Use British English in content and comments
 - Follow WordPress PHP Coding Standards
 - Escape output: `esc_html()`, `esc_attr()`, `esc_url()`
@@ -361,18 +361,18 @@ See `.agents/profiles/wordpress/_shared/block-reference.md` for the full decisio
 
 ---
 
-## WP AI Mind Plugin
+## Stilus Plugin
 
-Active plugin. Maintained in a dedicated repository: **[niklas-joh/wp-ai-mind](https://github.com/niklas-joh/wp-ai-mind)**
+Active plugin. Maintained in a dedicated repository: **[niklas-joh/wp-ai-mind](https://github.com/niklas-joh/wp-ai-mind)** (to be renamed `niklas-joh/stilus` once the GitHub repo is renamed)
 
-The plugin is referenced in this blog repo as a git submodule at `wp-content/plugins/wp-ai-mind/`.
+The plugin is referenced in this blog repo as a git submodule at `wp-content/plugins/stilus/`.
 
 | Item | Value |
 |------|-------|
 | Plugin repo | `https://github.com/niklas-joh/wp-ai-mind` |
-| Submodule path | `wp-content/plugins/wp-ai-mind/` |
+| Submodule path | `wp-content/plugins/stilus/` |
 | Active branches | `main` (stable), `develop` (next release) |
-| Namespace | `WP_AI_Mind\` (not `nj_` prefix) |
+| Namespace | `Stilus\` (not `nj_` prefix) |
 | Release docs | `RELEASING.md` in plugin repo |
 
 ### Plugin Development Workflow
@@ -382,7 +382,7 @@ The plugin is referenced in this blog repo as a git submodule at `wp-content/plu
 docker compose up -d && ./bin/db-pull.sh
 
 # Plugin dev — work directly in submodule
-cd wp-content/plugins/wp-ai-mind
+cd wp-content/plugins/stilus
 git checkout develop   # or feature/xxx
 
 # After PHP edits — clear OPcache
@@ -405,9 +405,9 @@ git submodule update --init --recursive
 ### Submodule Update (after plugin repo advances)
 
 ```bash
-git -C wp-content/plugins/wp-ai-mind pull origin main
-git add wp-content/plugins/wp-ai-mind
-git commit -m "chore: update wp-ai-mind submodule"
+git -C wp-content/plugins/stilus pull origin main
+git add wp-content/plugins/stilus
+git commit -m "chore: update stilus submodule"
 ```
 
 ### Local Admin Credentials (Docker only)
@@ -417,8 +417,8 @@ git commit -m "chore: update wp-ai-mind submodule"
 ### Plugin Gotchas
 - **OPcache**: Docker serves stale bytecode after PHP edits — restart the container
 - **`json_decode($json, true)` converts `{}` → `[]`**: Cast empty arrays to `new \stdClass()` wherever JSON objects are required (tool `properties`, tool `input` fields)
-- **`wp_ai_mind_is_pro()`**: Global function in `Core/ProGate.php` — use `\wp_ai_mind_is_pro()` (global prefix) inside namespaced classes
-- **Staging deploy**: `git push origin main` in plugin repo, then `ssh siteground-staging "cd .../public_html && git submodule update --remote wp-content/plugins/wp-ai-mind"`
+- **`stilus_is_pro()`**: Global function in `Core/ProGate.php` — use `\stilus_is_pro()` (global prefix) inside namespaced classes
+- **Staging deploy**: `git push origin main` in plugin repo, then `ssh siteground-staging "cd .../public_html && git submodule update --remote wp-content/plugins/stilus"`
 
 
 

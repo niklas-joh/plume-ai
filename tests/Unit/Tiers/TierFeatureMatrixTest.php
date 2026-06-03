@@ -1,24 +1,24 @@
 <?php
 /**
  * Data-provider-based tests that document and verify every cell in the
- * tier × feature capability matrix defined in NJ_Tier_Config.
+ * tier × feature capability matrix defined in TierConfig.
  *
  * No WordPress functions are called by the class under test, so Brain Monkey
  * bootstrapping is not required here.
  *
- * @package WP_AI_Mind\Tests\Unit\Tiers
+ * @package Stilus\Tests\Unit\Tiers
  * @since   1.0.0
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Tiers;
+namespace Stilus\Tests\Unit\Tiers;
 
 use PHPUnit\Framework\TestCase;
-use WP_AI_Mind\Tiers\NJ_Tier_Config;
+use Stilus\Tiers\TierConfig;
 
 /**
- * Exhaustive matrix tests for NJ_Tier_Config capability and limit data.
+ * Exhaustive matrix tests for TierConfig capability and limit data.
  *
  * Each data-provider method expands the full set of tier × feature
  * combinations so that any change to FEATURES or MONTHLY_LIMITS
@@ -93,7 +93,7 @@ class TierFeatureMatrixTest extends TestCase {
 	): void {
 		$this->assertSame(
 			$expected,
-			NJ_Tier_Config::get_feature( $tier, $feature ),
+			TierConfig::get_feature( $tier, $feature ),
 			"get_feature( '{$tier}', '{$feature}' ) should return " . ( $expected ? 'true' : 'false' ) . '.'
 		);
 	}
@@ -128,7 +128,7 @@ class TierFeatureMatrixTest extends TestCase {
 	public function test_monthly_limit_matches_config( string $tier, ?int $expected ): void {
 		$this->assertSame(
 			$expected,
-			NJ_Tier_Config::get_limit( $tier ),
+			TierConfig::get_limit( $tier ),
 			"get_limit( '{$tier}' ) should return " . ( null === $expected ? 'null' : (string) $expected ) . '.'
 		);
 	}
@@ -146,7 +146,7 @@ class TierFeatureMatrixTest extends TestCase {
 	public function test_all_tiers_defined(): void {
 		$this->assertSame(
 			[ 'free', 'trial', 'pro_managed', 'pro_byok' ],
-			NJ_Tier_Config::TIERS,
+			TierConfig::TIERS,
 			'TIERS must contain exactly the four canonical slugs in the documented order.'
 		);
 	}
@@ -161,7 +161,7 @@ class TierFeatureMatrixTest extends TestCase {
 	public function test_all_features_defined(): void {
 		$expected_keys = [ 'chat', 'generator', 'seo', 'images', 'model_selection', 'own_api_key' ];
 
-		foreach ( NJ_Tier_Config::FEATURES as $tier => $features ) {
+		foreach ( TierConfig::FEATURES as $tier => $features ) {
 			$actual_keys = array_keys( $features );
 			$this->assertSame(
 				$expected_keys,

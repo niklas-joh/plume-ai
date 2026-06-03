@@ -3,13 +3,13 @@ const { test, expect } = require( '@playwright/test' );
 const { wpLogin } = require( '../helpers/login' );
 
 // URL predicates used for route intercepts — matches both pretty-permalink
-// (/wp-json/wp-ai-mind/v1/...) and plain-permalink (?rest_route=...) formats.
+// (/wp-json/stilus/v1/...) and plain-permalink (?rest_route=...) formats.
 const isConversationsUrl = ( url ) =>
-	url.href.includes( 'wp-ai-mind/v1/conversations' ) &&
+	url.href.includes( 'stilus/v1/conversations' ) &&
 	! url.href.includes( '/messages' );
 
 const isMessagesUrl = ( url ) =>
-	url.href.includes( 'wp-ai-mind/v1/conversations' ) &&
+	url.href.includes( 'stilus/v1/conversations' ) &&
 	url.href.includes( '/messages' );
 
 test.describe( 'Chat journey', () => {
@@ -53,7 +53,7 @@ test.describe( 'Chat journey', () => {
 			}
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-chat' );
+		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
 		// Wait for React to hydrate — .wpaim-shell is the root chat element.
 		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
 
@@ -102,7 +102,7 @@ test.describe( 'Chat journey', () => {
 			}
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-chat' );
+		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
 		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
 
 		// The sidebar is <aside class="wpaim-sidebar"> (ChatApp.jsx line 301).
@@ -133,7 +133,7 @@ test.describe( 'Chat journey', () => {
 			}
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-chat' );
+		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
 		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
 
 		// Each .wpaim-conv-item has a .wpaim-conv-item__delete button
@@ -157,7 +157,7 @@ test.describe( 'Chat journey', () => {
 			}
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-chat' );
+		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
 		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
 
 		// Empty-state node is .wpaim-sidebar__empty (ConversationHistory.jsx line 34).

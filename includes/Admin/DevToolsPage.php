@@ -2,14 +2,14 @@
 /**
  * Hidden developer tools page for testing subscription tiers and usage limits.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
-use WP_AI_Mind\Tiers\NJ_Tier_Config;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Tiers\TierConfig;
+use Stilus\Tiers\UsageTracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Hidden admin page for switching tiers and manipulating usage counters during development.
  *
- * Activated by defining WP_AI_MIND_DEV_KEY in wp-config.php. The page never appears
+ * Activated by defining STILUS_DEV_KEY in wp-config.php. The page never appears
  * in any admin menu — it is accessible only at the direct URL. On first access the key
  * is hashed with the site's auth salt and stored in wp_options, so changing the constant
  * to a different value invalidates access until the stored option is deleted.
@@ -34,7 +34,7 @@ class DevToolsPage {
 	 *
 	 * @since 1.11.0
 	 */
-	private const OPTION_KEY_HASH = 'wp_ai_mind_dev_key_hash';
+	private const OPTION_KEY_HASH = 'stilus_dev_key_hash';
 
 	/**
 	 * Admin page slug used in the URL: wp-admin/admin.php?page=wp-ai-mind-dev-tools
@@ -62,8 +62,8 @@ class DevToolsPage {
 	public static function add_page(): void {
 		add_submenu_page(
 			null,
-			__( 'Developer Tools — WP AI Mind', 'wp-ai-mind' ),
-			__( 'Dev Tools', 'wp-ai-mind' ),
+			__( 'Developer Tools — WP AI Mind', 'stilus' ),
+			__( 'Dev Tools', 'stilus' ),
 			'manage_options',
 			self::PAGE_SLUG,
 			[ self::class, 'render' ]
@@ -71,7 +71,7 @@ class DevToolsPage {
 	}
 
 	/**
-	 * Verify that WP_AI_MIND_DEV_KEY is defined, non-empty, and matches the stored hash.
+	 * Verify that STILUS_DEV_KEY is defined, non-empty, and matches the stored hash.
 	 *
 	 * On the very first call with a previously unseen key value the hash is stored and
 	 * true is returned, locking in that value. A subsequent change to the constant will
@@ -81,13 +81,13 @@ class DevToolsPage {
 	 * @return bool True when the constant is valid and the current user has manage_options.
 	 */
 	public static function is_active(): bool {
-		if ( ! defined( 'WP_AI_MIND_DEV_KEY' ) || '' === (string) WP_AI_MIND_DEV_KEY ) {
+		if ( ! defined( 'STILUS_DEV_KEY' ) || '' === (string) STILUS_DEV_KEY ) {
 			return false;
 		}
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return false;
 		}
-		$hash   = self::hash_key( (string) WP_AI_MIND_DEV_KEY );
+		$hash   = self::hash_key( (string) STILUS_DEV_KEY );
 		$stored = (string) get_option( self::OPTION_KEY_HASH, '' );
 		if ( '' === $stored ) {
 			// First activation — store the hash and grant access.
@@ -107,17 +107,17 @@ class DevToolsPage {
 	 * @return void
 	 */
 	private static function enqueue_assets(): void {
-		$asset_file = WP_AI_MIND_DIR . 'assets/admin/dev-tools.asset.php';
+		$asset_file = STILUS_DIR . 'assets/admin/dev-tools.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => WP_AI_MIND_VERSION,
+				'version'      => STILUS_VERSION,
 			];
 
 		wp_enqueue_script(
 			'wp-ai-mind-dev-tools',
-			WP_AI_MIND_URL . 'assets/admin/dev-tools.js',
+			STILUS_URL . 'assets/admin/dev-tools.js',
 			$asset['dependencies'],
 			$asset['version'],
 			true
@@ -142,7 +142,7 @@ class DevToolsPage {
 	public static function render(): void {
 		if ( ! self::is_active() ) {
 			wp_die(
-				esc_html__( 'Developer tools are not enabled on this site.', 'wp-ai-mind' ),
+				esc_html__( 'Developer tools are not enabled on this site.', 'stilus' ),
 				'',
 				[ 'response' => 403 ]
 			);
@@ -150,50 +150,50 @@ class DevToolsPage {
 
 		self::enqueue_assets();
 
-		$usage        = NJ_Usage_Tracker::get_usage();
-		$tier_labels  = NJ_Tier_Config::get_tier_labels();
-		$all_tiers    = NJ_Tier_Config::get_valid_tiers();
+		$usage        = UsageTracker::get_usage();
+		$tier_labels  = TierConfig::get_tier_labels();
+		$all_tiers    = TierConfig::get_valid_tiers();
 		$current_tier = $usage['tier'];
 
 		if ( null === $usage['limit'] ) {
-			$usage_display = __( 'Unlimited', 'wp-ai-mind' );
+			$usage_display = __( 'Unlimited', 'stilus' );
 		} else {
-			$usage_display = number_format_i18n( $usage['used'] ) . ' / ' . number_format_i18n( $usage['limit'] ) . ' ' . __( 'tokens', 'wp-ai-mind' );
+			$usage_display = number_format_i18n( $usage['used'] ) . ' / ' . number_format_i18n( $usage['limit'] ) . ' ' . __( 'tokens', 'stilus' );
 		}
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Developer Tools', 'wp-ai-mind' ); ?></h1>
+			<h1><?php esc_html_e( 'Developer Tools', 'stilus' ); ?></h1>
 
 			<div class="notice notice-warning inline">
 				<p>
-					<strong><?php esc_html_e( 'Development use only.', 'wp-ai-mind' ); ?></strong>
-					<?php esc_html_e( 'Changes here affect only local WordPress state. The Cloudflare proxy enforces real quotas independently.', 'wp-ai-mind' ); ?>
+					<strong><?php esc_html_e( 'Development use only.', 'stilus' ); ?></strong>
+					<?php esc_html_e( 'Changes here affect only local WordPress state. The Cloudflare proxy enforces real quotas independently.', 'stilus' ); ?>
 				</p>
 			</div>
 
-			<h2><?php esc_html_e( 'Current State', 'wp-ai-mind' ); ?></h2>
+			<h2><?php esc_html_e( 'Current State', 'stilus' ); ?></h2>
 			<table class="form-table" role="presentation">
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Tier', 'wp-ai-mind' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Tier', 'stilus' ); ?></th>
 					<td id="wpaim-dev-tier-label">
 						<strong><?php echo esc_html( $tier_labels[ $current_tier ] ?? $current_tier ); ?></strong>
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Usage this month', 'wp-ai-mind' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Usage this month', 'stilus' ); ?></th>
 					<td id="wpaim-dev-usage"><?php echo esc_html( $usage_display ); ?></td>
 				</tr>
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Can use', 'wp-ai-mind' ); ?></th>
-					<td id="wpaim-dev-can-use"><?php echo $usage['can_use'] ? '&#10003; ' . esc_html__( 'Yes', 'wp-ai-mind' ) : '&#10007; ' . esc_html__( 'No (limit reached)', 'wp-ai-mind' ); ?></td>
+					<th scope="row"><?php esc_html_e( 'Can use', 'stilus' ); ?></th>
+					<td id="wpaim-dev-can-use"><?php echo $usage['can_use'] ? '&#10003; ' . esc_html__( 'Yes', 'stilus' ) : '&#10007; ' . esc_html__( 'No (limit reached)', 'stilus' ); ?></td>
 				</tr>
 			</table>
 
-			<h2><?php esc_html_e( 'Switch Tier', 'wp-ai-mind' ); ?></h2>
+			<h2><?php esc_html_e( 'Switch Tier', 'stilus' ); ?></h2>
 			<table class="form-table" role="presentation">
 				<tr>
 					<th scope="row">
-						<label for="wpaim-tier-select"><?php esc_html_e( 'Tier', 'wp-ai-mind' ); ?></label>
+						<label for="wpaim-tier-select"><?php esc_html_e( 'Tier', 'stilus' ); ?></label>
 					</th>
 					<td>
 						<select id="wpaim-tier-select">
@@ -204,33 +204,33 @@ class DevToolsPage {
 							<?php endforeach; ?>
 						</select>
 						<button class="button button-primary" id="wpaim-apply-tier">
-							<?php esc_html_e( 'Apply', 'wp-ai-mind' ); ?>
+							<?php esc_html_e( 'Apply', 'stilus' ); ?>
 						</button>
 					</td>
 				</tr>
 			</table>
 
-			<h2><?php esc_html_e( 'Usage Controls', 'wp-ai-mind' ); ?></h2>
+			<h2><?php esc_html_e( 'Usage Controls', 'stilus' ); ?></h2>
 			<table class="form-table" role="presentation">
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Reset', 'wp-ai-mind' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Reset', 'stilus' ); ?></th>
 					<td>
 						<button class="button" id="wpaim-reset-usage">
-							<?php esc_html_e( 'Reset to zero', 'wp-ai-mind' ); ?>
+							<?php esc_html_e( 'Reset to zero', 'stilus' ); ?>
 						</button>
 						<p class="description">
-							<?php esc_html_e( "Clears this month's token counter — simulates a fresh month.", 'wp-ai-mind' ); ?>
+							<?php esc_html_e( "Clears this month's token counter — simulates a fresh month.", 'stilus' ); ?>
 						</p>
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Exhaust', 'wp-ai-mind' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Exhaust', 'stilus' ); ?></th>
 					<td>
 						<button class="button" id="wpaim-set-ceiling">
-							<?php esc_html_e( 'Set to ceiling', 'wp-ai-mind' ); ?>
+							<?php esc_html_e( 'Set to ceiling', 'stilus' ); ?>
 						</button>
 						<p class="description">
-							<?php esc_html_e( "Sets usage to the current tier's monthly limit to trigger the blocked state.", 'wp-ai-mind' ); ?>
+							<?php esc_html_e( "Sets usage to the current tier's monthly limit to trigger the blocked state.", 'stilus' ); ?>
 						</p>
 					</td>
 				</tr>

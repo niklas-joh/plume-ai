@@ -1,16 +1,16 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Admin;
+namespace Stilus\Tests\Unit\Admin;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use WP_AI_Mind\Admin\DevToolsRestController;
+use Stilus\Admin\DevToolsRestController;
 
 // Ensure the constant is defined so DevToolsPage::is_active() can be exercised.
-if ( ! defined( 'WP_AI_MIND_DEV_KEY' ) ) {
-	define( 'WP_AI_MIND_DEV_KEY', 'test-dev-key' );
+if ( ! defined( 'STILUS_DEV_KEY' ) ) {
+	define( 'STILUS_DEV_KEY', 'test-dev-key' );
 }
 
 class DevToolsRestControllerTest extends TestCase {
@@ -45,7 +45,7 @@ class DevToolsRestControllerTest extends TestCase {
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, $default = null ) use ( $stored_hash ) {
-				if ( 'wp_ai_mind_dev_key_hash' === $key ) {
+				if ( 'stilus_dev_key_hash' === $key ) {
 					return $stored_hash;
 				}
 				return $default;
@@ -64,7 +64,7 @@ class DevToolsRestControllerTest extends TestCase {
 		// pro_byok is the site-wide tier; no sync secret means verification passes.
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, $default = null ) {
-				if ( 'wp_ai_mind_site_tier' === $key ) {
+				if ( 'stilus_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				// Return '' for OPTION_SECRET so is_site_tier_verified() returns true.
@@ -87,7 +87,7 @@ class DevToolsRestControllerTest extends TestCase {
 		Functions\when( 'get_option' )->alias( fn( $key, $default = null ) => $default );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $uid, string $key ): string {
-				return 'wp_ai_mind_tier' === $key ? '' : '';
+				return 'stilus_tier' === $key ? '' : '';
 			}
 		);
 		Functions\expect( 'update_user_meta' )

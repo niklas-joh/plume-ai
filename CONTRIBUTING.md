@@ -1,4 +1,4 @@
-# Contributing to WP AI Mind
+# Contributing to Stilus
 
 ## Prerequisites
 

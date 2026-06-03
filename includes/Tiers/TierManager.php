@@ -2,14 +2,14 @@
 /**
  * Manages user licence tiers (Free, Trial, Pro Managed, Pro BYOK).
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tiers;
+namespace Stilus\Tiers;
 
-use WP_AI_Mind\Payments\TierUpdateWebhookController;
+use Stilus\Payments\TierUpdateWebhookController;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -25,20 +25,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 1.2.0
  */
-class NJ_Tier_Manager {
+class TierManager {
 
-	public const META_KEY           = 'wp_ai_mind_tier';
-	public const TRIAL_STARTED_META = 'wp_ai_mind_trial_started';
+	public const META_KEY           = 'stilus_tier';
+	public const TRIAL_STARTED_META = 'stilus_trial_started';
 
 	/**
 	 * Option key for the site-wide tier (paid entitlement source of truth).
 	 *
 	 * Stored with autoload=false because it is only consulted when
-	 * NJ_Tier_Manager itself is hit, not on every page load.
+	 * TierManager itself is hit, not on every page load.
 	 *
 	 * @since 1.9.0
 	 */
-	public const SITE_OPTION = 'wp_ai_mind_site_tier';
+	public const SITE_OPTION = 'stilus_site_tier';
 
 	/**
 	 * Option key for the HMAC signature that authenticates the stored site tier.
@@ -49,7 +49,7 @@ class NJ_Tier_Manager {
 	 *
 	 * @since 1.10.0
 	 */
-	public const SITE_OPTION_SIG = 'wp_ai_mind_site_tier_sig';
+	public const SITE_OPTION_SIG = 'stilus_site_tier_sig';
 
 	// ── Tier CRUD ─────────────────────────────────────────────────────────────
 
@@ -74,7 +74,7 @@ class NJ_Tier_Manager {
 		// is a site-level fact, so consult the site option directly.
 		if ( $user_id <= 0 ) {
 			$site_tier = (string) get_option( self::SITE_OPTION, 'free' );
-			if ( ! in_array( $site_tier, NJ_Tier_Config::get_valid_tiers(), true ) ) {
+			if ( ! in_array( $site_tier, TierConfig::get_valid_tiers(), true ) ) {
 				return 'free';
 			}
 			if ( in_array( $site_tier, [ 'pro_managed', 'pro_byok' ], true ) && ! self::is_site_tier_verified( $site_tier ) ) {
@@ -100,7 +100,7 @@ class NJ_Tier_Manager {
 		if ( in_array( $site_tier, [ 'pro_managed', 'pro_byok' ], true ) ) {
 			return 'free';
 		}
-		return in_array( $site_tier, NJ_Tier_Config::get_valid_tiers(), true ) ? $site_tier : 'free';
+		return in_array( $site_tier, TierConfig::get_valid_tiers(), true ) ? $site_tier : 'free';
 	}
 
 	/**
@@ -114,7 +114,7 @@ class NJ_Tier_Manager {
 	 * @return bool True on success, false when the tier is invalid or the meta update fails.
 	 */
 	public static function set_user_tier( string $tier, ?int $user_id = null ): bool {
-		if ( ! in_array( $tier, NJ_Tier_Config::get_valid_tiers(), true ) ) {
+		if ( ! in_array( $tier, TierConfig::get_valid_tiers(), true ) ) {
 			return false;
 		}
 		$user_id = $user_id ?? get_current_user_id();
@@ -124,19 +124,19 @@ class NJ_Tier_Manager {
 	/**
 	 * Sets the site-wide tier (used by the LemonSqueezy webhook receiver).
 	 *
-	 * Fires `wp_ai_mind_tier_changed` on success so other modules can react
+	 * Fires `stilus_tier_changed` on success so other modules can react
 	 * (cache invalidation, audit logs, etc.).
 	 *
 	 * @since 1.9.0
-	 * @param string $tier Tier slug; must be one of NJ_Tier_Config::get_valid_tiers().
+	 * @param string $tier Tier slug; must be one of TierConfig::get_valid_tiers().
 	 * @return bool True when the option was written, false when the tier is invalid
 	 *              or the option write failed.
 	 */
 	public static function set_site_tier( string $tier ): bool {
-		if ( ! in_array( $tier, NJ_Tier_Config::get_valid_tiers(), true ) ) {
+		if ( ! in_array( $tier, TierConfig::get_valid_tiers(), true ) ) {
 			return false;
 		}
-		// autoload=false: this option is only consulted from NJ_Tier_Manager, not
+		// autoload=false: this option is only consulted from TierManager, not
 		// every page load, so paying the autoload cost on every request is wasteful.
 		$ok = (bool) update_option( self::SITE_OPTION, $tier, false );
 		if ( $ok ) {
@@ -156,7 +156,7 @@ class NJ_Tier_Manager {
 					delete_option( self::SITE_OPTION_SIG );
 				}
 			}
-			do_action( 'wp_ai_mind_tier_changed', $tier );
+			do_action( 'stilus_tier_changed', $tier );
 		}
 		return $ok;
 	}
@@ -171,7 +171,7 @@ class NJ_Tier_Manager {
 	 */
 	public static function user_can( string $feature, ?int $user_id = null ): bool {
 		$tier = self::get_user_tier( $user_id );
-		return NJ_Tier_Config::get_feature( $tier, $feature );
+		return TierConfig::get_feature( $tier, $feature );
 	}
 
 	/**
@@ -182,7 +182,7 @@ class NJ_Tier_Manager {
 	 * @return int|null Token limit, or null for unlimited tiers.
 	 */
 	public static function get_monthly_limit( string $tier ): ?int {
-		return NJ_Tier_Config::get_limit( $tier );
+		return TierConfig::get_limit( $tier );
 	}
 
 	// ── Tier integrity ────────────────────────────────────────────────────────
@@ -274,7 +274,7 @@ class NJ_Tier_Manager {
 		if ( ! $started ) {
 			return false;
 		}
-		return ( time() - $started ) < ( NJ_Tier_Config::TRIAL_DAYS * DAY_IN_SECONDS );
+		return ( time() - $started ) < ( TierConfig::TRIAL_DAYS * DAY_IN_SECONDS );
 	}
 
 	/**

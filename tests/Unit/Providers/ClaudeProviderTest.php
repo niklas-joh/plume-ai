@@ -1,11 +1,11 @@
 <?php
-namespace WP_AI_Mind\Tests\Unit\Providers;
+namespace Stilus\Tests\Unit\Providers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Providers\ClaudeProvider;
-use WP_AI_Mind\Providers\CompletionRequest;
-use WP_AI_Mind\Providers\ProviderException;
+use Stilus\Providers\ClaudeProvider;
+use Stilus\Providers\CompletionRequest;
+use Stilus\Providers\ProviderException;
 use PHPUnit\Framework\TestCase;
 
 class ClaudeProviderTest extends TestCase {
@@ -34,7 +34,7 @@ class ClaudeProviderTest extends TestCase {
 		// Tier is now site-level, so we stub the SITE_OPTION not user meta.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+				'stilus_site_tier' === $key ? 'pro_byok' : $default
 		);
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
@@ -105,7 +105,7 @@ class ClaudeProviderTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+				'stilus_site_tier' === $key ? 'pro_byok' : $default
 		);
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 
@@ -181,21 +181,21 @@ class ClaudeProviderTest extends TestCase {
 	}
 
 	public function test_complete_routes_free_tier_to_proxy_returns_error_when_not_registered(): void {
-		// Mock get_current_user_id — called by NJ_Tier_Manager::get_user_tier() and NJ_Proxy_Client::chat().
+		// Mock get_current_user_id — called by TierManager::get_user_tier() and ProxyClient::chat().
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
-		// Mock get_user_meta to return 'free' tier (called by NJ_Tier_Manager::get_user_tier()).
+		// Mock get_user_meta to return 'free' tier (called by TierManager::get_user_tier()).
 		Functions\when( 'get_user_meta' )
 			->justReturn( 'free' );
 
-		// Mock get_option to return empty token (site not registered — called by NJ_Site_Registration::get_site_token()).
+		// Mock get_option to return empty token (site not registered — called by SiteRegistration::get_site_token()).
 		Functions\when( 'get_option' )
 			->justReturn( '' );
 
-		// is_wp_error must return true when passed the WP_Error returned by NJ_Proxy_Client::chat().
+		// is_wp_error must return true when passed the WP_Error returned by ProxyClient::chat().
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
 
-		// Stub translation functions used inside NJ_Proxy_Client::chat().
+		// Stub translation functions used inside ProxyClient::chat().
 		Functions\stubs( [ '__' => fn( $str ) => $str ] );
 
 		$provider = new ClaudeProvider( 'test-api-key' );
@@ -204,15 +204,15 @@ class ClaudeProviderTest extends TestCase {
 			max_tokens: 100,
 		);
 
-		// For a free-tier user, do_complete() routes through NJ_Proxy_Client.
-		// NJ_Proxy_Client::chat() returns WP_Error('not_registered') when site token is missing.
+		// For a free-tier user, do_complete() routes through ProxyClient.
+		// ProxyClient::chat() returns WP_Error('not_registered') when site token is missing.
 		// ClaudeProvider converts this WP_Error to a ProviderException.
 		$this->expectException( ProviderException::class );
 		$provider->complete( $request );
 	}
 
 	public function test_complete_routes_pro_byok_direct_not_via_proxy(): void {
-		// Mock get_current_user_id — called by NJ_Tier_Manager::get_user_tier().
+		// Mock get_current_user_id — called by TierManager::get_user_tier().
 		Functions\when( 'get_current_user_id' )->justReturn( 2 );
 
 		// Mock get_user_meta to return 'pro_byok' tier.
@@ -252,7 +252,7 @@ class ClaudeProviderTest extends TestCase {
 		$this->mock_wpdb();
 		// Override to 'free' so routing goes via proxy instead of direct.
 		Functions\when( 'get_user_meta' )->justReturn( 'free' );
-		// NJ_Site_Registration::get_site_token() reads this option.
+		// SiteRegistration::get_site_token() reads this option.
 		Functions\when( 'get_option' )->justReturn( 'mock-site-token' );
 		Functions\stubs( [ '__' => fn( $str ) => $str ] );
 

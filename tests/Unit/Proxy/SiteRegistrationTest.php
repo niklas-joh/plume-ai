@@ -1,14 +1,14 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Proxy;
+namespace Stilus\Tests\Unit\Proxy;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use WP_AI_Mind\Proxy\NJ_Site_Registration;
+use Stilus\Proxy\SiteRegistration;
 
-class NJSiteRegistrationTest extends TestCase {
+class SiteRegistrationTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -24,42 +24,42 @@ class NJSiteRegistrationTest extends TestCase {
 
 	public function test_get_site_token_returns_stored_token(): void {
 		Functions\expect( 'get_option' )
-			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->with( SiteRegistration::OPTION_TOKEN, '' )
 			->andReturn( 'abc123' );
 
-		$this->assertSame( 'abc123', NJ_Site_Registration::get_site_token() );
+		$this->assertSame( 'abc123', SiteRegistration::get_site_token() );
 	}
 
 	public function test_get_site_token_returns_empty_string_when_not_registered(): void {
 		Functions\expect( 'get_option' )
-			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->with( SiteRegistration::OPTION_TOKEN, '' )
 			->andReturn( '' );
 
-		$this->assertSame( '', NJ_Site_Registration::get_site_token() );
+		$this->assertSame( '', SiteRegistration::get_site_token() );
 	}
 
 	public function test_is_registered_returns_true_when_token_exists(): void {
 		Functions\expect( 'get_option' )
-			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->with( SiteRegistration::OPTION_TOKEN, '' )
 			->andReturn( 'some-token' );
 
-		$this->assertTrue( NJ_Site_Registration::is_registered() );
+		$this->assertTrue( SiteRegistration::is_registered() );
 	}
 
 	public function test_is_registered_returns_false_when_no_token(): void {
 		Functions\expect( 'get_option' )
-			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->with( SiteRegistration::OPTION_TOKEN, '' )
 			->andReturn( '' );
 
-		$this->assertFalse( NJ_Site_Registration::is_registered() );
+		$this->assertFalse( SiteRegistration::is_registered() );
 	}
 
 	public function test_checkout_url_embeds_site_token(): void {
 		Functions\expect( 'get_option' )
-			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->with( SiteRegistration::OPTION_TOKEN, '' )
 			->andReturn( 'mytoken' );
 
-		$url = NJ_Site_Registration::checkout_url_pro_managed_monthly();
+		$url = SiteRegistration::checkout_url_pro_managed_monthly();
 
 		$this->assertStringContainsString( 'lemonsqueezy.com', $url );
 		$this->assertStringContainsString( 'mytoken', $url );
@@ -73,7 +73,7 @@ class NJSiteRegistrationTest extends TestCase {
 		);
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
 
-		$result = NJ_Site_Registration::register();
+		$result = SiteRegistration::register();
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 	}
@@ -84,7 +84,7 @@ class NJSiteRegistrationTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 500 );
 		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '{}' );
 
-		$result = NJ_Site_Registration::register();
+		$result = SiteRegistration::register();
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'challenge_failed', $result->get_error_code() );
@@ -96,7 +96,7 @@ class NJSiteRegistrationTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
 		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '{"other":"value"}' );
 
-		$result = NJ_Site_Registration::register();
+		$result = SiteRegistration::register();
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'challenge_failed', $result->get_error_code() );
@@ -122,7 +122,7 @@ class NJSiteRegistrationTest extends TestCase {
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
 		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
 
-		$result = NJ_Site_Registration::register();
+		$result = SiteRegistration::register();
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 	}
@@ -159,7 +159,7 @@ class NJSiteRegistrationTest extends TestCase {
 			}
 		);
 
-		$result = NJ_Site_Registration::register();
+		$result = SiteRegistration::register();
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'registration_failed', $result->get_error_code() );
@@ -203,7 +203,7 @@ class NJSiteRegistrationTest extends TestCase {
 		// set_site_tier() reads the sync secret to sign the stored tier value.
 		Functions\when( 'get_option' )->justReturn( '' );
 
-		$result = NJ_Site_Registration::register();
+		$result = SiteRegistration::register();
 
 		$this->assertSame( $token, $result );
 
@@ -255,13 +255,13 @@ class NJSiteRegistrationTest extends TestCase {
 			}
 		);
 
-		$result = NJ_Site_Registration::register();
+		$result = SiteRegistration::register();
 
 		$this->assertSame( $token, $result );
-		$this->assertSame( $secret, $captured[ NJ_Site_Registration::OPTION_SECRET ]['value'] );
-		$this->assertFalse( $captured[ NJ_Site_Registration::OPTION_SECRET ]['autoload'] );
+		$this->assertSame( $secret, $captured[ SiteRegistration::OPTION_SECRET ]['value'] );
+		$this->assertFalse( $captured[ SiteRegistration::OPTION_SECRET ]['autoload'] );
 		// Tier should also have been persisted via set_site_tier().
-		$this->assertSame( 'pro_managed', $captured['wp_ai_mind_site_tier']['value'] );
+		$this->assertSame( 'pro_managed', $captured['stilus_site_tier']['value'] );
 	}
 
 	public function test_register_succeeds_without_secret_or_tier_for_legacy_workers(): void {
@@ -300,24 +300,24 @@ class NJSiteRegistrationTest extends TestCase {
 			}
 		);
 
-		$result = NJ_Site_Registration::register();
+		$result = SiteRegistration::register();
 
 		$this->assertSame( $token, $result );
 		// Only the token option must have been written — no secret, no tier.
-		$this->assertArrayHasKey( NJ_Site_Registration::OPTION_TOKEN, $captured );
-		$this->assertArrayNotHasKey( NJ_Site_Registration::OPTION_SECRET, $captured );
-		$this->assertArrayNotHasKey( 'wp_ai_mind_site_tier', $captured );
+		$this->assertArrayHasKey( SiteRegistration::OPTION_TOKEN, $captured );
+		$this->assertArrayNotHasKey( SiteRegistration::OPTION_SECRET, $captured );
+		$this->assertArrayNotHasKey( 'stilus_site_tier', $captured );
 	}
 
 	// ── rotate_secret() ─────────────────────────────────────────────────────
 
 	public function test_rotate_secret_returns_wp_error_when_not_registered(): void {
 		Functions\expect( 'get_option' )
-			->with( NJ_Site_Registration::OPTION_TOKEN, '' )
+			->with( SiteRegistration::OPTION_TOKEN, '' )
 			->andReturn( '' );
 		Functions\when( '__' )->returnArg();
 
-		$result = NJ_Site_Registration::rotate_secret();
+		$result = SiteRegistration::rotate_secret();
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'not_registered', $result->get_error_code() );
@@ -325,7 +325,7 @@ class NJSiteRegistrationTest extends TestCase {
 
 	public function test_rotate_secret_returns_wp_error_on_non_200(): void {
 		Functions\when( 'get_option' )->alias(
-			fn( $k, $d = '' ) => NJ_Site_Registration::OPTION_TOKEN === $k ? 'site-token' : $d
+			fn( $k, $d = '' ) => SiteRegistration::OPTION_TOKEN === $k ? 'site-token' : $d
 		);
 		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
 		Functions\when( 'wp_remote_post' )->justReturn( [] );
@@ -333,7 +333,7 @@ class NJSiteRegistrationTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 500 );
 		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '{}' );
 
-		$result = NJ_Site_Registration::rotate_secret();
+		$result = SiteRegistration::rotate_secret();
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'rotate_failed', $result->get_error_code() );
@@ -343,7 +343,7 @@ class NJSiteRegistrationTest extends TestCase {
 		$secret = str_repeat( '7', 64 );
 
 		Functions\when( 'get_option' )->alias(
-			fn( $k, $d = '' ) => NJ_Site_Registration::OPTION_TOKEN === $k ? 'site-token' : $d
+			fn( $k, $d = '' ) => SiteRegistration::OPTION_TOKEN === $k ? 'site-token' : $d
 		);
 		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
 		Functions\when( 'wp_remote_post' )->justReturn( [] );
@@ -363,10 +363,10 @@ class NJSiteRegistrationTest extends TestCase {
 			}
 		);
 
-		$result = NJ_Site_Registration::rotate_secret();
+		$result = SiteRegistration::rotate_secret();
 
 		$this->assertSame( $secret, $result );
-		$this->assertSame( $secret, $captured[ NJ_Site_Registration::OPTION_SECRET ] );
-		$this->assertSame( 'pro_managed', $captured['wp_ai_mind_site_tier'] );
+		$this->assertSame( $secret, $captured[ SiteRegistration::OPTION_SECRET ] );
+		$this->assertSame( 'pro_managed', $captured['stilus_site_tier'] );
 	}
 }

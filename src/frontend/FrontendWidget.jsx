@@ -39,7 +39,7 @@ export default function FrontendWidget() {
 			let cid = convId;
 			if ( ! cid ) {
 				const conv = await apiFetch( {
-					path: '/wp-ai-mind/v1/conversations',
+					path: '/stilus/v1/conversations',
 					method: 'POST',
 					data: {
 						title: text.slice( 0, 60 ),
@@ -50,7 +50,7 @@ export default function FrontendWidget() {
 				setConvId( cid );
 			}
 			const res = await apiFetch( {
-				path: `/wp-ai-mind/v1/conversations/${ cid }/messages`,
+				path: `/stilus/v1/conversations/${ cid }/messages`,
 				method: 'POST',
 				data: { content: text },
 			} );

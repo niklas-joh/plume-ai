@@ -1,10 +1,10 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\DB;
+namespace Stilus\Tests\Unit\DB;
 
 use Brain\Monkey;
-use WP_AI_Mind\DB\Schema;
+use Stilus\DB\Schema;
 use PHPUnit\Framework\TestCase;
 
 class SchemaTest extends TestCase {

@@ -2,12 +2,12 @@
 /**
  * Static configuration for tier capabilities and monthly request limits.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tiers;
+namespace Stilus\Tiers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 1.2.0
  */
-class NJ_Tier_Config {
+class TierConfig {
 
 	/**
 	 * All recognised tier slugs.
@@ -88,20 +88,20 @@ class NJ_Tier_Config {
 	/**
 	 * Return the base URL of the Cloudflare Worker proxy.
 	 *
-	 * Can be overridden via the WP_AI_MIND_PROXY_URL constant for local dev or staging.
+	 * Can be overridden via the STILUS_PROXY_URL constant for local dev or staging.
 	 *
 	 * @since 1.2.0
 	 * @return string Base URL without trailing slash.
 	 */
 	public static function get_proxy_url(): string {
-		if ( defined( 'WP_AI_MIND_PROXY_URL' ) ) {
-			return rtrim( WP_AI_MIND_PROXY_URL, '/' );
+		if ( defined( 'STILUS_PROXY_URL' ) ) {
+			return rtrim( STILUS_PROXY_URL, '/' );
 		}
-		$option = (string) get_option( 'wp_ai_mind_proxy_url', '' );
+		$option = (string) get_option( 'stilus_proxy_url', '' );
 		if ( '' !== $option ) {
 			return rtrim( $option, '/' );
 		}
-		return 'https://wp-ai-mind-proxy.wp-ai-mind.workers.dev';
+		return 'https://stilus-proxy.stilus.workers.dev';
 	}
 
 	/**
@@ -137,10 +137,10 @@ class NJ_Tier_Config {
 	 */
 	public static function get_tier_labels(): array {
 		return [
-			'free'        => __( 'Free', 'wp-ai-mind' ),
-			'trial'       => __( 'Trial', 'wp-ai-mind' ),
-			'pro_managed' => __( 'Pro Managed', 'wp-ai-mind' ),
-			'pro_byok'    => __( 'Pro BYOK', 'wp-ai-mind' ),
+			'free'        => __( 'Free', 'stilus' ),
+			'trial'       => __( 'Trial', 'stilus' ),
+			'pro_managed' => __( 'Pro Managed', 'stilus' ),
+			'pro_byok'    => __( 'Pro BYOK', 'stilus' ),
 		];
 	}
 

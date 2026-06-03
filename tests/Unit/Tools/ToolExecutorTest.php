@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Tools;
+namespace Stilus\Tests\Unit\Tools;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Tools\ToolExecutor;
-use WP_AI_Mind\Tools\ToolRegistry;
+use Stilus\Tools\ToolExecutor;
+use Stilus\Tools\ToolRegistry;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -119,7 +119,7 @@ class ToolExecutorTest extends TestCase {
 	public function test_create_post_blocked_when_write_tools_disabled(): void {
 		Functions\when( 'get_option' )
 			->alias( static function ( string $key, $default = false ) {
-				if ( 'wp_ai_mind_enable_write_tools' === $key ) {
+				if ( 'stilus_enable_write_tools' === $key ) {
 					return false;
 				}
 				return $default;
@@ -188,7 +188,7 @@ class ToolExecutorTest extends TestCase {
 
 		Functions\when( 'get_post' )->justReturn( $post );
 		Functions\when( 'user_can' )->justReturn( true );
-		// Return 'free' tier → NJ_Tier_Manager::user_can('seo') = false.
+		// Return 'free' tier → TierManager::user_can('seo') = false.
 		Functions\when( 'get_user_meta' )->justReturn( 'free' );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'wp_strip_all_tags' )->alias( fn( $s ) => $s );
@@ -217,11 +217,11 @@ class ToolExecutorTest extends TestCase {
 
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'wp_strip_all_tags' )->alias( fn( $s ) => $s );
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 		// pro_managed is site-level now; usage meta still per-user.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'wp_ai_mind_site_tier' === $key ? 'pro_managed' : $default
+				'stilus_site_tier' === $key ? 'pro_managed' : $default
 		);
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key, bool $single ) use ( $month_key ): mixed {
@@ -246,7 +246,7 @@ class ToolExecutorTest extends TestCase {
 	public function test_update_post_blocked_without_edit_post_cap(): void {
 		Functions\when( 'get_option' )
 			->alias( static function ( string $key, $default = false ) {
-				if ( 'wp_ai_mind_enable_write_tools' === $key ) {
+				if ( 'stilus_enable_write_tools' === $key ) {
 					return true;
 				}
 				return $default;

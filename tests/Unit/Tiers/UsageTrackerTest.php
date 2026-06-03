@@ -1,14 +1,14 @@
 <?php
 
-namespace WP_AI_Mind\Tests\Unit\Tiers;
+namespace Stilus\Tests\Unit\Tiers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use WP_AI_Mind\Tests\Helpers\WpdbStubFactory;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Tests\Helpers\WpdbStubFactory;
+use Stilus\Tiers\UsageTracker;
 
-class NJUsageTrackerTest extends TestCase {
+class UsageTrackerTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -27,15 +27,15 @@ class NJUsageTrackerTest extends TestCase {
 	}
 
 	public function test_get_usage_returns_correct_structure_for_free_user(): void {
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 
 		Functions\expect( 'get_current_user_id' )->once()->andReturn( 1 );
 		Functions\expect( 'get_user_meta' )
-			->once()->with( 1, 'wp_ai_mind_tier', true )->andReturn( 'free' );
+			->once()->with( 1, 'stilus_tier', true )->andReturn( 'free' );
 		Functions\expect( 'get_user_meta' )
 			->once()->with( 1, $month_key, true )->andReturn( '25000' );
 
-		$usage = NJ_Usage_Tracker::get_usage();
+		$usage = UsageTracker::get_usage();
 
 		$this->assertSame( 'free', $usage['tier'] );
 		$this->assertSame( 25000, $usage['used'] );
@@ -45,30 +45,30 @@ class NJUsageTrackerTest extends TestCase {
 	}
 
 	public function test_get_usage_can_use_false_when_limit_exceeded(): void {
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 
 		// Passing explicit user_id — get_current_user_id is NOT called.
 		Functions\expect( 'get_user_meta' )
-			->once()->with( 2, 'wp_ai_mind_tier', true )->andReturn( 'free' );
+			->once()->with( 2, 'stilus_tier', true )->andReturn( 'free' );
 		Functions\expect( 'get_user_meta' )
 			->once()->with( 2, $month_key, true )->andReturn( '55000' );
 
-		$usage = NJ_Usage_Tracker::get_usage( 2 );
+		$usage = UsageTracker::get_usage( 2 );
 		$this->assertFalse( $usage['can_use'] );
 		$this->assertSame( 0, $usage['remaining'] );
 	}
 
 	public function test_get_usage_trial_tier_uses_300k_limit(): void {
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 
 		// get_user_tier reads tier meta; is_trial_active reads tier + trial_started meta;
 		// then get_usage reads month meta. Stub generically.
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $uid, $key, $single ) use ( $month_key ) {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return 'trial';
 				}
-				if ( 'wp_ai_mind_trial_started' === $key ) {
+				if ( 'stilus_trial_started' === $key ) {
 					return (string) time();
 				}
 				if ( $month_key === $key ) {
@@ -78,7 +78,7 @@ class NJUsageTrackerTest extends TestCase {
 			}
 		);
 
-		$usage = NJ_Usage_Tracker::get_usage( 5 );
+		$usage = UsageTracker::get_usage( 5 );
 		$this->assertSame( 'trial', $usage['tier'] );
 		$this->assertSame( 300000, $usage['limit'] );
 		$this->assertSame( 200000, $usage['remaining'] );
@@ -86,17 +86,17 @@ class NJUsageTrackerTest extends TestCase {
 	}
 
 	public function test_get_usage_pro_byok_is_always_unlimited(): void {
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 
 		// pro_byok now lives on the site option, not user meta.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+				'stilus_site_tier' === $key ? 'pro_byok' : $default
 		);
 		Functions\expect( 'get_user_meta' )
 			->once()->with( 3, $month_key, true )->andReturn( '999999' );
 
-		$usage = NJ_Usage_Tracker::get_usage( 3 );
+		$usage = UsageTracker::get_usage( 3 );
 		$this->assertTrue( $usage['can_use'] );
 		$this->assertNull( $usage['limit'] );
 		$this->assertNull( $usage['remaining'] );
@@ -104,7 +104,7 @@ class NJUsageTrackerTest extends TestCase {
 
 	public function test_log_usage_performs_atomic_sql_increment(): void {
 		global $wpdb;
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 
 		$wpdb                = \Mockery::mock( 'wpdb' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 		$wpdb->usermeta      = 'wp_usermeta';
@@ -116,13 +116,13 @@ class NJUsageTrackerTest extends TestCase {
 
 		Functions\expect( 'get_current_user_id' )->once()->andReturn( 1 );
 
-		NJ_Usage_Tracker::log_usage( 500 );
+		UsageTracker::log_usage( 500 );
 		$this->addToAssertionCount( 1 );
 	}
 
 	public function test_log_usage_falls_back_to_insert_when_no_row_exists(): void {
 		global $wpdb;
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 
 		$wpdb                = \Mockery::mock( 'wpdb' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 		$wpdb->usermeta      = 'wp_usermeta';
@@ -138,26 +138,26 @@ class NJUsageTrackerTest extends TestCase {
 			->with( 1, $month_key, 500, true )
 			->andReturn( true );
 
-		NJ_Usage_Tracker::log_usage( 500 );
+		UsageTracker::log_usage( 500 );
 		$this->addToAssertionCount( 1 );
 	}
 
 	public function test_get_current_month_key_returns_expected_format(): void {
-		$key = NJ_Usage_Tracker::get_current_month_key();
+	$key = UsageTracker::get_current_month_key();
 
-		$this->assertMatchesRegularExpression( '/^wp_ai_mind_usage_\d{4}_\d{2}$/', $key );
-		$this->assertSame( 'wp_ai_mind_usage_' . gmdate( 'Y_m' ), $key );
+		$this->assertMatchesRegularExpression( '/^stilus_usage_\d{4}_\d{2}$/', $key );
+		$this->assertSame( 'stilus_usage_' . gmdate( 'Y_m' ), $key );
 	}
 
 	public function test_check_limit_returns_false_when_exhausted(): void {
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 
 		Functions\expect( 'get_current_user_id' )->once()->andReturn( 1 );
 		Functions\expect( 'get_user_meta' )
-			->once()->with( 1, 'wp_ai_mind_tier', true )->andReturn( 'free' );
+			->once()->with( 1, 'stilus_tier', true )->andReturn( 'free' );
 		Functions\expect( 'get_user_meta' )
 			->once()->with( 1, $month_key, true )->andReturn( '60000' );
 
-		$this->assertFalse( NJ_Usage_Tracker::check_limit() );
+		$this->assertFalse( UsageTracker::check_limit() );
 	}
 }

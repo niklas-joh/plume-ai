@@ -1,14 +1,14 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Admin;
+namespace Stilus\Tests\Unit\Admin;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use WP_AI_Mind\Admin\NJ_Usage_Widget;
+use Stilus\Admin\UsageWidget;
 
-class NJ_Usage_Widget_Test extends TestCase {
+class UsageWidgetTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -36,7 +36,7 @@ class NJ_Usage_Widget_Test extends TestCase {
 			}
 		);
 
-		NJ_Usage_Widget::register_hooks();
+		UsageWidget::register_hooks();
 
 		$this->assertTrue( $action_added, 'add_action was not called with wp_dashboard_setup' );
 	}
@@ -52,9 +52,9 @@ class NJ_Usage_Widget_Test extends TestCase {
 			}
 		);
 
-		NJ_Usage_Widget::add_dashboard_widget();
+		UsageWidget::add_dashboard_widget();
 
-		$this->assertSame( 'wp_ai_mind_usage', $registered_id );
+		$this->assertSame( 'stilus_usage', $registered_id );
 	}
 
 	public function test_add_dashboard_widget_skipped_without_manage_options(): void {
@@ -67,7 +67,7 @@ class NJ_Usage_Widget_Test extends TestCase {
 			}
 		);
 
-		NJ_Usage_Widget::add_dashboard_widget();
+		UsageWidget::add_dashboard_widget();
 
 		$this->assertFalse( $widget_registered, 'Widget must not be registered for users without manage_options' );
 	}
@@ -75,13 +75,13 @@ class NJ_Usage_Widget_Test extends TestCase {
 	// ── render() — limited tier (free) ───────────────────────────────────────
 
 	public function test_render_shows_plan_label_and_progress_bar_for_free_tier(): void {
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		// tier meta is called once inside get_usage(); render() reads $usage['tier'] directly
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key ) use ( $month_key ): string {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return 'free';
 				}
 				if ( $month_key === $key ) {
@@ -97,7 +97,7 @@ class NJ_Usage_Widget_Test extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 
 		ob_start();
-		NJ_Usage_Widget::render();
+		UsageWidget::render();
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Free', $output );
@@ -107,12 +107,12 @@ class NJ_Usage_Widget_Test extends TestCase {
 	}
 
 	public function test_render_shows_upgrade_notice_when_above_80_percent(): void {
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key ) use ( $month_key ): string {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return 'free'; // limit = 50000
 				}
 				if ( $month_key === $key ) {
@@ -128,7 +128,7 @@ class NJ_Usage_Widget_Test extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 
 		ob_start();
-		NJ_Usage_Widget::render();
+		UsageWidget::render();
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Over 80%', $output );
@@ -138,13 +138,13 @@ class NJ_Usage_Widget_Test extends TestCase {
 	// ── render() — unlimited tier (pro_byok) ─────────────────────────────────
 
 	public function test_render_shows_unlimited_message_for_pro_byok(): void {
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		// pro_byok lives on the site option now.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+				'stilus_site_tier' === $key ? 'pro_byok' : $default
 		);
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key ) use ( $month_key ): string {
@@ -161,7 +161,7 @@ class NJ_Usage_Widget_Test extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 
 		ob_start();
-		NJ_Usage_Widget::render();
+		UsageWidget::render();
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Unlimited', $output );

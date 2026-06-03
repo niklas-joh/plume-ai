@@ -9,7 +9,7 @@ if ( nonce ) {
 	apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 }
 
-const root = document.getElementById( 'wp-ai-mind-seo' );
+const root = document.getElementById( 'stilus-seo' );
 if ( root ) {
 	render( <SeoApp />, root );
 }

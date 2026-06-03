@@ -1,8 +1,8 @@
-# Design Spec: WP AI Mind — Admin Landing Page & Onboarding Modal
+# Design Spec: Stilus — Admin Landing Page & Onboarding Modal
 
 ## Context
 
-The plugin currently lands users directly in the Chat view when they open WP AI Mind in the WordPress admin. There is no orientation layer — new users have no clear starting point, and existing users can't reach key features without knowing the sidebar structure. This spec defines a Dashboard landing page (the new top-level entry point) and a first-run onboarding modal to address both problems.
+The plugin currently lands users directly in the Chat view when they open Stilus in the WordPress admin. There is no orientation layer — new users have no clear starting point, and existing users can't reach key features without knowing the sidebar structure. This spec defines a Dashboard landing page (the new top-level entry point) and a first-run onboarding modal to address both problems.
 
 ---
 
@@ -12,7 +12,7 @@ The WordPress admin sidebar changes from a flat structure to a parent/sub-page h
 
 ```
 Before:                     After:
-WP AI Mind (→ Chat)         WP AI Mind (→ Dashboard)  ← new landing page
+Stilus (→ Chat)         Stilus (→ Dashboard)  ← new landing page
                               ├─ Chat
                               ├─ Generator
                               ├─ Images
@@ -21,7 +21,7 @@ WP AI Mind (→ Chat)         WP AI Mind (→ Dashboard)  ← new landing page
                               └─ Settings
 ```
 
-The top-level `WP AI Mind` menu item now registers the Dashboard page. All existing feature pages become sub-pages.
+The top-level `Stilus` menu item now registers the Dashboard page. All existing feature pages become sub-pages.
 
 ---
 
@@ -33,7 +33,7 @@ Fully static. No API calls. Three visible layers plus a footer strip.
 
 ```
 ┌─ Top bar ──────────────────────────────────────────────┐
-│  WP AI Mind                                    v0.2.0  │
+│  Stilus                                    v0.2.0  │
 │  AI-powered content creation for WordPress            │
 ├─ Status banner (conditional) ─────────────────────────┤
 │  Only rendered when there is something actionable      │
@@ -189,7 +189,7 @@ A "Run setup again" entry in the plugin's Settings page (General or Account sect
 
 | File | Action |
 |---|---|
-| `wp-ai-mind.php` or main plugin file | Register new Dashboard page as top-level menu; demote existing pages to sub-menus |
+| `stilus.php` or main plugin file | Register new Dashboard page as top-level menu; demote existing pages to sub-menus |
 | `src/admin/index.js` | Add Dashboard view entry point |
 | `templates/admin/dashboard.php` (new) | Dashboard page template |
 | `templates/admin/onboarding-modal.php` (new) | Onboarding modal markup |

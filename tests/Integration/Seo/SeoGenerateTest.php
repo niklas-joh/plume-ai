@@ -6,17 +6,17 @@
  * including permission checks, tier gating, prompt construction, and
  * database writes.
  *
- * @package WP_AI_Mind\Tests\Integration\Seo
+ * @package Stilus\Tests\Integration\Seo
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Integration\Seo;
+namespace Stilus\Tests\Integration\Seo;
 
-use WP_AI_Mind\Tests\Integration\IntegrationTestCase;
+use Stilus\Tests\Integration\IntegrationTestCase;
 
 /**
- * Integration tests for POST /wp-ai-mind/v1/seo/generate and /seo/apply.
+ * Integration tests for POST /stilus/v1/seo/generate and /seo/apply.
  *
  * @since 1.0.0
  */
@@ -36,7 +36,7 @@ class SeoGenerateTest extends IntegrationTestCase {
 
 		$post_id = self::factory()->post->create( [ 'post_status' => 'publish' ] );
 
-		$response = $this->rest_do( 'POST', '/wp-ai-mind/v1/seo/generate', [ 'post_id' => $post_id ] );
+		$response = $this->rest_do( 'POST', '/stilus/v1/seo/generate', [ 'post_id' => $post_id ] );
 
 		$this->assertSame( 403, $response->get_status() );
 	}
@@ -44,7 +44,7 @@ class SeoGenerateTest extends IntegrationTestCase {
 	/**
 	 * Verify that an editor on the free tier cannot access the generate endpoint.
 	 *
-	 * The free tier has seo=false in NJ_Tier_Config::FEATURES, so the
+	 * The free tier has seo=false in TierConfig::FEATURES, so the
 	 * permission_callback must reject with 403 even though the user has edit_posts.
 	 *
 	 * @since 1.0.0
@@ -56,7 +56,7 @@ class SeoGenerateTest extends IntegrationTestCase {
 
 		$post_id = self::factory()->post->create( [ 'post_status' => 'publish' ] );
 
-		$response = $this->rest_do( 'POST', '/wp-ai-mind/v1/seo/generate', [ 'post_id' => $post_id ] );
+		$response = $this->rest_do( 'POST', '/stilus/v1/seo/generate', [ 'post_id' => $post_id ] );
 
 		$this->assertSame( 403, $response->get_status() );
 	}
@@ -106,7 +106,7 @@ class SeoGenerateTest extends IntegrationTestCase {
 
 		$this->mock_http_with_claude_fixture( $fixture );
 
-		$response = $this->rest_do( 'POST', '/wp-ai-mind/v1/seo/generate', [ 'post_id' => $post_id ] );
+		$response = $this->rest_do( 'POST', '/stilus/v1/seo/generate', [ 'post_id' => $post_id ] );
 
 		$this->assertSame( 200, $response->get_status(), 'Expected 200 from generate endpoint for trial user.' );
 
@@ -157,7 +157,7 @@ class SeoGenerateTest extends IntegrationTestCase {
 
 		$response = $this->rest_do(
 			'POST',
-			'/wp-ai-mind/v1/seo/apply',
+			'/stilus/v1/seo/apply',
 			[
 				'post_id'        => $post_id,
 				'meta_title'     => 'Integration Meta Title',

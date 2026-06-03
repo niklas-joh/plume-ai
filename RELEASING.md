@@ -23,7 +23,7 @@ feature/* ──PR──▶ main
        nothing                 semantic-release:
        happens                 1. bumps version (semver)
                                2. writes CHANGELOG.md
-                               3. bumps wp-ai-mind.php (×2),
+                               3. bumps stilus.php (×2),
                                   readme.txt, package.json
                                4. builds plugin zip
                                5. commits "[skip ci]"

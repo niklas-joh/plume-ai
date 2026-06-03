@@ -2,12 +2,12 @@
 /**
  * Activation notice: one-time external-services disclosure.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * that the plugin connects to Stilus - Write and Design and to
  * third-party AI providers.
  *
- * Uses the wp_ai_mind_just_activated option as a single-use flag.
+ * Uses the stilus_just_activated option as a single-use flag.
  * The option is deleted before rendering so it cannot be displayed twice,
  * even if the page is reloaded.
  *
@@ -26,8 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ActivationNotice {
 
-	private const OPTION         = 'wp_ai_mind_just_activated';
-	private const LEARN_MORE_URL = 'https://wpaimind.com/privacy-policy';
+	private const OPTION         = 'stilus_just_activated';
+	private const LEARN_MORE_URL = 'https://[TODO-stilus-domain]/privacy-policy';
 
 	/**
 	 * Register the admin_notices hook.
@@ -59,13 +59,13 @@ class ActivationNotice {
 		?>
 		<div class="notice notice-info is-dismissible">
 			<p>
-				<strong><?php \esc_html_e( 'Stilus - Write and Design — External Services & Privacy Notice', 'wp-ai-mind' ); ?></strong>
+			<strong><?php \esc_html_e( 'Stilus - Write and Design — External Services & Privacy Notice', 'stilus' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				\esc_html_e(
 					'This plugin connects to Stilus - Write and Design and to third-party AI providers (Anthropic Claude, OpenAI, Google Gemini). Only your site address is shared during setup — no content leaves your site until you start a conversation. Your messages are then forwarded to the AI provider on your behalf.',
-					'wp-ai-mind'
+					'stilus'
 				);
 				?>
 				<?php
@@ -73,7 +73,7 @@ class ActivationNotice {
 					sprintf(
 						' <a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
 						\esc_url( self::LEARN_MORE_URL ),
-						\esc_html__( 'Learn more', 'wp-ai-mind' )
+						\esc_html__( 'Learn more', 'stilus' )
 					),
 					[
 						'a' => [

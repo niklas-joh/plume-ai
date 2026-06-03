@@ -2,17 +2,17 @@
 /**
  * Base class shared by all AI completion providers.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Providers;
+namespace Stilus\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Tiers\UsageTracker;
 
 /**
  * Provides retry logic, usage logging, and media-library image saving for concrete providers.
@@ -117,7 +117,7 @@ abstract class AbstractProvider implements ProviderInterface {
 			throw new ProviderException( 'Failed to save image: ' . $attachment_id->get_error_message(), $this->get_slug() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
-		update_post_meta( $attachment_id, '_wp_ai_mind_prompt', sanitize_textarea_field( $prompt ) );
+		update_post_meta( $attachment_id, '_stilus_prompt', sanitize_textarea_field( $prompt ) );
 		return $attachment_id;
 	}
 
@@ -155,6 +155,6 @@ abstract class AbstractProvider implements ProviderInterface {
 	 * @return void
 	 */
 	protected function maybe_log( CompletionRequest $request, CompletionResponse $response ): void {
-		NJ_Usage_Tracker::log_usage( $response->total_tokens );
+		UsageTracker::log_usage( $response->total_tokens );
 	}
 }

@@ -49,7 +49,7 @@ export default function ConversationHistory( {
 						className="wpaim-conv-item__body"
 						onClick={ () => onSelect( conv.id ) }
 						type="button"
-						title={ conv.title || __( 'Untitled', 'wp-ai-mind' ) }
+						title={ conv.title || __( 'Untitled', 'stilus' ) }
 					>
 						<span className="wpaim-conv-item__title">
 							{ conv.title || 'Untitled' }

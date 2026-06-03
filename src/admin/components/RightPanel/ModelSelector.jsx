@@ -77,7 +77,7 @@ export default function ModelSelector( {
 								? undefined
 								: __(
 										'Upgrade to Pro to select providers and models',
-										'wp-ai-mind'
+										'stilus'
 								  )
 						}
 					>
@@ -108,7 +108,7 @@ export default function ModelSelector( {
 					{ active && ! active.is_available && (
 						<p className="wpaim-model-no-key">
 							No API key configured —{ ' ' }
-							<a href="options-general.php?page=wp-ai-mind-settings">
+							<a href="options-general.php?page=stilus-settings">
 								Settings
 							</a>
 						</p>

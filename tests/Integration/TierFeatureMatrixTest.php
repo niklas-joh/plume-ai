@@ -3,14 +3,14 @@
  * Integration-layer tier × feature matrix tests.
  *
  * Makes real REST requests and asserts on HTTP status codes to verify that
- * tier gates allow or block access exactly as defined in NJ_Tier_Config::FEATURES.
+ * tier gates allow or block access exactly as defined in TierConfig::FEATURES.
  *
- * @package WP_AI_Mind\Tests\Integration
+ * @package Stilus\Tests\Integration
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Integration;
+namespace Stilus\Tests\Integration;
 
 /**
  * Parametrised integration tests covering all tier × feature × expected-status combinations.
@@ -129,7 +129,7 @@ class TierFeatureMatrixTest extends IntegrationTestCase {
 		$this->install_mock_for_feature( 'chat' );
 
 		// Create a conversation — not tier-gated either.
-		$create = $this->rest_do( 'POST', '/wp-ai-mind/v1/conversations', [ 'title' => 'No-gate contract test' ] );
+		$create = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'No-gate contract test' ] );
 		$this->assertSame( 201, $create->get_status(), 'Free users must be able to create conversations.' );
 
 		$conv_data = $create->get_data();
@@ -138,7 +138,7 @@ class TierFeatureMatrixTest extends IntegrationTestCase {
 		// Send a message — the messages endpoint must remain accessible to free users.
 		$response = $this->rest_do(
 			'POST',
-			"/wp-ai-mind/v1/conversations/{$conv_data['id']}/messages",
+			"/stilus/v1/conversations/{$conv_data['id']}/messages",
 			[ 'content' => 'No-gate contract check' ]
 		);
 		$status = $response->get_status();
@@ -251,13 +251,13 @@ class TierFeatureMatrixTest extends IntegrationTestCase {
 						'post_author' => $user_id,
 					]
 				);
-				return $this->rest_do( 'POST', '/wp-ai-mind/v1/seo/generate', [ 'post_id' => $post_id ] );
+				return $this->rest_do( 'POST', '/stilus/v1/seo/generate', [ 'post_id' => $post_id ] );
 
 			case 'generator':
-				return $this->rest_do( 'POST', '/wp-ai-mind/v1/generate', [ 'title' => 'Matrix Test Post' ] );
+				return $this->rest_do( 'POST', '/stilus/v1/generate', [ 'title' => 'Matrix Test Post' ] );
 
 			case 'images':
-				return $this->rest_do( 'POST', '/wp-ai-mind/v1/images/generate', [ 'prompt' => 'A test image', 'count' => 1 ] );
+				return $this->rest_do( 'POST', '/stilus/v1/images/generate', [ 'prompt' => 'A test image', 'count' => 1 ] );
 
 			default:
 				$this->fail( "Unknown feature: {$feature}" );
@@ -279,7 +279,7 @@ class TierFeatureMatrixTest extends IntegrationTestCase {
 	 * @return \WP_REST_Response
 	 */
 	private function call_chat_endpoint( int $user_id ): \WP_REST_Response {
-		$create = $this->rest_do( 'POST', '/wp-ai-mind/v1/conversations', [ 'title' => 'Matrix Chat Test' ] );
+		$create = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'Matrix Chat Test' ] );
 
 		// When the creation succeeded, also exercise the message turn so the
 		// full provider path is covered (including availability check).
@@ -288,7 +288,7 @@ class TierFeatureMatrixTest extends IntegrationTestCase {
 			if ( isset( $conv_data['id'] ) ) {
 				return $this->rest_do(
 					'POST',
-					"/wp-ai-mind/v1/conversations/{$conv_data['id']}/messages",
+					"/stilus/v1/conversations/{$conv_data['id']}/messages",
 					[ 'content' => 'Hello matrix' ]
 				);
 			}

@@ -98,7 +98,7 @@ Expected: a 64-character hex string.
 Tail the Worker logs in a separate terminal:
 
 ```bash
-cd wp-ai-mind-proxy && wrangler tail
+cd stilus-proxy && wrangler tail
 ```
 
 As a free-tier user, send a chat message. Confirm the Worker logs show a `POST /v1/chat` with `Authorization: Bearer <token>`.
@@ -140,11 +140,11 @@ Replace any placeholder checkout URLs in `NJ_Tier_Settings.php`. The upgrade but
 
 ```php
 // Pro Managed upgrade button
-$monthly_url = \WP_AI_Mind\Proxy\NJ_Site_Registration::checkout_url( '1550505' );
-$annual_url  = \WP_AI_Mind\Proxy\NJ_Site_Registration::checkout_url( '1550477' );
+$monthly_url = \Stilus\Proxy\NJ_Site_Registration::checkout_url( '1550505' );
+$annual_url  = \Stilus\Proxy\NJ_Site_Registration::checkout_url( '1550477' );
 
 // Pro BYOK upgrade button
-$byok_url = \WP_AI_Mind\Proxy\NJ_Site_Registration::checkout_url( '1550517' );
+$byok_url = \Stilus\Proxy\NJ_Site_Registration::checkout_url( '1550517' );
 ```
 
 - [ ] **Step 2.2: Show current registration status**
@@ -152,7 +152,7 @@ $byok_url = \WP_AI_Mind\Proxy\NJ_Site_Registration::checkout_url( '1550517' );
 Add a "Connection" row to the admin page showing whether the site is registered with the proxy:
 
 ```php
-$registered = \WP_AI_Mind\Proxy\NJ_Site_Registration::is_registered();
+$registered = \Stilus\Proxy\NJ_Site_Registration::is_registered();
 // Display: "Connected ✓" or "Not connected — will auto-connect on next page load"
 ```
 
@@ -195,10 +195,10 @@ If `NJ_Usage_Widget.php` exists, audit it before editing. If not, create it.
 ```php
 <?php
 declare( strict_types=1 );
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use Stilus\Tiers\NJ_Usage_Tracker;
+use Stilus\Tiers\NJ_Tier_Manager;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -211,7 +211,7 @@ class NJ_Usage_Widget {
     public static function add_dashboard_widget(): void {
         wp_add_dashboard_widget(
             'wp_ai_mind_usage',
-            __( 'AI Mind Usage', 'wp-ai-mind' ),
+            __( 'AI Mind Usage', 'stilus' ),
             [ self::class, 'render' ]
         );
     }
@@ -221,7 +221,7 @@ class NJ_Usage_Widget {
         $usage   = NJ_Usage_Tracker::get_current_usage( $user_id );
         $tier    = NJ_Tier_Manager::get_user_tier( $user_id );
 
-        echo '<div class="wp-ai-mind-usage-widget">';
+        echo '<div class="stilus-usage-widget">';
         echo '<p><strong>' . esc_html( ucwords( str_replace( '_', ' ', $tier ) ) ) . ' Plan</strong></p>';
 
         if ( ! empty( $usage['limit'] ) ) {
@@ -239,10 +239,10 @@ class NJ_Usage_Widget {
                 esc_html( number_format( (int) $usage['remaining'] ) )
             );
             if ( $pct > 80 ) {
-                echo '<p class="notice notice-warning inline">' . esc_html__( 'Over 80% of monthly tokens used. Consider upgrading.', 'wp-ai-mind' ) . '</p>';
+                echo '<p class="notice notice-warning inline">' . esc_html__( 'Over 80% of monthly tokens used. Consider upgrading.', 'stilus' ) . '</p>';
             }
         } else {
-            echo '<p>' . esc_html__( 'Unlimited — using your own API key.', 'wp-ai-mind' ) . '</p>';
+            echo '<p>' . esc_html__( 'Unlimited — using your own API key.', 'stilus' ) . '</p>';
         }
 
         echo '</div>';
@@ -255,7 +255,7 @@ class NJ_Usage_Widget {
 In `includes/Core/Plugin.php`, add:
 
 ```php
-use WP_AI_Mind\Admin\NJ_Usage_Widget;
+use Stilus\Admin\NJ_Usage_Widget;
 // ...
 NJ_Usage_Widget::register_hooks();
 ```
@@ -295,7 +295,7 @@ grep -rn "wp_ai_mind_api_key" includes/ --include="*.php" | head -20
 Show the API key input only when the current user's tier is `pro_byok`:
 
 ```php
-$tier = \WP_AI_Mind\Tiers\NJ_Tier_Manager::get_user_tier( get_current_user_id() );
+$tier = \Stilus\Tiers\NJ_Tier_Manager::get_user_tier( get_current_user_id() );
 if ( 'pro_byok' === $tier ) {
     // Render API key input — reuse existing NJ_Api_Key_Settings pattern
 }

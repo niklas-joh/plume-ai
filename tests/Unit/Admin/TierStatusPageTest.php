@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Admin;
+namespace Stilus\Tests\Unit\Admin;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use WP_AI_Mind\Admin\TierStatusPage;
+use Stilus\Admin\TierStatusPage;
 
 class TierStatusPageTest extends TestCase {
 
@@ -45,17 +45,17 @@ class TierStatusPageTest extends TestCase {
 	 * @param int    $used       Tokens used this month (ignored for unlimited tiers).
 	 */
 	private function stub_tier_and_registration( string $tier, bool $registered, int $used = 0 ): void {
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 		$token     = $registered ? 'test-site-token' : '';
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key, bool $single = false ) use ( $tier, $month_key, $used ): string {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return $tier;
 				}
-				if ( 'wp_ai_mind_trial_started' === $key && 'trial' === $tier ) {
+				if ( 'stilus_trial_started' === $key && 'trial' === $tier ) {
 					return (string) time();
 				}
 				if ( $month_key === $key ) {
@@ -66,10 +66,10 @@ class TierStatusPageTest extends TestCase {
 		);
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, $default = null ) use ( $token, $tier ) {
-				if ( 'wp_ai_mind_site_token' === $key ) {
+				if ( 'stilus_site_token' === $key ) {
 					return $token;
 				}
-				if ( 'wp_ai_mind_site_tier' === $key ) {
+				if ( 'stilus_site_tier' === $key ) {
 					// Paid tiers are site-wide; trial/free are per-user so leave the
 					// site option at the default and let user meta drive resolution.
 					return ( 'pro_managed' === $tier || 'pro_byok' === $tier ) ? $tier : $default;
@@ -201,7 +201,7 @@ class TierStatusPageTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Manage your API keys', $output );
-		$this->assertStringContainsString( 'wp-ai-mind-settings', $output );
+		$this->assertStringContainsString( 'stilus-settings', $output );
 	}
 
 	public function test_render_omits_api_keys_link_for_free_tier(): void {

@@ -1,9 +1,9 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Tools;
+namespace Stilus\Tests\Unit\Tools;
 
-use WP_AI_Mind\Tools\ToolDefinition;
+use Stilus\Tools\ToolDefinition;
 use PHPUnit\Framework\TestCase;
 
 class ToolDefinitionTest extends TestCase {

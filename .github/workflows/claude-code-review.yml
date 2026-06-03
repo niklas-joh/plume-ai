@@ -2,7 +2,7 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, synchronize]
     paths-ignore:
       - "package-lock.json"
       - "composer.lock"
@@ -31,15 +31,18 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Guard — skip if workflow files changed
+      - name: Guard — skip if this review workflow itself changed
         id: guard
         run: |
+          # Only skip when claude-code-review.yml itself is modified — that is the
+          # file claude-code-action integrity-checks against main. Changes to other
+          # workflow files (pr-checks.yml, release.yml, etc.) do not affect this.
           count=$(gh api \
             "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
-            --jq '[.[] | select(.filename | startswith(".github/workflows/"))] | length')
+            --jq '[.[] | select(.filename == ".github/workflows/claude-code-review.yml")] | length')
           if [[ "$count" -gt 0 ]]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping Claude Code Review — this PR modifies workflow files. The claude-code-action security check would fail because the workflow on this branch differs from main."
+            echo "::notice::Skipping Claude Code Review — this PR modifies claude-code-review.yml itself. The claude-code-action integrity check would fail because the workflow on this branch differs from main."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi

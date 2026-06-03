@@ -2,11 +2,11 @@
 /**
  * REST controller for testing AI provider API key validity.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
 use WP_REST_Request;
 use WP_REST_Response;
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * REST controller that validates an API key by making a minimal live call.
  *
- * Route: POST /wp-ai-mind/v1/test-key
+ * Route: POST /stilus/v1/test-key
  * Requires the manage_options capability.
  */
 class TestKeyRestController {
@@ -32,7 +32,7 @@ class TestKeyRestController {
 	 */
 	public static function register_routes(): void {
 		register_rest_route(
-			'wp-ai-mind/v1',
+			'stilus/v1',
 			'/test-key',
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -91,7 +91,7 @@ class TestKeyRestController {
 						],
 						'body'    => wp_json_encode(
 							[
-								'model'      => apply_filters( 'wp_ai_mind_test_key_claude_model', 'claude-haiku-4-5-20251001' ),
+								'model'      => apply_filters( 'stilus_test_key_claude_model', 'claude-haiku-4-5-20251001' ),
 								'max_tokens' => 1,
 								'messages'   => [
 									[
@@ -118,7 +118,7 @@ class TestKeyRestController {
 				break;
 
 			default:
-				return new \WP_Error( 'unsupported_provider', __( 'Unsupported provider.', 'wp-ai-mind' ), [ 'status' => 400 ] );
+				return new \WP_Error( 'unsupported_provider', __( 'Unsupported provider.', 'stilus' ), [ 'status' => 400 ] );
 		}
 
 		if ( is_wp_error( $result ) ) {
@@ -133,7 +133,7 @@ class TestKeyRestController {
 		$body = json_decode( wp_remote_retrieve_body( $result ), true );
 		$msg  = $body['error']['message']
 			?? $body['error']['code']
-			?? /* translators: generic API key error */ __( 'Invalid API key.', 'wp-ai-mind' );
+			?? /* translators: generic API key error */ __( 'Invalid API key.', 'stilus' );
 
 		return new \WP_Error( 'invalid_key', $msg, [ 'status' => 400 ] );
 	}
@@ -148,7 +148,7 @@ class TestKeyRestController {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return new \WP_Error(
 				'rest_forbidden',
-				__( 'You do not have permission to manage plugin settings.', 'wp-ai-mind' ),
+				__( 'You do not have permission to manage plugin settings.', 'stilus' ),
 				[ 'status' => 403 ]
 			);
 		}

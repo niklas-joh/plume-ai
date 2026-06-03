@@ -12,7 +12,7 @@
 ### Code Refactors
 
 * **css:** spacing review — tokenise values, fix duplication, align composer buttons ([#463](https://github.com/niklas-joh/wp-ai-mind/issues/463)) ([b61e8a1](https://github.com/niklas-joh/wp-ai-mind/commit/b61e8a15fa0ba4982aac872d1634af5cad8e2584))
-* **proxy:** make wp-ai-mind-proxy provider-agnostic ([#480](https://github.com/niklas-joh/wp-ai-mind/issues/480)) ([6434f60](https://github.com/niklas-joh/wp-ai-mind/commit/6434f60579422f13d31edeefa6371eb7d07af840)), closes [#479](https://github.com/niklas-joh/wp-ai-mind/issues/479) [#475](https://github.com/niklas-joh/wp-ai-mind/issues/475)
+* **proxy:** make stilus-proxy provider-agnostic ([#480](https://github.com/niklas-joh/wp-ai-mind/issues/480)) ([6434f60](https://github.com/niklas-joh/wp-ai-mind/commit/6434f60579422f13d31edeefa6371eb7d07af840)), closes [#479](https://github.com/niklas-joh/wp-ai-mind/issues/479) [#475](https://github.com/niklas-joh/wp-ai-mind/issues/475)
 
 ## [1.7.1](https://github.com/niklas-joh/wp-ai-mind/compare/v1.7.0...v1.7.1) (2026-05-01)
 
@@ -246,9 +246,9 @@
 * **workflows:** sanitize workflow_run inputs via env map (closes [#28](https://github.com/niklas-joh/wp-ai-mind/issues/28)) ([#99](https://github.com/niklas-joh/wp-ai-mind/issues/99)) ([0b891c6](https://github.com/niklas-joh/wp-ai-mind/commit/0b891c63485d79a2111bec6bdba019b15b850eea))
 * **workflows:** security and CI hardening — backport from develop ([#67](https://github.com/niklas-joh/wp-ai-mind/issues/67)) ([39ceef6](https://github.com/niklas-joh/wp-ai-mind/commit/39ceef6910abd5cc10c6831fbe6c6a394fe02838))
 * **workflows:** use step output instead of exit 0 for duplicate-tag guard ([09f27a1](https://github.com/niklas-joh/wp-ai-mind/commit/09f27a1029c524cd58874e38e540e59eea44c587)), closes [#80](https://github.com/niklas-joh/wp-ai-mind/issues/80)
-* **wp-ai-mind:** fix Playwright E2E login timeout via global user setup (M2) ([e2c3446](https://github.com/niklas-joh/wp-ai-mind/commit/e2c344622bc70e758d57ac3d75a2f3c0c81018c4))
-* **wp-ai-mind:** QA audit Week 1 — security, standards, and submission readiness ([3190fad](https://github.com/niklas-joh/wp-ai-mind/commit/3190fadcc851ceb275dac82e86b7b8457df45391))
-* **wp-ai-mind:** resolve 6 QA-reported bugs (BUG-01/02/04/05/06/07/08) ([d410444](https://github.com/niklas-joh/wp-ai-mind/commit/d410444fd1bcdc1d94de520a5a923138fe091fa6))
+* **stilus:** fix Playwright E2E login timeout via global user setup (M2) ([e2c3446](https://github.com/niklas-joh/wp-ai-mind/commit/e2c344622bc70e758d57ac3d75a2f3c0c81018c4))
+* **stilus:** QA audit Week 1 — security, standards, and submission readiness ([3190fad](https://github.com/niklas-joh/wp-ai-mind/commit/3190fadcc851ceb275dac82e86b7b8457df45391))
+* **stilus:** resolve 6 QA-reported bugs (BUG-01/02/04/05/06/07/08) ([d410444](https://github.com/niklas-joh/wp-ai-mind/commit/d410444fd1bcdc1d94de520a5a923138fe091fa6))
 
 
 ### Features
@@ -265,7 +265,7 @@
 * **dashboard:** add dashboard CSS using existing design tokens ([1f93f96](https://github.com/niklas-joh/wp-ai-mind/commit/1f93f968b452ef3bd0252c8155896fdffbc28106))
 * **dashboard:** add DashboardPage PHP class with localized data ([80f1723](https://github.com/niklas-joh/wp-ai-mind/commit/80f17230307c91e1ad6d5a48728160d52800c8dd))
 * **dashboard:** add OnboardingModal component — branching Step1 / Step2 / Done ([44668a6](https://github.com/niklas-joh/wp-ai-mind/commit/44668a62f2967e427e20b237c3170bde9f884e93))
-* **dashboard:** add OnboardingRestController — POST /wp-ai-mind/v1/onboarding ([7fb919a](https://github.com/niklas-joh/wp-ai-mind/commit/7fb919a2ef7494aa8416fb1723b6cdc518a7c7da))
+* **dashboard:** add OnboardingRestController — POST /stilus/v1/onboarding ([7fb919a](https://github.com/niklas-joh/wp-ai-mind/commit/7fb919a2ef7494aa8416fb1723b6cdc518a7c7da))
 * **dashboard:** add ResourceList and PageFooter components ([17f7418](https://github.com/niklas-joh/wp-ai-mind/commit/17f7418d2872e26a762efafe63ecc5398d304e03))
 * **dashboard:** add StartTiles component ([e9e1a93](https://github.com/niklas-joh/wp-ai-mind/commit/e9e1a9351c2b1563b3036849123ae0d9fab1df56))
 * **dashboard:** add StatusBanner component ([ff82103](https://github.com/niklas-joh/wp-ai-mind/commit/ff82103173846a37cbe95387eb24705639a3bf50))
@@ -319,9 +319,9 @@
 * **workflows:** automate end-to-end code review issue lifecycle ([#32](https://github.com/niklas-joh/wp-ai-mind/issues/32)) ([b0b51f8](https://github.com/niklas-joh/wp-ai-mind/commit/b0b51f8bf8ba094cf152af175e32468aaba911a7))
 * **workflows:** feature-grouping and automated release system ([6692731](https://github.com/niklas-joh/wp-ai-mind/commit/6692731924f6d20e4be12f76334638886090771d))
 * **workflows:** feature-grouping and automated release system ([#78](https://github.com/niklas-joh/wp-ai-mind/issues/78)) ([4fe3828](https://github.com/niklas-joh/wp-ai-mind/commit/4fe38284cb7950d38b7a24cff42cca0f7648f9a6))
-* **wp-ai-mind:** add CHANGELOG.md and i18n .pot file (M5, H4) ([444b67f](https://github.com/niklas-joh/wp-ai-mind/commit/444b67faa9641895b36f17ec7d1e977e0433d876))
-* **wp-ai-mind:** add GDPR activation notice and fix orphaned option (H3, M4) ([3920026](https://github.com/niklas-joh/wp-ai-mind/commit/39200266e1c0f390720f429ab703c1986b09ac50))
-* **wp-ai-mind:** integrate Freemius SDK bootstrap for Pro licensing (C3) ([52bee75](https://github.com/niklas-joh/wp-ai-mind/commit/52bee7522c13ba08405ff565315a76f0ab9eb4ee))
+* **stilus:** add CHANGELOG.md and i18n .pot file (M5, H4) ([444b67f](https://github.com/niklas-joh/wp-ai-mind/commit/444b67faa9641895b36f17ec7d1e977e0433d876))
+* **stilus:** add GDPR activation notice and fix orphaned option (H3, M4) ([3920026](https://github.com/niklas-joh/wp-ai-mind/commit/39200266e1c0f390720f429ab703c1986b09ac50))
+* **stilus:** integrate Freemius SDK bootstrap for Pro licensing (C3) ([52bee75](https://github.com/niklas-joh/wp-ai-mind/commit/52bee7522c13ba08405ff565315a76f0ab9eb4ee))
 
 # Changelog
 
@@ -353,11 +353,11 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [0.2.0] — 2026-03-25
 
 ### Added
-- Dedicated GitHub repository (`niklas-joh/wp-ai-mind`) extracted from blog monorepo
+- Dedicated GitHub repository (`niklas-joh/stilus`) extracted from blog monorepo
 - GitHub Actions CI pipeline (PHPCS, PHPUnit, JS/CSS lint) on push/PR to main and develop
 - GitHub Actions Release workflow — builds WP.org zip and creates GitHub Release on semver tags
 - `RELEASING.md` — semver convention and release checklist
-- Regenerated `languages/wp-ai-mind.pot` from source (was a stub)
+- Regenerated `languages/stilus.pot` from source (was a stub)
 
 ### Fixed
 - `bin/build-wporg.sh` now includes production `vendor/` in the distribution zip (Freemius SDK was missing from built zip)

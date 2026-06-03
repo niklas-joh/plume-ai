@@ -13,7 +13,7 @@
 ## Pre-flight
 
 ```bash
-cd /Users/niklas/Documents/Homepages/wp-ai-mind
+cd /Users/niklas/Documents/Homepages/stilus
 docker compose up -d          # WordPress must be running for manual checks
 ./vendor/bin/phpunit tests/Unit/ --colors=always   # all green before you start
 npm run build                 # confirm baseline build passes
@@ -239,11 +239,11 @@ public static function register(): void {
 
 ```php
 \wp_localize_script(
-    'wp-ai-mind-seo',
+    'stilus-seo',
     'wpAiMindData',
     [
         'nonce'    => \wp_create_nonce( 'wp_rest' ),
-        'restUrl'  => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
+        'restUrl'  => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
         'isPro'    => \wp_ai_mind_is_pro(),
         'adminUrl' => \esc_url_raw( \admin_url() ),
     ]
@@ -308,11 +308,11 @@ In `includes/Modules/Images/ImagesModule.php`, in `enqueue_assets()`, update the
 
 ```php
 \wp_localize_script(
-    'wp-ai-mind-images',
+    'stilus-images',
     'wpAiMindData',
     [
         'nonce'    => \wp_create_nonce( 'wp_rest' ),
-        'restUrl'  => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
+        'restUrl'  => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
         'isPro'    => \wp_ai_mind_is_pro(),
         'adminUrl' => \esc_url_raw( \admin_url() ),
     ]
@@ -841,7 +841,7 @@ if ( nonce ) {
     apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 }
 
-const root = document.getElementById( 'wp-ai-mind-seo' );
+const root = document.getElementById( 'stilus-seo' );
 if ( root ) {
     render( <SeoApp />, root );
 }
@@ -1249,7 +1249,7 @@ Expected: build completes with no errors. `assets/seo/index.js` and `assets/seo/
 
 - [ ] **Step 3: Smoke-test in browser**
 
-1. Navigate to `http://localhost:8080/wp-admin/admin.php?page=wp-ai-mind-seo`
+1. Navigate to `http://localhost:8080/wp-admin/admin.php?page=stilus-seo`
 2. If `isPro` is false: lock screen renders.
 3. If `isPro` is true: page header + table of posts and pages loads.
 
@@ -1282,7 +1282,7 @@ if ( nonce ) {
     apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 }
 
-const root = document.getElementById( 'wp-ai-mind-images' );
+const root = document.getElementById( 'stilus-images' );
 if ( root ) {
     render( <ImagesApp />, root );
 }
@@ -1811,7 +1811,7 @@ Expected: all green.
 
 Use Docker local environment at `http://localhost:8080`.
 
-**SEO page** (`/wp-admin/admin.php?page=wp-ai-mind-seo`):
+**SEO page** (`/wp-admin/admin.php?page=stilus-seo`):
 - [ ] List of posts and pages loads with Complete/Partial/Missing badges
 - [ ] "Missing" tab shows only posts with no SEO fields
 - [ ] Search input filters by post title
@@ -1823,7 +1823,7 @@ Use Docker local environment at `http://localhost:8080`.
 - [ ] "Discard" → row closes → no changes saved
 - [ ] "Edit post →" opens Gutenberg in a new tab
 
-**Images page** (`/wp-admin/admin.php?page=wp-ai-mind-images`):
+**Images page** (`/wp-admin/admin.php?page=stilus-images`):
 - [ ] List loads; posts with featured images show 36×36px thumbnails + "Has image" badge
 - [ ] "No image" tab filters correctly
 - [ ] Prompt textarea + aspect ratio + count controls render
@@ -1854,8 +1854,8 @@ Commit the plan document to the repo:
 
 ```bash
 cp /Users/niklas/.claude/plans/snuggly-marinating-lighthouse.md \
-   /Users/niklas/Documents/Homepages/wp-ai-mind/docs/superpowers/plans/2026-03-27-seo-images-admin-pages.md
-cd /Users/niklas/Documents/Homepages/wp-ai-mind
+   /Users/niklas/Documents/Homepages/stilus/docs/superpowers/plans/2026-03-27-seo-images-admin-pages.md
+cd /Users/niklas/Documents/Homepages/stilus
 git add docs/superpowers/plans/2026-03-27-seo-images-admin-pages.md
 git commit -m "docs: add implementation plan for SEO and Images admin pages"
 ```

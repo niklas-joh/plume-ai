@@ -13,12 +13,12 @@ test.describe('P3 — Chat admin page', () => {
     });
 
     test('Chat page loads with React mount point', async ({ page }) => {
-        await page.goto('/wp-admin/admin.php?page=wp-ai-mind-chat');
-        await expect(page.locator('#wp-ai-mind-chat')).toBeVisible();
+        await page.goto('/wp-admin/admin.php?page=stilus-chat');
+        await expect(page.locator('#stilus-chat')).toBeVisible();
     });
 
     test('Chat shell renders with sidebar and composer', async ({ page }) => {
-        await page.goto('/wp-admin/admin.php?page=wp-ai-mind-chat');
+        await page.goto('/wp-admin/admin.php?page=stilus-chat');
         // Wait for React to hydrate
         await page.waitForSelector('.wpaim-shell', { timeout: 10000 });
         await expect(page.locator('.wpaim-sidebar')).toBeVisible();
@@ -26,19 +26,19 @@ test.describe('P3 — Chat admin page', () => {
     });
 
     test('Settings page loads with React mount point', async ({ page }) => {
-        await page.goto('/wp-admin/admin.php?page=wp-ai-mind-settings');
-        await expect(page.locator('#wp-ai-mind-settings')).toBeVisible();
+        await page.goto('/wp-admin/admin.php?page=stilus-settings');
+        await expect(page.locator('#stilus-settings')).toBeVisible();
     });
 
     test('Settings tabs render after hydration', async ({ page }) => {
-        await page.goto('/wp-admin/admin.php?page=wp-ai-mind-settings');
+        await page.goto('/wp-admin/admin.php?page=stilus-settings');
         await page.waitForSelector('.wpaim-settings-shell', { timeout: 10000 });
         await expect(page.locator('.wpaim-settings-tabpanel')).toBeVisible();
     });
 
-    test('REST endpoint /wp-ai-mind/v1/providers responds', async ({ page }) => {
+    test('REST endpoint /stilus/v1/providers responds', async ({ page }) => {
         // Hit the REST API directly via the browser (nonce not required for this check)
-        const response = await page.request.get( '/wp-json/wp-ai-mind/v1/providers' );
+        const response = await page.request.get( '/wp-json/stilus/v1/providers' );
         // 200, 401, or 403 — any of these means the route is registered
         expect([200, 401, 403]).toContain(response.status());
     });

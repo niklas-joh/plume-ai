@@ -2,21 +2,21 @@
 /**
  * Images module — REST routes and asset enqueuing for AI image generation.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Modules\Images;
+namespace Stilus\Modules\Images;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Providers\ProviderFactory;
-use WP_AI_Mind\Providers\ProviderException;
-use WP_AI_Mind\Settings\ProviderSettings;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Providers\ProviderFactory;
+use Stilus\Providers\ProviderException;
+use Stilus\Settings\ProviderSettings;
+use Stilus\Tiers\NJ_Tier_Manager;
+use Stilus\Tiers\NJ_Usage_Tracker;
 
 /**
  * Registers the image-generation admin assets and REST route.
@@ -47,54 +47,54 @@ class ImagesModule {
 	public static function enqueue_assets( string $hook ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by admin_enqueue_scripts hook signature.
 		// Only load on the images admin page.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page detection, never output.
-		if ( sanitize_key( \wp_unslash( $_GET['page'] ?? '' ) ) !== 'wp-ai-mind-images' ) {
+		if ( sanitize_key( \wp_unslash( $_GET['page'] ?? '' ) ) !== 'stilus-images' ) {
 			return;
 		}
 
-		$asset_file = WP_AI_MIND_DIR . 'assets/images/index.asset.php';
+		$asset_file = STILUS_DIR . 'assets/images/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => WP_AI_MIND_VERSION,
+				'version'      => STILUS_VERSION,
 			];
 
 		\wp_enqueue_script(
-			'wp-ai-mind-images',
-			WP_AI_MIND_URL . 'assets/images/index.js',
+			'stilus-images',
+			STILUS_URL . 'assets/images/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-api-fetch', 'wp-i18n' ] ),
 			$asset['version'],
 			true
 		);
 
 		\wp_localize_script(
-			'wp-ai-mind-images',
+			'stilus-images',
 			'wpAiMindData',
 			[
 				'nonce'    => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'  => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
+				'restUrl'  => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
 				'isPro'    => NJ_Tier_Manager::user_can( 'images' ),
 				'adminUrl' => \esc_url_raw( \admin_url() ),
 			]
 		);
 
 		\wp_enqueue_style(
-			'wp-ai-mind-images',
-			WP_AI_MIND_URL . 'assets/images/index.css',
+			'stilus-images',
+			STILUS_URL . 'assets/images/index.css',
 			[],
 			$asset['version']
 		);
 	}
 
 	/**
-	 * Register the /wp-ai-mind/v1/images/generate REST route.
+	 * Register the /stilus/v1/images/generate REST route.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
 	public static function register_routes(): void {
 		\register_rest_route(
-			'wp-ai-mind/v1',
+			'stilus/v1',
 			'/images/generate',
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
@@ -180,7 +180,7 @@ class ImagesModule {
 		if ( empty( $images ) ) {
 			return new \WP_REST_Response(
 				[
-					'error'   => __( 'All image generation requests failed.', 'wp-ai-mind' ),
+					'error'   => __( 'All image generation requests failed.', 'stilus' ),
 					'details' => $errors,
 				],
 				500

@@ -1,11 +1,11 @@
 <?php
-namespace WP_AI_Mind\Tests\Unit\Providers;
+namespace Stilus\Tests\Unit\Providers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Providers\OpenAIProvider;
-use WP_AI_Mind\Providers\CompletionRequest;
-use WP_AI_Mind\Providers\ProviderException;
+use Stilus\Providers\OpenAIProvider;
+use Stilus\Providers\CompletionRequest;
+use Stilus\Providers\ProviderException;
 use PHPUnit\Framework\TestCase;
 
 class OpenAIProviderTest extends TestCase {
@@ -31,7 +31,7 @@ class OpenAIProviderTest extends TestCase {
 		// Tier is now site-level, so we stub the SITE_OPTION not user meta.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+				'stilus_site_tier' === $key ? 'pro_byok' : $default
 		);
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
@@ -75,7 +75,7 @@ class OpenAIProviderTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+				'stilus_site_tier' === $key ? 'pro_byok' : $default
 		);
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'wp_remote_post' )->justReturn( [

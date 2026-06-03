@@ -31,15 +31,15 @@ test.describe( 'P1 — Plugin activation', () => {
 		await expect( page.locator( '#adminmenu' ) ).toContainText( 'Stilus' );
 	} );
 
-	test( 'Chat page renders the React mount point (#wp-ai-mind-chat)', async ( { page } ) => {
+	test( 'Chat page renders the React mount point (#stilus-chat)', async ( { page } ) => {
 		await loginAsAdmin( page );
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-chat' );
-		await expect( page.locator( '#wp-ai-mind-chat' ) ).toBeAttached();
+		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
+		await expect( page.locator( '#stilus-chat' ) ).toBeAttached();
 	} );
 
 	test( 'Plugin page loads without PHP fatal errors', async ( { page } ) => {
 		await loginAsAdmin( page );
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind' );
+		await page.goto( '/wp-admin/admin.php?page=stilus' );
 		await expect( page ).not.toHaveTitle( /Fatal error/i );
 		// Also confirm the page title is not a generic WordPress error.
 		await expect( page ).not.toHaveTitle( /Error/i );

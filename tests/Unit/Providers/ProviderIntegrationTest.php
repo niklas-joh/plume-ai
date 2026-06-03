@@ -1,13 +1,13 @@
 <?php
-namespace WP_AI_Mind\Tests\Unit\Providers;
+namespace Stilus\Tests\Unit\Providers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Providers\ProviderFactory;
-use WP_AI_Mind\Providers\CompletionRequest;
-use WP_AI_Mind\Providers\ClaudeProvider;
-use WP_AI_Mind\Settings\ProviderSettings;
-use WP_AI_Mind\Voice\VoiceInjector;
+use Stilus\Providers\ProviderFactory;
+use Stilus\Providers\CompletionRequest;
+use Stilus\Providers\ClaudeProvider;
+use Stilus\Settings\ProviderSettings;
+use Stilus\Voice\VoiceInjector;
 use PHPUnit\Framework\TestCase;
 
 class ProviderIntegrationTest extends TestCase {
@@ -18,8 +18,8 @@ class ProviderIntegrationTest extends TestCase {
     public function test_factory_and_voice_injector_produce_valid_request(): void {
         // Arrange: mock WP options + user meta.
         Functions\when( 'get_option' )->alias( fn( $k, $d = null ) => match ( $k ) {
-            'wp_ai_mind_site_voice'      => [ 'tone' => 'Professional', 'language' => 'British English' ],
-            'wp_ai_mind_default_provider' => 'claude',
+            'stilus_site_voice'      => [ 'tone' => 'Professional', 'language' => 'British English' ],
+            'stilus_default_provider' => 'claude',
             default                       => ( is_array( $d ) ? $d : [] ),
         } );
         Functions\when( 'get_user_meta' )->justReturn( [] );

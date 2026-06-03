@@ -1,4 +1,4 @@
-# Deploys the Cloudflare Worker in wp-ai-mind-proxy/ on every push to main
+# Deploys the Cloudflare Worker in stilus-proxy/ on every push to main
 # that touches Worker source. Runs over Tailscale + SSH against the dev Mac
 # so it reuses the existing wrangler OAuth login on that machine — no
 # Cloudflare API token is stored in GitHub Secrets.
@@ -11,10 +11,10 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'wp-ai-mind-proxy/src/**'
-      - 'wp-ai-mind-proxy/wrangler.toml'
-      - 'wp-ai-mind-proxy/package.json'
-      - 'wp-ai-mind-proxy/package-lock.json'
+      - 'stilus-proxy/src/**'
+      - 'stilus-proxy/wrangler.toml'
+      - 'stilus-proxy/package.json'
+      - 'stilus-proxy/package-lock.json'
       - '.github/workflows/deploy-proxy.yml'
   workflow_dispatch:
 
@@ -60,11 +60,11 @@ jobs:
               "bash -s" << REMOTE
             set -e
             export PATH="/usr/local/bin:/opt/homebrew/bin:\$PATH"
-            cd /Users/niklas/Documents/Homepages/wp-ai-mind
+            cd /Users/niklas/Documents/Homepages/stilus
             git fetch origin
             git checkout main
             git reset --hard "$HEAD_SHA"
-            cd wp-ai-mind-proxy
+            cd stilus-proxy
             npm ci --no-audit --no-fund
             npm test
             npm run deploy

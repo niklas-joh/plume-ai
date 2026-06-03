@@ -2,11 +2,11 @@
 /**
  * Data-access layer for conversations and their messages.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\DB;
+namespace Stilus\DB;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

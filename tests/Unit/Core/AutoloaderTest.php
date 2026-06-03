@@ -1,9 +1,9 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Core;
+namespace Stilus\Tests\Unit\Core;
 
-use WP_AI_Mind\Core\Autoloader;
+use Stilus\Core\Autoloader;
 use PHPUnit\Framework\TestCase;
 
 class AutoloaderTest extends TestCase {
@@ -15,6 +15,6 @@ class AutoloaderTest extends TestCase {
 
     public function test_loads_existing_class(): void {
         // After register, a real class in the namespace should autoload.
-        $this->assertTrue( class_exists( 'WP_AI_Mind\Core\Plugin' ) );
+        $this->assertTrue( class_exists( 'Stilus\Core\Plugin' ) );
     }
 }

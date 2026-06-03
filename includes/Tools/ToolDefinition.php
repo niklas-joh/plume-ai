@@ -2,12 +2,12 @@
 /**
  * Immutable value object describing a single AI tool definition.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tools;
+namespace Stilus\Tools;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

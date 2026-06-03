@@ -284,7 +284,7 @@ use WP_AI_Mind\Tiers\NJ_Tier_Manager;
 class NJ_LemonSqueezy {
 
     public static function register_routes(): void {
-        register_rest_route( 'wp-ai-mind/v1', '/webhook', [
+        register_rest_route( 'stilus/v1', '/webhook', [
             'methods' => 'POST',
             'callback' => [ self::class, 'handle_webhook' ],
             'permission_callback' => '__return_true', // Signature verified in handler
@@ -345,12 +345,12 @@ class NJ_LemonSqueezy {
 
 ## Task 4: Global Helper Functions
 
-**Files:** Modify `wp-ai-mind.php`
+**Files:** Modify `stilus.php`
 
 - [ ] **Step 4.1: Add global helpers to main plugin file**
 
 ```php
-// Add to wp-ai-mind.php after existing code
+// Add to stilus.php after existing code
 
 /**
  * Global helper to get current user's tier
@@ -432,10 +432,10 @@ class NJ_Tier_Settings {
 
     public static function add_menu_page(): void {
         add_options_page(
-            __( 'WP AI Mind Tiers', 'wp-ai-mind' ),
-            __( 'AI Mind Tiers', 'wp-ai-mind' ),
+            __( 'WP AI Mind Tiers', 'stilus' ),
+            __( 'AI Mind Tiers', 'stilus' ),
             'manage_options',
-            'wp-ai-mind-tiers',
+            'stilus-tiers',
             [ self::class, 'settings_page' ]
         );
     }
@@ -510,7 +510,7 @@ class NJ_Tier_Settings {
 - [ ] WordPress user meta stores tier: `wp_ai_mind_tier`
 - [ ] Usage tracking via user meta: `wp_ai_mind_usage_YYYY_MM` (atomic SQL increment)
 - [ ] Rate limiting works: `NJ_Usage_Tracker::check_limit()` returns false when exceeded
-- [ ] LemonSqueezy webhook endpoint: `/wp-json/wp-ai-mind/v1/webhook` (HMAC verified by `NJ_Webhook_Verifier`)
+- [ ] LemonSqueezy webhook endpoint: `/wp-json/stilus/v1/webhook` (HMAC verified by `NJ_Webhook_Verifier`)
 - [ ] Pro BYOK users can store per-provider encrypted API keys (`wp_ai_mind_api_key_{provider}`)
 - [ ] All ProGate calls and global `nj_*` helper calls replaced with direct class method calls
 - [ ] `NJ_Tier_Status_Page`: read-only tier + usage display

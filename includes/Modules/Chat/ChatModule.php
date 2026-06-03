@@ -2,18 +2,18 @@
 /**
  * Chat module bootstrap — registers assets and REST routes for the chat feature.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Modules\Chat;
+namespace Stilus\Modules\Chat;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Tools\ToolRegistry;
-use WP_AI_Mind\Tools\ToolExecutor;
+use Stilus\Tools\ToolRegistry;
+use Stilus\Tools\ToolExecutor;
 
 /**
  * Bootstraps the Chat module by registering its REST routes on rest_api_init.

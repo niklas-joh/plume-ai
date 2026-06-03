@@ -2,7 +2,7 @@
 /**
  * Runs when the plugin is deleted via the WordPress admin to remove all plugin data.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
@@ -18,7 +18,7 @@ $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpaim_conversations" );
 $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpaim_messages" );
 
 // Delete options.
-$prefix = $wpdb->esc_like( 'wp_ai_mind_' ) . '%'; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+$prefix = $wpdb->esc_like( 'stilus_' ) . '%'; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $prefix ) );
 
 // Delete user meta.

@@ -54,12 +54,12 @@ async function globalSetup() {
 	// the fieldset disabled and preventing the settings save test from working).
 	// Tier-gating tests that need to simulate free tier override isPro client-side
 	// via addInitScript, so this site-level setting does not interfere with them.
-	wpCli( 'option set wp_ai_mind_site_tier pro_managed', { stdio: 'inherit' } );
+	wpCli( 'option set stilus_site_tier pro_managed', { stdio: 'inherit' } );
 	console.log( '[E2E setup] Site tier set to pro_managed.' );
 
 	// Mark onboarding as seen so the dashboard renders normally.
 	// On a fresh install the wizard blocks the dashboard and chat views.
-	wpCli( 'option set wp_ai_mind_onboarding_seen 1', { stdio: 'inherit' } );
+	wpCli( 'option set stilus_onboarding_seen 1', { stdio: 'inherit' } );
 	console.log( '[E2E setup] Onboarding marked as seen.' );
 }
 

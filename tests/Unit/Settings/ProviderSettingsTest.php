@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Settings;
+namespace Stilus\Tests\Unit\Settings;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Settings\ProviderSettings;
+use Stilus\Settings\ProviderSettings;
 use PHPUnit\Framework\TestCase;
 
 class ProviderSettingsTest extends TestCase {
@@ -84,7 +84,7 @@ class ProviderSettingsTest extends TestCase {
         $settings = new ProviderSettings();
         $settings->set_api_key( 'openai', 'sk-proj-plaintext' );
 
-        $option_value = $stored['wp_ai_mind_provider_keys'] ?? [];
+        $option_value = $stored['stilus_provider_keys'] ?? [];
         $this->assertNotContains( 'sk-proj-plaintext', $option_value );
     }
 }

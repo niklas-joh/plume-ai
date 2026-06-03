@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Modules\Editor;
+namespace Stilus\Tests\Unit\Modules\Editor;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Modules\Editor\EditorModule;
+use Stilus\Modules\Editor\EditorModule;
 use PHPUnit\Framework\TestCase;
 
 class EditorModuleTest extends TestCase {

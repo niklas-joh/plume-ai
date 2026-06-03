@@ -2,14 +2,14 @@
 /**
  * Manages user licence tiers (Free, Trial, Pro Managed, Pro BYOK).
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tiers;
+namespace Stilus\Tiers;
 
-use WP_AI_Mind\Payments\TierUpdateWebhookController;
+use Stilus\Payments\TierUpdateWebhookController;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -27,8 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NJ_Tier_Manager {
 
-	public const META_KEY           = 'wp_ai_mind_tier';
-	public const TRIAL_STARTED_META = 'wp_ai_mind_trial_started';
+	public const META_KEY           = 'stilus_tier';
+	public const TRIAL_STARTED_META = 'stilus_trial_started';
 
 	/**
 	 * Option key for the site-wide tier (paid entitlement source of truth).
@@ -38,7 +38,7 @@ class NJ_Tier_Manager {
 	 *
 	 * @since 1.9.0
 	 */
-	public const SITE_OPTION = 'wp_ai_mind_site_tier';
+	public const SITE_OPTION = 'stilus_site_tier';
 
 	/**
 	 * Option key for the HMAC signature that authenticates the stored site tier.
@@ -49,7 +49,7 @@ class NJ_Tier_Manager {
 	 *
 	 * @since 1.10.0
 	 */
-	public const SITE_OPTION_SIG = 'wp_ai_mind_site_tier_sig';
+	public const SITE_OPTION_SIG = 'stilus_site_tier_sig';
 
 	// ── Tier CRUD ─────────────────────────────────────────────────────────────
 
@@ -124,7 +124,7 @@ class NJ_Tier_Manager {
 	/**
 	 * Sets the site-wide tier (used by the LemonSqueezy webhook receiver).
 	 *
-	 * Fires `wp_ai_mind_tier_changed` on success so other modules can react
+	 * Fires `stilus_tier_changed` on success so other modules can react
 	 * (cache invalidation, audit logs, etc.).
 	 *
 	 * @since 1.9.0
@@ -149,7 +149,7 @@ class NJ_Tier_Manager {
 					delete_option( self::SITE_OPTION_SIG );
 				}
 			}
-			do_action( 'wp_ai_mind_tier_changed', $tier );
+			do_action( 'stilus_tier_changed', $tier );
 		}
 		return $ok;
 	}

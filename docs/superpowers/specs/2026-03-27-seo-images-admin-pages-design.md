@@ -2,7 +2,7 @@
 
 ## Context
 
-Two Pro-gated admin pages are registered in the WordPress sidebar (`wp-ai-mind-seo`, `wp-ai-mind-images`) but currently render nothing — their PHP callbacks return `__return_false`. The REST endpoints and asset-loading PHP are already fully built. This spec defines the React UI for both pages.
+Two Pro-gated admin pages are registered in the WordPress sidebar (`stilus-seo`, `stilus-images`) but currently render nothing — their PHP callbacks return `__return_false`. The REST endpoints and asset-loading PHP are already fully built. This spec defines the React UI for both pages.
 
 **Core user problem:**
 - Bloggers accumulate posts with incomplete SEO metadata and missing featured images.
@@ -90,7 +90,7 @@ src/
 
 ---
 
-## SEO Page (`wp-ai-mind-seo`)
+## SEO Page (`stilus-seo`)
 
 ### Purpose
 
@@ -164,7 +164,7 @@ Lock screen with:
 
 ---
 
-## Images Page (`wp-ai-mind-images`)
+## Images Page (`stilus-images`)
 
 ### Purpose
 

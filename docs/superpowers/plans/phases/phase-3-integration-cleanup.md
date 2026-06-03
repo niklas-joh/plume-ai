@@ -98,7 +98,7 @@ Expected: a 64-character hex string.
 Tail the Worker logs in a separate terminal:
 
 ```bash
-cd wp-ai-mind-proxy && wrangler tail
+cd stilus-proxy && wrangler tail
 ```
 
 As a free-tier user, send a chat message. Confirm the Worker logs show a `POST /v1/chat` with `Authorization: Bearer <token>`.
@@ -211,7 +211,7 @@ class NJ_Usage_Widget {
     public static function add_dashboard_widget(): void {
         wp_add_dashboard_widget(
             'wp_ai_mind_usage',
-            __( 'AI Mind Usage', 'wp-ai-mind' ),
+            __( 'AI Mind Usage', 'stilus' ),
             [ self::class, 'render' ]
         );
     }
@@ -221,7 +221,7 @@ class NJ_Usage_Widget {
         $usage   = NJ_Usage_Tracker::get_current_usage( $user_id );
         $tier    = NJ_Tier_Manager::get_user_tier( $user_id );
 
-        echo '<div class="wp-ai-mind-usage-widget">';
+        echo '<div class="stilus-usage-widget">';
         echo '<p><strong>' . esc_html( ucwords( str_replace( '_', ' ', $tier ) ) ) . ' Plan</strong></p>';
 
         if ( ! empty( $usage['limit'] ) ) {
@@ -239,10 +239,10 @@ class NJ_Usage_Widget {
                 esc_html( number_format( (int) $usage['remaining'] ) )
             );
             if ( $pct > 80 ) {
-                echo '<p class="notice notice-warning inline">' . esc_html__( 'Over 80% of monthly tokens used. Consider upgrading.', 'wp-ai-mind' ) . '</p>';
+                echo '<p class="notice notice-warning inline">' . esc_html__( 'Over 80% of monthly tokens used. Consider upgrading.', 'stilus' ) . '</p>';
             }
         } else {
-            echo '<p>' . esc_html__( 'Unlimited — using your own API key.', 'wp-ai-mind' ) . '</p>';
+            echo '<p>' . esc_html__( 'Unlimited — using your own API key.', 'stilus' ) . '</p>';
         }
 
         echo '</div>';

@@ -2,12 +2,12 @@
 /**
  * Admin page rendering the token usage dashboard.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -27,6 +27,6 @@ class UsagePage {
 	 * @return void
 	 */
 	public static function render(): void {
-		echo '<div id="wp-ai-mind-usage" class="wp-ai-mind-page"></div>';
+		echo '<div id="stilus-usage" class="stilus-page"></div>';
 	}
 }

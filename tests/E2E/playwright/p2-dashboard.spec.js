@@ -13,7 +13,7 @@ test.describe('P2 — Dashboard landing page', () => {
     });
 
     test('dashboard page renders with title and Start section', async ({ page }) => {
-        await page.goto('/wp-admin/admin.php?page=wp-ai-mind');
+        await page.goto('/wp-admin/admin.php?page=stilus');
         // Wait for React to hydrate
         await page.waitForSelector('.wpaim-dash-title', { timeout: 10000 });
         await expect(page.locator('.wpaim-dash-title')).toContainText('Stilus');
@@ -23,21 +23,21 @@ test.describe('P2 — Dashboard landing page', () => {
     });
 
     test('usage widget is visible for administrator', async ({ page }) => {
-        await page.goto('/wp-admin/admin.php?page=wp-ai-mind');
+        await page.goto('/wp-admin/admin.php?page=stilus');
         await page.waitForSelector('.wpaim-dash-title', { timeout: 10000 });
         // Widget is rendered only when PHP localises usage data for manage_options users.
         await expect(page.locator('.wpaim-usage-widget')).toBeVisible();
     });
 
     test('Chat sub-menu navigates to Chat page', async ({ page }) => {
-        await page.goto('/wp-admin/admin.php?page=wp-ai-mind');
+        await page.goto('/wp-admin/admin.php?page=stilus');
         await page.click('text=Chat');
-        await expect(page).toHaveURL(/page=wp-ai-mind-chat/);
-        await expect(page.locator('#wp-ai-mind-chat')).toBeVisible();
+        await expect(page).toHaveURL(/page=stilus-chat/);
+        await expect(page.locator('#stilus-chat')).toBeVisible();
     });
 
     test('Run setup again link is visible and wired to the PHP run_setup action', async ({ page }) => {
-        await page.goto('/wp-admin/admin.php?page=wp-ai-mind');
+        await page.goto('/wp-admin/admin.php?page=stilus');
         await page.waitForSelector('.wpaim-dash-title', { timeout: 10000 });
 
         // The link must be present in the footer and point to the PHP run_setup endpoint.
@@ -47,7 +47,7 @@ test.describe('P2 — Dashboard landing page', () => {
     });
 
     test('all resource links have correct attributes', async ({ page }) => {
-        await page.goto('/wp-admin/admin.php?page=wp-ai-mind');
+        await page.goto('/wp-admin/admin.php?page=stilus');
         await page.waitForSelector('.wpaim-dash-title', { timeout: 10000 });
 
         const links = page.locator('.wpaim-dash-resource');

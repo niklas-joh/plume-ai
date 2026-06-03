@@ -4,7 +4,7 @@
 
 **Goal:** Add a Dashboard landing page as the plugin's new top-level entry point, with a first-run onboarding modal that guides users through API connection and model provider selection.
 
-**Architecture:** A new `DashboardPage` PHP class follows the existing `ChatPage` pattern (inline render + enqueue). The dashboard React app mounts to `#wp-ai-mind-dashboard` and is added to the existing `src/admin/index.js` multi-mount pattern. A new `OnboardingRestController` provides one endpoint (`POST /wp-ai-mind/v1/onboarding`) for saving onboarding state and resetting it.
+**Architecture:** A new `DashboardPage` PHP class follows the existing `ChatPage` pattern (inline render + enqueue). The dashboard React app mounts to `#stilus-dashboard` and is added to the existing `src/admin/index.js` multi-mount pattern. A new `OnboardingRestController` provides one endpoint (`POST /stilus/v1/onboarding`) for saving onboarding state and resetting it.
 
 **Tech Stack:** PHP 8.1, WordPress hooks/options API, React (via `@wordpress/element`), existing CSS custom properties in `src/styles/tokens.css`, Lucide React icons (already a dependency).
 
@@ -16,11 +16,11 @@
 
 | Action | Path | Responsibility |
 |---|---|---|
-| Modify | `includes/Admin/AdminMenu.php` | Swap top-level callback to Dashboard; add Chat as `wp-ai-mind-chat` sub-page |
+| Modify | `includes/Admin/AdminMenu.php` | Swap top-level callback to Dashboard; add Chat as `stilus-chat` sub-page |
 | Create | `includes/Admin/DashboardPage.php` | Render mount div; enqueue admin bundle; localize dashboard data |
 | Modify | `includes/Core/Plugin.php` | Register OnboardingRestController on `wp_ai_mind_register_rest_routes` |
-| Create | `includes/Admin/OnboardingRestController.php` | `POST /wp-ai-mind/v1/onboarding` — save/reset onboarding state + provider key |
-| Modify | `src/admin/index.js` | Add `#wp-ai-mind-dashboard` mount point |
+| Create | `includes/Admin/OnboardingRestController.php` | `POST /stilus/v1/onboarding` — save/reset onboarding state + provider key |
+| Modify | `src/admin/index.js` | Add `#stilus-dashboard` mount point |
 | Create | `src/admin/dashboard/DashboardApp.jsx` | Root dashboard component; reads `window.wpAiMindDashboard`; manages modal state |
 | Create | `src/admin/dashboard/StatusBanner.jsx` | Conditional amber/red banner based on `bannerState` prop |
 | Create | `src/admin/dashboard/StartTiles.jsx` | Four action tiles linking to plugin features |
@@ -36,7 +36,7 @@
 **Files:**
 - Modify: `includes/Admin/AdminMenu.php`
 
-The top-level menu now renders the Dashboard. Chat moves to its own sub-slug `wp-ai-mind-chat`. All other sub-slugs are unchanged.
+The top-level menu now renders the Dashboard. Chat moves to its own sub-slug `stilus-chat`. All other sub-slugs are unchanged.
 
 - [ ] **Step 1: Update AdminMenu.php**
 
@@ -51,10 +51,10 @@ class AdminMenu {
 
 	public static function register(): void {
 		add_menu_page(
-			__( 'WP AI Mind', 'wp-ai-mind' ),
-			__( 'AI Mind', 'wp-ai-mind' ),
+			__( 'WP AI Mind', 'stilus' ),
+			__( 'AI Mind', 'stilus' ),
 			'edit_posts',
-			'wp-ai-mind',
+			'stilus',
 			[ DashboardPage::class, 'render' ],
 			self::get_menu_icon(),
 			30
@@ -62,13 +62,13 @@ class AdminMenu {
 
 		// First submenu entry must share parent slug — WordPress uses it to rename
 		// the parent item in the submenu list. Label it "Dashboard".
-		add_submenu_page( 'wp-ai-mind', __( 'Dashboard', 'wp-ai-mind' ), __( 'Dashboard', 'wp-ai-mind' ), 'edit_posts', 'wp-ai-mind', [ DashboardPage::class, 'render' ] );
-		add_submenu_page( 'wp-ai-mind', __( 'Chat', 'wp-ai-mind' ), __( 'Chat', 'wp-ai-mind' ), 'edit_posts', 'wp-ai-mind-chat', [ ChatPage::class, 'render' ] );
-		add_submenu_page( 'wp-ai-mind', __( 'Generator', 'wp-ai-mind' ), __( 'Generator', 'wp-ai-mind' ), 'edit_posts', 'wp-ai-mind-generator', [ GeneratorPage::class, 'render' ] );
-		add_submenu_page( 'wp-ai-mind', __( 'SEO', 'wp-ai-mind' ), __( 'SEO', 'wp-ai-mind' ), 'edit_posts', 'wp-ai-mind-seo', '__return_false' );
-		add_submenu_page( 'wp-ai-mind', __( 'Images', 'wp-ai-mind' ), __( 'Images', 'wp-ai-mind' ), 'edit_posts', 'wp-ai-mind-images', '__return_false' );
-		add_submenu_page( 'wp-ai-mind', __( 'Usage', 'wp-ai-mind' ), __( 'Usage &amp; Cost', 'wp-ai-mind' ), 'manage_options', 'wp-ai-mind-usage', [ UsagePage::class, 'render' ] );
-		add_submenu_page( 'wp-ai-mind', __( 'Settings', 'wp-ai-mind' ), __( 'Settings', 'wp-ai-mind' ), 'manage_options', 'wp-ai-mind-settings', [ SettingsPage::class, 'render' ] );
+		add_submenu_page( 'stilus', __( 'Dashboard', 'stilus' ), __( 'Dashboard', 'stilus' ), 'edit_posts', 'stilus', [ DashboardPage::class, 'render' ] );
+		add_submenu_page( 'stilus', __( 'Chat', 'stilus' ), __( 'Chat', 'stilus' ), 'edit_posts', 'stilus-chat', [ ChatPage::class, 'render' ] );
+		add_submenu_page( 'stilus', __( 'Generator', 'stilus' ), __( 'Generator', 'stilus' ), 'edit_posts', 'stilus-generator', [ GeneratorPage::class, 'render' ] );
+		add_submenu_page( 'stilus', __( 'SEO', 'stilus' ), __( 'SEO', 'stilus' ), 'edit_posts', 'stilus-seo', '__return_false' );
+		add_submenu_page( 'stilus', __( 'Images', 'stilus' ), __( 'Images', 'stilus' ), 'edit_posts', 'stilus-images', '__return_false' );
+		add_submenu_page( 'stilus', __( 'Usage', 'stilus' ), __( 'Usage &amp; Cost', 'stilus' ), 'manage_options', 'stilus-usage', [ UsagePage::class, 'render' ] );
+		add_submenu_page( 'stilus', __( 'Settings', 'stilus' ), __( 'Settings', 'stilus' ), 'manage_options', 'stilus-settings', [ SettingsPage::class, 'render' ] );
 	}
 
 	/** Inline SVG — Lucide `sparkles` icon, zinc-400 (#a1a1aa). */
@@ -85,7 +85,7 @@ class AdminMenu {
 Navigate to WP Admin → AI Mind. Confirm:
 - The top-level item now shows "Dashboard" as the first sub-item in the dropdown.
 - "Chat" appears as a separate sub-item.
-- Clicking "Chat" navigates to `admin.php?page=wp-ai-mind-chat` (blank page or old chat page — either is fine at this stage).
+- Clicking "Chat" navigates to `admin.php?page=stilus-chat` (blank page or old chat page — either is fine at this stage).
 - All other sub-items remain.
 
 - [ ] **Step 3: Commit**
@@ -102,7 +102,7 @@ git commit -m "feat(dashboard): restructure admin menu — Dashboard as top-leve
 **Files:**
 - Create: `includes/Admin/DashboardPage.php`
 
-Follows the exact pattern of `ChatPage.php`. Enqueues the same `wp-ai-mind-admin` bundle, adds a second `wp_localize_script` call with a `wpAiMindDashboard` variable.
+Follows the exact pattern of `ChatPage.php`. Enqueues the same `stilus-admin` bundle, adds a second `wp_localize_script` call with a `wpAiMindDashboard` variable.
 
 - [ ] **Step 1: Create the file**
 
@@ -126,7 +126,7 @@ class DashboardPage {
 		}
 
 		self::enqueue_assets();
-		echo '<div id="wp-ai-mind-dashboard" class="wp-ai-mind-page"></div>';
+		echo '<div id="stilus-dashboard" class="stilus-page"></div>';
 	}
 
 	private static function enqueue_assets(): void {
@@ -139,7 +139,7 @@ class DashboardPage {
 			];
 
 		wp_enqueue_script(
-			'wp-ai-mind-admin',
+			'stilus-admin',
 			WP_AI_MIND_URL . 'assets/admin/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-i18n', 'wp-api-fetch' ] ),
 			$asset['version'],
@@ -147,14 +147,14 @@ class DashboardPage {
 		);
 
 		wp_enqueue_style(
-			'wp-ai-mind-admin',
+			'stilus-admin',
 			WP_AI_MIND_URL . 'assets/admin/index.css',
 			[],
 			$asset['version']
 		);
 
 		wp_localize_script(
-			'wp-ai-mind-admin',
+			'stilus-admin',
 			'wpAiMindDashboard',
 			self::get_dashboard_data()
 		);
@@ -178,18 +178,18 @@ class DashboardPage {
 			'isPro'          => $is_pro,
 			'version'        => WP_AI_MIND_VERSION,
 			'nonce'          => wp_create_nonce( 'wp_rest' ),
-			'restUrl'        => esc_url_raw( rest_url( 'wp-ai-mind/v1' ) ),
+			'restUrl'        => esc_url_raw( rest_url( 'stilus/v1' ) ),
 			'runSetupUrl'    => wp_nonce_url(
-				admin_url( 'admin.php?page=wp-ai-mind&run_setup=1' ),
+				admin_url( 'admin.php?page=stilus&run_setup=1' ),
 				'wpaim_run_setup'
 			),
 			'urls'           => [
-				'chat'      => admin_url( 'admin.php?page=wp-ai-mind-chat' ),
-				'generator' => admin_url( 'admin.php?page=wp-ai-mind-generator' ),
-				'images'    => admin_url( 'admin.php?page=wp-ai-mind-images' ),
-				'seo'       => admin_url( 'admin.php?page=wp-ai-mind-seo' ),
-				'usage'     => admin_url( 'admin.php?page=wp-ai-mind-usage' ),
-				'settings'  => admin_url( 'admin.php?page=wp-ai-mind-settings' ),
+				'chat'      => admin_url( 'admin.php?page=stilus-chat' ),
+				'generator' => admin_url( 'admin.php?page=stilus-generator' ),
+				'images'    => admin_url( 'admin.php?page=stilus-images' ),
+				'seo'       => admin_url( 'admin.php?page=stilus-seo' ),
+				'usage'     => admin_url( 'admin.php?page=stilus-usage' ),
+				'settings'  => admin_url( 'admin.php?page=stilus-settings' ),
 				'posts'     => admin_url( 'edit.php' ),
 				'upgrade'   => 'https://wpaimind.com/pricing',
 			],
@@ -225,7 +225,7 @@ git commit -m "feat(dashboard): add DashboardPage PHP class with localized data"
 - Create: `includes/Admin/OnboardingRestController.php`
 - Modify: `includes/Core/Plugin.php`
 
-One endpoint: `POST /wp-ai-mind/v1/onboarding`. Handles both saving (completes onboarding) and resetting (run setup again).
+One endpoint: `POST /stilus/v1/onboarding`. Handles both saving (completes onboarding) and resetting (run setup again).
 
 - [ ] **Step 1: Create the controller**
 
@@ -243,7 +243,7 @@ class OnboardingRestController {
 
 	public static function register_routes(): void {
 		register_rest_route(
-			'wp-ai-mind/v1',
+			'stilus/v1',
 			'/onboarding',
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -345,7 +345,7 @@ private function init_hooks(): void {
 curl -s -X POST \
   -H "Content-Type: application/json" \
   -H "X-WP-Nonce: $(wp eval 'echo wp_create_nonce("wp_rest");' --allow-root 2>/dev/null || echo 'get-from-browser')" \
-  "http://localhost:8080/wp-json/wp-ai-mind/v1/onboarding" \
+  "http://localhost:8080/wp-json/stilus/v1/onboarding" \
   -d '{"seen": false}'
 ```
 
@@ -353,7 +353,7 @@ Expected response: `{"success":true}`
 
 Alternatively: in WP Admin, open browser DevTools Console and run:
 ```javascript
-fetch('/wp-json/wp-ai-mind/v1/onboarding', {
+fetch('/wp-json/stilus/v1/onboarding', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpAiMindDashboard.nonce },
   body: JSON.stringify({ seen: false })
@@ -366,7 +366,7 @@ Expected: `{success: true}`
 
 ```bash
 git add includes/Admin/OnboardingRestController.php includes/Core/Plugin.php
-git commit -m "feat(dashboard): add OnboardingRestController — POST /wp-ai-mind/v1/onboarding"
+git commit -m "feat(dashboard): add OnboardingRestController — POST /stilus/v1/onboarding"
 ```
 
 ---
@@ -386,17 +386,17 @@ import DashboardApp from './dashboard/DashboardApp';
 import '../styles/tokens.css';
 import './admin.css';
 
-const chatRoot = document.getElementById( 'wp-ai-mind-chat' );
+const chatRoot = document.getElementById( 'stilus-chat' );
 if ( chatRoot ) {
     render( <ChatApp />, chatRoot );
 }
 
-const settingsRoot = document.getElementById( 'wp-ai-mind-settings' );
+const settingsRoot = document.getElementById( 'stilus-settings' );
 if ( settingsRoot ) {
     render( <SettingsApp />, settingsRoot );
 }
 
-const dashboardRoot = document.getElementById( 'wp-ai-mind-dashboard' );
+const dashboardRoot = document.getElementById( 'stilus-dashboard' );
 if ( dashboardRoot ) {
     render( <DashboardApp />, dashboardRoot );
 }
@@ -1882,7 +1882,7 @@ Confirm:
 To test the onboarding modal, run in browser console:
 ```javascript
 // Force modal to show by setting onboarding as unseen
-fetch('/wp-json/wp-ai-mind/v1/onboarding', {
+fetch('/wp-json/stilus/v1/onboarding', {
   method: 'POST',
   headers: {'Content-Type': 'application/json', 'X-WP-Nonce': wpAiMindDashboard.nonce},
   body: JSON.stringify({ seen: false })
@@ -1911,7 +1911,7 @@ git commit -m "feat(dashboard): assemble DashboardApp — all components wired"
 **Files:**
 - Modify: `src/admin/settings/SettingsApp.jsx`
 
-Add a "Run setup again" button that calls `POST /wp-ai-mind/v1/onboarding` with `{ seen: false }` then navigates to the Dashboard.
+Add a "Run setup again" button that calls `POST /stilus/v1/onboarding` with `{ seen: false }` then navigates to the Dashboard.
 
 - [ ] **Step 1: Read current SettingsApp.jsx to find the right place to add the button**
 
@@ -1931,7 +1931,7 @@ const handleRunSetup = async () => {
         },
         body: JSON.stringify( { seen: false } ),
     } );
-    window.location.href = 'admin.php?page=wp-ai-mind';
+    window.location.href = 'admin.php?page=stilus';
 };
 ```
 
@@ -1996,7 +1996,7 @@ test.describe( 'Dashboard landing page', () => {
     } );
 
     test( 'dashboard page renders with title and Start section', async ( { page } ) => {
-        await page.goto( '/wp-admin/admin.php?page=wp-ai-mind' );
+        await page.goto( '/wp-admin/admin.php?page=stilus' );
         await expect( page.locator( '.wpaim-dash-title' ) ).toHaveText( 'WP AI Mind' );
         await expect( page.locator( '.wpaim-dash-tiles' ) ).toBeVisible();
         await expect( page.locator( '.wpaim-dash-resources' ) ).toBeVisible();
@@ -2004,21 +2004,21 @@ test.describe( 'Dashboard landing page', () => {
     } );
 
     test( 'Chat sub-menu navigates to Chat page', async ( { page } ) => {
-        await page.goto( '/wp-admin/admin.php?page=wp-ai-mind' );
+        await page.goto( '/wp-admin/admin.php?page=stilus' );
         await page.click( 'text=Chat' ); // sidebar nav
-        await expect( page ).toHaveURL( /page=wp-ai-mind-chat/ );
+        await expect( page ).toHaveURL( /page=stilus-chat/ );
     } );
 
     test( 'Run setup again link navigates back to dashboard and shows modal', async ( { page } ) => {
         // Ensure onboarding seen = true so modal isn't shown on initial load.
-        await page.goto( '/wp-admin/admin.php?page=wp-ai-mind' );
+        await page.goto( '/wp-admin/admin.php?page=stilus' );
 
         // Click Run setup again in footer.
         const runSetupLink = page.locator( '.wpaim-dash-footer__link', { hasText: 'Run setup again' } );
         await runSetupLink.click();
 
         // Should navigate back to dashboard.
-        await expect( page ).toHaveURL( /page=wp-ai-mind/ );
+        await expect( page ).toHaveURL( /page=stilus/ );
 
         // Onboarding modal should be visible.
         await expect( page.locator( '.wpaim-ob-overlay' ) ).toBeVisible();
@@ -2026,7 +2026,7 @@ test.describe( 'Dashboard landing page', () => {
 
     test( 'onboarding modal — Plugin API path completes in one step', async ( { page } ) => {
         // Reset onboarding seen flag.
-        await page.goto( '/wp-admin/admin.php?page=wp-ai-mind' );
+        await page.goto( '/wp-admin/admin.php?page=stilus' );
         // Force modal visible by injecting state
         await page.evaluate( () => {
             window.wpAiMindDashboard.onboardingSeen = false;
@@ -2043,7 +2043,7 @@ test.describe( 'Dashboard landing page', () => {
     } );
 
     test( 'all resource links have target=_blank and rel attributes', async ( { page } ) => {
-        await page.goto( '/wp-admin/admin.php?page=wp-ai-mind' );
+        await page.goto( '/wp-admin/admin.php?page=stilus' );
         const links = page.locator( '.wpaim-dash-resource' );
         const count = await links.count();
         expect( count ).toBe( 4 );

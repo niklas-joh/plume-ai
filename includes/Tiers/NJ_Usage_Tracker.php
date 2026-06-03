@@ -2,12 +2,12 @@
 /**
  * Tracks per-user monthly API request consumption against tier limits.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tiers;
+namespace Stilus\Tiers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -32,7 +32,7 @@ class NJ_Usage_Tracker {
 		$tier    = NJ_Tier_Manager::get_user_tier( $user_id );
 		$limit   = NJ_Tier_Manager::get_monthly_limit( $tier );
 
-		$key  = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$key  = 'stilus_usage_' . gmdate( 'Y_m' );
 		$used = (int) get_user_meta( $user_id, $key, true );
 
 		if ( null === $limit ) {
@@ -67,7 +67,7 @@ class NJ_Usage_Tracker {
 	public static function log_usage( int $tokens, ?int $user_id = null ): void {
 		global $wpdb;
 		$user_id = $user_id ?? get_current_user_id();
-		$key     = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$key     = 'stilus_usage_' . gmdate( 'Y_m' );
 		// Atomic increment avoids the read-modify-write race condition that occurs
 		// when two concurrent requests read the same value and each overwrites it.
 		$wpdb->query(

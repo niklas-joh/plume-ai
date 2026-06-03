@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Integration\Seo;
+namespace Stilus\Tests\Integration\Seo;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Modules\Seo\SeoModule;
-use WP_AI_Mind\Tests\Helpers\WpdbStubFactory;
+use Stilus\Modules\Seo\SeoModule;
+use Stilus\Tests\Helpers\WpdbStubFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -46,14 +46,14 @@ class SeoTierGatingTest extends TestCase {
 		$this->assertArrayHasKey( '/seo/generate', $this->captured_routes );
 		$permission_callback = $this->captured_routes['/seo/generate']['permission_callback'];
 
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 
 		// Free tier: edit_posts capability present, within usage limit, but seo feature is disabled.
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key, $single = false ) use ( $month_key ) {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return 'free';
 				}
 				if ( $month_key === $key ) {
@@ -71,14 +71,14 @@ class SeoTierGatingTest extends TestCase {
 		$this->assertArrayHasKey( '/seo/generate', $this->captured_routes );
 		$permission_callback = $this->captured_routes['/seo/generate']['permission_callback'];
 
-		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
 
 		// Trial tier: edit_posts capability present, within usage limit, seo feature enabled.
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 2 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key, $single = false ) use ( $month_key ) {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return 'trial';
 				}
 				if ( $month_key === $key ) {

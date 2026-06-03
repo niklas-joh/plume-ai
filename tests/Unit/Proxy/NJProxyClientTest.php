@@ -1,13 +1,13 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Proxy;
+namespace Stilus\Tests\Unit\Proxy;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use WP_AI_Mind\Proxy\NJ_Proxy_Client;
-use WP_AI_Mind\Proxy\NJ_Site_Registration;
+use Stilus\Proxy\NJ_Proxy_Client;
+use Stilus\Proxy\NJ_Site_Registration;
 
 class NJProxyClientTest extends TestCase {
 
@@ -79,7 +79,7 @@ class NJProxyClientTest extends TestCase {
 		// get_user_meta: tier=free, usage above the 50 000 free limit.
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key ) {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return 'free';
 				}
 				return 51000;
@@ -101,7 +101,7 @@ class NJProxyClientTest extends TestCase {
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key ) {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return 'free';
 				}
 				return 0;
@@ -137,7 +137,7 @@ class NJProxyClientTest extends TestCase {
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key ) {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return 'free';
 				}
 				return 0;
@@ -171,7 +171,7 @@ class NJProxyClientTest extends TestCase {
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key ) {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return 'free';
 				}
 				return 0;
@@ -208,7 +208,7 @@ class NJProxyClientTest extends TestCase {
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key ) {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return 'free';
 				}
 				return 0;
@@ -241,7 +241,7 @@ class NJProxyClientTest extends TestCase {
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key ) {
-				if ( 'wp_ai_mind_tier' === $key ) {
+				if ( 'stilus_tier' === $key ) {
 					return 'free';
 				}
 				return 0;

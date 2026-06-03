@@ -2,11 +2,11 @@
 /**
  * Encrypted storage and retrieval of AI provider API keys.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Settings;
+namespace Stilus\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ProviderSettings {
 
-	private const OPTION_KEY      = 'wp_ai_mind_provider_keys';
+	private const OPTION_KEY      = 'stilus_provider_keys';
 	private const CIPHER          = 'AES-256-CBC';
 	private const VALID_PROVIDERS = [ 'claude', 'openai', 'gemini', 'ollama' ];
 	private const ENV_VARS        = [

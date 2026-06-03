@@ -2,23 +2,23 @@
 /**
  * SEO module — REST routes and asset enqueuing for the AI SEO admin page.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Modules\Seo;
+namespace Stilus\Modules\Seo;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Providers\ProviderFactory;
-use WP_AI_Mind\Providers\CompletionRequest;
-use WP_AI_Mind\Providers\ProviderException;
-use WP_AI_Mind\Settings\ProviderSettings;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Providers\ProviderFactory;
+use Stilus\Providers\CompletionRequest;
+use Stilus\Providers\ProviderException;
+use Stilus\Settings\ProviderSettings;
+use Stilus\Tiers\NJ_Tier_Manager;
+use Stilus\Tiers\NJ_Usage_Tracker;
 
 /**
  * Registers the SEO module admin assets, REST routes, and the wpaim_seo_status REST field.
@@ -50,54 +50,54 @@ class SeoModule {
 	public static function enqueue_assets( string $hook ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by admin_enqueue_scripts hook signature.
 		// Only load on the SEO admin page.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page detection, never output.
-		if ( sanitize_key( \wp_unslash( $_GET['page'] ?? '' ) ) !== 'wp-ai-mind-seo' ) {
+		if ( sanitize_key( \wp_unslash( $_GET['page'] ?? '' ) ) !== 'stilus-seo' ) {
 			return;
 		}
 
-		$asset_file = WP_AI_MIND_DIR . 'assets/seo/index.asset.php';
+		$asset_file = STILUS_DIR . 'assets/seo/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => WP_AI_MIND_VERSION,
+				'version'      => STILUS_VERSION,
 			];
 
 		\wp_enqueue_script(
-			'wp-ai-mind-seo',
-			WP_AI_MIND_URL . 'assets/seo/index.js',
+			'stilus-seo',
+			STILUS_URL . 'assets/seo/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-api-fetch', 'wp-i18n' ] ),
 			$asset['version'],
 			true
 		);
 
 		\wp_localize_script(
-			'wp-ai-mind-seo',
+			'stilus-seo',
 			'wpAiMindData',
 			[
 				'nonce'    => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'  => \esc_url_raw( \rest_url( 'wp-ai-mind/v1' ) ),
+				'restUrl'  => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
 				'isPro'    => NJ_Tier_Manager::user_can( 'seo' ),
 				'adminUrl' => \esc_url_raw( \admin_url() ),
 			]
 		);
 
 		\wp_enqueue_style(
-			'wp-ai-mind-seo',
-			WP_AI_MIND_URL . 'assets/seo/index.css',
+			'stilus-seo',
+			STILUS_URL . 'assets/seo/index.css',
 			[],
 			$asset['version']
 		);
 	}
 
 	/**
-	 * Register the /wp-ai-mind/v1/seo/generate and /wp-ai-mind/v1/seo/apply REST routes.
+	 * Register the /stilus/v1/seo/generate and /stilus/v1/seo/apply REST routes.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
 	public static function register_routes(): void {
 		\register_rest_route(
-			'wp-ai-mind/v1',
+			'stilus/v1',
 			'/seo/generate',
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
@@ -117,7 +117,7 @@ class SeoModule {
 		);
 
 		\register_rest_route(
-			'wp-ai-mind/v1',
+			'stilus/v1',
 			'/seo/apply',
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
@@ -186,11 +186,11 @@ class SeoModule {
 		$post = \get_post( $post_id );
 
 		if ( ! $post ) {
-			return new \WP_Error( 'not_found', __( 'Post not found.', 'wp-ai-mind' ) );
+			return new \WP_Error( 'not_found', __( 'Post not found.', 'stilus' ) );
 		}
 
 		if ( ! \user_can( $user_id, 'edit_post', $post_id ) ) {
-			return new \WP_Error( 'forbidden', __( 'Forbidden.', 'wp-ai-mind' ) );
+			return new \WP_Error( 'forbidden', __( 'Forbidden.', 'stilus' ) );
 		}
 
 		$title   = $post->post_title;
@@ -234,14 +234,12 @@ class SeoModule {
 			$provider = $factory->make_default();
 			$response = $provider->complete( $req );
 		} catch ( ProviderException $e ) {
-			\error_log( '[Stilus] SeoModule provider error: ' . $e->getMessage() );
 			// Surface the provider message when it is user-actionable (e.g. proxy auth, not registered).
 			$raw_msg = $e->getMessage();
-			$msg     = '' !== $raw_msg ? $raw_msg : __( 'Provider error. Please try again later.', 'wp-ai-mind' );
+			$msg     = '' !== $raw_msg ? $raw_msg : __( 'Provider error. Please try again later.', 'stilus' );
 			return new \WP_Error( 'provider_error', $msg );
 		} catch ( \Throwable $e ) {
-			\error_log( '[Stilus] SeoModule unexpected error: ' . $e->getMessage() );
-			return new \WP_Error( 'unexpected_error', __( 'An unexpected error occurred. Please try again later.', 'wp-ai-mind' ) );
+			return new \WP_Error( 'unexpected_error', __( 'An unexpected error occurred. Please try again later.', 'stilus' ) );
 		}
 
 		$raw  = trim( $response->content );
@@ -250,7 +248,7 @@ class SeoModule {
 		$data = json_decode( $raw, true );
 
 		if ( ! is_array( $data ) ) {
-			return new \WP_Error( 'invalid_json', __( 'AI returned invalid JSON.', 'wp-ai-mind' ) );
+			return new \WP_Error( 'invalid_json', __( 'AI returned invalid JSON.', 'stilus' ) );
 		}
 
 		return [
@@ -263,7 +261,7 @@ class SeoModule {
 	}
 
 	/**
-	 * REST handler for POST /wp-ai-mind/v1/seo/generate.
+	 * REST handler for POST /stilus/v1/seo/generate.
 	 *
 	 * Validates the request, checks post-level edit capability, then delegates
 	 * to generate_for_post() and maps any WP_Error to the appropriate HTTP status.
@@ -278,7 +276,7 @@ class SeoModule {
 
 		$post = \get_post( $post_id );
 		if ( ! $post ) {
-			return new \WP_REST_Response( [ 'error' => __( 'Post not found.', 'wp-ai-mind' ) ], 404 );
+			return new \WP_REST_Response( [ 'error' => __( 'Post not found.', 'stilus' ) ], 404 );
 		}
 
 		$result = self::generate_for_post( $post_id, $user_id );
@@ -371,11 +369,11 @@ class SeoModule {
 		$post    = \get_post( $post_id );
 
 		if ( ! $post ) {
-			return new \WP_REST_Response( [ 'error' => __( 'Post not found.', 'wp-ai-mind' ) ], 404 );
+			return new \WP_REST_Response( [ 'error' => __( 'Post not found.', 'stilus' ) ], 404 );
 		}
 
 		if ( ! \current_user_can( 'edit_post', $post_id ) ) {
-			return new \WP_REST_Response( [ 'error' => __( 'Forbidden.', 'wp-ai-mind' ) ], 403 );
+			return new \WP_REST_Response( [ 'error' => __( 'Forbidden.', 'stilus' ) ], 403 );
 		}
 
 		$fields = [
@@ -397,7 +395,7 @@ class SeoModule {
 	 * @return void
 	 */
 	public static function register_seo_status_field(): void {
-		$post_types = (array) \apply_filters( 'wp_ai_mind_seo_post_types', [ 'post', 'page' ] );
+		$post_types = (array) \apply_filters( 'stilus_seo_post_types', [ 'post', 'page' ] );
 		foreach ( $post_types as $post_type ) {
 			\register_rest_field(
 				$post_type,

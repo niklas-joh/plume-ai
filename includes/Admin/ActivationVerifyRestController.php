@@ -3,12 +3,12 @@
  * REST endpoint called by the proxy Worker to verify a site is live and running
  * Stilus.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
 use WP_REST_Request;
 use WP_REST_Response;
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Handles the GET /wp-ai-mind/v1/activation-verify callback invoked by the
+ * Handles the GET /stilus/v1/activation-verify callback invoked by the
  * Cloudflare Worker during site registration.
  *
  * The Worker generates a challenge token, stores it in KV, and sends it back
@@ -32,9 +32,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ActivationVerifyRestController {
 
-	private const NAMESPACE     = 'wp-ai-mind/v1';
+	private const NAMESPACE     = 'stilus/v1';
 	private const ROUTE         = '/activation-verify';
-	private const TRANSIENT     = 'wp_ai_mind_challenge_';
+	private const TRANSIENT     = 'stilus_challenge_';
 	private const CHALLENGE_TTL = 300; // Seconds — must match worker CHALLENGE_TTL.
 
 	/**

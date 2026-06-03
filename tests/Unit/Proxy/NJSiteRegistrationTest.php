@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Proxy;
+namespace Stilus\Tests\Unit\Proxy;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use WP_AI_Mind\Proxy\NJ_Site_Registration;
+use Stilus\Proxy\NJ_Site_Registration;
 
 class NJSiteRegistrationTest extends TestCase {
 
@@ -261,7 +261,7 @@ class NJSiteRegistrationTest extends TestCase {
 		$this->assertSame( $secret, $captured[ NJ_Site_Registration::OPTION_SECRET ]['value'] );
 		$this->assertFalse( $captured[ NJ_Site_Registration::OPTION_SECRET ]['autoload'] );
 		// Tier should also have been persisted via set_site_tier().
-		$this->assertSame( 'pro_managed', $captured['wp_ai_mind_site_tier']['value'] );
+		$this->assertSame( 'pro_managed', $captured['stilus_site_tier']['value'] );
 	}
 
 	public function test_register_succeeds_without_secret_or_tier_for_legacy_workers(): void {
@@ -306,7 +306,7 @@ class NJSiteRegistrationTest extends TestCase {
 		// Only the token option must have been written — no secret, no tier.
 		$this->assertArrayHasKey( NJ_Site_Registration::OPTION_TOKEN, $captured );
 		$this->assertArrayNotHasKey( NJ_Site_Registration::OPTION_SECRET, $captured );
-		$this->assertArrayNotHasKey( 'wp_ai_mind_site_tier', $captured );
+		$this->assertArrayNotHasKey( 'stilus_site_tier', $captured );
 	}
 
 	// ── rotate_secret() ─────────────────────────────────────────────────────
@@ -366,6 +366,6 @@ class NJSiteRegistrationTest extends TestCase {
 
 		$this->assertSame( $secret, $result );
 		$this->assertSame( $secret, $captured[ NJ_Site_Registration::OPTION_SECRET ] );
-		$this->assertSame( 'pro_managed', $captured['wp_ai_mind_site_tier'] );
+		$this->assertSame( 'pro_managed', $captured['stilus_site_tier'] );
 	}
 }

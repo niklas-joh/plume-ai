@@ -43,4 +43,4 @@ DEV_ENDPOINTS_ENABLED = "1"
 
 [[env.dev.kv_namespaces]]
 binding = "USAGE_KV"
-id = "REPLACE_WITH_DEV_KV_NAMESPACE_ID"   # run step 1 above to get this
+id = "46d46fc066354b3a946fd734bca7eb1a"

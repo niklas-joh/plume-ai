@@ -6,16 +6,16 @@
  * No WordPress functions are called by the class under test, so Brain Monkey
  * bootstrapping is not required here.
  *
- * @package WP_AI_Mind\Tests\Unit\Tiers
+ * @package Stilus\Tests\Unit\Tiers
  * @since   1.0.0
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Tiers;
+namespace Stilus\Tests\Unit\Tiers;
 
 use PHPUnit\Framework\TestCase;
-use WP_AI_Mind\Tiers\NJ_Tier_Config;
+use Stilus\Tiers\NJ_Tier_Config;
 
 /**
  * Exhaustive matrix tests for NJ_Tier_Config capability and limit data.

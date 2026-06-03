@@ -2,11 +2,11 @@
 /**
  * Registers the Stilus admin menu and sub-menu pages.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -28,10 +28,10 @@ class AdminMenu {
 	 */
 	public static function register(): void {
 		add_menu_page(
-			__( 'Stilus - Write and Design', 'wp-ai-mind' ),
-			__( 'Stilus', 'wp-ai-mind' ),
+			__( 'Stilus - Write and Design', 'stilus' ),
+			__( 'Stilus', 'stilus' ),
 			'edit_posts',
-			'wp-ai-mind',
+			'stilus',
 			[ DashboardPage::class, 'render' ],
 			self::get_menu_icon(),
 			30
@@ -39,22 +39,22 @@ class AdminMenu {
 
 		// First submenu entry must share parent slug — WordPress uses it to rename
 		// the parent item in the submenu list. Label it "Dashboard".
-		add_submenu_page( 'wp-ai-mind', __( 'Dashboard', 'wp-ai-mind' ), __( 'Dashboard', 'wp-ai-mind' ), 'edit_posts', 'wp-ai-mind', [ DashboardPage::class, 'render' ] );
-		add_submenu_page( 'wp-ai-mind', __( 'Chat', 'wp-ai-mind' ), __( 'Chat', 'wp-ai-mind' ), 'edit_posts', 'wp-ai-mind-chat', [ ChatPage::class, 'render' ] );
-		add_submenu_page( 'wp-ai-mind', __( 'Generator', 'wp-ai-mind' ), __( 'Generator', 'wp-ai-mind' ), 'edit_posts', 'wp-ai-mind-generator', [ GeneratorPage::class, 'render' ] );
-		add_submenu_page( 'wp-ai-mind', __( 'SEO', 'wp-ai-mind' ), __( 'SEO', 'wp-ai-mind' ), 'edit_posts', 'wp-ai-mind-seo', [ SeoPage::class, 'render' ] );
-		add_submenu_page( 'wp-ai-mind', __( 'Images', 'wp-ai-mind' ), __( 'Images', 'wp-ai-mind' ), 'edit_posts', 'wp-ai-mind-images', [ ImagesPage::class, 'render' ] );
-		add_submenu_page( 'wp-ai-mind', __( 'Settings', 'wp-ai-mind' ), __( 'Settings', 'wp-ai-mind' ), 'manage_options', 'wp-ai-mind-settings', [ SettingsPage::class, 'render' ] );
+		add_submenu_page( 'stilus', __( 'Dashboard', 'stilus' ), __( 'Dashboard', 'stilus' ), 'edit_posts', 'stilus', [ DashboardPage::class, 'render' ] );
+		add_submenu_page( 'stilus', __( 'Chat', 'stilus' ), __( 'Chat', 'stilus' ), 'edit_posts', 'stilus-chat', [ ChatPage::class, 'render' ] );
+		add_submenu_page( 'stilus', __( 'Generator', 'stilus' ), __( 'Generator', 'stilus' ), 'edit_posts', 'stilus-generator', [ GeneratorPage::class, 'render' ] );
+		add_submenu_page( 'stilus', __( 'SEO', 'stilus' ), __( 'SEO', 'stilus' ), 'edit_posts', 'stilus-seo', [ SeoPage::class, 'render' ] );
+		add_submenu_page( 'stilus', __( 'Images', 'stilus' ), __( 'Images', 'stilus' ), 'edit_posts', 'stilus-images', [ ImagesPage::class, 'render' ] );
+		add_submenu_page( 'stilus', __( 'Settings', 'stilus' ), __( 'Settings', 'stilus' ), 'manage_options', 'stilus-settings', [ SettingsPage::class, 'render' ] );
 
-		$tier = \WP_AI_Mind\Tiers\NJ_Tier_Manager::get_user_tier();
+		$tier = \Stilus\Tiers\NJ_Tier_Manager::get_user_tier();
 		if ( in_array( $tier, [ 'free', 'trial' ], true ) ) {
 			add_submenu_page(
-				'wp-ai-mind',
-				__( 'Upgrade', 'wp-ai-mind' ),
-				__( 'Upgrade ✦', 'wp-ai-mind' ),
+				'stilus',
+				__( 'Upgrade', 'stilus' ),
+				__( 'Upgrade ✦', 'stilus' ),
 				'edit_posts',
-				'wp-ai-mind-upgrade',
-				[ \WP_AI_Mind\Admin\TierStatusPage::class, 'render' ]
+				'stilus-upgrade',
+				[ \Stilus\Admin\TierStatusPage::class, 'render' ]
 			);
 		}
 	}

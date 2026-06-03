@@ -40,14 +40,14 @@ chosen provider. Review each provider's privacy policy and terms of service befo
 * OpenAI: https://openai.com/policies/privacy-policy
 * Google Gemini: https://policies.google.com/privacy
 * Ollama is self-hosted; no external transmission occurs when using Ollama.
-* **Stilus Proxy** (`https://wp-ai-mind-proxy.wp-ai-mind.workers.dev`): Free and managed-pro
+* **Stilus Proxy** (`https://stilus-proxy.stilus.workers.dev`): Free and managed-pro
   tiers route chat requests through this Cloudflare Worker service. The service receives your
   site URL (for registration) and the chat messages you send. No messages are stored by the
   proxy beyond the in-flight API call. See: https://wpaimind.com/privacy-policy (legacy domain)
 
 == Installation ==
 
-1. Upload the `wp-ai-mind` folder to the `/wp-content/plugins/` directory.
+1. Upload the `stilus` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the **Plugins** menu in WordPress.
 3. (Optional — Pro BYOK only) Navigate to **Stilus - Write and Design → Settings** and enter your own API key. Free and managed-plan users do not need an API key.
 4. Start using the Chat, Generator, or Usage modules from the admin menu.

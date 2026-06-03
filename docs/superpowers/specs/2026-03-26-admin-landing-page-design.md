@@ -189,7 +189,7 @@ A "Run setup again" entry in the plugin's Settings page (General or Account sect
 
 | File | Action |
 |---|---|
-| `wp-ai-mind.php` or main plugin file | Register new Dashboard page as top-level menu; demote existing pages to sub-menus |
+| `stilus.php` or main plugin file | Register new Dashboard page as top-level menu; demote existing pages to sub-menus |
 | `src/admin/index.js` | Add Dashboard view entry point |
 | `templates/admin/dashboard.php` (new) | Dashboard page template |
 | `templates/admin/onboarding-modal.php` (new) | Onboarding modal markup |

@@ -41,7 +41,7 @@
 ## Project Structure
 
 ```
-wp-ai-mind-proxy/
+stilus-proxy/
 ├── src/
 │   ├── index.ts              # Main proxy logic (~150 lines)
 │   ├── types.ts              # Simple interfaces
@@ -60,7 +60,7 @@ wp-ai-mind-proxy/
 
 - [ ] **Step 0.1: Check if proxy project exists**
 ```bash
-ls -la wp-ai-mind-proxy/ 2>/dev/null || echo "No existing proxy project"
+ls -la stilus-proxy/ 2>/dev/null || echo "No existing proxy project"
 # If files exist, audit them before proceeding
 ```
 
@@ -78,13 +78,13 @@ grep -rn "NJ_Tier_Manager\|NJ_Usage_Tracker" includes/ --include="*.php" | head 
 
 - [ ] **Step 1.1: Create project directory**
 ```bash
-mkdir -p wp-ai-mind-proxy/src
+mkdir -p stilus-proxy/src
 ```
 
 - [ ] **Step 1.2: Create package.json**
 ```json
 {
-  "name": "wp-ai-mind-proxy",
+  "name": "stilus-proxy",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -102,7 +102,7 @@ mkdir -p wp-ai-mind-proxy/src
 
 - [ ] **Step 1.3: Create wrangler.toml**
 ```toml
-name = "wp-ai-mind-proxy"
+name = "stilus-proxy"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
@@ -428,7 +428,7 @@ class NJ_Proxy_Client {
     public static function chat( array $messages, array $options = [] ): array|WP_Error {
         $url = self::get_proxy_url();
         if ( empty( $url ) ) {
-            return new WP_Error( 'proxy_not_configured', __( 'Proxy URL not configured.', 'wp-ai-mind' ) );
+            return new WP_Error( 'proxy_not_configured', __( 'Proxy URL not configured.', 'stilus' ) );
         }
 
         $user_id = get_current_user_id();
@@ -436,7 +436,7 @@ class NJ_Proxy_Client {
 
         // Fail-fast pre-check (WordPress meta). Cloudflare KV is the authoritative limit.
         if ( ! NJ_Usage_Tracker::check_limit( $user_id ) ) {
-            return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'wp-ai-mind' ) );
+            return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'stilus' ) );
         }
 
         $payload = [
@@ -470,7 +470,7 @@ class NJ_Proxy_Client {
         $body = json_decode( wp_remote_retrieve_body( $response ), true ) ?? [];
 
         if ( $code === 429 ) {
-            return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'wp-ai-mind' ) );
+            return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'stilus' ) );
         }
 
         if ( $code < 200 || $code >= 300 ) {
@@ -502,7 +502,7 @@ class NJ_Proxy_Client {
 ```php
 // In wp-config.php (same value as PROXY_SIGNATURE_SECRET set in Cloudflare)
 define( 'WP_AI_MIND_PROXY_SECRET', 'your-64-char-random-string' );
-define( 'WP_AI_MIND_PROXY_URL',    'https://wp-ai-mind-proxy.YOUR-ACCOUNT.workers.dev' );
+define( 'WP_AI_MIND_PROXY_URL',    'https://stilus-proxy.YOUR-ACCOUNT.workers.dev' );
 ```
 
 ---
@@ -511,12 +511,12 @@ define( 'WP_AI_MIND_PROXY_URL',    'https://wp-ai-mind-proxy.YOUR-ACCOUNT.worker
 
 - [ ] **Step 5.1: TypeScript type-check**
 ```bash
-cd wp-ai-mind-proxy && npx tsc --noEmit
+cd stilus-proxy && npx tsc --noEmit
 ```
 
 - [ ] **Step 5.2: Local development**
 ```bash
-cd wp-ai-mind-proxy && wrangler dev
+cd stilus-proxy && wrangler dev
 # Test at http://localhost:8787
 ```
 
@@ -534,7 +534,7 @@ In `wrangler dev` logs, check `checkRateLimit()` with `tier='trial'` returns `li
 
 - [ ] **Step 5.5: Deploy to Cloudflare**
 ```bash
-cd wp-ai-mind-proxy && wrangler deploy
+cd stilus-proxy && wrangler deploy
 # Note the deployed URL; set WP_AI_MIND_PROXY_URL in wp-config.php
 ```
 
@@ -553,7 +553,7 @@ cd wp-ai-mind-proxy && wrangler deploy
 
 ## Phase 2 Acceptance Criteria
 
-- [ ] Cloudflare Worker deployed at `wp-ai-mind-proxy.YOUR.workers.dev`
+- [ ] Cloudflare Worker deployed at `stilus-proxy.YOUR.workers.dev`
 - [ ] Single endpoint `/v1/chat` handles requests from WordPress
 - [ ] HMAC signature verification (constant-time) prevents unauthorised access
 - [ ] Rate limiting via KV: `free` 50k, `trial` 300k, `pro_managed` 2M tokens/month

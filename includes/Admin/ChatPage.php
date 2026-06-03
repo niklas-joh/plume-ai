@@ -2,19 +2,19 @@
 /**
  * Admin page rendering the main AI chat interface.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Providers\ProviderFactory;
-use WP_AI_Mind\Settings\ProviderSettings;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use Stilus\Providers\ProviderFactory;
+use Stilus\Settings\ProviderSettings;
+use Stilus\Tiers\NJ_Tier_Manager;
 
 /**
  * Renders the Stilus chat admin page.
@@ -32,7 +32,7 @@ class ChatPage {
 	 */
 	public static function render(): void {
 		self::enqueue_assets();
-		echo '<div id="wp-ai-mind-chat" class="wp-ai-mind-page"></div>';
+		echo '<div id="stilus-chat" class="stilus-page"></div>';
 	}
 
 	/**
@@ -45,23 +45,23 @@ class ChatPage {
 	 * @return void
 	 */
 	private static function enqueue_assets(): void {
-		$asset_file = WP_AI_MIND_DIR . 'assets/admin/index.asset.php';
+		$asset_file = STILUS_DIR . 'assets/admin/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => WP_AI_MIND_VERSION,
+				'version'      => STILUS_VERSION,
 			];
 
 		wp_enqueue_script(
-			'wp-ai-mind-admin',
-			WP_AI_MIND_URL . 'assets/admin/index.js',
+			'stilus-admin',
+			STILUS_URL . 'assets/admin/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-i18n', 'wp-api-fetch' ] ),
 			$asset['version'],
 			true
 		);
 
-		$default_slug        = (string) get_option( 'wp_ai_mind_default_provider', 'claude' );
+		$default_slug        = (string) get_option( 'stilus_default_provider', 'claude' );
 		$provider_factory    = new ProviderFactory( new ProviderSettings() );
 		$default_model_label = 'AI';
 		try {
@@ -74,11 +74,11 @@ class ChatPage {
 		}
 
 		wp_localize_script(
-			'wp-ai-mind-admin',
+			'stilus-admin',
 			'wpAiMindData',
 			[
 				'nonce'             => wp_create_nonce( 'wp_rest' ),
-				'restUrl'           => esc_url_raw( rest_url( 'wp-ai-mind/v1' ) ),
+				'restUrl'           => esc_url_raw( rest_url( 'stilus/v1' ) ),
 				'currentPostId'     => 0,
 				'isPro'             => NJ_Tier_Manager::user_can( 'chat' ),
 				'siteTitle'         => get_bloginfo( 'name' ),
@@ -88,8 +88,8 @@ class ChatPage {
 		);
 
 		wp_enqueue_style(
-			'wp-ai-mind-admin',
-			WP_AI_MIND_URL . 'assets/admin/index.css',
+			'stilus-admin',
+			STILUS_URL . 'assets/admin/index.css',
 			[],
 			$asset['version']
 		);

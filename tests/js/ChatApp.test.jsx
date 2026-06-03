@@ -33,7 +33,7 @@ beforeAll( () => {
 	global.window.wpAiMindData = {
 		isPro: false,
 		defaultProvider: 'claude',
-		restUrl: 'http://localhost/wp-json/wp-ai-mind/v1',
+		restUrl: 'http://localhost/wp-json/stilus/v1',
 		nonce: 'test-nonce',
 	};
 } );

@@ -1,12 +1,12 @@
 <?php
-namespace WP_AI_Mind\Tests\Unit\Providers;
+namespace Stilus\Tests\Unit\Providers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Providers\AbstractProvider;
-use WP_AI_Mind\Providers\CompletionRequest;
-use WP_AI_Mind\Providers\CompletionResponse;
-use WP_AI_Mind\Providers\ProviderException;
+use Stilus\Providers\AbstractProvider;
+use Stilus\Providers\CompletionRequest;
+use Stilus\Providers\CompletionResponse;
+use Stilus\Providers\ProviderException;
 use PHPUnit\Framework\TestCase;
 
 class AbstractProviderTest extends TestCase {

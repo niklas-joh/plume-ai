@@ -2,19 +2,19 @@
 /**
  * Plugin bootstrap singleton — wires all hooks and owns the module registry.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Core;
+namespace Stilus\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\DB\Schema;
-use WP_AI_Mind\Proxy\NJ_Site_Registration;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use Stilus\DB\Schema;
+use Stilus\Proxy\NJ_Site_Registration;
+use Stilus\Tiers\NJ_Tier_Manager;
 
 /**
  * Plugin bootstrap singleton — wires hooks and owns the module registry.
@@ -100,33 +100,33 @@ class Plugin {
 		add_action( 'admin_init', [ NJ_Site_Registration::class, 'maybe_register' ] );
 		add_action( 'admin_menu', [ $this, 'register_admin_menu' ] );
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
-		add_action( 'wp_ai_mind_trial_check', [ \WP_AI_Mind\Tiers\NJ_Tier_Manager::class, 'maybe_demote_expired_trials' ] );
-		add_action( 'wp_ai_mind_register_menu', [ \WP_AI_Mind\Admin\AdminMenu::class, 'register' ] );
-		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\OnboardingRestController::class, 'register_routes' ] );
-		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\TestKeyRestController::class, 'register_routes' ] );
-		add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\ActivationVerifyRestController::class, 'register_routes' ] );
-		add_action( 'rest_api_init', [ \WP_AI_Mind\Payments\TierUpdateWebhookController::class, 'register' ] );
-		\WP_AI_Mind\Admin\TierStatusPage::register_hooks();
-		\WP_AI_Mind\Admin\NJ_Usage_Widget::register_hooks();
-		\WP_AI_Mind\Admin\ActivationNotice::register();
-		\WP_AI_Mind\Admin\TierSyncBackfillNotice::register();
+		add_action( 'stilus_trial_check', [ \Stilus\Tiers\NJ_Tier_Manager::class, 'maybe_demote_expired_trials' ] );
+		add_action( 'stilus_register_menu', [ \Stilus\Admin\AdminMenu::class, 'register' ] );
+		add_action( 'stilus_register_rest_routes', [ \Stilus\Admin\OnboardingRestController::class, 'register_routes' ] );
+		add_action( 'stilus_register_rest_routes', [ \Stilus\Admin\TestKeyRestController::class, 'register_routes' ] );
+		add_action( 'stilus_register_rest_routes', [ \Stilus\Admin\ActivationVerifyRestController::class, 'register_routes' ] );
+		add_action( 'rest_api_init', [ \Stilus\Payments\TierUpdateWebhookController::class, 'register' ] );
+		\Stilus\Admin\TierStatusPage::register_hooks();
+		\Stilus\Admin\NJ_Usage_Widget::register_hooks();
+		\Stilus\Admin\ActivationNotice::register();
+		\Stilus\Admin\TierSyncBackfillNotice::register();
 		if ( $this->modules->is_enabled( 'chat' ) ) {
-			add_action( 'plugins_loaded', [ \WP_AI_Mind\Modules\Chat\ChatModule::class, 'register' ], 20 );
-			\WP_AI_Mind\Modules\Editor\EditorModule::register();
+			add_action( 'plugins_loaded', [ \Stilus\Modules\Chat\ChatModule::class, 'register' ], 20 );
+			\Stilus\Modules\Editor\EditorModule::register();
 		}
 		if ( $this->modules->is_enabled( 'generator' ) ) {
-			\WP_AI_Mind\Modules\Generator\GeneratorModule::register();
+			\Stilus\Modules\Generator\GeneratorModule::register();
 		}
 		if ( $this->modules->is_enabled( 'frontend_widget' ) ) {
-			\WP_AI_Mind\Modules\Frontend\FrontendWidgetModule::register();
+			\Stilus\Modules\Frontend\FrontendWidgetModule::register();
 		}
 		if ( $this->modules->is_enabled( 'usage' ) ) {
-			\WP_AI_Mind\Modules\Usage\UsageModule::register();
+			\Stilus\Modules\Usage\UsageModule::register();
 		}
 		// SEO and Images are always registered so their admin pages enqueue assets;
 		// the Pro gate is enforced inside each React app.
-		\WP_AI_Mind\Modules\Seo\SeoModule::register();
-		\WP_AI_Mind\Modules\Images\ImagesModule::register();
+		\Stilus\Modules\Seo\SeoModule::register();
+		\Stilus\Modules\Images\ImagesModule::register();
 	}
 
 	/**
@@ -137,9 +137,9 @@ class Plugin {
 	 */
 	public function load_textdomain(): void {
 		load_plugin_textdomain(
-			'wp-ai-mind',
+			'stilus',
 			false,
-			dirname( WP_AI_MIND_BASENAME ) . '/languages'
+			dirname( STILUS_BASENAME ) . '/languages'
 		);
 	}
 
@@ -151,7 +151,7 @@ class Plugin {
 	 */
 	public function register_admin_menu(): void {
 		// Registered fully in Admin\AdminMenu — hooked in P3.
-		do_action( 'wp_ai_mind_register_menu' );
+		do_action( 'stilus_register_menu' );
 	}
 
 	/**
@@ -161,7 +161,7 @@ class Plugin {
 	 * @return void
 	 */
 	public function register_rest_routes(): void {
-		do_action( 'wp_ai_mind_register_rest_routes' );
+		do_action( 'stilus_register_rest_routes' );
 	}
 
 	// ── Activation / deactivation ─────────────────────────────────────────────
@@ -174,9 +174,9 @@ class Plugin {
 	 */
 	public static function activate(): void {
 		Schema::create_tables();
-		update_option( 'wp_ai_mind_just_activated', true );
-		if ( ! wp_next_scheduled( 'wp_ai_mind_trial_check' ) ) {
-			wp_schedule_event( time(), 'daily', 'wp_ai_mind_trial_check' );
+		update_option( 'stilus_just_activated', true );
+		if ( ! wp_next_scheduled( 'stilus_trial_check' ) ) {
+			wp_schedule_event( time(), 'daily', 'stilus_trial_check' );
 		}
 		self::backfill_site_tier_option();
 		flush_rewrite_rules();
@@ -189,7 +189,7 @@ class Plugin {
 	 * logged-out callers, cron, and CLI. On upgrade we promote that meta value
 	 * to the site option so resolution stays correct.
 	 *
-	 * A `wp_ai_mind_backfill_done` marker is written after the first run so that
+	 * A `stilus_backfill_done` marker is written after the first run so that
 	 * repeated activate/deactivate cycles and fresh installs never re-execute
 	 * the `get_users()` query.
 	 *
@@ -198,12 +198,12 @@ class Plugin {
 	 */
 	private static function backfill_site_tier_option(): void {
 		// Already migrated — skip without touching the DB.
-		if ( get_option( 'wp_ai_mind_backfill_done', false ) ) {
+		if ( get_option( 'stilus_backfill_done', false ) ) {
 			return;
 		}
 
 		if ( false !== get_option( NJ_Tier_Manager::SITE_OPTION, false ) ) {
-			update_option( 'wp_ai_mind_backfill_done', true, false );
+			update_option( 'stilus_backfill_done', true, false );
 			return;
 		}
 
@@ -216,13 +216,13 @@ class Plugin {
 			]
 		);
 		if ( empty( $users ) ) {
-			update_option( 'wp_ai_mind_backfill_done', true, false );
+			update_option( 'stilus_backfill_done', true, false );
 			return;
 		}
 
 		$tier = (string) get_user_meta( (int) $users[0], NJ_Tier_Manager::META_KEY, true );
 		NJ_Tier_Manager::set_site_tier( $tier );
-		update_option( 'wp_ai_mind_backfill_done', true, false );
+		update_option( 'stilus_backfill_done', true, false );
 	}
 
 	/**
@@ -232,7 +232,7 @@ class Plugin {
 	 * @return void
 	 */
 	public static function deactivate(): void {
-		wp_clear_scheduled_hook( 'wp_ai_mind_trial_check' );
+		wp_clear_scheduled_hook( 'stilus_trial_check' );
 		flush_rewrite_rules();
 	}
 

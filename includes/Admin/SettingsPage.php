@@ -2,18 +2,18 @@
 /**
  * Admin page rendering the plugin settings screen.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use Stilus\Tiers\NJ_Tier_Manager;
 
 /**
  * Renders the Stilus settings admin page.
@@ -32,7 +32,7 @@ class SettingsPage {
 	 */
 	public static function render(): void {
 		self::enqueue_assets();
-		echo '<div id="wp-ai-mind-settings" class="wp-ai-mind-page"></div>';
+		echo '<div id="stilus-settings" class="stilus-page"></div>';
 	}
 
 	/**
@@ -42,29 +42,29 @@ class SettingsPage {
 	 * @return void
 	 */
 	public static function enqueue_assets(): void {
-		$asset_file = WP_AI_MIND_DIR . 'assets/admin/index.asset.php';
+		$asset_file = STILUS_DIR . 'assets/admin/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => WP_AI_MIND_VERSION,
+				'version'      => STILUS_VERSION,
 			];
 
 		wp_enqueue_script(
-			'wp-ai-mind-admin',
-			WP_AI_MIND_URL . 'assets/admin/index.js',
+			'stilus-admin',
+			STILUS_URL . 'assets/admin/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-i18n', 'wp-api-fetch' ] ),
 			$asset['version'],
 			true
 		);
 
 		wp_localize_script(
-			'wp-ai-mind-admin',
+			'stilus-admin',
 			'wpAiMindData',
 			[
 				'nonce'         => wp_create_nonce( 'wp_rest' ),
-				'restUrl'       => esc_url_raw( rest_url( 'wp-ai-mind/v1' ) ),
-				'upgradeUrl'    => esc_url( admin_url( 'admin.php?page=wp-ai-mind-upgrade' ) ),
+				'restUrl'       => esc_url_raw( rest_url( 'stilus/v1' ) ),
+				'upgradeUrl'    => esc_url( admin_url( 'admin.php?page=stilus-upgrade' ) ),
 				'currentPostId' => 0,
 				'isPro'         => NJ_Tier_Manager::user_can( 'generator' ),
 				'siteTitle'     => get_bloginfo( 'name' ),
@@ -77,8 +77,8 @@ class SettingsPage {
 		);
 
 		wp_enqueue_style(
-			'wp-ai-mind-admin',
-			WP_AI_MIND_URL . 'assets/admin/index.css',
+			'stilus-admin',
+			STILUS_URL . 'assets/admin/index.css',
 			[],
 			$asset['version']
 		);

@@ -211,13 +211,13 @@ jobs:
       - name: Install npm dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Build production plugin payload (dist/wp-ai-mind/)
+      - name: Build production plugin payload (dist/stilus/)
         run: bash bin/build-wporg.sh
 
       - name: Run WP Plugin Check
         uses: WordPress/plugin-check-action@v1
         with:
-          build-dir: 'dist/wp-ai-mind'
+          build-dir: 'dist/stilus'
           # plugin_repo runs WP.org submission-readiness checks (readme.txt
           # format, headers, screenshots, etc.) — useful even before listing.
           categories: 'general,security,performance,accessibility,plugin_repo'
@@ -253,8 +253,8 @@ jobs:
         # be passed through env to avoid run-shell-injection (Semgrep
         # yaml.github-actions.security.run-shell-injection).
         env:
-          PLUGIN_DIR: dist/wp-ai-mind
-          BASE_DIR: base-checkout/dist/wp-ai-mind
+          PLUGIN_DIR: dist/stilus
+          BASE_DIR: base-checkout/dist/stilus
           BASE_REF: ${{ github.base_ref }}
         run: |
           if [ ! -d "$PLUGIN_DIR" ]; then
@@ -284,7 +284,7 @@ jobs:
             echo "(${sign}$(numfmt --to=iec --suffix=B "$abs"))"
           }
 
-          PLUGIN_VERSION=$(grep "Version:" "$PLUGIN_DIR/wp-ai-mind.php" | head -1 | sed 's/.*Version:[[:space:]]*//' | tr -d '[:space:]')
+          PLUGIN_VERSION=$(grep "Version:" "$PLUGIN_DIR/stilus.php" | head -1 | sed 's/.*Version:[[:space:]]*//' | tr -d '[:space:]')
           BUILD_SIZE=$(du -sh "$PLUGIN_DIR" | awk '{print $1}')
           PHP_COUNT=$(count_php_plugin "$PLUGIN_DIR")
           VENDOR_PHP=$(count_php_vendor "$PLUGIN_DIR")
@@ -334,7 +334,7 @@ jobs:
           message: |
             ## 🔍 Plugin Check — Diagnostic Summary
 
-            **Audited shipping payload** built by `bin/build-wporg.sh` → `dist/wp-ai-mind/`
+            **Audited shipping payload** built by `bin/build-wporg.sh` → `dist/stilus/`
             (matches the production zip uploaded to GitHub Releases.)
 
             | Metric | Value | Δ vs `${{ steps.metrics.outputs.base_ref || 'main' }}` |
@@ -362,7 +362,7 @@ jobs:
   # Performance/SEO are warn-only; accessibility and asset-minification are
   # enforced as errors.
   #
-  # Tests the SHIPPING payload (bin/build-wporg.sh -> dist/wp-ai-mind/) with
+  # Tests the SHIPPING payload (bin/build-wporg.sh -> dist/stilus/) with
   # SCRIPT_DEBUG=false so the audit reflects what real users see, not the
   # development-mode unminified core scripts.
   lighthouse:
@@ -387,14 +387,14 @@ jobs:
       - name: Install npm dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Build production plugin payload (dist/wp-ai-mind/)
+      - name: Build production plugin payload (dist/stilus/)
         run: bash bin/build-wporg.sh
 
       - name: Override wp-env to load the built plugin in production mode
         run: |
           cat > .wp-env.override.json << 'EOF'
           {
-            "plugins": ["./dist/wp-ai-mind"],
+            "plugins": ["./dist/stilus"],
             "config": {
               "WP_DEBUG": false,
               "SCRIPT_DEBUG": false

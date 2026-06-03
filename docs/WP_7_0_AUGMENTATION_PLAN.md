@@ -1,4 +1,4 @@
-# WordPress 7.0 — wp-ai-mind Augmentation Plan
+# WordPress 7.0 — stilus Augmentation Plan
 ## Phased Implementation Roadmap
 
 > **Purpose.** Reference document for the WP 7.0 (GA 2026-05-20) augmentation work. Each phase is independently shippable; only Phase 3 depends on WP 7.0 actually being released. Companion to `WP_AI_MIND_ARCHITECTURE.md`.
@@ -34,7 +34,7 @@ Tier structure stays. **Pro BYOK becomes a monthly subscription** (e.g. €9.90/
 ### Implication: what this plan rejects
 
 - **No site-wide AI licensing chokepoint.** `wp_ai_client_prevent_prompt` is NOT wired up to gate other plugins' AI calls. That posture would cause uninstalls.
-- **No provider registration with core.** wp-ai-mind providers are NOT exposed as core-visible providers. Doing so would (a) leak our Cloudflare Worker quota to other plugins, and (b) duplicate WP 7.0's first-party Anthropic/Google/OpenAI connectors.
+- **No provider registration with core.** stilus providers are NOT exposed as core-visible providers. Doing so would (a) leak our Cloudflare Worker quota to other plugins, and (b) duplicate WP 7.0's first-party Anthropic/Google/OpenAI connectors.
 - **No grandfathering decision in this plan.** Existing one-time-fee BYOK customer transition is flagged separately and must be decided before any pricing-page change ships.
 
 ---
@@ -60,7 +60,7 @@ Tier structure stays. **Pro BYOK becomes a monthly subscription** (e.g. €9.90/
 | # | Item | Why dropped |
 |---|---|---|
 | 1.2 | Wire `wp_ai_client_prevent_prompt` site-wide | Hostile to other plugins; uninstall risk |
-| 3.1 | Register wp-ai-mind providers with `wp_ai_client` | Cost leakage (our Worker quota exposed) + duplication of core connectors |
+| 3.1 | Register stilus providers with `wp_ai_client` | Cost leakage (our Worker quota exposed) + duplication of core connectors |
 | 3.2 | Register models with WP 7.0 model registry | Moot without 3.1 |
 | 5.1 | Frontend widget JS AI Client fallback | Two code paths, low priority — defer indefinitely |
 | 4.3 | Tier features as queryable Abilities | `own_api_key` not coherent under monthly pricing — defer to phase 2 if customer ask materialises |
@@ -119,7 +119,7 @@ Single function consolidating the four scattered gates (tier feature check, mont
 | API surface | Plan assumes | Validate against |
 |---|---|---|
 | Connectors read | `wp_get_connector( 'anthropic' )` returning `[ 'api_key' => ... ]` | WP 7.0 source / Connectors API dev-note final version |
-| Abilities category | `wp_register_ability_category( 'wp-ai-mind', [...] )` on `wp_abilities_api_categories_init` | Abilities API dev-note + `wp_register_ability` source |
+| Abilities category | `wp_register_ability_category( 'stilus', [...] )` on `wp_abilities_api_categories_init` | Abilities API dev-note + `wp_register_ability` source |
 | Abilities | `wp_register_ability( 'slug', [...] )` with `execute_callback`, `permission_callback`, `meta.annotations.{readonly,destructive,idempotent}` | same |
 | Generative result | `do_action( 'wp_ai_record_result', new \WP_AI_Generative_Result( [...] ) )` or equivalent | AI Client dev-note final version |
 | System instruction registry | `wp_ai_register_instruction( 'slug', $text )` *or builder-only* | AI Client dev-note final version |
@@ -158,13 +158,13 @@ A short validation note appended to this document (or as a new `WP_7_0_API_VALID
 - Sub-task: add `public function all(): array { return $this->tools; }` to `ToolRegistry` (currently private at `:26`)
 - Sub-task: add `plan_post` and `plan_update` handler methods to `ToolExecutor` and register them in the dispatch table. These two tools appear in `ToolRegistry` but have no corresponding private methods or dispatch entries in `ToolExecutor` — calling them today returns `['error' => 'Unknown tool: plan_post']`. They must be implemented before Phase 4.1 ships, or explicitly excluded from the Abilities surface with a documented rationale.
 
-**Why headline.** Core command palette, MCP clients (Claude Desktop, Claude Code), WP-CLI, and any agent-framework plugin gain access to wp-ai-mind tools without bespoke integration. This positions wp-ai-mind as the agent-action layer for the site **without** forcing other plugins through our tier system.
+**Why headline.** Core command palette, MCP clients (Claude Desktop, Claude Code), WP-CLI, and any agent-framework plugin gain access to stilus tools without bespoke integration. This positions stilus as the agent-action layer for the site **without** forcing other plugins through our tier system.
 
 ### 4.2 `wp_ai_mind_register_tools` extensibility hook
 
 `ToolRegistry::register_tools()` is private and hardcoded. Add an action hook fired after built-in registration so third-party plugins can append `ToolDefinition` instances. The Abilities exposure (4.1) then picks them up automatically.
 
-- **Data flow clarification.** This hook lets *other plugins add their own tools* to wp-ai-mind's catalogue. It does NOT let other plugins consume our Anthropic quota or licence. Tools execute as plain PHP under the *current user's* WP capabilities.
+- **Data flow clarification.** This hook lets *other plugins add their own tools* to stilus's catalogue. It does NOT let other plugins consume our Anthropic quota or licence. Tools execute as plain PHP under the *current user's* WP capabilities.
 - **Trust model.** Tools registered via this hook are code, not user input. Standard WordPress trust model applies — only trusted plugins should register tools. Document this clearly.
 
 **Files:** `includes/Tools/ToolRegistry.php:33-35, 89+`
@@ -192,11 +192,11 @@ On WP 7.0+, the plugin's API-key admin page (`includes/Admin/NJ_Api_Key_Settings
 
 ### Phase 3 acceptance
 
-- `wp ability list | grep wp-ai-mind` shows all 10 tools after installing `wp-cli/ability-command:dev-main`
-- `wp ability run wp-ai-mind/get_recent_posts` as admin → returns posts; as subscriber → fails
-- `wp ability run wp-ai-mind/create_post` as editor → creates post; as subscriber → fails
-- Claude Desktop / Claude Code MCP can list and call wp-ai-mind abilities
-- Side plugin registers a tool via `wp_ai_mind_register_tools` action → appears as `wp-ai-mind/{tool_name}` Ability
+- `wp ability list | grep stilus` shows all 10 tools after installing `wp-cli/ability-command:dev-main`
+- `wp ability run stilus/get_recent_posts` as admin → returns posts; as subscriber → fails
+- `wp ability run stilus/create_post` as editor → creates post; as subscriber → fails
+- Claude Desktop / Claude Code MCP can list and call stilus abilities
+- Side plugin registers a tool via `wp_ai_mind_register_tools` action → appears as `stilus/{tool_name}` Ability
 - On WP 7.0 staging with Anthropic key in core's Connectors → plugin chat works without a DB key entry
 - Plugin's API-key admin page shows redirect link on WP 7.0; defining `WP_AI_MIND_FORCE_LOCAL_KEY_STORAGE` shows form; on WP 6.x always shows form
 
@@ -226,7 +226,7 @@ When `AbstractProvider::maybe_log()` (`includes/Providers/AbstractProvider.php:1
 ### Phase 4 acceptance
 
 - `GenerativeAiResult` records appear in any core admin AI dashboard (if shipped) with correct token counts and model
-- *(If 5.2 ships)* third-party plugin calling `wp_ai_client_prompt('write a sentence')->using_system_instruction('wp-ai-mind/site-voice')->generate_text()` produces output reflecting the configured site voice
+- *(If 5.2 ships)* third-party plugin calling `wp_ai_client_prompt('write a sentence')->using_system_instruction('stilus/site-voice')->generate_text()` produces output reflecting the configured site voice
 
 ---
 
@@ -234,7 +234,7 @@ When `AbstractProvider::maybe_log()` (`includes/Providers/AbstractProvider.php:1
 
 **Tier-sync webhook gap.** Today the Cloudflare Worker stores LemonSqueezy tier upgrades in KV but never pushes them back to WP user meta. Pro-tier features that gate on `NJ_Tier_Manager::user_can()` (SEO, Images, Generator, model selection in admin UI) stay locked even after a paid upgrade.
 
-The Worker has no read or write access to MySQL — only its own Cloudflare KV namespace and the HTTP `fetch` API. The fix is therefore: Worker, after writing KV, makes an outbound HTTPS POST to `{site_url}/wp-json/wp-ai-mind/v1/tier-update` with HMAC signature; WordPress receives the webhook and writes its own DB itself.
+The Worker has no read or write access to MySQL — only its own Cloudflare KV namespace and the HTTP `fetch` API. The fix is therefore: Worker, after writing KV, makes an outbound HTTPS POST to `{site_url}/wp-json/stilus/v1/tier-update` with HMAC signature; WordPress receives the webhook and writes its own DB itself.
 
 **This work is NOT part of the WP 7.0 plan.** Filed as a standalone issue for a separate implementation session. It can be picked up before, during, or after any phase here. It optionally benefits from Phase 1 item 1.3 (tier-cache invalidation on `wp_ai_mind_tier_changed`).
 
@@ -265,7 +265,7 @@ The decision to switch Pro BYOK from one-time fee → monthly subscription has i
 | Q1 | 2.1 | Exact Connectors API function name (`wp_get_connector` vs alternative) | Phase 2 spike |
 | Q2 | 2.2 | Exact admin page slug for core's Connectors screen | Phase 2 spike |
 | Q3 | 3.3 | Exact result-class name and action signature for `GenerativeAiResult` emission | Phase 2 spike |
-| Q4 | 4.1 | MCP clients calling `wp-ai-mind/create_post` directly — do we want a per-ability "approval required" UX layer beyond `permission_callback` + `destructive: true`? | Phase 2 spike |
+| Q4 | 4.1 | MCP clients calling `stilus/create_post` directly — do we want a per-ability "approval required" UX layer beyond `permission_callback` + `destructive: true`? | Phase 2 spike |
 | Q5 | 5.2 | Does WP 7.0 ship a `wp_ai_register_instruction()` registry, or is `using_system_instruction()` on the builder the only entry point? | Phase 2 spike — drop item if registry doesn't exist |
 | Q6 | Strategic | Transition for existing one-time-fee BYOK customers when switching to monthly subscription | **Not part of this plan.** Decide before any pricing-page change. Suggested: grandfather existing licences. |
 
@@ -288,7 +288,7 @@ The decision to switch Pro BYOK from one-time fee → monthly subscription has i
 | `includes/Abilities/ToolToAbility.php` *(new)* | 4.1 | 3 |
 | `includes/Voice/VoiceInjector.php` | 5.2 | 4 |
 
-(Out-of-plan tier-sync items in [#497](https://github.com/niklas-joh/wp-ai-mind/issues/497) touch `includes/Payments/`, `includes/Settings/NJ_Site_Registration.php`, `wp-ai-mind-proxy/src/webhook.ts`, `wp-ai-mind-proxy/src/registration.ts`.)
+(Out-of-plan tier-sync items in [#497](https://github.com/niklas-joh/wp-ai-mind/issues/497) touch `includes/Payments/`, `includes/Settings/NJ_Site_Registration.php`, `stilus-proxy/src/webhook.ts`, `stilus-proxy/src/registration.ts`.)
 
 ---
 
@@ -299,18 +299,18 @@ The decision to switch Pro BYOK from one-time fee → monthly subscription has i
 - **1.3** — Multi-call benchmark on `NJ_Tier_Manager::get_user_tier()` shows single `get_user_meta` per cache window. Force-update tier and assert next read hits DB.
 - **2.1** — On WP 7.0 staging, configure Anthropic key in core's Connectors → `get_api_key('claude')` returns it. Remove env var, remove DB key, leave Connectors → still works.
 - **2.2** — On WP 7.0 staging, visit plugin's API-key page → see redirect link. Define `WP_AI_MIND_FORCE_LOCAL_KEY_STORAGE` → see plugin's own form. On WP 6.x → always see plugin's own form.
-- **3.3** — On WP 7.0 staging, run a chat completion → inspect any core admin AI dashboard (if shipped) → confirm wp-ai-mind completion appears with correct token counts.
-- **4.1 / 4.2** — Run `wp ability list | grep wp-ai-mind` after installing `wp-cli/ability-command:dev-main`. Run `wp ability run wp-ai-mind/get_recent_posts` as admin → returns posts. Run `wp ability run wp-ai-mind/create_post` as editor → succeeds; as subscriber → fails. From Claude Desktop or Claude Code MCP, list tools and call one. From a side plugin, register a test tool via `wp_ai_mind_register_tools` action and confirm it appears as `wp-ai-mind/{tool_name}` Ability.
-- **5.2** *(if shipped)* — On WP 7.0, call `wp_ai_client_prompt('write a sentence')->using_system_instruction('wp-ai-mind/site-voice')->generate_text()` from another plugin → response reflects configured site voice.
+- **3.3** — On WP 7.0 staging, run a chat completion → inspect any core admin AI dashboard (if shipped) → confirm stilus completion appears with correct token counts.
+- **4.1 / 4.2** — Run `wp ability list | grep stilus` after installing `wp-cli/ability-command:dev-main`. Run `wp ability run stilus/get_recent_posts` as admin → returns posts. Run `wp ability run stilus/create_post` as editor → succeeds; as subscriber → fails. From Claude Desktop or Claude Code MCP, list tools and call one. From a side plugin, register a test tool via `wp_ai_mind_register_tools` action and confirm it appears as `stilus/{tool_name}` Ability.
+- **5.2** *(if shipped)* — On WP 7.0, call `wp_ai_client_prompt('write a sentence')->using_system_instruction('stilus/site-voice')->generate_text()` from another plugin → response reflects configured site voice.
 
 ### End-to-end smoke test for the augmented stack
 
-On a WP 7.0 staging site with wp-ai-mind installed and an Anthropic key configured via core's Connectors API:
+On a WP 7.0 staging site with stilus installed and an Anthropic key configured via core's Connectors API:
 
 1. The plugin chat continues to work (key resolved via Connectors API path 2.1)
-2. `wp ability list` shows `wp-ai-mind/get_recent_posts`, `wp-ai-mind/create_post`, etc.
-3. Claude Code (MCP client) can list and call wp-ai-mind abilities under the current user's capabilities
-4. Third-party plugins making their own `wp_ai_client_prompt()` calls work *independently* through core's first-party connectors, untouched by wp-ai-mind
+2. `wp ability list` shows `stilus/get_recent_posts`, `stilus/create_post`, etc.
+3. Claude Code (MCP client) can list and call stilus abilities under the current user's capabilities
+4. Third-party plugins making their own `wp_ai_client_prompt()` calls work *independently* through core's first-party connectors, untouched by stilus
 
 ---
 

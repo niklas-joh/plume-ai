@@ -1,20 +1,20 @@
 <?php
 /**
- * PSR-4 autoloader for the WP_AI_Mind namespace, used as a Composer fallback.
+ * PSR-4 autoloader for the Stilus namespace, used as a Composer fallback.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Core;
+namespace Stilus\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * PSR-4 autoloader for the WP_AI_Mind namespace.
+ * PSR-4 autoloader for the Stilus namespace.
  *
  * Retained as a safety net for environments where the Composer vendor directory
  * is absent. Composer's autoloader takes precedence when available.
@@ -52,14 +52,14 @@ class Autoloader {
 	 * @return void
 	 */
 	public static function load( string $class_name ): void {
-		$prefix = 'WP_AI_Mind\\';
+		$prefix = 'Stilus\\';
 		if ( ! str_starts_with( $class_name, $prefix ) ) {
 			return;
 		}
 		$relative = substr( $class_name, strlen( $prefix ) );
-		// WP_AI_MIND_DIR is set in the WordPress bootstrap (wp-ai-mind.php).
+		// STILUS_DIR is set in the WordPress bootstrap (stilus.php).
 		// In unit test context it is not defined, so fall back to plugin root.
-		$base = defined( 'WP_AI_MIND_DIR' ) ? WP_AI_MIND_DIR : dirname( __DIR__, 2 ) . '/';
+		$base = defined( 'STILUS_DIR' ) ? STILUS_DIR : dirname( __DIR__, 2 ) . '/';
 		$file = $base . 'includes/' . str_replace( '\\', '/', $relative ) . '.php';
 		if ( file_exists( $file ) ) {
 			require_once $file;

@@ -2,16 +2,16 @@
 /**
  * Sends authenticated requests to the Cloudflare Worker AI proxy.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Proxy;
+namespace Stilus\Proxy;
 
 use WP_Error;
-use WP_AI_Mind\Tiers\NJ_Tier_Config;
-use WP_AI_Mind\Tiers\NJ_Usage_Tracker;
+use Stilus\Tiers\NJ_Tier_Config;
+use Stilus\Tiers\NJ_Usage_Tracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -46,14 +46,14 @@ class NJ_Proxy_Client {
 			if ( ! has_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'not_registered', __( 'Site not registered with AI proxy.', 'wp-ai-mind' ) );
+			return new WP_Error( 'not_registered', __( 'Site not registered with AI proxy.', 'stilus' ) );
 		}
 
 		$user_id = get_current_user_id();
 
 		// Fail-fast pre-check (WordPress meta). Cloudflare KV is authoritative for enforcement.
 		if ( ! NJ_Usage_Tracker::check_limit( $user_id ) ) {
-			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'wp-ai-mind' ) );
+			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'stilus' ) );
 		}
 
 		$payload = [
@@ -76,7 +76,7 @@ class NJ_Proxy_Client {
 
 		$body_json = wp_json_encode( $payload );
 		if ( false === $body_json ) {
-			return new WP_Error( 'json_encode_failed', __( 'Failed to encode request payload.', 'wp-ai-mind' ) );
+			return new WP_Error( 'json_encode_failed', __( 'Failed to encode request payload.', 'stilus' ) );
 		}
 
 		$response = wp_remote_post(
@@ -99,7 +99,7 @@ class NJ_Proxy_Client {
 		$body = json_decode( wp_remote_retrieve_body( $response ), true ) ?? [];
 
 		if ( 429 === $code ) {
-			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'wp-ai-mind' ) );
+			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'stilus' ) );
 		}
 
 		if ( 401 === $code ) {
@@ -110,7 +110,7 @@ class NJ_Proxy_Client {
 			if ( ! has_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ NJ_Site_Registration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'proxy_auth_failed', __( 'Proxy authentication failed. Please reload the page and try again.', 'wp-ai-mind' ) );
+			return new WP_Error( 'proxy_auth_failed', __( 'Proxy authentication failed. Please reload the page and try again.', 'stilus' ) );
 		}
 
 		if ( $code < 200 || $code >= 300 ) {

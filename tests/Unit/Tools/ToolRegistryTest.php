@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Tools;
+namespace Stilus\Tests\Unit\Tools;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Tools\ToolRegistry;
+use Stilus\Tools\ToolRegistry;
 use PHPUnit\Framework\TestCase;
 
 class ToolRegistryTest extends TestCase {
@@ -31,10 +31,10 @@ class ToolRegistryTest extends TestCase {
 	private function stub_write_tools( bool $enabled ): void {
 		Functions\when( 'get_option' )
 			->alias( static function ( string $key, $default = false ) use ( $enabled ) {
-				if ( 'wp_ai_mind_enable_write_tools' === $key ) {
+				if ( 'stilus_enable_write_tools' === $key ) {
 					return $enabled;
 				}
-				if ( 'wp_ai_mind_allowed_post_types' === $key ) {
+				if ( 'stilus_allowed_post_types' === $key ) {
 					return $default; // Return default passthrough.
 				}
 				return $default;
@@ -149,7 +149,7 @@ class ToolRegistryTest extends TestCase {
 	public function test_allowed_post_types_returns_default(): void {
 		Functions\when( 'get_option' )
 			->alias( static function ( string $key, $default = false ) {
-				if ( 'wp_ai_mind_allowed_post_types' === $key ) {
+				if ( 'stilus_allowed_post_types' === $key ) {
 					return $default; // Returns ['post', 'page'].
 				}
 				return false;
@@ -166,7 +166,7 @@ class ToolRegistryTest extends TestCase {
 	public function test_allowed_post_types_honours_filter(): void {
 		Functions\when( 'get_option' )
 			->alias( static function ( string $key, $default = false ) {
-				if ( 'wp_ai_mind_allowed_post_types' === $key ) {
+				if ( 'stilus_allowed_post_types' === $key ) {
 					return $default;
 				}
 				return false;
@@ -175,7 +175,7 @@ class ToolRegistryTest extends TestCase {
 		// Override the filter to append 'product'.
 		Functions\when( 'apply_filters' )
 			->alias( static function ( string $tag, $value ) {
-				if ( 'wp_ai_mind_allowed_post_types' === $tag ) {
+				if ( 'stilus_allowed_post_types' === $tag ) {
 					return [ 'post', 'page', 'product' ];
 				}
 				return $value;

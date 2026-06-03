@@ -6,15 +6,15 @@
  * including a live database and a functional REST server. Shared helpers
  * cover tier assignment, HTTP interception, and REST dispatch.
  *
- * @package WP_AI_Mind\Tests\Integration
+ * @package Stilus\Tests\Integration
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Integration;
+namespace Stilus\Tests\Integration;
 
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-use WP_AI_Mind\Proxy\NJ_Site_Registration;
+use Stilus\Tiers\NJ_Tier_Manager;
+use Stilus\Proxy\NJ_Site_Registration;
 
 /**
  * Base integration test case.
@@ -231,7 +231,7 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 	 *
 	 * @since 1.0.0
 	 * @param string               $method HTTP method ('GET', 'POST', 'PATCH', 'DELETE').
-	 * @param string               $route  REST route path, e.g. '/wp-ai-mind/v1/conversations'.
+	 * @param string               $route  REST route path, e.g. '/stilus/v1/conversations'.
 	 * @param array<string, mixed> $params Request parameters (query string or body).
 	 * @return \WP_REST_Response
 	 */

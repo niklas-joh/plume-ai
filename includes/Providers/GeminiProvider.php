@@ -2,20 +2,20 @@
 /**
  * AI provider implementation for the Google Gemini API.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Providers;
+namespace Stilus\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Proxy\NJ_Proxy_Client;
-use WP_AI_Mind\Proxy\NJ_Site_Registration;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-use WP_AI_Mind\Tools\ToolRegistry;
+use Stilus\Proxy\NJ_Proxy_Client;
+use Stilus\Proxy\NJ_Site_Registration;
+use Stilus\Tiers\NJ_Tier_Manager;
+use Stilus\Tools\ToolRegistry;
 
 /**
  * Handles completions, streaming, and image generation for Google Gemini models.
@@ -299,7 +299,7 @@ class GeminiProvider extends AbstractProvider {
 				'gemini'
 			);
 		}
-		update_post_meta( $attachment_id, '_wp_ai_mind_prompt', sanitize_textarea_field( $prompt ) );
+		update_post_meta( $attachment_id, '_stilus_prompt', sanitize_textarea_field( $prompt ) );
 		return $attachment_id;
 	}
 
@@ -334,7 +334,7 @@ class GeminiProvider extends AbstractProvider {
 		$response = wp_remote_post(
 			$url,
 			[
-				'timeout' => WP_AI_MIND_HTTP_TIMEOUT,
+				'timeout' => STILUS_HTTP_TIMEOUT,
 				'headers' => [ 'Content-Type' => 'application/json' ],
 				'body'    => wp_json_encode( $body ),
 			]

@@ -17,7 +17,7 @@ export default function UsageDashboard() {
 	const [ error, setError ] = useState( null );
 
 	useEffect( () => {
-		apiFetch( { path: '/wp-ai-mind/v1/usage' } )
+		apiFetch( { path: '/stilus/v1/usage' } )
 			.then( setData )
 			.catch( ( e ) =>
 				setError( e?.message || 'Failed to load usage data.' )

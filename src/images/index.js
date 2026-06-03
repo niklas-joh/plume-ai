@@ -9,7 +9,7 @@ if ( nonce ) {
 	apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 }
 
-const root = document.getElementById( 'wp-ai-mind-images' );
+const root = document.getElementById( 'stilus-images' );
 if ( root ) {
 	render( <ImagesApp />, root );
 }

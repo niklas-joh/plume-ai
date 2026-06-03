@@ -1,13 +1,13 @@
 <?php
-namespace WP_AI_Mind\Tests\Unit\Providers;
+namespace Stilus\Tests\Unit\Providers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Providers\ProviderFactory;
-use WP_AI_Mind\Providers\ClaudeProvider;
-use WP_AI_Mind\Providers\OpenAIProvider;
-use WP_AI_Mind\Providers\GeminiProvider;
-use WP_AI_Mind\Settings\ProviderSettings;
+use Stilus\Providers\ProviderFactory;
+use Stilus\Providers\ClaudeProvider;
+use Stilus\Providers\OpenAIProvider;
+use Stilus\Providers\GeminiProvider;
+use Stilus\Settings\ProviderSettings;
 use PHPUnit\Framework\TestCase;
 
 class ProviderFactoryTest extends TestCase {
@@ -45,7 +45,7 @@ class ProviderFactoryTest extends TestCase {
 
     public function test_make_default_reads_from_options(): void {
         Functions\when( 'get_option' )->alias( fn( $k, $d = null ) =>
-            $k === 'wp_ai_mind_default_provider' ? 'openai' : ( is_array( $d ) ? $d : [] )
+            $k === 'stilus_default_provider' ? 'openai' : ( is_array( $d ) ? $d : [] )
         );
         Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
         $factory = new ProviderFactory( new ProviderSettings() );
@@ -54,7 +54,7 @@ class ProviderFactoryTest extends TestCase {
 
     public function test_make_default_falls_back_to_claude(): void {
         Functions\when( 'get_option' )->alias( fn( $k, $d = null ) =>
-            $k === 'wp_ai_mind_default_provider' ? false : ( is_array( $d ) ? $d : [] )
+            $k === 'stilus_default_provider' ? false : ( is_array( $d ) ? $d : [] )
         );
         Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
         $factory = new ProviderFactory( new ProviderSettings() );
@@ -63,7 +63,7 @@ class ProviderFactoryTest extends TestCase {
 
     public function test_make_image_provider_returns_gemini_by_default(): void {
         Functions\when( 'get_option' )->alias( fn( $k, $d = null ) =>
-            in_array( $k, [ 'wp_ai_mind_image_provider', 'wp_ai_mind_default_provider' ], true ) ? false : ( is_array( $d ) ? $d : [] )
+            in_array( $k, [ 'stilus_image_provider', 'stilus_default_provider' ], true ) ? false : ( is_array( $d ) ? $d : [] )
         );
         Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
         $factory = new ProviderFactory( new ProviderSettings() );

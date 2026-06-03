@@ -2,18 +2,18 @@
 /**
  * Handles site registration with the Cloudflare Worker AI proxy.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Proxy;
+namespace Stilus\Proxy;
 
 use WP_Error;
-use WP_AI_Mind\Admin\ActivationVerifyRestController;
-use WP_AI_Mind\Payments\TierUpdateWebhookController;
-use WP_AI_Mind\Tiers\NJ_Tier_Config;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use Stilus\Admin\ActivationVerifyRestController;
+use Stilus\Payments\TierUpdateWebhookController;
+use Stilus\Tiers\NJ_Tier_Config;
+use Stilus\Tiers\NJ_Tier_Manager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NJ_Site_Registration {
 
-	public const OPTION_TOKEN = 'wp_ai_mind_site_token';
+	public const OPTION_TOKEN = 'stilus_site_token';
 
 	/**
 	 * Option key for the per-site HMAC secret used to authenticate Worker → WP
@@ -41,7 +41,7 @@ class NJ_Site_Registration {
 	 */
 	public const OPTION_SECRET = TierUpdateWebhookController::OPTION_SECRET;
 
-	private const TRANSIENT_BACKOFF = 'wp_ai_mind_reg_backoff';
+	private const TRANSIENT_BACKOFF = 'stilus_reg_backoff';
 
 	/**
 	 * Return the checkout URL for the Pro Managed Monthly plan.
@@ -272,7 +272,7 @@ class NJ_Site_Registration {
 	 */
 	public static function checkout_url( string $variant_id ): string {
 		$token = self::get_site_token();
-		$url   = 'https://wp-ai-mind.lemonsqueezy.com/checkout/buy/' . rawurlencode( $variant_id );
+		$url   = 'https://stilus.lemonsqueezy.com/checkout/buy/' . rawurlencode( $variant_id );
 		if ( $token ) {
 			$url .= '?checkout[custom][site_token]=' . rawurlencode( $token );
 		}
@@ -282,8 +282,8 @@ class NJ_Site_Registration {
 	/**
 	 * Return the LemonSqueezy variant ID for a plan, with wp-config.php override support.
 	 *
-	 * Defaults match the live store. Override via WP_AI_MIND_LS_MONTHLY_ID,
-	 * WP_AI_MIND_LS_ANNUAL_ID, or WP_AI_MIND_LS_BYOK_ID in wp-config.php to
+	 * Defaults match the live store. Override via STILUS_LS_MONTHLY_ID,
+	 * STILUS_LS_ANNUAL_ID, or STILUS_LS_BYOK_ID in wp-config.php to
 	 * change variant IDs without a plugin release (e.g. after a store migration).
 	 *
 	 * @since 1.2.0
@@ -293,9 +293,9 @@ class NJ_Site_Registration {
 	 */
 	private static function plan_id( string $plan ): string {
 		$map = [
-			'monthly' => defined( 'WP_AI_MIND_LS_MONTHLY_ID' ) ? WP_AI_MIND_LS_MONTHLY_ID : '1550505',
-			'annual'  => defined( 'WP_AI_MIND_LS_ANNUAL_ID' ) ? WP_AI_MIND_LS_ANNUAL_ID : '1550477',
-			'byok'    => defined( 'WP_AI_MIND_LS_BYOK_ID' ) ? WP_AI_MIND_LS_BYOK_ID : '1550517',
+			'monthly' => defined( 'STILUS_LS_MONTHLY_ID' ) ? STILUS_LS_MONTHLY_ID : '1550505',
+			'annual'  => defined( 'STILUS_LS_ANNUAL_ID' ) ? STILUS_LS_ANNUAL_ID : '1550477',
+			'byok'    => defined( 'STILUS_LS_BYOK_ID' ) ? STILUS_LS_BYOK_ID : '1550517',
 		];
 		if ( ! array_key_exists( $plan, $map ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal developer error, not user-facing output.

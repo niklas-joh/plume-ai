@@ -2,15 +2,15 @@
 /**
  * Admin notice that prompts already-registered sites to fetch a tier-sync secret.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Admin;
+namespace Stilus\Admin;
 
-use WP_AI_Mind\Proxy\NJ_Site_Registration;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
+use Stilus\Proxy\NJ_Site_Registration;
+use Stilus\Tiers\NJ_Tier_Manager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -20,8 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Backfill notice for sites that registered with the proxy before the
  * tier-sync handshake existed.
  *
- * Such installs hold a valid `wp_ai_mind_site_token` but no
- * `wp_ai_mind_tier_sync_secret`, so the Worker cannot push tier updates to
+ * Such installs hold a valid `stilus_site_token` but no
+ * `stilus_tier_sync_secret`, so the Worker cannot push tier updates to
  * them. The notice exposes a one-click "Re-register" action that calls
  * NJ_Site_Registration::rotate_secret() to populate the missing secret.
  *
@@ -38,7 +38,7 @@ class TierSyncBackfillNotice {
 	 *
 	 * @since 1.9.0
 	 */
-	private const ACTION = 'wp_ai_mind_rotate_secret';
+	private const ACTION = 'stilus_rotate_secret';
 
 	/**
 	 * Nonce action name. Distinct from ACTION to keep nonce verification
@@ -46,7 +46,7 @@ class TierSyncBackfillNotice {
 	 *
 	 * @since 1.9.0
 	 */
-	private const NONCE = 'wp_ai_mind_rotate_secret_nonce';
+	private const NONCE = 'stilus_rotate_secret_nonce';
 
 	/**
 	 * Transient key prefix used to relay a failed-rotation error message from
@@ -56,7 +56,7 @@ class TierSyncBackfillNotice {
 	 *
 	 * @since 1.9.0
 	 */
-	private const ERROR_TRANSIENT_PREFIX = 'wp_ai_mind_rotate_err_';
+	private const ERROR_TRANSIENT_PREFIX = 'stilus_rotate_err_';
 
 	/**
 	 * Register WordPress hooks for the notice and its admin-post handler.
@@ -120,13 +120,13 @@ class TierSyncBackfillNotice {
 		?>
 		<div class="notice notice-warning is-dismissible">
 			<p>
-				<strong><?php \esc_html_e( 'Stilus - Plan sync setup required', 'wp-ai-mind' ); ?></strong>
+				<strong><?php \esc_html_e( 'Stilus - Plan sync setup required', 'stilus' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				\esc_html_e(
 					'Your site is registered with the Stilus proxy, but it has not yet been issued a tier-sync secret. Without this secret, plan upgrades and cancellations cannot be pushed to your site automatically. Click the button below to complete the one-time setup.',
-					'wp-ai-mind'
+					'stilus'
 				);
 				?>
 			</p>
@@ -135,7 +135,7 @@ class TierSyncBackfillNotice {
 					<?php \wp_nonce_field( self::NONCE ); ?>
 					<input type="hidden" name="action" value="<?php echo \esc_attr( self::ACTION ); ?>" />
 					<button type="submit" class="button button-primary">
-						<?php \esc_html_e( 'Re-register now', 'wp-ai-mind' ); ?>
+						<?php \esc_html_e( 'Re-register now', 'stilus' ); ?>
 					</button>
 				</form>
 			</p>
@@ -171,13 +171,13 @@ class TierSyncBackfillNotice {
 		?>
 		<div class="notice notice-warning is-dismissible">
 			<p>
-				<strong><?php \esc_html_e( 'Stilus - Plan verification required', 'wp-ai-mind' ); ?></strong>
+				<strong><?php \esc_html_e( 'Stilus - Plan verification required', 'stilus' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				\esc_html_e(
 					'Your site shows a paid plan in the database, but the plan integrity signature is missing or does not match. This can happen after a direct database edit or a migration. Until re-verified, the plugin will treat your site as free. Click below to re-sync your plan from the Stilus proxy.',
-					'wp-ai-mind'
+					'stilus'
 				);
 				?>
 			</p>
@@ -186,7 +186,7 @@ class TierSyncBackfillNotice {
 					<?php \wp_nonce_field( self::NONCE ); ?>
 					<input type="hidden" name="action" value="<?php echo \esc_attr( self::ACTION ); ?>" />
 					<button type="submit" class="button button-primary">
-						<?php \esc_html_e( 'Re-sync plan now', 'wp-ai-mind' ); ?>
+						<?php \esc_html_e( 'Re-sync plan now', 'stilus' ); ?>
 					</button>
 				</form>
 			</p>
@@ -210,7 +210,7 @@ class TierSyncBackfillNotice {
 			return;
 		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display of redirect result.
-		$result = isset( $_GET['wp_ai_mind_rotate'] ) ? \sanitize_text_field( \wp_unslash( $_GET['wp_ai_mind_rotate'] ) ) : '';
+		$result = isset( $_GET['stilus_rotate'] ) ? \sanitize_text_field( \wp_unslash( $_GET['stilus_rotate'] ) ) : '';
 		if ( 'success' !== $result && 'fail' !== $result ) {
 			return;
 		}
@@ -219,7 +219,7 @@ class TierSyncBackfillNotice {
 			?>
 			<div class="notice notice-success is-dismissible">
 				<p>
-					<?php \esc_html_e( 'Stilus - Plan sync is now active. Your site can receive tier updates from the proxy.', 'wp-ai-mind' ); ?>
+					<?php \esc_html_e( 'Stilus - Plan sync is now active. Your site can receive tier updates from the proxy.', 'stilus' ); ?>
 				</p>
 			</div>
 			<?php
@@ -235,7 +235,7 @@ class TierSyncBackfillNotice {
 		?>
 		<div class="notice notice-error is-dismissible">
 			<p>
-				<?php \esc_html_e( 'Stilus - Re-registration failed.', 'wp-ai-mind' ); ?>
+				<?php \esc_html_e( 'Stilus - Re-registration failed.', 'stilus' ); ?>
 				<?php if ( '' !== $detail ) : ?>
 					<br />
 					<code><?php echo \esc_html( $detail ); ?></code>
@@ -245,7 +245,7 @@ class TierSyncBackfillNotice {
 				<?php
 				\esc_html_e(
 					'If this persists, confirm the Stilus proxy is reachable from this server and that the proxy has been updated to the current plugin version.',
-					'wp-ai-mind'
+					'stilus'
 				);
 				?>
 			</p>
@@ -266,7 +266,7 @@ class TierSyncBackfillNotice {
 	 */
 	public static function handle_rotate(): void {
 		if ( ! \current_user_can( 'manage_options' ) ) {
-			\wp_die( \esc_html__( 'You do not have permission to perform this action.', 'wp-ai-mind' ), '', [ 'response' => 403 ] );
+			\wp_die( \esc_html__( 'You do not have permission to perform this action.', 'stilus' ), '', [ 'response' => 403 ] );
 		}
 
 		\check_admin_referer( self::NONCE );
@@ -294,7 +294,7 @@ class TierSyncBackfillNotice {
 			$referer = \admin_url();
 		}
 
-		$redirect = \add_query_arg( 'wp_ai_mind_rotate', $status, $referer );
+		$redirect = \add_query_arg( 'stilus_rotate', $status, $referer );
 		\wp_safe_redirect( $redirect );
 		exit;
 	}

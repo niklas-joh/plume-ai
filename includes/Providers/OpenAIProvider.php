@@ -2,20 +2,20 @@
 /**
  * AI provider implementation for the OpenAI API.
  *
- * @package WP_AI_Mind
+ * @package Stilus
  */
 
 declare( strict_types=1 );
-namespace WP_AI_Mind\Providers;
+namespace Stilus\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WP_AI_Mind\Proxy\NJ_Proxy_Client;
-use WP_AI_Mind\Proxy\NJ_Site_Registration;
-use WP_AI_Mind\Tiers\NJ_Tier_Manager;
-use WP_AI_Mind\Tools\ToolRegistry;
+use Stilus\Proxy\NJ_Proxy_Client;
+use Stilus\Proxy\NJ_Site_Registration;
+use Stilus\Tiers\NJ_Tier_Manager;
+use Stilus\Tools\ToolRegistry;
 
 /**
  * Handles completions, streaming, and image generation for OpenAI models.
@@ -293,7 +293,7 @@ class OpenAIProvider extends AbstractProvider {
 		$response = wp_remote_post(
 			self::API_BASE . $path,
 			[
-				'timeout' => WP_AI_MIND_HTTP_TIMEOUT,
+				'timeout' => STILUS_HTTP_TIMEOUT,
 				'headers' => [
 					'Authorization' => 'Bearer ' . $this->api_key,
 					'Content-Type'  => 'application/json',

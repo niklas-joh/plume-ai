@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Modules\Seo;
+namespace Stilus\Tests\Unit\Modules\Seo;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Modules\Seo\SeoModule;
+use Stilus\Modules\Seo\SeoModule;
 use PHPUnit\Framework\TestCase;
 
 class SeoStatusFieldTest extends TestCase {

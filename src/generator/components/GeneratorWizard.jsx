@@ -48,7 +48,7 @@ export default function GeneratorWizard() {
 		setError( null );
 		try {
 			const res = await apiFetch( {
-				path: '/wp-ai-mind/v1/generate',
+				path: '/stilus/v1/generate',
 				method: 'POST',
 				data: form,
 			} );

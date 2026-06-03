@@ -2,9 +2,9 @@
 const { test, expect } = require( '@playwright/test' );
 const { wpLogin } = require( '../helpers/login' );
 
-// URL predicate — matches both /wp-json/wp-ai-mind/v1/settings (pretty) and
+// URL predicate — matches both /wp-json/stilus/v1/settings (pretty) and
 // ?rest_route=.../settings (plain) without relying on glob pattern matching.
-const isSettingsUrl = ( url ) => url.href.includes( 'wp-ai-mind/v1/settings' );
+const isSettingsUrl = ( url ) => url.href.includes( 'stilus/v1/settings' );
 
 test.describe( 'Settings journey', () => {
 	test.beforeEach( async ( { page } ) => {
@@ -12,7 +12,7 @@ test.describe( 'Settings journey', () => {
 	} );
 
 	test( 'loads settings and shows the current provider', async ( { page } ) => {
-		// SettingsApp.jsx fetches GET /wp-ai-mind/v1/settings on mount (line 30)
+		// SettingsApp.jsx fetches GET /stilus/v1/settings on mount (line 30)
 		// and passes settings down to ProvidersTab, which renders a SelectControl
 		// for "Default AI Provider" using settings.default_provider as the value.
 		await page.route( isSettingsUrl, async ( route ) => {
@@ -31,7 +31,7 @@ test.describe( 'Settings journey', () => {
 			}
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-settings' );
+		await page.goto( '/wp-admin/admin.php?page=stilus-settings' );
 
 		// .wpaim-settings-shell is the root element (SettingsApp.jsx line 69).
 		await page.waitForSelector( '.wpaim-settings-shell', { timeout: 10000 } );
@@ -45,7 +45,7 @@ test.describe( 'Settings journey', () => {
 	} );
 
 	test( 'saves a setting change and shows a success notice', async ( { page } ) => {
-		// SettingsApp.jsx calls POST /wp-ai-mind/v1/settings in saveSettings (line 40)
+		// SettingsApp.jsx calls POST /stilus/v1/settings in saveSettings (line 40)
 		// and on success sets saveResult to 'success', rendering a <Notice> with
 		// the text "Saved successfully" (SettingsApp.jsx line 85).
 		await page.route( isSettingsUrl, async ( route ) => {
@@ -70,7 +70,7 @@ test.describe( 'Settings journey', () => {
 			}
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-settings' );
+		await page.goto( '/wp-admin/admin.php?page=stilus-settings' );
 		await page.waitForSelector( '.wpaim-settings-shell', { timeout: 10000 } );
 
 		// Wait for settings to load (the loading state div disappears).
@@ -113,7 +113,7 @@ test.describe( 'Settings journey', () => {
 			}
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=wp-ai-mind-settings' );
+		await page.goto( '/wp-admin/admin.php?page=stilus-settings' );
 		await page.waitForSelector( '.wpaim-settings-shell', { timeout: 10000 } );
 
 		// Tab panel must be visible.

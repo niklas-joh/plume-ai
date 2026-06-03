@@ -5,17 +5,17 @@ import DashboardApp from './dashboard/DashboardApp';
 import '../styles/tokens.css';
 import './admin.css';
 
-const chatRoot = document.getElementById( 'wp-ai-mind-chat' );
+const chatRoot = document.getElementById( 'stilus-chat' );
 if ( chatRoot ) {
 	render( <ChatApp />, chatRoot );
 }
 
-const settingsRoot = document.getElementById( 'wp-ai-mind-settings' );
+const settingsRoot = document.getElementById( 'stilus-settings' );
 if ( settingsRoot ) {
 	render( <SettingsApp />, settingsRoot );
 }
 
-const dashboardRoot = document.getElementById( 'wp-ai-mind-dashboard' );
+const dashboardRoot = document.getElementById( 'stilus-dashboard' );
 if ( dashboardRoot ) {
 	render( <DashboardApp />, dashboardRoot );
 }

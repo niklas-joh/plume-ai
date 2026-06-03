@@ -1,11 +1,11 @@
 <?php
-namespace WP_AI_Mind\Tests\Unit\Providers;
+namespace Stilus\Tests\Unit\Providers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Providers\OllamaProvider;
-use WP_AI_Mind\Providers\CompletionRequest;
-use WP_AI_Mind\Providers\ProviderException;
+use Stilus\Providers\OllamaProvider;
+use Stilus\Providers\CompletionRequest;
+use Stilus\Providers\ProviderException;
 use PHPUnit\Framework\TestCase;
 
 class OllamaProviderTest extends TestCase {

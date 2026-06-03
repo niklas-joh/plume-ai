@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace WP_AI_Mind\Tests\Unit\Admin;
+namespace Stilus\Tests\Unit\Admin;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use WP_AI_Mind\Admin\OnboardingRestController;
-use WP_AI_Mind\Settings\ProviderSettings;
+use Stilus\Admin\OnboardingRestController;
+use Stilus\Settings\ProviderSettings;
 use PHPUnit\Framework\TestCase;
 
 class OnboardingRestControllerTest extends TestCase {
@@ -37,7 +37,7 @@ class OnboardingRestControllerTest extends TestCase {
 
 		OnboardingRestController::register_routes();
 
-		$this->assertSame( 'wp-ai-mind/v1', $registered_ns );
+		$this->assertSame( 'stilus/v1', $registered_ns );
 		$this->assertSame( '/onboarding', $registered_route );
 	}
 
@@ -77,7 +77,7 @@ class OnboardingRestControllerTest extends TestCase {
 
 		OnboardingRestController::save( $request );
 
-		$this->assertSame( 'wp_ai_mind_onboarding_seen', $captured_key );
+		$this->assertSame( 'stilus_onboarding_seen', $captured_key );
 	}
 
 	public function test_save_clears_onboarding_seen(): void {
@@ -94,7 +94,7 @@ class OnboardingRestControllerTest extends TestCase {
 
 		OnboardingRestController::save( $request );
 
-		$this->assertSame( 'wp_ai_mind_onboarding_seen', $captured_key );
+		$this->assertSame( 'stilus_onboarding_seen', $captured_key );
 	}
 
 	// ── save() — api_keys ────────────────────────────────────────────────────
@@ -105,9 +105,9 @@ class OnboardingRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+				'stilus_site_tier' === $key ? 'pro_byok' : $default
 		);
-		Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'wp_ai_mind_tier' ? 'pro_byok' : null );
+		Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'pro_byok' : null );
 
 		$mock_settings = $this->createMock( ProviderSettings::class );
 		$mock_settings->expects( $this->once() )
@@ -134,9 +134,9 @@ class OnboardingRestControllerTest extends TestCase {
 		// pro_byok is a site-level entitlement now, so stub the site option.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'wp_ai_mind_site_tier' === $key ? 'pro_byok' : $default
+				'stilus_site_tier' === $key ? 'pro_byok' : $default
 		);
-		Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'wp_ai_mind_tier' ? 'pro_byok' : null );
+		Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'pro_byok' : null );
 
 		$mock_settings = $this->createMock( ProviderSettings::class );
 		$mock_settings->expects( $this->never() )->method( 'set_api_key' );
@@ -159,7 +159,7 @@ class OnboardingRestControllerTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		// tier gate: simulate a free-tier user.
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'wp_ai_mind_tier' ? 'free' : null );
+		Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'free' : null );
 
 		$request = new \WP_REST_Request( 'POST' );
 		$request->set_param( 'api_keys', [ 'openai' => 'sk-test' ] );

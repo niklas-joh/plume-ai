@@ -178,12 +178,59 @@ class Plugin {
 	 */
 	public static function activate(): void {
 		Schema::create_tables();
+		self::maybe_migrate_from_wp_ai_mind();
 		update_option( 'stilus_just_activated', true );
 		if ( ! wp_next_scheduled( 'stilus_trial_check' ) ) {
 			wp_schedule_event( time(), 'daily', 'stilus_trial_check' );
 		}
 		self::backfill_site_tier_option();
 		flush_rewrite_rules();
+	}
+
+	/**
+	 * One-time migration of wp_ai_mind_* options to stilus_* equivalents.
+	 *
+	 * Runs on the first activate() call after the plugin is renamed from WP AI Mind
+	 * to Stilus. Skipped on fresh installs and on repeat activations via the
+	 * stilus_options_migrated flag. Each option is only copied when the new key does
+	 * not yet exist — existing stilus_* values are never overwritten.
+	 *
+	 * @since 2.0.0
+	 * @return void
+	 */
+	private static function maybe_migrate_from_wp_ai_mind(): void {
+		if ( get_option( 'stilus_options_migrated', false ) ) {
+			return;
+		}
+
+		// Remove orphaned cron task left behind by the old plugin name.
+		wp_clear_scheduled_hook( 'wp_ai_mind_trial_check' );
+
+		// Pairs: [ old_key, new_key ]. Copied only when new key is absent.
+		$pairs = [
+			[ 'wp_ai_mind_provider_keys', 'stilus_provider_keys' ],
+			[ 'wp_ai_mind_default_provider', 'stilus_default_provider' ],
+			[ 'wp_ai_mind_image_provider', 'stilus_image_provider' ],
+			[ 'wp_ai_mind_site_voice', 'stilus_site_voice' ],
+			[ 'wp_ai_mind_modules', 'stilus_modules' ],
+			[ 'wp_ai_mind_ollama_url', 'stilus_ollama_url' ],
+			[ 'wp_ai_mind_allowed_post_types', 'stilus_allowed_post_types' ],
+			[ 'wp_ai_mind_enable_write_tools', 'stilus_enable_write_tools' ],
+			[ 'wp_ai_mind_backfill_done', 'stilus_backfill_done' ],
+		];
+
+		foreach ( $pairs as [ $old, $new ] ) {
+			// Skip if the new option already exists — do not overwrite user changes.
+			if ( false !== get_option( $new, false ) ) {
+				continue;
+			}
+			$value = get_option( $old, false );
+			if ( false !== $value ) {
+				update_option( $new, $value, false );
+			}
+		}
+
+		update_option( 'stilus_options_migrated', true, false );
 	}
 
 	/**
@@ -237,6 +284,8 @@ class Plugin {
 	 */
 	public static function deactivate(): void {
 		wp_clear_scheduled_hook( 'stilus_trial_check' );
+		// Also clear the legacy hook name that may still be in the cron table on upgraded sites.
+		wp_clear_scheduled_hook( 'wp_ai_mind_trial_check' );
 		flush_rewrite_rules();
 	}
 

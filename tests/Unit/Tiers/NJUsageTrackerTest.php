@@ -142,6 +142,13 @@ class NJUsageTrackerTest extends TestCase {
 		$this->addToAssertionCount( 1 );
 	}
 
+	public function test_get_current_month_key_returns_expected_format(): void {
+		$key = NJ_Usage_Tracker::get_current_month_key();
+
+		$this->assertMatchesRegularExpression( '/^wp_ai_mind_usage_\d{4}_\d{2}$/', $key );
+		$this->assertSame( 'wp_ai_mind_usage_' . gmdate( 'Y_m' ), $key );
+	}
+
 	public function test_check_limit_returns_false_when_exhausted(): void {
 		$month_key = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
 

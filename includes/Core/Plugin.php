@@ -110,6 +110,10 @@ class Plugin {
 		\WP_AI_Mind\Admin\NJ_Usage_Widget::register_hooks();
 		\WP_AI_Mind\Admin\ActivationNotice::register();
 		\WP_AI_Mind\Admin\TierSyncBackfillNotice::register();
+		if ( defined( 'WP_AI_MIND_DEV_KEY' ) ) {
+			\WP_AI_Mind\Admin\DevToolsPage::register_hooks();
+			add_action( 'wp_ai_mind_register_rest_routes', [ \WP_AI_Mind\Admin\DevToolsRestController::class, 'register_routes' ] );
+		}
 		if ( $this->modules->is_enabled( 'chat' ) ) {
 			add_action( 'plugins_loaded', [ \WP_AI_Mind\Modules\Chat\ChatModule::class, 'register' ], 20 );
 			\WP_AI_Mind\Modules\Editor\EditorModule::register();

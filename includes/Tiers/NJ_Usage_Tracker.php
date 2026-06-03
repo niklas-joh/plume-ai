@@ -21,6 +21,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 class NJ_Usage_Tracker {
 
 	/**
+	 * Returns the wp_usermeta key for the current calendar month's token counter.
+	 *
+	 * Centralises the key format so all consumers (get_usage, log_usage, dev-tools
+	 * REST endpoints) derive it from a single place. If the format ever changes,
+	 * only this method needs updating.
+	 *
+	 * @since 1.11.0
+	 * @return string Meta key in the form wp_ai_mind_usage_YYYY_MM.
+	 */
+	public static function get_current_month_key(): string {
+		return 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+	}
+
+	/**
 	 * Returns the current month's usage summary for a user.
 	 *
 	 * @since 1.2.0
@@ -32,7 +46,7 @@ class NJ_Usage_Tracker {
 		$tier    = NJ_Tier_Manager::get_user_tier( $user_id );
 		$limit   = NJ_Tier_Manager::get_monthly_limit( $tier );
 
-		$key  = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$key  = self::get_current_month_key();
 		$used = (int) get_user_meta( $user_id, $key, true );
 
 		if ( null === $limit ) {
@@ -67,7 +81,7 @@ class NJ_Usage_Tracker {
 	public static function log_usage( int $tokens, ?int $user_id = null ): void {
 		global $wpdb;
 		$user_id = $user_id ?? get_current_user_id();
-		$key     = 'wp_ai_mind_usage_' . gmdate( 'Y_m' );
+		$key     = self::get_current_month_key();
 		// Atomic increment avoids the read-modify-write race condition that occurs
 		// when two concurrent requests read the same value and each overwrites it.
 		$wpdb->query(

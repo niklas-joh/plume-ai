@@ -68,15 +68,28 @@ class ActivationVerifyRestController {
 	/**
 	 * Handle the activation-verify request.
 	 *
-	 * Returns 200 when the challenge transient is found, 403 when it is not.
+	 * Returns 200 on the first successful match and immediately deletes the
+	 * transient (consume-once). Subsequent calls with the same token receive
+	 * 403, eliminating the stable-oracle property that would otherwise allow
+	 * any observer of the challenge value to block legitimate Worker registration.
 	 *
 	 * @since 1.3.0
+	 * @since 1.8.1 Transient is deleted on first successful match (consume-once, fixes #457).
 	 * @param WP_REST_Request $request The incoming REST request.
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response 200 with `verified: true` on first match; 403 on mismatch or replay.
 	 */
 	public static function handle( WP_REST_Request $request ): WP_REST_Response {
 		$challenge = $request->get_param( 'challenge' );
 
+		// Consume-once: delete before returning so a replayed request cannot
+		// use this endpoint as an existence oracle for the stored transient.
+		// Note: the get_transient → delete_transient sequence is non-atomic, so two
+		// concurrent requests carrying the same token could theoretically both pass
+		// (TOCTOU). In practice the window is negligible: tokens are high-entropy
+		// (256-bit hex), single-use, and short-lived (300 s), making a collision
+		// requiring an attacker who already holds the token vanishingly unlikely.
+		// A native compare-and-delete primitive is not available in WP transients;
+		// a SELECT … FOR UPDATE lock would require a custom table. Accepted risk.
 		if ( get_transient( self::TRANSIENT . $challenge ) ) {
 			delete_transient( self::TRANSIENT . $challenge );
 			return new WP_REST_Response( [ 'verified' => true ], 200 );

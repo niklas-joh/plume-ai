@@ -17,7 +17,7 @@ import '../editor.css';
  *
  * @return {ReactElement}
  */
-function WpAiMindSidebar() {
+function StilusSidebar() {
 	const postId = useSelect( ( select ) =>
 		select( 'core/editor' ).getCurrentPostId()
 	);
@@ -68,4 +68,4 @@ function WpAiMindSidebar() {
 	);
 }
 
-registerPlugin( 'stilus', { render: WpAiMindSidebar } );
+registerPlugin( 'stilus', { render: StilusSidebar } );

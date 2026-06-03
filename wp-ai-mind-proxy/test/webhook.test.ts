@@ -282,8 +282,8 @@ describe( 'handleWebhook', () => {
 		expect( opts.method ).toBe( 'POST' );
 		const headers = opts.headers as Record< string, string >;
 		expect( headers[ 'Content-Type' ] ).toBe( 'application/json' );
-		expect( headers[ 'X-WP-AI-Mind-Signature' ] ).toMatch( /^[0-9a-f]{64}$/ );
-		expect( headers[ 'X-WP-AI-Mind-Timestamp' ] ).toMatch( /^\d+$/ );
+		expect( headers[ 'X-Stilus-Signature' ] ).toMatch( /^[0-9a-f]{64}$/ );
+		expect( headers[ 'X-Stilus-Timestamp' ] ).toMatch( /^\d+$/ );
 		expect( JSON.parse( opts.body as string ) ).toEqual( {
 			tier: 'pro_managed',
 		} );

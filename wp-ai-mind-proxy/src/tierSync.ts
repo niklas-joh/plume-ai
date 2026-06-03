@@ -72,8 +72,8 @@ export async function pushTierUpdate(
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'X-WP-AI-Mind-Signature': signature,
-					'X-WP-AI-Mind-Timestamp': String( timestamp ),
+					'X-Stilus-Signature': signature,
+					'X-Stilus-Timestamp': String( timestamp ),
 				},
 				body,
 				signal: AbortSignal.timeout( REQUEST_TIMEOUT_MS ),

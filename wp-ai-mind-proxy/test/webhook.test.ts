@@ -277,7 +277,7 @@ describe( 'handleWebhook', () => {
 			RequestInit,
 		];
 		expect( calledUrl ).toBe(
-			'https://wp.example.com/wp-json/wp-ai-mind/v1/tier-update'
+			'https://wp.example.com/wp-json/stilus/v1/tier-update'
 		);
 		expect( opts.method ).toBe( 'POST' );
 		const headers = opts.headers as Record< string, string >;

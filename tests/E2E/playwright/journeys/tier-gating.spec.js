@@ -60,13 +60,13 @@ test.describe( 'Tier gating', () => {
 	} );
 
 	test( 'SEO page shows Pro-gate upgrade link for free-tier users', async ( { page } ) => {
-		// Override window.wpAiMindData to simulate free tier before React boots.
-		// A getter/setter proxy is used so PHP's inline `var wpAiMindData = {...}`
+		// Override window.stilusData to simulate free tier before React boots.
+		// A getter/setter proxy is used so PHP's inline `var stilusData = {...}`
 		// triggers the setter and gets isPro forced to false, while still receiving
 		// the real restUrl, nonce, and other values from the server.
 		await page.addInitScript( () => {
 			let _data = {};
-			Object.defineProperty( window, 'wpAiMindData', {
+			Object.defineProperty( window, 'stilusData', {
 				get() { return _data; },
 				set( val ) { _data = { ...val, isPro: false }; },
 				configurable: false,

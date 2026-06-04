@@ -230,7 +230,7 @@ class SeoGenerateTest extends IntegrationTestCase {
 
 		$response = $this->rest_do(
 			'POST',
-			'/wp-ai-mind/v1/seo/apply',
+			'/stilus/v1/seo/apply',
 			[
 				'post_id'  => $post_id,
 				'alt_text' => 'Integration Alt Text',

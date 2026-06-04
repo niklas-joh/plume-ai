@@ -22,6 +22,7 @@ use Stilus\Tools\ToolRegistry;
 use Stilus\Tools\ToolExecutor;
 use Stilus\Voice\VoiceInjector;
 use Stilus\Proxy\SiteRegistration;
+use Stilus\Tiers\TierConfig;
 use Stilus\Tiers\TierManager;
 use Stilus\Tiers\UsageTracker;
 
@@ -304,10 +305,10 @@ class ChatRestController {
 			$provider = $factory->make( $provider_slug );
 
 			if ( ! $provider->is_available() ) {
-				$tier        = TierManager::get_user_tier( $user_id );
-				$proxy_tiers = [ 'free', 'trial', 'pro_managed' ];
+				$tier          = TierManager::get_user_tier( $user_id );
+				$is_proxy_tier = ! TierConfig::get_feature( $tier, 'own_api_key' );
 
-				if ( in_array( $tier, $proxy_tiers, true ) ) {
+				if ( $is_proxy_tier ) {
 					// Site token absent — schedule re-registration so the next page load succeeds.
 					if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 						add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );

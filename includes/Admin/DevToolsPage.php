@@ -127,7 +127,7 @@ class DevToolsPage {
 			'wp-ai-mind-dev-tools',
 			'njDevTools',
 			[
-				'restUrl' => esc_url_raw( rest_url( 'wp-ai-mind/v1/dev/' ) ),
+				'restUrl' => esc_url_raw( rest_url( 'stilus/v1/dev/' ) ),
 				'nonce'   => wp_create_nonce( 'wp_rest' ),
 			]
 		);

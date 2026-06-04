@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * REST endpoints for the developer tools page.
  *
- * All routes live under /wp-ai-mind/v1/dev/ and require both the manage_options
+ * All routes live under /stilus/v1/dev/ and require both the manage_options
  * capability and a valid STILUS_DEV_KEY constant. Routes are only registered
  * when the constant is defined, so they return 404 on sites without the key.
  *
@@ -35,7 +35,7 @@ class DevToolsRestController {
 	 *
 	 * @since 1.11.0
 	 */
-	private const REST_NAMESPACE = 'wp-ai-mind/v1';
+	private const REST_NAMESPACE = 'stilus/v1';
 
 	/**
 	 * Register all developer tools REST routes.

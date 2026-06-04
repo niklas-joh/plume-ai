@@ -60,14 +60,15 @@ abstract class RealIntegrationTestCase extends IntegrationTestCase {
 	 * @param int $user_id WordPress user ID.
 	 */
 	protected function activate_byok_tier( int $user_id ): void {
-		// Site-level paid tier takes priority over user meta for pro_byok.
-		update_option( TierManager::SITE_OPTION, 'pro_byok', false );
-		// No HMAC secret present → is_site_tier_verified() returns true.
-		delete_option( SiteRegistration::OPTION_SECRET );
-		// Inject the real API key so the Claude provider can call the Anthropic API.
-		( new ProviderSettings() )->set_api_key( 'claude', getenv( 'CLAUDE_API_KEY' ) ?: '' );
-		// Mirror user-level tier meta to stay consistent with activate_trial/free_tier.
+		// set_user_tier() (base class) resets SITE_OPTION to 'free' — call it first
+		// so our update_option below is the last write and is not overwritten.
 		$this->set_user_tier( $user_id, 'pro_byok' );
+		// Now set the site-level option; is_site_tier_verified() returns true when
+		// no HMAC secret is registered, so deleting OPTION_SECRET is the unlock.
+		update_option( TierManager::SITE_OPTION, 'pro_byok', false );
+		delete_option( SiteRegistration::OPTION_SECRET );
+		// Store the real API key so the Claude provider can call the Anthropic API directly.
+		( new ProviderSettings() )->set_api_key( 'claude', getenv( 'CLAUDE_API_KEY' ) ?: '' );
 	}
 
 	/**

@@ -53,8 +53,8 @@ class TierStatusPage {
 			return;
 		}
 		wp_enqueue_style(
-			'wpaim-admin-widgets',
-			STILUS_URL . 'assets/admin/wpaim-admin-widgets.css',
+			'stilus-admin-widgets',
+			STILUS_URL . 'assets/admin/stilus-admin-widgets.css',
 			[],
 			STILUS_VERSION
 		);

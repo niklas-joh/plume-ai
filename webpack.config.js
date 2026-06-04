@@ -17,7 +17,7 @@ module.exports = {
 		...defaultConfig.output,
 		path: path.resolve( __dirname, 'assets' ),
 		clean: {
-			keep: /wpaim-admin-widgets\.css/,
+			keep: /stilus-admin-widgets\.css/,
 		},
 	},
 };

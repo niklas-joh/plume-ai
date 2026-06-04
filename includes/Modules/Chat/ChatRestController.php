@@ -305,7 +305,7 @@ class ChatRestController {
 			$provider = $factory->make( $provider_slug );
 
 			if ( ! $provider->is_available() ) {
-				$tier          = TierManager::get_user_tier( $user_id );
+				$tier          = $this->get_user_tier( $user_id );
 				$is_proxy_tier = ! TierConfig::get_feature( $tier, 'own_api_key' );
 
 				if ( $is_proxy_tier ) {
@@ -616,6 +616,20 @@ class ChatRestController {
 	 */
 	protected function user_within_quota( int $user_id ): bool {
 		return UsageTracker::check_limit( $user_id );
+	}
+
+	/**
+	 * Returns the tier slug for a user.
+	 *
+	 * Isolated as a protected method so tests can override without stubbing
+	 * static calls on TierManager.
+	 *
+	 * @since 1.8.0
+	 * @param int $user_id WordPress user ID.
+	 * @return string Tier slug.
+	 */
+	protected function get_user_tier( int $user_id ): string {
+		return TierManager::get_user_tier( $user_id );
 	}
 
 	// ── Overridable factory methods (for testing) ─────────────────────────────

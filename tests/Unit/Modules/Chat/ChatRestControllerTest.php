@@ -744,6 +744,182 @@ class ChatRestControllerTest extends TestCase {
         $this->assertStringContainsString( 'limit', $response->data['message'] );
     }
 
+    // ── Provider unavailability — 503 / 422 branching ─────────────────────────
+
+    /**
+     * Helper: extend make_controller() with a fixed tier for the unavailability branch.
+     *
+     * @param \Stilus\DB\ConversationStore    $store
+     * @param \Stilus\Providers\ProviderFactory $factory
+     * @param \Stilus\Voice\VoiceInjector      $voice
+     * @param string                           $tier    Tier slug returned by get_user_tier().
+     * @return ChatRestController
+     */
+    private function make_controller_with_tier(
+        \Stilus\DB\ConversationStore $store,
+        \Stilus\Providers\ProviderFactory $factory,
+        \Stilus\Voice\VoiceInjector $voice,
+        string $tier
+    ): ChatRestController {
+        return new class(
+            $this->tool_registry,
+            $this->tool_executor,
+            $store,
+            $factory,
+            $voice,
+            $tier
+        ) extends ChatRestController {
+            private \Stilus\DB\ConversationStore $store_override;
+            private \Stilus\Providers\ProviderFactory $factory_override;
+            private \Stilus\Voice\VoiceInjector $voice_override;
+            private string $tier_override;
+
+            public function __construct(
+                ToolRegistry $tr,
+                ToolExecutor $te,
+                \Stilus\DB\ConversationStore $store,
+                \Stilus\Providers\ProviderFactory $factory,
+                \Stilus\Voice\VoiceInjector $voice,
+                string $tier
+            ) {
+                parent::__construct( $tr, $te );
+                $this->store_override   = $store;
+                $this->factory_override = $factory;
+                $this->voice_override   = $voice;
+                $this->tier_override    = $tier;
+            }
+            protected function make_store(): \Stilus\DB\ConversationStore {
+                return $this->store_override;
+            }
+            protected function make_provider_factory(): \Stilus\Providers\ProviderFactory {
+                return $this->factory_override;
+            }
+            protected function make_voice_injector(): \Stilus\Voice\VoiceInjector {
+                return $this->voice_override;
+            }
+            protected function get_user_tier( int $user_id ): string {
+                return $this->tier_override;
+            }
+        };
+    }
+
+    /**
+     * A proxy-tier user whose provider is unavailable must receive a 503.
+     */
+    public function test_send_message_returns_503_for_proxy_tier_when_provider_unavailable(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+        Functions\when( 'has_action' )->justReturn( false );
+        Functions\when( 'add_action' )->justReturn( null );
+
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [] );
+
+        $provider_mock = $this->createMock( \Stilus\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( false );
+
+        $factory_mock = $this->createMock( \Stilus\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Stilus\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller_with_tier( $store_mock, $factory_mock, $voice_mock, 'free' );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '1' ] );
+        $request->set_body_params( [ 'content' => 'Hi', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $this->assertInstanceOf( \WP_REST_Response::class, $response );
+        $this->assertSame( 503, $response->get_status(), 'Proxy-tier users must receive 503 when the provider is unavailable.' );
+        $this->assertArrayHasKey( 'message', $response->data );
+        $this->assertStringContainsString( 'Could not connect', $response->data['message'] );
+    }
+
+    /**
+     * The re-registration shutdown hook must be scheduled exactly once when the
+     * provider is unavailable for a proxy-tier user.
+     */
+    public function test_send_message_schedules_registration_on_shutdown_for_proxy_tier(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+        // has_action returns false — hook has not been registered yet this request.
+        Functions\when( 'has_action' )->justReturn( false );
+
+        $add_action_calls = 0;
+        Functions\when( 'add_action' )->alias(
+            function ( $hook, $callback ) use ( &$add_action_calls ) {
+                if ( 'shutdown' === $hook ) {
+                    ++$add_action_calls;
+                }
+            }
+        );
+
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [] );
+
+        $provider_mock = $this->createMock( \Stilus\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( false );
+
+        $factory_mock = $this->createMock( \Stilus\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Stilus\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller_with_tier( $store_mock, $factory_mock, $voice_mock, 'free' );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '1' ] );
+        $request->set_body_params( [ 'content' => 'Hi', 'provider' => 'claude', 'model' => '' ] );
+
+        $controller->send_message( $request );
+
+        $this->assertSame( 1, $add_action_calls, 'Shutdown hook must be registered exactly once.' );
+    }
+
+    /**
+     * A BYOK-tier user with an unavailable provider must still receive 422, not 503.
+     */
+    public function test_send_message_returns_422_for_byok_tier_when_provider_unavailable(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [] );
+
+        $provider_mock = $this->createMock( \Stilus\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( false );
+
+        $factory_mock = $this->createMock( \Stilus\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Stilus\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller_with_tier( $store_mock, $factory_mock, $voice_mock, 'pro_byok' );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '1' ] );
+        $request->set_body_params( [ 'content' => 'Hi', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $this->assertInstanceOf( \WP_REST_Response::class, $response );
+        $this->assertSame( 422, $response->get_status(), 'BYOK-tier users must receive 422 (missing API key), not 503.' );
+    }
+
     // ── context_post_id system-prompt injection ───────────────────────────────
 
     /**

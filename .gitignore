@@ -11,7 +11,7 @@ test-results/
 .worktrees/
 .claude/worktrees/
 .artifacts/
-wp-ai-mind-proxy/.wrangler/
+stilus-proxy/.wrangler/
 
 # wp-env
 .wp-env/

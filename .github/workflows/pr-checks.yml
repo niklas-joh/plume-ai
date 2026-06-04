@@ -226,6 +226,9 @@ jobs:
       - name: Start wp-env
         run: npx wp-env start
 
+      - name: Install plugin-check into wp-env
+        run: npx wp-env run cli wp plugin install plugin-check --activate
+
       - name: Run WP Plugin Check
         uses: WordPress/plugin-check-action@v1
         with:

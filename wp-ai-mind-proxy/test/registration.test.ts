@@ -179,6 +179,25 @@ describe( 'handleRegistration', () => {
 		expect( stored?.tier_sync_secret ).toBe( data.tier_sync_secret );
 	} );
 
+	it( 'calls the activation-verify endpoint with the correct stilus/v1 URL', async () => {
+		const challenge = 'a'.repeat( 64 );
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue( new Response( '{}', { status: 200 } ) );
+		vi.stubGlobal( 'fetch', fetchSpy );
+		const env = makeEnv();
+		await env.USAGE_KV.put( `challenge:${ challenge }`, '1' );
+
+		await handleRegistration(
+			makeRequest( { body: { site_url: 'https://site.example.com', challenge_token: challenge } } ),
+			env
+		);
+
+		expect( fetchSpy ).toHaveBeenCalledTimes( 1 );
+		const [ calledUrl ] = fetchSpy.mock.calls[ 0 ] as [ string ];
+		expect( calledUrl ).toContain( '/wp-json/stilus/v1/activation-verify' );
+	} );
+
 	it( 'consumes the challenge (single-use)', async () => {
 		const challenge = 'd'.repeat( 64 );
 		const env = await makeEnvWithChallenge( challenge );

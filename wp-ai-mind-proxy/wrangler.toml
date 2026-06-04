@@ -1,4 +1,4 @@
-name = "wp-ai-mind-proxy"
+name = "stilus-proxy"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
@@ -12,13 +12,13 @@ preview_id = "38975852f1bc4c838da456ea9a21e789"
 # wrangler secret put OPENAI_API_KEY
 # wrangler secret put GEMINI_API_KEY
 # wrangler secret put LS_WEBHOOK_SECRET            ← must match LemonSqueezy webhook signing secret
-# wrangler secret put LS_PRO_MONTHLY_VARIANT_ID    ← LemonSqueezy: Products → WP AI Mind Pro → Variants
-# wrangler secret put LS_PRO_ANNUAL_VARIANT_ID     ← LemonSqueezy: Products → WP AI Mind Pro → Variants
+# wrangler secret put LS_PRO_MONTHLY_VARIANT_ID    ← LemonSqueezy: Products → Stilus Pro → Variants
+# wrangler secret put LS_PRO_ANNUAL_VARIANT_ID     ← LemonSqueezy: Products → Stilus Pro → Variants
 # PROXY_SIGNATURE_SECRET is no longer used — can be deleted:
 # wrangler secret delete PROXY_SIGNATURE_SECRET
 
 # ── Dev environment ───────────────────────────────────────────────────────────
-# Deployed separately as "wp-ai-mind-proxy-dev" — exposes /dev/* endpoints.
+# Deployed separately as "stilus-proxy-dev" — exposes /dev/* endpoints.
 # Used by localhost (Docker) and staging4 installs only.
 # Production Worker does NOT have DEV_ENDPOINTS_ENABLED, so /dev/* routes
 # return 404 there regardless of auth.
@@ -33,10 +33,10 @@ preview_id = "38975852f1bc4c838da456ea9a21e789"
 #      wrangler secret put LS_PRO_MONTHLY_VARIANT_ID --env dev
 #      wrangler secret put LS_PRO_ANNUAL_VARIANT_ID --env dev
 #   3. npm run deploy:dev
-#      → Cloudflare will print the dev Worker URL (e.g. wp-ai-mind-proxy-dev.<account>.workers.dev)
+#      → Cloudflare will print the dev Worker URL (e.g. stilus-proxy-dev.<account>.workers.dev)
 #   4. Set that URL as the proxy endpoint in your localhost + staging WP installs
 [env.dev]
-name = "wp-ai-mind-proxy-dev"
+name = "stilus-proxy-dev"
 
 [env.dev.vars]
 DEV_ENDPOINTS_ENABLED = "1"

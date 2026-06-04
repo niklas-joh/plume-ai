@@ -39,7 +39,7 @@
     "@semantic-release/github": "^10.0.0",
     "@semantic-release/release-notes-generator": "^14.0.0",
     "@wordpress/element": ">=6.0.0",
-    "@wordpress/env": "^11.5.0",
+    "@wordpress/env": "^11.8.0",
     "@wordpress/scripts": "^31.8.0",
     "conventional-changelog-conventionalcommits": "^9.3.1",
     "eslint-plugin-jsdoc": "^62.9.0",

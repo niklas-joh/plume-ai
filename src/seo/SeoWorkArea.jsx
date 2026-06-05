@@ -36,6 +36,29 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 
 	const yesButtonRef = useRef( null );
 
+	// Pre-populate fields from existing meta values when the row is expanded.
+	// Depends on post.id so a different post's expand resets correctly.
+	useEffect( () => {
+		const status = post?.wpaim_seo_status;
+		if ( ! status ) {
+			return;
+		}
+		const prePopulated = {
+			meta_title: status.meta_title?.value ?? '',
+			og_description: status.og_description?.value ?? '',
+			excerpt: status.excerpt?.value ?? '',
+			alt_text: status.alt_text?.value ?? '',
+		};
+		setFields( prePopulated );
+		// Allow "Apply all" when at least one existing meta value is present.
+		if ( Object.values( prePopulated ).some( Boolean ) ) {
+			setHasGenerated( true );
+		}
+		// wpaim_seo_status intentionally excluded: fields should only seed once per
+		// post expand, not re-seed on every status update after a partial apply.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ post?.id ] );
+
 	useEffect( () => {
 		if ( confirmReplace && yesButtonRef.current ) {
 			yesButtonRef.current.focus();
@@ -86,16 +109,25 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 				headers: { 'X-WP-Nonce': nonce },
 				data: { post_id: post.id, ...fields },
 			} );
-			const prev = post.wpaim_seo_status ?? {};
+			// Mirror the { status, value } shape that PHP returns so the in-memory
+			// post object stays consistent with fresh REST responses. Use
+			// { status: 'empty', value: '' } for cleared fields so the badge
+			// reflects the user's deliberate removal rather than the previous state.
 			onUpdate( {
 				id: post.id,
 				wpaim_seo_status: {
-					meta_title: fields.meta_title ? 'filled' : prev.meta_title,
+					meta_title: fields.meta_title
+						? { status: 'filled', value: fields.meta_title }
+						: { status: 'empty', value: '' },
 					og_description: fields.og_description
-						? 'filled'
-						: prev.og_description,
-					excerpt: fields.excerpt ? 'filled' : prev.excerpt,
-					alt_text: fields.alt_text ? 'filled' : prev.alt_text,
+						? { status: 'filled', value: fields.og_description }
+						: { status: 'empty', value: '' },
+					excerpt: fields.excerpt
+						? { status: 'filled', value: fields.excerpt }
+						: { status: 'empty', value: '' },
+					alt_text: fields.alt_text
+						? { status: 'filled', value: fields.alt_text }
+						: { status: 'empty', value: '' },
 				},
 			} );
 			onClose();

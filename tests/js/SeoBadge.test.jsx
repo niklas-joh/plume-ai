@@ -17,21 +17,30 @@ describe( 'getSeoStatus', () => {
 
 	it( 'returns "missing" when no fields are filled', () => {
 		const post = {
-			wpaim_seo_status: { meta_title: 'empty', og_description: 'empty' },
+			wpaim_seo_status: {
+				meta_title: { status: 'empty', value: '' },
+				og_description: { status: 'empty', value: '' },
+			},
 		};
 		expect( getSeoStatus( post ) ).toBe( 'missing' );
 	} );
 
 	it( 'returns "complete" when all fields are filled', () => {
 		const post = {
-			wpaim_seo_status: { meta_title: 'filled', og_description: 'filled' },
+			wpaim_seo_status: {
+				meta_title: { status: 'filled', value: 'My Title' },
+				og_description: { status: 'filled', value: 'My description' },
+			},
 		};
 		expect( getSeoStatus( post ) ).toBe( 'complete' );
 	} );
 
 	it( 'returns "partial" when some but not all fields are filled', () => {
 		const post = {
-			wpaim_seo_status: { meta_title: 'filled', og_description: 'empty' },
+			wpaim_seo_status: {
+				meta_title: { status: 'filled', value: 'My Title' },
+				og_description: { status: 'empty', value: '' },
+			},
 		};
 		expect( getSeoStatus( post ) ).toBe( 'partial' );
 	} );

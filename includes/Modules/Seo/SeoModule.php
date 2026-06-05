@@ -355,10 +355,10 @@ class SeoModule {
 	}
 
 	/**
-	 * Apply SEO metadata fields to a post and its featured image.
+	 * REST handler for POST /stilus/v1/seo/apply.
 	 *
-	 * Writes to both Yoast and Rank Math meta keys so the values are picked
-	 * up regardless of which SEO plugin is active.
+	 * Validates the request, checks post-level edit capability, then delegates
+	 * to apply_for_post() and returns the list of applied fields.
 	 *
 	 * @since 1.0.0
 	 * @param \WP_REST_Request $request Incoming REST request.
@@ -391,7 +391,12 @@ class SeoModule {
 	/**
 	 * Register the wpaim_seo_status REST field on all configured post types.
 	 *
+	 * Each field property is an object with a 'status' (filled|empty) key and a
+	 * 'value' key containing the actual stored string, so JS consumers can
+	 * pre-populate edit fields on row expand without a separate fetch.
+	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Each field sub-schema now includes a 'value' property alongside 'status'.
 	 * @return void
 	 */
 	public static function register_seo_status_field(): void {
@@ -408,20 +413,44 @@ class SeoModule {
 						'context'    => [ 'edit' ],
 						'properties' => [
 							'meta_title'     => [
-								'type' => 'string',
-								'enum' => [ 'filled', 'empty' ],
+								'type'       => 'object',
+								'properties' => [
+									'status' => [
+										'type' => 'string',
+										'enum' => [ 'filled', 'empty' ],
+									],
+									'value'  => [ 'type' => 'string' ],
+								],
 							],
 							'og_description' => [
-								'type' => 'string',
-								'enum' => [ 'filled', 'empty' ],
+								'type'       => 'object',
+								'properties' => [
+									'status' => [
+										'type' => 'string',
+										'enum' => [ 'filled', 'empty' ],
+									],
+									'value'  => [ 'type' => 'string' ],
+								],
 							],
 							'excerpt'        => [
-								'type' => 'string',
-								'enum' => [ 'filled', 'empty' ],
+								'type'       => 'object',
+								'properties' => [
+									'status' => [
+										'type' => 'string',
+										'enum' => [ 'filled', 'empty' ],
+									],
+									'value'  => [ 'type' => 'string' ],
+								],
 							],
 							'alt_text'       => [
-								'type' => 'string',
-								'enum' => [ 'filled', 'empty' ],
+								'type'       => 'object',
+								'properties' => [
+									'status' => [
+										'type' => 'string',
+										'enum' => [ 'filled', 'empty' ],
+									],
+									'value'  => [ 'type' => 'string' ],
+								],
 							],
 						],
 					],
@@ -431,33 +460,71 @@ class SeoModule {
 	}
 
 	/**
-	 * REST field callback: return the SEO fill status for each tracked field.
+	 * REST field callback: return the SEO fill status and actual value for each tracked field.
+	 *
+	 * Each entry in the returned array is an associative array with:
+	 * - 'status' (string): 'filled' when a non-empty value exists, 'empty' otherwise.
+	 * - 'value'  (string): the raw stored value (empty string when none is saved).
+	 *
+	 * Returning the value alongside the status allows JS consumers to pre-populate
+	 * edit fields on row expand without triggering an additional REST request.
 	 *
 	 * @since 1.0.0
 	 * @param array<string, mixed> $post_data Associative REST post data array.
-	 * @return array<string, string> Map of field names to 'filled' or 'empty'.
+	 * @return array<string, array{status: string, value: string}> Map of field names to status/value pairs.
 	 */
 	public static function get_seo_status( array $post_data ): array {
 		$post_id = $post_data['id'];
 
-		$yoast_title = \get_post_meta( $post_id, '_yoast_wpseo_title', true );
-		$meta_title  = $yoast_title ? $yoast_title : \get_post_meta( $post_id, 'rank_math_title', true );
+		if ( ! \current_user_can( 'edit_post', $post_id ) ) {
+			return [];
+		}
 
-		$yoast_desc     = \get_post_meta( $post_id, '_yoast_wpseo_metadesc', true );
-		$og_description = $yoast_desc ? $yoast_desc : \get_post_meta( $post_id, 'rank_math_description', true );
+		// Short-circuit repeated REST hits for the same post within a request.
+		// Excerpt is live data from the REST payload, so it is read after the cache check.
+		$cache_key  = 'seo_status_meta_' . $post_id;
+		$meta_cache = \wp_cache_get( $cache_key, 'stilus' );
+
+		if ( false === $meta_cache ) {
+			$yoast_title = \get_post_meta( $post_id, '_yoast_wpseo_title', true );
+			$meta_title  = $yoast_title ? $yoast_title : \get_post_meta( $post_id, 'rank_math_title', true );
+
+			$yoast_desc     = \get_post_meta( $post_id, '_yoast_wpseo_metadesc', true );
+			$og_description = $yoast_desc ? $yoast_desc : \get_post_meta( $post_id, 'rank_math_description', true );
+
+			$thumb_id = \get_post_thumbnail_id( $post_id );
+			$alt_text = $thumb_id
+				? \get_post_meta( $thumb_id, '_wp_attachment_image_alt', true )
+				: '';
+
+			// get_post_meta with $single = true always returns a string, so no fallback needed.
+			$meta_cache = [
+				'meta_title'     => (string) $meta_title,
+				'og_description' => (string) $og_description,
+				'alt_text'       => (string) $alt_text,
+			];
+			\wp_cache_set( $cache_key, $meta_cache, 'stilus' );
+		}
 
 		$excerpt = $post_data['excerpt']['raw'] ?? '';
 
-		$thumb_id = \get_post_thumbnail_id( $post_id );
-		$alt_text = $thumb_id
-			? \get_post_meta( $thumb_id, '_wp_attachment_image_alt', true )
-			: '';
-
 		return [
-			'meta_title'     => $meta_title ? 'filled' : 'empty',
-			'og_description' => $og_description ? 'filled' : 'empty',
-			'excerpt'        => $excerpt ? 'filled' : 'empty',
-			'alt_text'       => $alt_text ? 'filled' : 'empty',
+			'meta_title'     => [
+				'status' => $meta_cache['meta_title'] ? 'filled' : 'empty',
+				'value'  => $meta_cache['meta_title'],
+			],
+			'og_description' => [
+				'status' => $meta_cache['og_description'] ? 'filled' : 'empty',
+				'value'  => $meta_cache['og_description'],
+			],
+			'excerpt'        => [
+				'status' => $excerpt ? 'filled' : 'empty',
+				'value'  => (string) $excerpt,
+			],
+			'alt_text'       => [
+				'status' => $meta_cache['alt_text'] ? 'filled' : 'empty',
+				'value'  => $meta_cache['alt_text'],
+			],
 		];
 	}
 }

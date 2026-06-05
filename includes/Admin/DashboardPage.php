@@ -21,6 +21,8 @@ use Stilus\Tiers\UsageTracker;
  *
  * Also handles the "Run setup again" GET action, which clears the
  * onboarding-seen flag and redirects back to the dashboard root.
+ *
+ * @since 1.0.0
  */
 class DashboardPage {
 

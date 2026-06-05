@@ -58,22 +58,26 @@ class NamespaceContractTest extends TestCase {
 	/**
 	 * Core PHP REST controllers must declare the stilus/v1 namespace, not the legacy one.
 	 *
-	 * Uses glob() discovery so newly added controllers are covered automatically.
+	 * Uses RecursiveDirectoryIterator discovery so newly added controllers anywhere
+	 * under includes/ are covered automatically without maintaining path patterns.
 	 * No exclusions are needed: every *Controller.php file under includes/ is a
 	 * REST controller that registers routes under stilus/v1.
 	 *
 	 * @since 1.8.0
-	 * @since 1.12.0 Switched from a hardcoded list to glob() discovery.
+	 * @since 1.12.0 Switched from a hardcoded list to recursive file discovery.
 	 */
 	public function test_php_rest_controllers_use_stilus_v1_namespace(): void {
-		// Discover all *Controller.php files under includes/.
-		$all_controllers = array_merge(
-			glob( __DIR__ . '/../../../includes/Admin/*Controller.php' ) ?: [],
-			glob( __DIR__ . '/../../../includes/Modules/*/*Controller.php' ) ?: [],
-			glob( __DIR__ . '/../../../includes/Payments/*Controller.php' ) ?: [],
+		$iterator        = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator( __DIR__ . '/../../../includes' )
 		);
+		$all_controllers = [];
+		foreach ( $iterator as $file ) {
+			if ( $file->isFile() && str_ends_with( $file->getFilename(), 'Controller.php' ) ) {
+				$all_controllers[] = $file->getPathname();
+			}
+		}
 
-		$this->assertNotEmpty( $all_controllers, 'No controller files found — glob pattern broken.' );
+		$this->assertNotEmpty( $all_controllers, 'No controller files found — includes/ directory missing or empty.' );
 
 		foreach ( $all_controllers as $file_path ) {
 			$source = file_get_contents( $file_path );

@@ -78,7 +78,7 @@ class DashboardPage {
 
 		wp_localize_script(
 			'stilus-admin',
-			'wpAiMindDashboard',
+			'stilusDashboard',
 			self::get_dashboard_data()
 		);
 	}

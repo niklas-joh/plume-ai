@@ -13,6 +13,10 @@ class SeoStatusFieldTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Mock WP functions added by the capability check and meta-cache layer.
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
 	}
 
 	protected function tearDown(): void {

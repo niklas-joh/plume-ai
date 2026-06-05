@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ActivationNotice {
 
 	private const OPTION         = 'stilus_just_activated';
-	private const LEARN_MORE_URL = 'https://[TODO-stilus-domain]/privacy-policy';
+	private const LEARN_MORE_URL = 'https://wpaimind.com/privacy-policy'; // TODO: update to canonical Stilus domain once finalised.
 
 	/**
 	 * Register the admin_notices hook.

@@ -21,6 +21,8 @@ use Stilus\Tiers\UsageTracker;
  *
  * Also handles the "Run setup again" GET action, which clears the
  * onboarding-seen flag and redirects back to the dashboard root.
+ *
+ * @since 1.0.0
  */
 class DashboardPage {
 
@@ -34,7 +36,7 @@ class DashboardPage {
 		// Handle "Run setup again" — nonce-protected GET action.
 		if (
 			isset( $_GET['run_setup'], $_GET['_wpnonce'] ) &&
-			wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'wpaim_run_setup' ) &&
+			wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'stilus_run_setup' ) &&
 			current_user_can( 'manage_options' )
 		) {
 			delete_option( 'stilus_onboarding_seen' );
@@ -78,7 +80,7 @@ class DashboardPage {
 
 		wp_localize_script(
 			'stilus-admin',
-			'wpAiMindDashboard',
+			'stilusDashboard',
 			self::get_dashboard_data()
 		);
 	}
@@ -118,7 +120,7 @@ class DashboardPage {
 			'restUrl'        => esc_url_raw( rest_url( 'stilus/v1' ) ),
 			'runSetupUrl'    => wp_nonce_url(
 				admin_url( 'admin.php?page=stilus&run_setup=1' ),
-				'wpaim_run_setup'
+				'stilus_run_setup'
 			),
 			'urls'           => [
 				'chat'      => admin_url( 'admin.php?page=stilus-chat' ),
@@ -128,13 +130,13 @@ class DashboardPage {
 				'usage'     => admin_url( 'admin.php?page=stilus-usage' ),
 				'settings'  => admin_url( 'admin.php?page=stilus-settings' ),
 				'posts'     => admin_url( 'edit.php' ),
-				'upgrade'   => 'https://[TODO-stilus-domain]/pricing',
+				'upgrade'   => 'https://wpaimind.com/pricing', // TODO: update to canonical Stilus domain once finalised.
 			],
 			'resourceUrls'   => [
-				'gettingStarted' => 'https://[TODO-stilus-domain]/docs/getting-started',
-				'promptTips'     => 'https://[TODO-stilus-domain]/docs/prompt-tips',
-				'apiKeySetup'    => 'https://[TODO-stilus-domain]/docs/api-key-setup',
-				'changelog'      => 'https://[TODO-stilus-domain]/changelog',
+				'gettingStarted' => 'https://wpaimind.com/docs/getting-started', // TODO: update to canonical Stilus domain once finalised.
+				'promptTips'     => 'https://wpaimind.com/docs/prompt-tips', // TODO: update to canonical Stilus domain once finalised.
+				'apiKeySetup'    => 'https://wpaimind.com/docs/api-key-setup', // TODO: update to canonical Stilus domain once finalised.
+				'changelog'      => 'https://wpaimind.com/changelog', // TODO: update to canonical Stilus domain once finalised.
 			],
 		];
 	}

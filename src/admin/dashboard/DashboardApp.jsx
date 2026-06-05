@@ -9,14 +9,14 @@ import './dashboard.css';
 /**
  * Root dashboard application shown on the main Stilus admin page.
  *
- * Reads all page data from the `wpAiMindDashboard` global injected by PHP.
+ * Reads all page data from the `stilusDashboard` global injected by PHP.
  * Renders the onboarding wizard in place of the normal dashboard when
  * `onboardingSeen` is false, so first-time users are guided through setup.
  *
  * @return {ReactElement}
  */
 export default function DashboardApp() {
-	const data = window.wpAiMindDashboard ?? {};
+	const data = window.stilusDashboard ?? {};
 	const {
 		bannerState = 'none',
 		onboardingSeen = true,

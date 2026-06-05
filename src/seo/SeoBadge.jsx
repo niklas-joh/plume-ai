@@ -15,8 +15,9 @@ export function getSeoStatus( post ) {
 	if ( ! s ) {
 		return 'missing';
 	}
+	// Each field is now { status, value } — read the status sub-key.
 	const values = Object.values( s );
-	const filledCount = values.filter( ( v ) => v === 'filled' ).length;
+	const filledCount = values.filter( ( v ) => v?.status === 'filled' ).length;
 	if ( filledCount === 0 ) {
 		return 'missing';
 	}

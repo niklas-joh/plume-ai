@@ -36,6 +36,19 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 
 	const yesButtonRef = useRef( null );
 
+	// Pre-populate fields from existing meta values when the row is expanded.
+	// Depends on post.id so a different post's expand resets correctly.
+	useEffect( () => {
+		const status = post?.wpaim_seo_status;
+		if ( ! status ) return;
+		setFields( {
+			meta_title:     status.meta_title?.value     ?? '',
+			og_description: status.og_description?.value ?? '',
+			excerpt:        status.excerpt?.value         ?? '',
+			alt_text:       status.alt_text?.value        ?? '',
+		} );
+	}, [ post?.id ] ); // eslint-disable-line react-hooks/exhaustive-deps
+
 	useEffect( () => {
 		if ( confirmReplace && yesButtonRef.current ) {
 			yesButtonRef.current.focus();
@@ -87,15 +100,23 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 				data: { post_id: post.id, ...fields },
 			} );
 			const prev = post.wpaim_seo_status ?? {};
+			// Mirror the { status, value } shape that PHP now returns so the
+			// in-memory post object stays consistent with fresh REST responses.
 			onUpdate( {
 				id: post.id,
 				wpaim_seo_status: {
-					meta_title: fields.meta_title ? 'filled' : prev.meta_title,
+					meta_title: fields.meta_title
+						? { status: 'filled', value: fields.meta_title }
+						: prev.meta_title,
 					og_description: fields.og_description
-						? 'filled'
+						? { status: 'filled', value: fields.og_description }
 						: prev.og_description,
-					excerpt: fields.excerpt ? 'filled' : prev.excerpt,
-					alt_text: fields.alt_text ? 'filled' : prev.alt_text,
+					excerpt: fields.excerpt
+						? { status: 'filled', value: fields.excerpt }
+						: prev.excerpt,
+					alt_text: fields.alt_text
+						? { status: 'filled', value: fields.alt_text }
+						: prev.alt_text,
 				},
 			} );
 			onClose();

@@ -133,10 +133,10 @@ class DashboardPage {
 				'upgrade'   => 'https://wpaimind.com/pricing', // TODO: update to canonical Stilus domain once finalised.
 			],
 			'resourceUrls'   => [
-				'gettingStarted' => 'https://wpaimind.com/docs/getting-started',
-				'promptTips'     => 'https://wpaimind.com/docs/prompt-tips',
-				'apiKeySetup'    => 'https://wpaimind.com/docs/api-key-setup',
-				'changelog'      => 'https://wpaimind.com/changelog',
+				'gettingStarted' => 'https://wpaimind.com/docs/getting-started', // TODO: update to canonical Stilus domain once finalised.
+				'promptTips'     => 'https://wpaimind.com/docs/prompt-tips', // TODO: update to canonical Stilus domain once finalised.
+				'apiKeySetup'    => 'https://wpaimind.com/docs/api-key-setup', // TODO: update to canonical Stilus domain once finalised.
+				'changelog'      => 'https://wpaimind.com/changelog', // TODO: update to canonical Stilus domain once finalised.
 			],
 		];
 	}

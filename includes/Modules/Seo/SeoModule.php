@@ -355,10 +355,10 @@ class SeoModule {
 	}
 
 	/**
-	 * Apply SEO metadata fields to a post and its featured image.
+	 * REST handler for POST /stilus/v1/seo/apply.
 	 *
-	 * Writes to both Yoast and Rank Math meta keys so the values are picked
-	 * up regardless of which SEO plugin is active.
+	 * Validates the request, checks post-level edit capability, then delegates
+	 * to apply_for_post() and returns the list of applied fields.
 	 *
 	 * @since 1.0.0
 	 * @param \WP_REST_Request $request Incoming REST request.
@@ -396,6 +396,7 @@ class SeoModule {
 	 * pre-populate edit fields on row expand without a separate fetch.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Each field sub-schema now includes a 'value' property alongside 'status'.
 	 * @return void
 	 */
 	public static function register_seo_status_field(): void {
@@ -468,7 +469,7 @@ class SeoModule {
 	 * Returning the value alongside the status allows JS consumers to pre-populate
 	 * edit fields on row expand without triggering an additional REST request.
 	 *
-	 * @since 1.9.0
+	 * @since 1.0.0
 	 * @param array<string, mixed> $post_data Associative REST post data array.
 	 * @return array<string, array{status: string, value: string}> Map of field names to status/value pairs.
 	 */
@@ -496,10 +497,11 @@ class SeoModule {
 				? \get_post_meta( $thumb_id, '_wp_attachment_image_alt', true )
 				: '';
 
+			// get_post_meta with $single = true always returns a string, so no fallback needed.
 			$meta_cache = [
-				'meta_title'     => (string) ( $meta_title ? $meta_title : '' ),
-				'og_description' => (string) ( $og_description ? $og_description : '' ),
-				'alt_text'       => (string) ( $alt_text ? $alt_text : '' ),
+				'meta_title'     => (string) $meta_title,
+				'og_description' => (string) $og_description,
+				'alt_text'       => (string) $alt_text,
 			];
 			\wp_cache_set( $cache_key, $meta_cache, 'stilus' );
 		}
@@ -517,7 +519,7 @@ class SeoModule {
 			],
 			'excerpt'        => [
 				'status' => $excerpt ? 'filled' : 'empty',
-				'value'  => (string) ( $excerpt ? $excerpt : '' ),
+				'value'  => (string) $excerpt,
 			],
 			'alt_text'       => [
 				'status' => $meta_cache['alt_text'] ? 'filled' : 'empty',

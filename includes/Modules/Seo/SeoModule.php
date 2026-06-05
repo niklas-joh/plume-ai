@@ -475,6 +475,10 @@ class SeoModule {
 	public static function get_seo_status( array $post_data ): array {
 		$post_id = $post_data['id'];
 
+		if ( ! \current_user_can( 'edit_post', $post_id ) ) {
+			return [];
+		}
+
 		$yoast_title = \get_post_meta( $post_id, '_yoast_wpseo_title', true );
 		$meta_title  = $yoast_title ? $yoast_title : \get_post_meta( $post_id, 'rank_math_title', true );
 

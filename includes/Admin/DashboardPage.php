@@ -34,7 +34,7 @@ class DashboardPage {
 		// Handle "Run setup again" — nonce-protected GET action.
 		if (
 			isset( $_GET['run_setup'], $_GET['_wpnonce'] ) &&
-			wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'wpaim_run_setup' ) &&
+			wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'stilus_run_setup' ) &&
 			current_user_can( 'manage_options' )
 		) {
 			delete_option( 'stilus_onboarding_seen' );
@@ -118,7 +118,7 @@ class DashboardPage {
 			'restUrl'        => esc_url_raw( rest_url( 'stilus/v1' ) ),
 			'runSetupUrl'    => wp_nonce_url(
 				admin_url( 'admin.php?page=stilus&run_setup=1' ),
-				'wpaim_run_setup'
+				'stilus_run_setup'
 			),
 			'urls'           => [
 				'chat'      => admin_url( 'admin.php?page=stilus-chat' ),

@@ -230,7 +230,8 @@ jobs:
         run: npx wp-env start
 
       - name: Install plugin-check into wp-env
-        run: npx wp-env run cli wp plugin install plugin-check --activate
+        id: install-plugin-check
+        run: npx wp-env run cli wp plugin install plugin-check --activate --allow-root --force
 
       - name: Run WP Plugin Check
         uses: WordPress/plugin-check-action@v1
@@ -626,6 +627,79 @@ jobs:
             STILUS_PROXY_URL='${STILUS_PROXY_URL}' \
             vendor/bin/phpunit \
               -c phpunit-real-integration.xml.dist \
+              --colors=always
+          "
+
+      - name: Stop wp-env
+        if: always()
+        run: npx wp-env stop || true
+
+  # ── Cloud: PHP Integration Tests (wp-env) ─────────────────────────────────
+  # Runs tests/Integration/ against a real WordPress instance provided by
+  # wp-env's tests-wordpress container, using phpunit-integration.xml.dist.
+  integration:
+    name: PHP Integration Tests
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.php == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Cache Composer deps
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install npm dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Start wp-env
+        run: npx wp-env start
+
+      - name: Wait for WordPress
+        run: |
+          for i in {1..30}; do
+            if curl -fs http://localhost:8889 > /dev/null; then
+              echo "WordPress is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::WordPress did not start within 60s"
+          exit 1
+
+      - name: Patch WordPress test utils for PHPUnit 10 compatibility
+        # @wordpress/env bundles /wordpress-phpunit/ which still calls
+        # PHPUnit\Util\Test::parseTestMethodAnnotations() — removed in PHPUnit 10.
+        # The script replaces the call with a safe empty-array no-op.
+        run: |
+          npx wp-env run tests-wordpress -- php \
+            /var/www/html/wp-content/plugins/wp-ai-mind/tests/phpunit10-compat.php
+
+      - name: Run integration tests
+        run: |
+          npx wp-env run tests-wordpress -- bash -c "
+            cd /var/www/html/wp-content/plugins/wp-ai-mind
+            vendor/bin/phpunit \
+              -c phpunit-integration.xml.dist \
               --colors=always
           "
 

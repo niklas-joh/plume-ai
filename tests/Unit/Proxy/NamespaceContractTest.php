@@ -58,15 +58,24 @@ class NamespaceContractTest extends TestCase {
 	/**
 	 * Core PHP REST controllers must declare the stilus/v1 namespace, not the legacy one.
 	 *
+	 * Uses glob() discovery so newly added controllers are covered automatically.
+	 * No exclusions are needed: every *Controller.php file under includes/ is a
+	 * REST controller that registers routes under stilus/v1.
+	 *
 	 * @since 1.8.0
+	 * @since 1.12.0 Switched from a hardcoded list to glob() discovery.
 	 */
 	public function test_php_rest_controllers_use_stilus_v1_namespace(): void {
-		$controllers = [
-			__DIR__ . '/../../../includes/Modules/Chat/ChatRestController.php',
-			__DIR__ . '/../../../includes/Admin/ActivationVerifyRestController.php',
-			__DIR__ . '/../../../includes/Payments/TierUpdateWebhookController.php',
-		];
-		foreach ( $controllers as $file_path ) {
+		// Discover all *Controller.php files under includes/.
+		$all_controllers = array_merge(
+			glob( __DIR__ . '/../../../includes/Admin/*Controller.php' ) ?: [],
+			glob( __DIR__ . '/../../../includes/Modules/*/*Controller.php' ) ?: [],
+			glob( __DIR__ . '/../../../includes/Payments/*Controller.php' ) ?: [],
+		);
+
+		$this->assertNotEmpty( $all_controllers, 'No controller files found — glob pattern broken.' );
+
+		foreach ( $all_controllers as $file_path ) {
 			$source = file_get_contents( $file_path );
 			$this->assertNotFalse( $source, "Could not read: $file_path" );
 			$this->assertStringContainsString(

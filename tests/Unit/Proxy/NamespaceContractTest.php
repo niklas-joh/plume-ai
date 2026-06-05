@@ -77,7 +77,7 @@ class NamespaceContractTest extends TestCase {
 			}
 		}
 
-		$this->assertNotEmpty( $all_controllers, 'No controller files found — includes/ directory missing or empty.' );
+		$this->assertNotEmpty( $all_controllers, 'No controller files found — includes/ directory missing or empty' );
 
 		foreach ( $all_controllers as $file_path ) {
 			$source = file_get_contents( $file_path );

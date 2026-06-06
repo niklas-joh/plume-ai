@@ -373,7 +373,7 @@ describe( 'handleChatProxy', () => {
 		expect( json.usage ).toEqual( { input_tokens: 6, output_tokens: 3 } );
 	} );
 
-	it( 'Gemini adapter: tool_call id matches UUID format when functionCall part returned', async () => {
+	it( 'returns a UUID-format tool_call id when Gemini functionCall part is returned', async () => {
 		const env = await makeEnvWithSiteToken( 'trial' );
 
 		vi.stubGlobal(

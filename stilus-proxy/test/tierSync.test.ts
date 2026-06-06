@@ -28,7 +28,7 @@ describe( 'pushTierUpdate', () => {
 		vi.stubGlobal( 'fetch', fetchMock );
 
 		// Override the backoff delay so the test does not wait 1 second.
-		vi.stubGlobal( 'setTimeout', ( fn: () => void ) => fn() );
+		vi.stubGlobal( 'setTimeout', ( fn: () => void, _delay?: number ) => fn() );
 
 		await pushTierUpdate( 'https://example.com', 'secret', 'pro_managed' );
 
@@ -40,7 +40,7 @@ describe( 'pushTierUpdate', () => {
 			new Response( null, { status: 503 } )
 		);
 		vi.stubGlobal( 'fetch', fetchMock );
-		vi.stubGlobal( 'setTimeout', ( fn: () => void ) => fn() );
+		vi.stubGlobal( 'setTimeout', ( fn: () => void, _delay?: number ) => fn() );
 
 		await expect(
 			pushTierUpdate( 'https://example.com', 'secret', 'pro_managed' )

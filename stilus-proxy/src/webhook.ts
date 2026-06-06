@@ -169,7 +169,7 @@ async function handleLicenceKey(
 		const variantId = String( ( attrs?.variant_id as unknown ) ?? '' );
 		const tier = buildVariantTierMap( env )[ variantId ] ?? null;
 		if ( ! tier ) {
-			console.error( '[webhook] Unknown variantId, ignoring licence_key_created', { variantId } );
+			console.error( '[webhook] Unknown variantId, ignoring licence_key event', { variantId } );
 			return;
 		}
 		const record: LicenceRecord = {

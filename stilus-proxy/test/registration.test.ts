@@ -314,9 +314,11 @@ describe( 'handleRegistration', () => {
 			} ),
 			env
 		);
-		const data2 = ( await res2.json() ) as { token: string; tier: string };
+		const data2 = ( await res2.json() ) as Record< string, unknown >;
 		expect( data2.token ).toBe( token );
 		expect( data2.tier ).toBe( 'free' );
+		// Secret was already stored on initial registration — must not be re-exposed.
+		expect( data2 ).not.toHaveProperty( 'tier_sync_secret' );
 	} );
 
 	it( 're-registration does not expose tier_sync_secret when it already exists', async () => {
@@ -410,6 +412,60 @@ describe( 'handleRegistration', () => {
 			import('../src/types').SiteRecord
 		>( `site:${ existingToken }`, 'json' );
 		expect( updated?.tier_sync_secret ).toBe( data.tier_sync_secret as string );
+	} );
+
+	it( 'pre-1.9 backfill on expired trial returns tier_sync_secret and demotes to free', async () => {
+		// Simulate a pre-1.9 site with an already-expired trial and no tier_sync_secret.
+		const env = makeEnv();
+		const siteUrl = 'https://pre-1-9-expired.example.com';
+		const existingToken = 'exptoken'.repeat( 8 );
+
+		const urlHashBytes = await crypto.subtle.digest(
+			'SHA-256',
+			new TextEncoder().encode( siteUrl )
+		);
+		const urlHash = Array.from( new Uint8Array( urlHashBytes ) )
+			.map( ( b ) => b.toString( 16 ).padStart( 2, '0' ) )
+			.join( '' );
+
+		const pre19Record: import('../src/types').SiteRecord = {
+			site_url: siteUrl,
+			tier: 'trial',
+			created_at: Date.now() - 32 * 24 * 60 * 60 * 1000,
+			trial_started_at: Date.now() - 32 * 24 * 60 * 60 * 1000,
+			// deliberately no tier_sync_secret
+		};
+		await env.USAGE_KV.put( `site:${ existingToken }`, JSON.stringify( pre19Record ) );
+		await env.USAGE_KV.put( `site_url:${ urlHash }`, existingToken );
+
+		const challenge = 'd4'.repeat( 32 );
+		await env.USAGE_KV.put( `challenge:${ challenge }`, '1' );
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue( new Response( '{}', { status: 200 } ) )
+		);
+
+		const res = await handleRegistration(
+			makeRequest( {
+				body: { site_url: siteUrl, challenge_token: challenge },
+			} ),
+			env
+		);
+		expect( res.status ).toBe( 200 );
+		const data = ( await res.json() ) as Record< string, unknown >;
+
+		// Trial is expired → must demote to free.
+		expect( data.tier ).toBe( 'free' );
+
+		// Pre-1.9 backfill: secret MUST be returned because none was stored.
+		expect( data.tier_sync_secret ).toMatch( /^[0-9a-f]{64}$/ );
+
+		// Secret MUST be persisted to KV.
+		const updated = await env.USAGE_KV.get<
+			import('../src/types').SiteRecord
+		>( `site:${ existingToken }`, 'json' );
+		expect( updated?.tier_sync_secret ).toBe( data.tier_sync_secret as string );
+		expect( updated?.tier ).toBe( 'free' );
 	} );
 
 	it( 'returns 429 when IP exceeds the registration rate limit', async () => {

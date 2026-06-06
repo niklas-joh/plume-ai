@@ -354,7 +354,7 @@ async function callGemini(
 				content: '',
 				usage: normalizedUsage,
 				tool_call: {
-					id: `gemini_${ Date.now() }`,
+					id: `gemini_${ crypto.randomUUID() }`,
 					name: part.functionCall.name,
 					arguments: part.functionCall.args ?? {},
 				},

@@ -30,7 +30,7 @@ describe( 'verifyLsSignature', () => {
 	it( 'resolves false when LS_WEBHOOK_SECRET is empty', async () => {
 		const env = makeEnv( { LS_WEBHOOK_SECRET: '' } );
 		const body = '{"event":"test"}';
-		// Caught by the !secret guard
+		// Empty string coerces to falsy — same guard as undefined, different coercion path
 		const sig = signBody( body, '' );
 		expect( await verifyLsSignature( body, sig, env ) ).toBe( false );
 	} );

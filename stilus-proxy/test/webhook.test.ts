@@ -226,7 +226,7 @@ describe( 'handleWebhook', () => {
 		expect( record?.tier ).toBe( 'pro_managed' );
 	} );
 
-	it( 'returns 200 and writes no licence:* key for an unknown variantId in licence_key_created', async () => {
+	it( 'returns 200 and writes no licence:* key for an unknown variantId', async () => {
 		const env = await makePrepopulatedEnv( 'free' );
 		const errorSpy = vi.spyOn( console, 'error' ).mockImplementation( () => {} );
 

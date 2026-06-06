@@ -228,6 +228,7 @@ describe( 'handleWebhook', () => {
 
 	it( 'returns 200 and writes no licence:* key for an unknown variantId in licence_key_created', async () => {
 		const env = await makePrepopulatedEnv( 'free' );
+		const errorSpy = vi.spyOn( console, 'error' ).mockImplementation( () => {} );
 
 		const payload = licenceKeyCreatedPayload(
 			TEST_LICENCE_KEY,
@@ -243,6 +244,41 @@ describe( 'handleWebhook', () => {
 
 		const record = await env.USAGE_KV.get( `licence:${ TEST_LICENCE_KEY }` );
 		expect( record ).toBeNull();
+		expect( errorSpy ).toHaveBeenCalledWith(
+			'[webhook] Unknown variantId, ignoring licence_key event',
+			{ variantId: '9999999' }
+		);
+	} );
+
+	it( 'returns 200 and writes no licence:* key for an unknown variantId in licence_key_updated', async () => {
+		const env = await makePrepopulatedEnv( 'free' );
+		const errorSpy = vi.spyOn( console, 'error' ).mockImplementation( () => {} );
+
+		const payload = {
+			meta: {
+				event_name: 'licence_key_updated',
+				custom_data: { site_token: TEST_TOKEN },
+			},
+			data: {
+				attributes: {
+					key: TEST_LICENCE_KEY,
+					status: 'active',
+					variant_id: '9999999',
+				},
+			},
+		};
+		const req = makeRequest( payload );
+		const { ctx } = makeCtx();
+		const res = await handleWebhook( req, env, ctx );
+
+		expect( res.status ).toBe( 200 );
+
+		const record = await env.USAGE_KV.get( `licence:${ TEST_LICENCE_KEY }` );
+		expect( record ).toBeNull();
+		expect( errorSpy ).toHaveBeenCalledWith(
+			'[webhook] Unknown variantId, ignoring licence_key event',
+			{ variantId: '9999999' }
+		);
 	} );
 
 	it( 'returns 200 and makes no KV changes for an unknown event type', async () => {

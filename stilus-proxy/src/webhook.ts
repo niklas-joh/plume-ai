@@ -167,7 +167,11 @@ async function handleLicenceKey(
 
 	if ( status === 'active' ) {
 		const variantId = String( ( attrs?.variant_id as unknown ) ?? '' );
-		const tier = buildVariantTierMap( env )[ variantId ] ?? 'pro_managed';
+		const tier = buildVariantTierMap( env )[ variantId ] ?? null;
+		if ( ! tier ) {
+			console.error( '[webhook] Unknown variantId, ignoring licence_key event', { variantId } );
+			return;
+		}
 		const record: LicenceRecord = {
 			tier,
 			site_token: siteToken,

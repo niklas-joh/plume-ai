@@ -33,14 +33,12 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '20.12'
+          node-version: '22'
           cache: npm
           cache-dependency-path: stilus-proxy/package-lock.json
 
       - name: Install dependencies
-        # npm ci silently skips optional native bindings when the lockfile was
-        # generated on a different platform (npm/cli#4828); npm install resolves them.
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
         working-directory: stilus-proxy
 
       - name: Run tests

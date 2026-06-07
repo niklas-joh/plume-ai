@@ -38,7 +38,9 @@ jobs:
           cache-dependency-path: stilus-proxy/package-lock.json
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        # npm ci silently skips optional native bindings when the lockfile was
+        # generated on a different platform (npm/cli#4828); npm install resolves them.
+        run: npm install --no-audit --no-fund
         working-directory: stilus-proxy
 
       - name: Run tests

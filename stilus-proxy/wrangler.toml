@@ -2,6 +2,24 @@ name = "stilus-proxy"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
+[placement]
+mode = "smart"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = true
+persist = true
+head_sampling_rate = 1
+
 [[kv_namespaces]]
 binding = "USAGE_KV"
 id = "71612d363b07408bb70eec49d5739b1c"
@@ -43,4 +61,4 @@ DEV_ENDPOINTS_ENABLED = "1"
 
 [[env.dev.kv_namespaces]]
 binding = "USAGE_KV"
-id = "REPLACE_WITH_DEV_KV_NAMESPACE_ID"
+id = "46d46fc066354b3a946fd734bca7eb1a"

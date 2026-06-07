@@ -10,12 +10,12 @@ description: Triage all open GitHub issues, classify by effort and priority, gro
 Before anything else, invoke the following skills to load them into context:
 
 1. `/using-superpowers` — loads available skills (main session only, not in subagents)
-2. `/subagent-driven-development` — implementation loop used in Phase 6
-3. `/dispatching-parallel-agents` — parallel review pattern used in Phase 4
+2. `/subagent-driven-development` — implementation loop used in Phase 7
+3. `/dispatching-parallel-agents` — parallel review pattern used in Phase 5
 
 ---
 
-## Phase 1 — Discovery (read-only, no edits)
+## Phase 1 — Discovery and filtering (read-only, no edits)
 
 Read project context before touching any issue:
 
@@ -25,23 +25,67 @@ cat README.md
 cat package.json 2>/dev/null || cat composer.json 2>/dev/null
 ```
 
-Collect every open issue with full body and comments:
+### Step 1a — Fetch open issues
 
 ```bash
 gh issue list --state open --json number,title,labels,body,comments --limit 200
 ```
 
-Check recent commit history to detect issues already partially addressed:
+### Step 1b — Fetch open PRs and extract linked issues
+
+```bash
+gh pr list --state open --json number,title,body,headRefName
+```
+
+Parse every `Closes #N` / `Fixes #N` reference from PR bodies. Any issue number found here is **already covered** — mark it `SKIP (PR #N)` and exclude it from classification entirely.
+
+### Step 1c — Read the deferred state file
+
+```bash
+cat .artifacts/reports/triage-deferred.md 2>/dev/null
+```
+
+If the file exists, it contains issues deferred in previous runs with a timestamp and the decision question. For each deferred issue:
+
+```bash
+gh issue view <n> --json updatedAt,comments
+```
+
+Compare `updatedAt` against the `deferred_at` timestamp in the file.
+
+- **No new activity** → mark `SKIP (deferred, no update)` and exclude from classification
+- **New activity** → read all comments posted after `deferred_at` and evaluate:
+  - **Noise** (label change, bot comment, automated status update, no human text) → mark `SKIP (deferred, noise)` and continue skipping
+  - **Decision made** (a direct answer to the deferred question, a chosen approach, an explicit instruction) → re-classify normally and proceed to implementation planning
+  - **New information or partial clarification** (adds context but does not fully resolve the question) → re-evaluate whether the issue can now be planned. If yes, re-classify. If the decision question is still open, update the deferred state file with the new context and post a follow-up comment asking the remaining clarifying question
+  - **Unrelated comment** (off-topic, acknowledgement only) → mark `SKIP (deferred, no update)` and continue skipping
+
+### Step 1d — Check recent commits
 
 ```bash
 git log --oneline --since="60 days ago" | head -60
+```
+
+### Step 1e — Build the working set
+
+The working set for this run = all open issues **minus** SKIP (PR) **minus** SKIP (deferred, no update).
+
+Output a pre-classification filter summary before proceeding:
+
+```
+## Filter summary
+- Total open issues: 24
+- Skipped (covered by open PR): #663 (PR #670), #668 (PR #676), #666 (PR #673)
+- Skipped (deferred, no update): #7, #18
+- Deferred re-evaluated (new activity): #22
+- Working set: 17 issues
 ```
 
 ---
 
 ## Phase 2 — Classification
 
-Classify each issue across two axes.
+Classify each issue in the working set across two axes.
 
 **Effort:**
 
@@ -61,7 +105,21 @@ Classify each issue across two axes.
 | P2 | Developer experience or code quality |
 | P3 | Enhancement or nice-to-have |
 
-**Strategic flag:** Issues that cannot be resolved without an architectural or product decision get a `DEFER` flag and a one-line note describing the decision needed. Do not stop the run. Continue with everything else; DEFER items are surfaced in the final report only.
+**Strategic flag:** Issues that cannot be resolved without an architectural or product decision get a `DEFER` flag and a one-line note describing the decision needed. Do not stop the run. Continue with everything else; DEFER items are written to the deferred state file at the end of the run.
+
+When an issue is marked DEFER **for the first time** (i.e. it is not already in the deferred state file), post a comment on the issue:
+
+```bash
+gh issue comment <n> --body "**Nightly triage — decision needed**
+
+This issue was reviewed in the automated nightly triage run but cannot be resolved without a decision.
+
+**Question:** <one-line decision question>
+
+Reply to this comment with your decision and the next nightly run will pick it up automatically."
+```
+
+Do not post this comment if the issue is already in the deferred state file — it was commented on in a previous run. A follow-up comment is only posted if re-evaluation in Phase 1c finds new information that narrows but does not resolve the question.
 
 Output the prioritisation matrix:
 
@@ -83,7 +141,7 @@ Group non-DEFER issues into PRs where issues share:
 
 Label each group A, B, C… and order by: P0 quick wins → P0 medium → P1 quick wins → P1 medium → P2/P3. High-effort P3 issues go last.
 
-DEFER issues are listed separately and skipped during implementation.
+DEFER issues are listed separately and excluded from implementation.
 
 ---
 
@@ -184,6 +242,7 @@ Apply any `NEEDS REVISION` findings from either reviewer. Reorder or revise plan
 Present the final implementation plan to the user. Always. In every mode — interactive or nightly scheduled.
 
 Include:
+- The filter summary (Phase 1e)
 - The prioritisation matrix (Phase 2/3)
 - The per-group implementation plans (Phase 4, post-review revisions)
 - Reviewer 1 verdict and adjustments made
@@ -324,13 +383,20 @@ The plan written to `.artifacts/reports/triage-plan-<date>.md` in Phase 4 is an 
 
 ## End-of-run report
 
-Output as a table:
+Output as tables, then update the deferred state file.
 
 ```
 ## Issue triage run — <YYYY-MM-DD>
 
-### Resolved
+### Filter summary
+| Status | Issues |
+|--------|--------|
+| Skipped — covered by open PR | #663 (PR #670), #668 (PR #676) |
+| Skipped — deferred, no update | #7, #18 |
+| Re-evaluated — deferred with new activity | #22 |
+| Working set | 17 issues |
 
+### Resolved
 | # | Title | Type | PR | How it was fixed |
 |---|-------|------|----|-----------------|
 | 14 | Missing nonce on settings save | ✅ fix(rest) | #42 | Added wp_verify_nonce() and current_user_can() before $_POST processing |
@@ -338,22 +404,35 @@ Output as a table:
 | 31 | Debug console.log in production | ✅ chore(build) | #43 | Removed three leftover console.log calls from class-proxy.php |
 
 ### Deferred (awaiting decision)
-
-| # | Title | Decision needed |
-|---|-------|----------------|
-| 7  | AI response caching | Choose between transient and object cache — impacts multisite behaviour |
-| 18 | Tier upgrade flow | Confirm whether upgrade redirects to Stripe or stays in-plugin |
+| # | Title | Decision needed | Deferred since |
+|---|-------|----------------|----------------|
+| 7  | AI response caching | Choose between transient and object cache — impacts multisite behaviour | 2026-06-07 |
+| 18 | Tier upgrade flow | Confirm whether upgrade redirects to Stripe or stays in-plugin | 2026-05-31 |
 
 ### Cloudflare Worker changes (manual deploy required)
-
 | PR | Title |
 |----|-------|
 | #44 | fix(worker): sanitise forwarded headers |
 
 ### Review verdicts
-
 | Reviewer | Verdict | Adjustments made |
 |----------|---------|-----------------|
 | Code quality | LGTM | Reordered Group C after Group B to avoid merge conflict on class-proxy.php |
 | WP standards | NEEDS REVISION → LGTM | Added missing esc_attr() to Group A plan for response array output |
 ```
+
+After outputting the report, update the deferred state file:
+
+```bash
+mkdir -p .artifacts/reports
+cat > .artifacts/reports/triage-deferred.md << 'EOF'
+# Triage deferred issues
+# Maintained automatically by /issue-triage. Do not edit manually.
+# Format: issue number | deferred_at (ISO date) | decision needed
+
+7 | 2026-06-07 | Choose between transient and object cache — impacts multisite behaviour
+18 | 2026-05-31 | Confirm whether upgrade redirects to Stripe or stays in-plugin
+EOF
+```
+
+Write only issues that remain unresolved and deferred. Remove any issue from this file that was resolved, covered by a PR, or re-evaluated and actioned in this run. The file is the single source of truth for skip logic in Phase 1c of the next run.

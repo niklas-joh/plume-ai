@@ -21,6 +21,7 @@ export async function verifyHmac(
 	secret: string
 ): Promise< boolean > {
 	try {
+		if ( ! secret ) return false;
 		if (
 			! signatureHex ||
 			signatureHex.length % 2 !== 0 ||

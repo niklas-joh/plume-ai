@@ -30,8 +30,16 @@ describe( 'verifyLsSignature', () => {
 	it( 'resolves false when LS_WEBHOOK_SECRET is empty', async () => {
 		const env = makeEnv( { LS_WEBHOOK_SECRET: '' } );
 		const body = '{"event":"test"}';
-		// Even a correctly formed sig with empty secret should fail importKey (zero-length key)
+		// Empty string coerces to falsy — same guard as undefined, different coercion path
 		const sig = signBody( body, '' );
+		expect( await verifyLsSignature( body, sig, env ) ).toBe( false );
+	} );
+
+	it( 'resolves false when secret is undefined', async () => {
+		const env = makeEnv( { LS_WEBHOOK_SECRET: undefined as unknown as string } );
+		const body = '{"event":"test"}';
+		// Any signature — doesn't matter, the guard fires before HMAC computation
+		const sig = signBody( body, 'undefined' ); // what would happen without the fix
 		expect( await verifyLsSignature( body, sig, env ) ).toBe( false );
 	} );
 

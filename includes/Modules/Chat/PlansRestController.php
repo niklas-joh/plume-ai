@@ -13,7 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Tools\ToolRegistry;
 use Stilus\Tools\ToolExecutor;
 
 /**
@@ -33,11 +32,9 @@ class PlansRestController {
 	 * Inject dependencies for plan execution.
 	 *
 	 * @since 1.0.0
-	 * @param ToolRegistry $registry Tool registry for allowed-post-type validation.
 	 * @param ToolExecutor $executor Tool executor to delegate create/update calls.
 	 */
 	public function __construct(
-		private ToolRegistry $registry,
 		private ToolExecutor $executor,
 	) {}
 

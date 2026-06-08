@@ -136,50 +136,20 @@ export async function handleRegistration(
 			'json'
 		);
 		if ( record ) {
-			// Backfill the tier-sync secret on idempotent re-registration so
-			// pre-1.9 sites pick it up without needing a manual rotate call.
-			let secret = record.tier_sync_secret;
-			if ( ! secret ) {
-				secret = generateToken();
-			}
-
 			const startedAt = record.trial_started_at ?? record.created_at;
 			if (
 				record.tier === 'trial' &&
 				Date.now() - startedAt > TRIAL_PERIOD_MS
 			) {
-				const demoted: SiteRecord = {
-					...record,
-					tier: 'free',
-					tier_sync_secret: secret,
-				};
+				const demoted: SiteRecord = { ...record, tier: 'free' };
 				await env.USAGE_KV.put(
 					`site:${ existingToken }`,
 					JSON.stringify( demoted )
 				);
-				return jsonResponse( {
-					token: existingToken,
-					tier: 'free',
-					tier_sync_secret: secret,
-				} );
+				return jsonResponse( { token: existingToken, tier: 'free' } );
 			}
 
-			if ( secret !== record.tier_sync_secret ) {
-				const backfilled: SiteRecord = {
-					...record,
-					tier_sync_secret: secret,
-				};
-				await env.USAGE_KV.put(
-					`site:${ existingToken }`,
-					JSON.stringify( backfilled )
-				);
-			}
-
-			return jsonResponse( {
-				token: existingToken,
-				tier: record.tier,
-				tier_sync_secret: secret,
-			} );
+			return jsonResponse( { token: existingToken, tier: record.tier } );
 		}
 	}
 

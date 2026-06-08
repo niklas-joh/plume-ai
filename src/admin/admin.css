@@ -933,20 +933,24 @@
 	text-decoration: none;
 	transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
+
 .wpaim-btn:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
 }
+
 .wpaim-btn--primary {
 	background: var(--wp-admin-theme-color, #2271b1);
 	color: #fff;
 	border-color: var(--wp-admin-theme-color, #2271b1);
 }
+
 .wpaim-btn--primary:hover:not(:disabled) {
 	background: color-mix(in srgb, var(--wp-admin-theme-color, #2271b1) 85%, #000);
 	border-color: color-mix(in srgb, var(--wp-admin-theme-color, #2271b1) 85%, #000);
 	color: #fff;
 }
+
 .wpaim-btn--sm {
 	font-size: var(--text-xs);
 	padding: 3px var(--space-2);
@@ -963,6 +967,7 @@
 	background: var(--color-bg);
 	color: var(--color-text-primary);
 }
+
 .wpaim-input:focus {
 	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
 	outline-offset: 0;
@@ -976,6 +981,7 @@
 	gap: var(--space-1);
 	padding: var(--space-1) var(--space-4);
 }
+
 .wpaim-tool-pill {
 	font-size: 10px;
 	padding: 1px 6px;
@@ -994,6 +1000,7 @@
 	background: var(--color-bg);
 	overflow: hidden;
 }
+
 .wpaim-plan-card__header {
 	display: flex;
 	align-items: center;
@@ -1005,11 +1012,13 @@
 	font-weight: 600;
 	color: var(--color-text-secondary);
 }
+
 .wpaim-plan-card__label {
 	flex: 1;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 }
+
 .wpaim-plan-card__type-badge {
 	font-size: 10px;
 	padding: 1px 6px;
@@ -1019,30 +1028,35 @@
 	border: 1px solid #c9d8fb;
 	text-transform: capitalize;
 }
+
 .wpaim-plan-card__dismiss {
 	margin-left: auto;
 	width: 22px;
 	height: 22px;
 	color: var(--color-text-muted);
 }
+
 .wpaim-plan-card__body {
 	padding: var(--space-3);
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-2);
 }
+
 .wpaim-plan-card__title {
 	font-weight: 600;
 	font-size: var(--text-sm);
 	margin: 0;
 	color: var(--color-text-primary);
 }
+
 .wpaim-plan-card__outline {
 	font-size: var(--text-sm);
 	color: var(--color-text-secondary);
 	margin: 0;
 	line-height: 1.5;
 }
+
 .wpaim-plan-card__status-badge {
 	display: inline-block;
 	font-size: 10px;
@@ -1053,6 +1067,7 @@
 	color: var(--color-text-muted);
 	text-transform: capitalize;
 }
+
 .wpaim-plan-card__field {
 	display: flex;
 	flex-direction: column;
@@ -1061,25 +1076,30 @@
 	font-weight: 500;
 	color: var(--color-text-secondary);
 }
+
 .wpaim-plan-card__field--inline {
 	flex-direction: row;
 	align-items: center;
 }
+
 .wpaim-plan-card__field--inline .wpaim-input {
 	width: auto;
 	flex: 1;
 }
+
 .wpaim-plan-card__error {
 	font-size: var(--text-xs);
 	color: var(--color-error, #cc1818);
 	padding: 0 var(--space-3);
 	margin: 0;
 }
+
 .wpaim-plan-card__actions {
 	display: flex;
 	gap: var(--space-2);
 	padding: var(--space-2) var(--space-3) var(--space-3);
 }
+
 .wpaim-plan-card--done {
 	display: flex;
 	align-items: center;
@@ -1088,6 +1108,7 @@
 	background: #f0fdf4;
 	border-color: #bbf7d0;
 }
+
 .wpaim-plan-card--done .wpaim-plan-card__done-text {
 	flex: 1;
 	font-size: var(--text-sm);

@@ -33,7 +33,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '22' # must satisfy @rolldown/binding-linux-x64-gnu engine: ^20.19.0 || >=22.12.0
+          node-version: '24' # >=22.12.0 satisfies @rolldown/binding-linux-x64-gnu engine constraint
           cache: npm
           cache-dependency-path: stilus-proxy/package-lock.json
 

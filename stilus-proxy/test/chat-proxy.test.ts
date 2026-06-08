@@ -373,6 +373,66 @@ describe( 'handleChatProxy', () => {
 		expect( json.usage ).toEqual( { input_tokens: 6, output_tokens: 3 } );
 	} );
 
+	it( 'returns a UUID-format tool_call id when Gemini functionCall part is returned', async () => {
+		const env = await makeEnvWithSiteToken( 'trial' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						candidates: [
+							{
+								content: {
+									parts: [
+										{
+											functionCall: {
+												name: 'get_post_content',
+												args: { post_id: 7 },
+											},
+										},
+									],
+								},
+							},
+						],
+						usageMetadata: {
+							promptTokenCount: 10,
+							candidatesTokenCount: 5,
+						},
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Fetch post 7' } ],
+			provider: 'gemini',
+			tools: [ mockTool ],
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const json = ( await response.json() ) as {
+			content: string;
+			usage: { input_tokens: number; output_tokens: number };
+			tool_call?: {
+				id: string;
+				name: string;
+				arguments: Record< string, unknown >;
+			};
+		};
+
+		expect( json.tool_call ).toBeDefined();
+		const toolCall = json.tool_call!;
+		expect( toolCall.id ).toMatch(
+			/^gemini_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+		);
+		expect( toolCall.name ).toBe( 'get_post_content' );
+		expect( toolCall.arguments ).toEqual( { post_id: 7 } );
+	} );
+
 	it( 'returns 400 for unknown provider', async () => {
 		const env = await makeEnvWithSiteToken( 'trial' );
 

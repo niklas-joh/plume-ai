@@ -314,9 +314,52 @@ describe( 'handleRegistration', () => {
 			} ),
 			env
 		);
-		const data2 = ( await res2.json() ) as { token: string; tier: string };
+		const data2 = ( await res2.json() ) as Record< string, unknown >;
 		expect( data2.token ).toBe( token );
 		expect( data2.tier ).toBe( 'free' );
+		// Secret was already stored on initial registration — must not be re-exposed.
+		expect( data2 ).not.toHaveProperty( 'tier_sync_secret' );
+	} );
+
+	it( 're-registration does not expose tier_sync_secret when it already exists', async () => {
+		// First registration — sets up the KV record with a tier_sync_secret.
+		const challenge1 = 'a1'.repeat( 32 );
+		const env = await makeEnvWithChallenge( challenge1 );
+		const siteUrl = 'https://already-has-secret.example.com';
+
+		const res1 = await handleRegistration(
+			makeRequest( {
+				body: { site_url: siteUrl, challenge_token: challenge1 },
+			} ),
+			env
+		);
+		expect( res1.status ).toBe( 201 );
+		const data1 = ( await res1.json() ) as { token: string };
+
+		// Confirm the KV record already has a tier_sync_secret persisted.
+		const stored = await env.USAGE_KV.get<
+			import('../src/types').SiteRecord
+		>( `site:${ data1.token }`, 'json' );
+		expect( stored?.tier_sync_secret ).toMatch( /^[0-9a-f]{64}$/ );
+
+		// Re-register with a second challenge — secret must NOT appear in response.
+		const challenge2 = 'b2'.repeat( 32 );
+		await env.USAGE_KV.put( `challenge:${ challenge2 }`, '1' );
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue( new Response( '{}', { status: 200 } ) )
+		);
+
+		const res2 = await handleRegistration(
+			makeRequest( {
+				body: { site_url: siteUrl, challenge_token: challenge2 },
+			} ),
+			env
+		);
+		expect( res2.status ).toBe( 200 );
+		const data2 = ( await res2.json() ) as Record< string, unknown >;
+		expect( data2.token ).toBe( data1.token );
+		expect( data2 ).not.toHaveProperty( 'tier_sync_secret' );
 	} );
 
 	it( 'returns 429 when IP exceeds the registration rate limit', async () => {

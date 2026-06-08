@@ -92,6 +92,11 @@ export async function pushTierUpdate(
 			if ( res.ok ) {
 				return;
 			}
+
+			if ( res.status >= 400 && res.status < 500 ) {
+				console.error( '[tierSync] Terminal error, not retrying:', { status: res.status, siteUrl } );
+				return;
+			}
 		} catch {
 			// Connection error — fall through to backoff.
 		}

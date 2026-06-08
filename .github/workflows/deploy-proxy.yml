@@ -1,7 +1,6 @@
 # Deploys the Cloudflare Worker in stilus-proxy/ on every push to main
-# that touches Worker source. Runs over Tailscale + SSH against the dev Mac
-# so it reuses the existing wrangler OAuth login on that machine — no
-# Cloudflare API token is stored in GitHub Secrets.
+# that touches Worker source. Uses cloudflare/wrangler-action@v3 with a
+# CLOUDFLARE_API_TOKEN secret — no personal machine or Tailscale dependency.
 #
 # Manual dispatch (workflow_dispatch) is available for re-deploys without a
 # commit, e.g. to roll a Worker secret change.
@@ -23,49 +22,32 @@ permissions:
 
 jobs:
   deploy:
-    name: wrangler deploy (Mac via Tailscale)
+    name: wrangler deploy
     runs-on: ubuntu-latest
     concurrency:
-      group: mac-runner
+      group: worker-deploy
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v3
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
-          tags: tag:github
+          node-version: '24' # >=22.12.0 satisfies @rolldown/binding-linux-x64-gnu engine constraint
+          cache: npm
+          cache-dependency-path: stilus-proxy/package-lock.json
 
-      - name: Install SSH key
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.MAC_SSH_PRIVATE_KEY }}
-        run: |
-          echo "$SSH_PRIVATE_KEY" > /tmp/mac_ssh_key
-          chmod 600 /tmp/mac_ssh_key
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+        working-directory: stilus-proxy
 
-      - name: Test & deploy Worker on Mac
-        # All ${{...}} values are passed via env to avoid shell-injection paths.
-        # The SHA arrives inside the SSH'd shell as a quoted "$VAR" reference,
-        # never interpolated by the local shell.
-        env:
-          SSH_USER: ${{ secrets.MAC_SSH_USER }}
-          SSH_HOST: ${{ secrets.MAC_SSH_HOST }}
-          HEAD_SHA: ${{ github.sha }}
-        run: |
-          ssh -o StrictHostKeyChecking=no \
-              -i /tmp/mac_ssh_key \
-              "$SSH_USER@$SSH_HOST" \
-              "bash -s" << REMOTE
-            set -e
-            export PATH="/usr/local/bin:/opt/homebrew/bin:\$PATH"
-            cd /Users/niklas/Documents/Homepages/stilus
-            git fetch origin
-            git checkout main
-            git reset --hard "$HEAD_SHA"
-            cd stilus-proxy
-            npm ci --no-audit --no-fund
-            npm test
-            npm run deploy
-          REMOTE
+      - name: Run tests
+        run: npm test
+        working-directory: stilus-proxy
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: stilus-proxy
+          command: deploy --env="" # explicit empty string targets top-level env; omitting it triggers a warning when named envs exist

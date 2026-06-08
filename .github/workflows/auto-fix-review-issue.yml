@@ -24,6 +24,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
         with:
           fetch-depth: 0
+          # PAT required: GITHUB_TOKEN cannot push workflow-file changes (lacks `workflow` scope).
+          token: ${{ secrets.GH_PAT }}
 
       # Write only the issue body to a file — body is untrusted and may contain
       # arbitrary markdown/code that could escape a YAML string if interpolated.
@@ -116,6 +118,28 @@ jobs:
           composer install --no-interaction --prefer-dist
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Add closing keyword to PR description
+        # Safety net: put "Closes #N" in the PR body so GitHub auto-closes the issue
+        # when the PR is squash-merged, even if Claude's explicit gh issue close is missed.
+        if: |
+          steps.guard.outputs.skip != 'true' &&
+          steps.parse.outputs.pr_number != '' &&
+          steps.pr_state.outputs.state == 'OPEN' &&
+          steps.workspace.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          ISSUE="${{ github.event.issue.number }}"
+          PR="${{ steps.parse.outputs.pr_number }}"
+          REPO="${{ github.repository }}"
+          CURRENT=$(gh pr view "$PR" --repo "$REPO" --json body --jq '.body // ""')
+          if ! printf '%s' "$CURRENT" | grep -qiE "(close[sd]?|fix(e[sd])?|resolve[sd]?) #${ISSUE}([^0-9]|$)"; then
+            gh pr edit "$PR" --repo "$REPO" --body "${CURRENT}"$'\n\n'"Closes #${ISSUE}"
+            echo "Added 'Closes #${ISSUE}' to PR #${PR} body."
+          else
+            echo "PR #${PR} already references issue #${ISSUE} — no update needed."
+          fi
 
       - uses: anthropics/claude-code-action@aee99972d0cfa0c47a4563e6fca42d7a5a0cb9bd  # v1
         id: claude

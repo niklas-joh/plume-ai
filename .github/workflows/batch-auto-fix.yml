@@ -23,6 +23,8 @@ jobs:
         with:
           # Open PRs only need the latest commit — full history is not required.
           fetch-depth: 1
+          # PAT required: GITHUB_TOKEN cannot push workflow-file changes (lacks `workflow` scope).
+          token: ${{ secrets.GH_PAT }}
 
       - name: Fetch and checkout PR head branch
         run: |
@@ -36,6 +38,29 @@ jobs:
         run: |
           npm ci
           composer install --no-interaction --prefer-dist
+
+      - name: Add closing keywords to PR description
+        # Safety net: put "Closes #N" in the PR body so GitHub auto-closes each issue
+        # when the PR is squash-merged, even if Claude's explicit gh issue close is missed.
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          ISSUES_JSON: ${{ toJson(github.event.client_payload.issue_numbers) }}
+        run: |
+          PR="${{ github.event.client_payload.pr_number }}"
+          REPO="${{ github.repository }}"
+          CURRENT=$(gh pr view "$PR" --repo "$REPO" --json body --jq '.body // ""')
+          APPENDED=""
+          for issue in $(printf '%s' "$ISSUES_JSON" | jq -r '.[]'); do
+            if ! printf '%s' "$CURRENT" | grep -qiE "(close[sd]?|fix(e[sd])?|resolve[sd]?) #${issue}([^0-9]|$)"; then
+              APPENDED="${APPENDED}"$'\n'"Closes #${issue}"
+            fi
+          done
+          if [[ -n "$APPENDED" ]]; then
+            gh pr edit "$PR" --repo "$REPO" --body "${CURRENT}${APPENDED}"
+            echo "Updated PR #${PR} body with:${APPENDED}"
+          else
+            echo "PR #${PR} already references all issues — no update needed."
+          fi
 
       - name: Write issue bodies to files
         # Pre-fetch all issue bodies so Claude can cat them without extra gh calls.

@@ -3,6 +3,12 @@ import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 import { FileText, Pencil, X, ExternalLink, Loader2 } from 'lucide-react';
 
+const STATUS_LABELS = {
+	draft: __( 'Draft', 'stilus' ),
+	publish: __( 'Published', 'stilus' ),
+	pending: __( 'Pending review', 'stilus' ),
+};
+
 /**
  * Inline approval card rendered below an AI message when the model proposes a post plan.
  *
@@ -68,12 +74,6 @@ export default function PlanCard( { plan, onDismiss } ) {
 			setIsExecuting( false );
 		}
 	}
-
-	const statusLabel = {
-		draft: __( 'Draft', 'stilus' ),
-		publish: __( 'Published', 'stilus' ),
-		pending: __( 'Pending review', 'stilus' ),
-	};
 
 	const confirmLabel = isUpdate
 		? __( 'Apply update', 'stilus' )
@@ -202,7 +202,7 @@ export default function PlanCard( { plan, onDismiss } ) {
 						) }
 						{ plan.post_status && (
 							<span className="wpaim-plan-card__status-badge">
-								{ statusLabel[ plan.post_status ] ||
+								{ STATUS_LABELS[ plan.post_status ] ||
 									plan.post_status }
 							</span>
 						) }

@@ -2,8 +2,9 @@
 # that touches Worker source. Uses cloudflare/wrangler-action@v3 with a
 # CLOUDFLARE_API_TOKEN secret — no personal machine or Tailscale dependency.
 #
-# Manual dispatch (workflow_dispatch) is available for re-deploys without a
-# commit, e.g. to roll a Worker secret change.
+# Manual dispatch (workflow_dispatch) is available to re-deploy the dev Worker
+# without a commit, e.g. after rotating a Worker secret. Prod deploys happen
+# in release.yml, not here.
 name: Deploy proxy Worker
 
 on:

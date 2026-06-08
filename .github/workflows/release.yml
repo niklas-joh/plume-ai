@@ -88,6 +88,10 @@ jobs:
     # No actor guard — release.yml fires on a schedule where github.actor is
     # 'github-actions[bot]'. The trigger surface is narrow enough (schedule +
     # write-access workflow_dispatch) that a guard would block legitimate scheduled runs.
+    #
+    # This job runs on every release.yml execution, including Friday cron runs where
+    # semantic-release decides nothing warrants a new version. Idempotent Worker deploys
+    # are harmless and act as a weekly sync to confirm prod matches main.
     permissions:
       contents: read
     steps:
@@ -104,9 +108,13 @@ jobs:
         run: npm ci --no-audit --no-fund
         working-directory: stilus-proxy
 
+      - name: Run tests
+        run: npm test
+        working-directory: stilus-proxy
+
       - name: Deploy prod Worker
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           workingDirectory: stilus-proxy
-          command: deploy --env="" # top-level env = stilus-proxy (prod)
+          command: deploy --env="" # explicit empty string targets top-level env; omitting it triggers a warning when named envs exist

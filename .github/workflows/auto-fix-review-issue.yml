@@ -21,7 +21,7 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1  # v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
           # GH_PAT (with workflow scope) is required to push commits that touch
@@ -142,7 +142,7 @@ jobs:
             echo "PR #${PR} already references issue #${ISSUE} — no update needed."
           fi
 
-      - uses: anthropics/claude-code-action@d44caa1f5268e7643c11e317db4c2ad1e5ea3211 # v1  # v1
+      - uses: anthropics/claude-code-action@d44caa1f5268e7643c11e317db4c2ad1e5ea3211 # v1
         id: claude
         if: |
           steps.guard.outputs.skip != 'true' &&

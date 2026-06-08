@@ -11,7 +11,8 @@ jobs:
     if: |
       github.event.workflow_run.conclusion == 'failure' &&
       github.event.workflow_run.head_branch != 'main' &&
-      github.event.workflow_run.head_commit.author.name != 'claude[bot]'
+      github.event.workflow_run.head_commit.author.name != 'claude[bot]' &&
+      github.event.workflow_run.head_repository.id == github.repository_id
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -33,12 +34,12 @@ jobs:
           echo "head_branch=${HEAD_BRANCH}" >> "$GITHUB_OUTPUT"
           echo "id=${RUN_ID}" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1  # v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
-      - uses: anthropics/claude-code-action@d44caa1f5268e7643c11e317db4c2ad1e5ea3211 # v1  # v1
+      - uses: anthropics/claude-code-action@d44caa1f5268e7643c11e317db4c2ad1e5ea3211 # v1
         with:
           # Max plan: use OAuth token (run `claude setup-token` locally, store as CLAUDE_CODE_OAUTH_TOKEN)
           # API key:  uncomment the line below and remove claude_code_oauth_token

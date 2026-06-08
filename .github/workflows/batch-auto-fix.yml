@@ -47,7 +47,10 @@ jobs:
           github.event.client_payload.pr_number != '' &&
           github.event.client_payload.issue_numbers != null
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          # GITHUB_TOKEN (not GH_PAT) — editing PR metadata only needs pull-requests: write,
+          # which the job-level permissions already grant. GH_PAT is a fine-grained PAT scoped
+          # for workflow-file pushes and does not carry pull-requests: write.
+          GH_TOKEN: ${{ github.token }}
           ISSUES_JSON: ${{ toJson(github.event.client_payload.issue_numbers) }}
         run: |
           PR="${{ github.event.client_payload.pr_number }}"

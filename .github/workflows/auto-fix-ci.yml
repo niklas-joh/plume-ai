@@ -36,8 +36,9 @@ jobs:
 
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
+          # No ref — checks out the default branch (main). Claude fetches
+          # and switches to the failing branch in the prompt steps below.
 
       - uses: anthropics/claude-code-action@d44caa1f5268e7643c11e317db4c2ad1e5ea3211 # v1
         with:

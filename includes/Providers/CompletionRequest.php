@@ -40,6 +40,6 @@ final class CompletionRequest {
 		public readonly int $max_tokens = 2048,
 		public readonly array $metadata = [],
 		public readonly array $tools = [],
-		public readonly bool $force_tool_use = true,
+		public readonly bool $force_tool_use = false,
 	) {}
 }

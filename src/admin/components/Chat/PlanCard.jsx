@@ -100,6 +100,10 @@ export default function PlanCard( { plan, onDismiss } ) {
 		);
 	}
 
+	const confirmLabel = isUpdate
+		? __( 'Apply update', 'stilus' )
+		: __( 'Create post', 'stilus' );
+
 	return (
 		<div className="wpaim-plan-card">
 			<div className="wpaim-plan-card__header">
@@ -129,12 +133,21 @@ export default function PlanCard( { plan, onDismiss } ) {
 					<>
 						{ ! isUpdate && (
 							<label
+<<<<<<< HEAD
 								htmlFor="wpaim-plan-edit-title"
 								className="wpaim-plan-card__field"
 							>
 								<span>{ __( 'Title', 'stilus' ) }</span>
 								<input
 									id="wpaim-plan-edit-title"
+=======
+								className="wpaim-plan-card__field"
+								htmlFor="plan-card-title"
+							>
+								<span>{ __( 'Title', 'stilus' ) }</span>
+								<input
+									id="plan-card-title"
+>>>>>>> 89efff4 (fix(lint): resolve ESLint errors in Chat components)
 									type="text"
 									value={ editTitle }
 									onChange={ ( e ) =>
@@ -145,8 +158,13 @@ export default function PlanCard( { plan, onDismiss } ) {
 							</label>
 						) }
 						<label
+<<<<<<< HEAD
 							htmlFor="wpaim-plan-edit-outline"
 							className="wpaim-plan-card__field"
+=======
+							className="wpaim-plan-card__field"
+							htmlFor="plan-card-outline"
+>>>>>>> 89efff4 (fix(lint): resolve ESLint errors in Chat components)
 						>
 							<span>
 								{ isUpdate
@@ -154,7 +172,11 @@ export default function PlanCard( { plan, onDismiss } ) {
 									: __( 'Outline', 'stilus' ) }
 							</span>
 							<textarea
+<<<<<<< HEAD
 								id="wpaim-plan-edit-outline"
+=======
+								id="plan-card-outline"
+>>>>>>> 89efff4 (fix(lint): resolve ESLint errors in Chat components)
 								value={ editOutline }
 								onChange={ ( e ) =>
 									setEditOutline( e.target.value )
@@ -164,12 +186,21 @@ export default function PlanCard( { plan, onDismiss } ) {
 							/>
 						</label>
 						<label
+<<<<<<< HEAD
 							htmlFor="wpaim-plan-edit-status"
 							className="wpaim-plan-card__field wpaim-plan-card__field--inline"
 						>
 							<span>{ __( 'Status', 'stilus' ) }</span>
 							<select
 								id="wpaim-plan-edit-status"
+=======
+							className="wpaim-plan-card__field wpaim-plan-card__field--inline"
+							htmlFor="plan-card-status"
+						>
+							<span>{ __( 'Status', 'stilus' ) }</span>
+							<select
+								id="plan-card-status"
+>>>>>>> 89efff4 (fix(lint): resolve ESLint errors in Chat components)
 								value={ editStatus }
 								onChange={ ( e ) =>
 									setEditStatus( e.target.value )

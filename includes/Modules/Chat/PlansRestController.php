@@ -86,8 +86,6 @@ class PlansRestController {
 		$args      = $this->plan_to_tool_args( $plan );
 		$result    = $this->executor->execute( $tool_name, $args, $user_id );
 
-		\delete_transient( "stilus_plan_{$user_id}_{$plan_id}" );
-
 		if ( isset( $result['error'] ) ) {
 			return new \WP_Error(
 				'plan_execution_failed',
@@ -95,6 +93,8 @@ class PlansRestController {
 				[ 'status' => 422 ]
 			);
 		}
+
+		\delete_transient( "stilus_plan_{$user_id}_{$plan_id}" );
 
 		return new \WP_REST_Response(
 			[

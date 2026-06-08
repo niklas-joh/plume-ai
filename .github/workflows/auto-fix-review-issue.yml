@@ -24,6 +24,9 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
         with:
           fetch-depth: 0
+          # GH_PAT (with workflow scope) is required to push commits that touch
+          # .github/workflows/ files. GITHUB_TOKEN cannot push workflow file changes.
+          token: ${{ secrets.GH_PAT }}
 
       # Write only the issue body to a file — body is untrusted and may contain
       # arbitrary markdown/code that could escape a YAML string if interpolated.

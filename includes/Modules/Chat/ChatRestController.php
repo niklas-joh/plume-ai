@@ -800,30 +800,37 @@ class ChatRestController {
 				break;
 
 			case 'gemini':
-				$call_id    = $tool_response->raw['call_id'] ?? $tool_call['id'];
+				// Collect all functionCall parts from the raw Gemini response.
+				$raw_parts      = $tool_response->raw['data']['candidates'][0]['content']['parts'] ?? [];
+				$function_calls = array_values( array_filter( $raw_parts, fn( $p ) => isset( $p['functionCall'] ) ) );
+				// Fall back to the single normalised tool_call when raw parts are unavailable.
+				if ( empty( $function_calls ) ) {
+					$call_id        = $tool_response->raw['call_id'] ?? $tool_call['id'];
+					$function_calls = [ [ 'functionCall' => [
+						'id'   => $call_id,
+						'name' => $tool_call['name'],
+						'args' => $tool_call['arguments'],
+					] ] ];
+				}
 				$messages[] = [
 					'role'  => 'model',
-					'parts' => [
-						[
-							'functionCall' => [
-								'id'   => $call_id,
-								'name' => $tool_call['name'],
-								'args' => $tool_call['arguments'],
-							],
-						],
-					],
+					'parts' => $function_calls,
 				];
+				$response_parts = [];
+				foreach ( $function_calls as $fc_part ) {
+					$fc               = $fc_part['functionCall'];
+					$fc_id            = $fc['id'] ?? $fc['name'];
+					$response_parts[] = [
+						'functionResponse' => [
+							'id'       => $fc_id,
+							'name'     => $fc['name'],
+							'response' => $tool_results[ $fc_id ] ?? [],
+						],
+					];
+				}
 				$messages[] = [
 					'role'  => 'user',
-					'parts' => [
-						[
-							'functionResponse' => [
-								'id'       => $call_id,
-								'name'     => $tool_call['name'],
-								'response' => $primary_result,
-							],
-						],
-					],
+					'parts' => $response_parts,
 				];
 				break;
 

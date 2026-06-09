@@ -1078,4 +1078,97 @@ class ChatRestControllerTest extends TestCase {
             }
         };
     }
+
+    // ── append_tool_exchange: Gemini multi-tool ───────────────────────────────
+
+    /**
+     * Call the private append_tool_exchange method via reflection.
+     */
+    private function call_append_tool_exchange(
+        array $messages,
+        string $provider_slug,
+        CompletionResponse $response,
+        array $tool_results
+    ): array {
+        $method = new \ReflectionMethod( ChatRestController::class, 'append_tool_exchange' );
+        $method->setAccessible( true );
+        $controller = new ChatRestController( $this->tool_registry, $this->tool_executor );
+        return $method->invoke( $controller, $messages, $provider_slug, $response, $tool_results );
+    }
+
+    public function test_gemini_append_tool_exchange_handles_single_tool_call(): void {
+        $raw_data = [
+            'data' => [
+                'candidates' => [ [
+                    'content' => [
+                        'parts' => [ [
+                            'functionCall' => [ 'id' => 'c1', 'name' => 'get_site_info', 'args' => [] ],
+                        ] ],
+                    ],
+                ] ],
+            ],
+            'call_id' => 'c1',
+        ];
+
+        $response = new CompletionResponse(
+            content: '',
+            model: 'gemini-2.0-flash',
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            raw: $raw_data,
+            tool_call: [ 'id' => 'c1', 'name' => 'get_site_info', 'arguments' => [] ],
+        );
+
+        $messages = $this->call_append_tool_exchange( [], 'gemini', $response, [
+            'c1' => [ 'name' => 'Stilus AI' ],
+        ] );
+
+        $this->assertCount( 2, $messages );
+        $parts = $messages[1]['parts'];
+        $this->assertCount( 1, $parts );
+        $this->assertSame( 'c1', $parts[0]['functionResponse']['id'] );
+        $this->assertSame( [ 'name' => 'Stilus AI' ], $parts[0]['functionResponse']['response'] );
+    }
+
+    public function test_gemini_append_tool_exchange_handles_multiple_tool_calls(): void {
+        $raw_data = [
+            'data' => [
+                'candidates' => [ [
+                    'content' => [
+                        'parts' => [
+                            [ 'functionCall' => [ 'id' => 'c1', 'name' => 'get_recent_posts', 'args' => [] ] ],
+                            [ 'functionCall' => [ 'id' => 'c2', 'name' => 'get_site_info', 'args' => [] ] ],
+                        ],
+                    ],
+                ] ],
+            ],
+            'call_id' => 'c1',
+        ];
+
+        $response = new CompletionResponse(
+            content: '',
+            model: 'gemini-2.0-flash',
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            raw: $raw_data,
+            tool_call: [ 'id' => 'c1', 'name' => 'get_recent_posts', 'arguments' => [] ],
+        );
+
+        $messages = $this->call_append_tool_exchange( [], 'gemini', $response, [
+            'c1' => [ 'posts' => [] ],
+            'c2' => [ 'name' => 'Stilus AI' ],
+        ] );
+
+        // One model turn + one user turn with both responses.
+        $this->assertCount( 2, $messages );
+        $model_parts = $messages[0]['parts'];
+        $this->assertCount( 2, $model_parts, 'Model turn must contain both functionCall parts' );
+
+        $user_parts = $messages[1]['parts'];
+        $this->assertCount( 2, $user_parts, 'User turn must contain both functionResponse parts' );
+        $this->assertSame( 'c1', $user_parts[0]['functionResponse']['id'] );
+        $this->assertSame( 'get_recent_posts', $user_parts[0]['functionResponse']['name'] );
+        $this->assertSame( 'c2', $user_parts[1]['functionResponse']['id'] );
+        $this->assertSame( 'get_site_info', $user_parts[1]['functionResponse']['name'] );
+    }
 }

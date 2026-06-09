@@ -806,13 +806,17 @@ class ChatRestController {
 				// Fall back to the single normalised tool_call when raw parts are unavailable.
 				if ( empty( $function_calls ) ) {
 					$call_id        = $tool_response->raw['call_id'] ?? $tool_call['id'];
-					$function_calls = [ [ 'functionCall' => [
-						'id'   => $call_id,
-						'name' => $tool_call['name'],
-						'args' => $tool_call['arguments'],
-					] ] ];
+					$function_calls = [
+						[
+							'functionCall' => [
+								'id'   => $call_id,
+								'name' => $tool_call['name'],
+								'args' => $tool_call['arguments'],
+							],
+						],
+					];
 				}
-				$messages[] = [
+				$messages[]     = [
 					'role'  => 'model',
 					'parts' => $function_calls,
 				];

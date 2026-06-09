@@ -38,12 +38,12 @@ export default function PlanCard( { plan, onDismiss } ) {
 
 	const [ isEditing, setIsEditing ] = useState( false );
 	const [ editTitle, setEditTitle ] = useState(
-		isUpdate ? ( plan.new_title ?? '' ) : ( plan.title ?? '' )
+		isUpdate ? plan.new_title ?? '' : plan.title ?? ''
 	);
 	const [ editOutline, setEditOutline ] = useState(
 		isUpdate
-			? ( plan.new_content ?? plan.outline ?? plan.changes ?? '' )
-			: ( plan.outline ?? '' )
+			? plan.new_content ?? plan.outline ?? plan.changes ?? ''
+			: plan.outline ?? ''
 	);
 	const [ editStatus, setEditStatus ] = useState(
 		plan.post_status || 'draft'
@@ -58,7 +58,11 @@ export default function PlanCard( { plan, onDismiss } ) {
 		setError( null );
 		try {
 			const body = isUpdate
-				? { new_content: editOutline, new_title: editTitle !== '' ? editTitle : undefined, status: editStatus }
+				? {
+						new_content: editOutline,
+						new_title: editTitle !== '' ? editTitle : undefined,
+						status: editStatus,
+				  }
 				: {
 						title: editTitle,
 						outline: editOutline,

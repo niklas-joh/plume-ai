@@ -212,23 +212,27 @@ class ToolRegistry {
 			parameters:          [
 				'type'       => 'object',
 				'properties' => [
-					'title'     => [
+					'title'       => [
 						'type'        => 'string',
 						'description' => 'The post title.',
 					],
-					'status'    => [
+					'status'      => [
 						'type'        => 'string',
 						'enum'        => [ 'draft', 'publish', 'pending' ],
 						'description' => 'Publication status.',
 					],
-					'outline'   => [
+					'outline'     => [
 						'type'        => 'string',
 						'description' => 'A brief outline of the post: key sections, topics, and angle. 1–3 sentences.',
 					],
-					'post_type' => [
+					'post_type'   => [
 						'type'        => 'string',
-						'enum'        => [ 'post', 'page' ],
-						'description' => 'Post type. Defaults to post.',
+						'description' => 'Post type (e.g. post, page, product). Must be in the site\'s allowed post types.',
+					],
+					'meta_fields' => [
+						'type'                 => 'object',
+						'description'          => 'Optional post meta key/value pairs to set (e.g. {"_price":"9.99","_sku":"ABC"}). String values only.',
+						'additionalProperties' => [ 'type' => 'string' ],
 					],
 				],
 				'required'   => [ 'title' ],
@@ -263,6 +267,11 @@ class ToolRegistry {
 						'type'        => 'string',
 						'enum'        => [ 'draft', 'publish', 'pending' ],
 						'description' => 'New publication status, if changing.',
+					],
+					'meta_fields' => [
+						'type'                 => 'object',
+						'description'          => 'Optional post meta key/value pairs to update (e.g. {"_price":"9.99"}). String values only.',
+						'additionalProperties' => [ 'type' => 'string' ],
 					],
 				],
 				'required'   => [ 'post_id', 'changes', 'new_content' ],

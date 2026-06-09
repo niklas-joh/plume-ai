@@ -284,20 +284,21 @@ class ToolExecutor {
 			return [ 'error' => 'Post type not permitted.' ];
 		}
 
-		$data = $this->store_plan(
-			[
-				'plan_type'   => 'create',
-				'title'       => $title,
-				'outline'     => \sanitize_textarea_field( $args['outline'] ?? '' ),
-				'post_type'   => $post_type,
-				'post_status' => \in_array( $args['status'] ?? 'draft', [ 'draft', 'publish', 'pending' ], true )
-					? $args['status'] ?? 'draft'
-					: 'draft',
-			],
-			$user_id
-		);
+		$plan_data = [
+			'plan_type'   => 'create',
+			'title'       => $title,
+			'outline'     => \sanitize_textarea_field( $args['outline'] ?? '' ),
+			'post_type'   => $post_type,
+			'post_status' => \in_array( $args['status'] ?? 'draft', [ 'draft', 'publish', 'pending' ], true )
+				? $args['status'] ?? 'draft'
+				: 'draft',
+		];
 
-		return $data;
+		if ( ! empty( $args['meta_fields'] ) && is_array( $args['meta_fields'] ) ) {
+			$plan_data['meta_fields'] = $args['meta_fields'];
+		}
+
+		return $this->store_plan( $plan_data, $user_id );
 	}
 
 	/**
@@ -347,6 +348,10 @@ class ToolExecutor {
 
 		if ( ! empty( $args['new_title'] ) ) {
 			$plan_data['new_title'] = \sanitize_text_field( $args['new_title'] );
+		}
+
+		if ( ! empty( $args['meta_fields'] ) && is_array( $args['meta_fields'] ) ) {
+			$plan_data['meta_fields'] = $args['meta_fields'];
 		}
 
 		return $this->store_plan( $plan_data, $user_id );

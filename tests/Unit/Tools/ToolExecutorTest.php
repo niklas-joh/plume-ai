@@ -20,6 +20,10 @@ if ( ! class_exists( 'WP_Query' ) ) {
 	}
 }
 
+if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
+	define( 'HOUR_IN_SECONDS', 3600 );
+}
+
 class ToolExecutorTest extends TestCase {
 
 	protected function setUp(): void {
@@ -262,5 +266,81 @@ class ToolExecutorTest extends TestCase {
 
 		$this->assertArrayHasKey( 'error', $result );
 		$this->assertStringContainsString( 'permissions', strtolower( $result['error'] ) );
+	}
+
+	public function test_update_post_returns_error_when_no_fields_provided(): void {
+		Functions\when( 'get_option' )
+			->alias( static function ( string $key, $default = false ) {
+				if ( 'stilus_enable_write_tools' === $key ) {
+					return true;
+				}
+				return $default;
+			} );
+
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'user_can' )->justReturn( true );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute( 'update_post', [ 'post_id' => 5 ], 1 );
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertStringContainsString( 'No fields', $result['error'] );
+	}
+
+	// -------------------------------------------------------------------------
+	// plan_update
+	// -------------------------------------------------------------------------
+
+	public function test_plan_update_returns_error_when_changes_missing(): void {
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => $v );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute( 'plan_update', [ 'post_id' => 5, 'new_content' => 'Content' ], 1 );
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertStringContainsString( 'changes', strtolower( $result['error'] ) );
+	}
+
+	public function test_plan_update_returns_error_when_new_content_missing(): void {
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute( 'plan_update', [ 'post_id' => 5, 'changes' => 'Made changes' ], 1 );
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertStringContainsString( 'new_content', strtolower( $result['error'] ) );
+	}
+
+	public function test_plan_update_stores_plan_with_new_content_and_new_title(): void {
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_generate_uuid4' )->justReturn( 'abcd1234-5678-90ab-cdef-000000000000' );
+		Functions\when( 'set_transient' )->justReturn( true );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute(
+			'plan_update',
+			[
+				'post_id'     => 5,
+				'changes'     => 'Made the intro punchier',
+				'new_content' => 'Full updated post body',
+				'new_title'   => 'Improved Title',
+			],
+			1
+		);
+
+		$this->assertArrayHasKey( 'new_content', $result );
+		$this->assertSame( 'Full updated post body', $result['new_content'] );
+		$this->assertArrayHasKey( 'new_title', $result );
+		$this->assertSame( 'Improved Title', $result['new_title'] );
+		$this->assertSame( 'pending_approval', $result['status'] );
 	}
 }

@@ -10,10 +10,15 @@ fi
 
 # Run PHPCS on staged PHP files.
 STAGED_PHP=$(git diff --cached --name-only --diff-filter=ACM | grep '\.php$' | grep -v '^vendor/' | grep -v '^node_modules/')
+PHPCS_BIN="./vendor/bin/phpcs"
 if [ -n "$STAGED_PHP" ]; then
-  echo "PHP files staged — running PHPCS..."
-  echo "$STAGED_PHP" | xargs ./vendor/bin/phpcs --standard=phpcs.xml.dist || {
-    echo "PHPCS failed. Run: ./vendor/bin/phpcbf --standard=phpcs.xml.dist for auto-fixes."
-    exit 1
-  }
+  if [ ! -x "$PHPCS_BIN" ]; then
+    echo "PHPCS not found (dev dependencies not installed) — skipping PHP lint."
+  else
+    echo "PHP files staged — running PHPCS..."
+    echo "$STAGED_PHP" | xargs "$PHPCS_BIN" --standard=phpcs.xml.dist || {
+      echo "PHPCS failed. Run: ./vendor/bin/phpcbf --standard=phpcs.xml.dist for auto-fixes."
+      exit 1
+    }
+  fi
 fi

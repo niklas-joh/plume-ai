@@ -19,10 +19,12 @@ const STATUS_LABELS = {
  * @param {Object}   props.plan         Pending plan from the REST response.
  * @param {string}   props.plan.id        Plan identifier (used to call the execute endpoint).
  * @param {string}   props.plan.plan_type 'create' or 'update'.
- * @param {string}   [props.plan.title]   Post title (create plans).
- * @param {string}   [props.plan.outline] Brief outline (create plans).
- * @param {number}   [props.plan.post_id] Source post ID (update plans).
- * @param {string}   [props.plan.changes] Change description (update plans).
+ * @param {string}   [props.plan.title]       Post title (create plans).
+ * @param {string}   [props.plan.outline]     Brief outline (create plans).
+ * @param {number}   [props.plan.post_id]     Source post ID (update plans).
+ * @param {string}   [props.plan.changes]     Human-readable change summary shown on the card (update plans).
+ * @param {string}   [props.plan.new_content] Full updated post content to apply (update plans).
+ * @param {string}   [props.plan.new_title]   Updated post title, if changing (update plans).
  * @param {string}   [props.plan.post_status] Publication status.
  * @param {string}   [props.plan.post_type]   Post type.
  * @param {Function} props.onDismiss     Called when the user dismisses the card (no server call).
@@ -35,9 +37,13 @@ export default function PlanCard( { plan, onDismiss } ) {
 	const isUpdate = plan.plan_type === 'update';
 
 	const [ isEditing, setIsEditing ] = useState( false );
-	const [ editTitle, setEditTitle ] = useState( plan.title ?? '' );
+	const [ editTitle, setEditTitle ] = useState(
+		isUpdate ? ( plan.new_title ?? '' ) : ( plan.title ?? '' )
+	);
 	const [ editOutline, setEditOutline ] = useState(
-		plan.outline ?? plan.changes ?? ''
+		isUpdate
+			? ( plan.new_content ?? plan.outline ?? plan.changes ?? '' )
+			: ( plan.outline ?? '' )
 	);
 	const [ editStatus, setEditStatus ] = useState(
 		plan.post_status || 'draft'
@@ -52,7 +58,7 @@ export default function PlanCard( { plan, onDismiss } ) {
 		setError( null );
 		try {
 			const body = isUpdate
-				? { changes: editOutline, status: editStatus }
+				? { new_content: editOutline, new_title: editTitle !== '' ? editTitle : undefined, status: editStatus }
 				: {
 						title: editTitle,
 						outline: editOutline,
@@ -127,30 +133,28 @@ export default function PlanCard( { plan, onDismiss } ) {
 			<div className="wpaim-plan-card__body">
 				{ isEditing ? (
 					<>
-						{ ! isUpdate && (
-							<label
-								htmlFor="wpaim-plan-edit-title"
-								className="wpaim-plan-card__field"
-							>
-								<span>{ __( 'Title', 'stilus' ) }</span>
-								<input
-									id="wpaim-plan-edit-title"
-									type="text"
-									value={ editTitle }
-									onChange={ ( e ) =>
-										setEditTitle( e.target.value )
-									}
-									className="wpaim-input"
-								/>
-							</label>
-						) }
+						<label
+							htmlFor="wpaim-plan-edit-title"
+							className="wpaim-plan-card__field"
+						>
+							<span>{ __( 'Title', 'stilus' ) }</span>
+							<input
+								id="wpaim-plan-edit-title"
+								type="text"
+								value={ editTitle }
+								onChange={ ( e ) =>
+									setEditTitle( e.target.value )
+								}
+								className="wpaim-input"
+							/>
+						</label>
 						<label
 							htmlFor="wpaim-plan-edit-outline"
 							className="wpaim-plan-card__field"
 						>
 							<span>
 								{ isUpdate
-									? __( 'Changes', 'stilus' )
+									? __( 'Updated content', 'stilus' )
 									: __( 'Outline', 'stilus' ) }
 							</span>
 							<textarea
@@ -195,9 +199,14 @@ export default function PlanCard( { plan, onDismiss } ) {
 								{ plan.title }
 							</p>
 						) }
-						{ ( plan.outline || plan.changes ) && (
+						{ isUpdate && plan.changes && (
 							<p className="wpaim-plan-card__outline">
-								{ plan.outline || plan.changes }
+								{ plan.changes }
+							</p>
+						) }
+						{ ! isUpdate && plan.outline && (
+							<p className="wpaim-plan-card__outline">
+								{ plan.outline }
 							</p>
 						) }
 						{ plan.post_status && (

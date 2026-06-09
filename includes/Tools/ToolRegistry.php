@@ -239,25 +239,33 @@ class ToolRegistry {
 
 		$this->tools[] = new ToolDefinition(
 			name:                'plan_update',
-			description:         'Propose an update to an existing WordPress post for user approval. Call this tool whenever the user asks you to edit, update, revise, improve, or change a post. Provide the post_id and a clear description of the changes — do not write the full content, that happens after the user approves.',
+			description:         'Propose an update to an existing WordPress post for user approval. Call this tool whenever the user asks you to edit, update, revise, improve, or change a post. First retrieve the post content with get_post_content, then provide a human-readable summary of changes AND the full updated content that will be applied when the user approves.',
 			parameters:          [
 				'type'       => 'object',
 				'properties' => [
-					'post_id' => [
+					'post_id'     => [
 						'type'        => 'integer',
 						'description' => 'The ID of the post to update.',
 					],
-					'changes' => [
+					'changes'     => [
 						'type'        => 'string',
-						'description' => 'Description of what to add, change, or remove. Be specific (e.g. "Add stages 3 and 4, matching the tone of stage 1").',
+						'description' => 'Human-readable summary of what is being changed. Shown to the user on the approval card (e.g. "Made the intro punchier and tightened the conclusion").',
 					],
-					'status'  => [
+					'new_content' => [
+						'type'        => 'string',
+						'description' => 'The complete updated post content to apply if the user approves. Must be the full post body, not a diff or partial snippet.',
+					],
+					'new_title'   => [
+						'type'        => 'string',
+						'description' => 'The updated post title, if it is also changing. Omit if the title stays the same.',
+					],
+					'status'      => [
 						'type'        => 'string',
 						'enum'        => [ 'draft', 'publish', 'pending' ],
 						'description' => 'New publication status, if changing.',
 					],
 				],
-				'required'   => [ 'post_id', 'changes' ],
+				'required'   => [ 'post_id', 'changes', 'new_content' ],
 			],
 			capability:          'edit_posts',
 			requires_write_tools: true,

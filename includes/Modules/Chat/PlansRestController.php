@@ -53,23 +53,31 @@ class PlansRestController {
 				'callback'            => [ $this, 'execute_plan' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
-					'id'      => [
+					'id'          => [
 						'required'          => true,
 						'sanitize_callback' => 'sanitize_key',
 					],
-					'title'   => [
+					'title'       => [
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					],
-					'outline' => [
+					'outline'     => [
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_textarea_field',
 					],
-					'changes' => [
+					'changes'     => [
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_textarea_field',
 					],
-					'status'  => [
+					'new_content' => [
+						'type'              => 'string',
+						'sanitize_callback' => 'wp_kses_post',
+					],
+					'new_title'   => [
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+					'status'      => [
 						'type' => 'string',
 						'enum' => [ 'draft', 'publish', 'pending' ],
 					],
@@ -99,7 +107,8 @@ class PlansRestController {
 		}
 
 		// Merge request-body overrides so users can edit the plan before confirming.
-		foreach ( [ 'title', 'outline', 'changes' ] as $field ) {
+		// 'outline' is only meaningful for create plans; it is harmlessly ignored by plan_to_tool_args for update plans.
+		foreach ( [ 'title', 'outline', 'changes', 'new_content', 'new_title' ] as $field ) {
 			$val = $request->get_param( $field );
 			if ( null !== $val ) {
 				$plan[ $field ] = $val;
@@ -165,11 +174,14 @@ class PlansRestController {
 		if ( 'update' === ( $plan['plan_type'] ?? 'create' ) ) {
 			$args = [
 				'post_id' => $plan['post_id'],
+				'content' => $plan['new_content'] ?? '',
 			];
+			if ( ! empty( $plan['new_title'] ) ) {
+				$args['title'] = $plan['new_title'];
+			}
 			if ( ! empty( $plan['post_status'] ) ) {
 				$args['status'] = $plan['post_status'];
 			}
-			// TODO: pass AI-generated full post content once the update-generation flow is implemented.
 			return $args;
 		}
 

@@ -120,10 +120,11 @@ class PlansRestControllerTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_current_user_id' )->justReturn( 4 );
 		Functions\when( 'get_transient' )->justReturn( [
-			'id'        => 'def67890',
-			'plan_type' => 'update',
-			'post_id'   => 42,
-			'changes'   => 'Make intro snappier',
+			'id'          => 'def67890',
+			'plan_type'   => 'update',
+			'post_id'     => 42,
+			'changes'     => 'Make intro snappier',
+			'new_content' => 'The updated post body goes here.',
 		] );
 		Functions\expect( 'delete_transient' )->once()->with( 'stilus_plan_4_def67890' );
 		Functions\when( 'get_edit_post_link' )->justReturn( 'http://example.com/wp-admin/post.php?post=42' );
@@ -131,7 +132,14 @@ class PlansRestControllerTest extends TestCase {
 		$this->executor
 			->expects( $this->once() )
 			->method( 'execute' )
-			->with( 'update_post', $this->anything(), 4 )
+			->with(
+				'update_post',
+				$this->callback(
+					fn( $args ) => 42 === ( $args['post_id'] ?? 0 )
+						&& 'The updated post body goes here.' === ( $args['content'] ?? '' )
+				),
+				4
+			)
 			->willReturn( [ 'post_id' => 42 ] );
 
 		$controller = new PlansRestController( $this->executor );

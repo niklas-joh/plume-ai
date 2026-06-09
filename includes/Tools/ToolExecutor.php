@@ -141,10 +141,7 @@ class ToolExecutor {
 			}
 		}
 
-		$content = \wp_trim_words(
-			\wp_strip_all_tags( \apply_filters( 'the_content', $post->post_content ) ), // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
-			500
-		);
+		$content = \wp_strip_all_tags( \apply_filters( 'the_content', $post->post_content ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 
 		return [
 			'id'      => $post->ID,
@@ -296,6 +293,10 @@ class ToolExecutor {
 				: 'draft';
 		}
 
+		if ( 1 === count( $update_data ) ) {
+			return [ 'error' => 'No fields to update were provided.' ];
+		}
+
 		$result = \wp_update_post( $update_data, true );
 
 		if ( \is_wp_error( $result ) ) {
@@ -413,6 +414,9 @@ class ToolExecutor {
 	/**
 	 * Store a pending post-update plan for user approval.
 	 *
+	 * Requires both a human-readable change summary and the full updated content
+	 * so that the approval step can apply real changes via update_post.
+	 *
 	 * @since 1.0.0
 	 * @param array $args    Tool arguments from the AI provider.
 	 * @param int   $user_id WordPress user ID performing the call.
@@ -437,19 +441,26 @@ class ToolExecutor {
 			return [ 'error' => 'A description of changes is required.' ];
 		}
 
-		$data = $this->store_plan(
-			[
-				'plan_type'   => 'update',
-				'post_id'     => $post_id,
-				'changes'     => $changes,
-				'post_status' => \in_array( $args['status'] ?? '', [ 'draft', 'publish', 'pending' ], true )
-					? $args['status']
-					: '',
-			],
-			$user_id
-		);
+		$new_content = \wp_kses_post( $args['new_content'] ?? '' );
+		if ( '' === $new_content ) {
+			return [ 'error' => 'The updated post content (new_content) is required.' ];
+		}
 
-		return $data;
+		$plan_data = [
+			'plan_type'   => 'update',
+			'post_id'     => $post_id,
+			'changes'     => $changes,
+			'new_content' => $new_content,
+			'post_status' => \in_array( $args['status'] ?? '', [ 'draft', 'publish', 'pending' ], true )
+				? $args['status']
+				: '',
+		];
+
+		if ( ! empty( $args['new_title'] ) ) {
+			$plan_data['new_title'] = \sanitize_text_field( $args['new_title'] );
+		}
+
+		return $this->store_plan( $plan_data, $user_id );
 	}
 
 	/**

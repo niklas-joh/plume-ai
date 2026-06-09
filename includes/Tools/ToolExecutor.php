@@ -141,10 +141,7 @@ class ToolExecutor {
 			}
 		}
 
-		$content = \wp_trim_words(
-			\wp_strip_all_tags( \apply_filters( 'the_content', $post->post_content ) ), // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
-			500
-		);
+		$content = \wp_strip_all_tags( \apply_filters( 'the_content', $post->post_content ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 
 		return [
 			'id'      => $post->ID,

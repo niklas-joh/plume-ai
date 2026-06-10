@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use Stilus\Core\RestApi;
 use Stilus\Tools\PostWriter;
+use Stilus\Tools\ToolExecutor;
 
 /**
  * REST controller for pending plan execution.
@@ -101,7 +102,7 @@ class PlansRestController {
 		$user_id = \get_current_user_id();
 		$plan_id = $request->get_param( 'id' );
 
-		$plan = \get_transient( "stilus_plan_{$user_id}_{$plan_id}" );
+		$plan = \get_transient( ToolExecutor::plan_transient_key( $user_id, $plan_id ) );
 		if ( false === $plan ) {
 			return new \WP_Error(
 				'plan_not_found',
@@ -136,7 +137,7 @@ class PlansRestController {
 			);
 		}
 
-		\delete_transient( "stilus_plan_{$user_id}_{$plan_id}" );
+		\delete_transient( ToolExecutor::plan_transient_key( $user_id, $plan_id ) );
 
 		return new \WP_REST_Response(
 			[

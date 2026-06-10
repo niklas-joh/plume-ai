@@ -363,6 +363,20 @@ class ToolExecutor {
 	}
 
 	/**
+	 * Returns the WordPress transient key for a user-scoped plan.
+	 *
+	 * Centralised here so ToolExecutor and PlansRestController always use the same format.
+	 *
+	 * @since 1.9.0
+	 * @param int    $user_id WordPress user ID who owns the plan.
+	 * @param string $plan_id Plan identifier (8-character UUID fragment).
+	 * @return string
+	 */
+	public static function plan_transient_key( int $user_id, string $plan_id ): string {
+		return "stilus_plan_{$user_id}_{$plan_id}";
+	}
+
+	/**
 	 * Persist a plan as a user-scoped transient and return the populated data array.
 	 *
 	 * @since 1.0.0
@@ -374,7 +388,7 @@ class ToolExecutor {
 		$id             = \substr( \wp_generate_uuid4(), 0, 8 );
 		$data['id']     = $id;
 		$data['status'] = 'pending_approval';
-		\set_transient( "stilus_plan_{$user_id}_{$id}", $data, HOUR_IN_SECONDS );
+		\set_transient( self::plan_transient_key( $user_id, $id ), $data, HOUR_IN_SECONDS );
 		return $data;
 	}
 

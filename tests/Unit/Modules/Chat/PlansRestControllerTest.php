@@ -1,4 +1,6 @@
 <?php
+declare( strict_types=1 );
+
 namespace Stilus\Tests\Unit\Modules\Chat;
 
 use Brain\Monkey;
@@ -150,6 +152,67 @@ class PlansRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_REST_Response::class, $response );
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( 42, $response->data['post_id'] );
+	}
+
+	// ── execute_plan: stored full content becomes the post body ──────────────
+
+	public function test_execute_plan_uses_stored_content_over_outline(): void {
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+		Functions\when( 'get_current_user_id' )->justReturn( 6 );
+		Functions\when( 'get_transient' )->justReturn( [
+			'id'          => 'bbb22222',
+			'plan_type'   => 'create',
+			'title'       => 'Full Post',
+			'outline'     => 'Short summary for the approval card.',
+			'content'     => 'The complete article body, many paragraphs long.',
+			'post_status' => 'draft',
+			'post_type'   => 'post',
+		] );
+		Functions\when( 'delete_transient' )->justReturn( true );
+		Functions\when( 'get_edit_post_link' )->justReturn( '' );
+
+		$this->post_writer
+			->expects( $this->once() )
+			->method( 'create' )
+			->with(
+				$this->callback(
+					fn( $args ) => 'The complete article body, many paragraphs long.' === ( $args['content'] ?? '' )
+				),
+				6
+			)
+			->willReturn( [ 'post_id' => 7 ] );
+
+		$controller = new PlansRestController( $this->post_writer );
+		$controller->execute_plan( $this->make_request( 'bbb22222' ) );
+	}
+
+	public function test_execute_plan_falls_back_to_outline_for_legacy_plans(): void {
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'get_transient' )->justReturn( [
+			'id'          => 'ccc33333',
+			'plan_type'   => 'create',
+			'title'       => 'Legacy Plan',
+			'outline'     => 'Outline only — stored before content became required.',
+			'post_status' => 'draft',
+			'post_type'   => 'post',
+		] );
+		Functions\when( 'delete_transient' )->justReturn( true );
+		Functions\when( 'get_edit_post_link' )->justReturn( '' );
+
+		$this->post_writer
+			->expects( $this->once() )
+			->method( 'create' )
+			->with(
+				$this->callback(
+					fn( $args ) => 'Outline only — stored before content became required.' === ( $args['content'] ?? '' )
+				),
+				7
+			)
+			->willReturn( [ 'post_id' => 8 ] );
+
+		$controller = new PlansRestController( $this->post_writer );
+		$controller->execute_plan( $this->make_request( 'ccc33333' ) );
 	}
 
 	// ── execute_plan: request-body overrides are merged ───────────────────────

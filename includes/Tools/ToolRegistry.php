@@ -51,12 +51,7 @@ class ToolRegistry {
 
 		$tools = array_filter(
 			$this->tools,
-			static function ( ToolDefinition $tool ) use ( $write_enabled ): bool {
-				if ( in_array( $tool->name, [ 'create_post', 'update_post' ], true ) ) {
-					return false; // Used programmatically only — not exposed to the AI.
-				}
-				return ! $tool->requires_write_tools || $write_enabled;
-			}
+			static fn( ToolDefinition $tool ): bool => ! $tool->requires_write_tools || $write_enabled
 		);
 
 		return match ( $provider_slug ) {
@@ -176,39 +171,8 @@ class ToolRegistry {
 		);
 
 		$this->tools[] = new ToolDefinition(
-			name: 'create_post',
-			description: 'Create a new WordPress post or page',
-			parameters: [
-				'properties' => [
-					'title'     => [
-						'type'        => 'string',
-						'description' => 'The post title.',
-					],
-					'content'   => [
-						'type'        => 'string',
-						'description' => 'The post body content.',
-					],
-					'status'    => [
-						'type'        => 'string',
-						'description' => 'Publication status.',
-						'enum'        => [ 'draft', 'publish', 'pending' ],
-						'default'     => 'draft',
-					],
-					'post_type' => [
-						'type'        => 'string',
-						'description' => 'The post type to create.',
-						'default'     => 'post',
-					],
-				],
-				'required'   => [ 'title' ],
-			],
-			capability: 'edit_posts',
-			requires_write_tools: true,
-		);
-
-		$this->tools[] = new ToolDefinition(
 			name:                'plan_post',
-			description:         'Propose a new WordPress blog post or page for user approval. Call this tool whenever the user asks you to write, create, draft, or generate a post or page. Provide a title and a brief outline — do not write the full content, that happens after the user approves.',
+			description:         'Propose a new WordPress blog post or page for user approval. Call this tool whenever the user asks you to write, create, draft, or generate a post or page. Provide a title, a brief outline shown on the approval card, and the complete post content that will be published exactly as given when the user approves.',
 			parameters:          [
 				'type'       => 'object',
 				'properties' => [
@@ -223,7 +187,11 @@ class ToolRegistry {
 					],
 					'outline'     => [
 						'type'        => 'string',
-						'description' => 'A brief outline of the post: key sections, topics, and angle. 1–3 sentences.',
+						'description' => 'A brief summary of the post shown to the user on the approval card: key sections, topics, and angle. 1–3 sentences.',
+					],
+					'content'     => [
+						'type'        => 'string',
+						'description' => 'The complete post body to publish when the user approves. Must be the full content, not an outline or summary.',
 					],
 					'post_type'   => [
 						'type'        => 'string',
@@ -235,7 +203,7 @@ class ToolRegistry {
 						'additionalProperties' => [ 'type' => 'string' ],
 					],
 				],
-				'required'   => [ 'title' ],
+				'required'   => [ 'title', 'content' ],
 			],
 			capability:          'edit_posts',
 			requires_write_tools: true,
@@ -277,34 +245,6 @@ class ToolRegistry {
 				'required'   => [ 'post_id', 'changes', 'new_content' ],
 			],
 			capability:          'edit_posts',
-			requires_write_tools: true,
-		);
-
-		$this->tools[] = new ToolDefinition(
-			name: 'update_post',
-			description: 'Update an existing WordPress post or page',
-			parameters: [
-				'properties' => [
-					'post_id' => [
-						'type'        => 'integer',
-						'description' => 'The ID of the post to update.',
-					],
-					'title'   => [
-						'type'        => 'string',
-						'description' => 'New post title.',
-					],
-					'content' => [
-						'type'        => 'string',
-						'description' => 'New post body content.',
-					],
-					'status'  => [
-						'type'        => 'string',
-						'description' => 'New publication status.',
-					],
-				],
-				'required'   => [ 'post_id' ],
-			],
-			capability: 'edit_posts',
 			requires_write_tools: true,
 		);
 

@@ -20,7 +20,8 @@ const STATUS_LABELS = {
  * @param {string}   props.plan.id        Plan identifier (used to call the execute endpoint).
  * @param {string}   props.plan.plan_type 'create' or 'update'.
  * @param {string}   [props.plan.title]       Post title (create plans).
- * @param {string}   [props.plan.outline]     Brief outline (create plans).
+ * @param {string}   [props.plan.outline]     Brief outline shown on the card (create plans).
+ * @param {string}   [props.plan.content]     Full post body to create on approval (create plans).
  * @param {number}   [props.plan.post_id]     Source post ID (update plans).
  * @param {string}   [props.plan.changes]     Human-readable change summary shown on the card (update plans).
  * @param {string}   [props.plan.new_content] Full updated post content to apply (update plans).
@@ -40,10 +41,10 @@ export default function PlanCard( { plan, onDismiss } ) {
 	const [ editTitle, setEditTitle ] = useState(
 		isUpdate ? plan.new_title ?? '' : plan.title ?? ''
 	);
-	const [ editOutline, setEditOutline ] = useState(
+	const [ editContent, setEditContent ] = useState(
 		isUpdate
 			? plan.new_content ?? plan.outline ?? plan.changes ?? ''
-			: plan.outline ?? ''
+			: plan.content ?? plan.outline ?? ''
 	);
 	const [ editStatus, setEditStatus ] = useState(
 		plan.post_status || 'draft'
@@ -59,13 +60,13 @@ export default function PlanCard( { plan, onDismiss } ) {
 		try {
 			const body = isUpdate
 				? {
-						new_content: editOutline,
+						new_content: editContent,
 						new_title: editTitle !== '' ? editTitle : undefined,
 						status: editStatus,
 				  }
 				: {
 						title: editTitle,
-						outline: editOutline,
+						content: editContent,
 						status: editStatus,
 				  };
 
@@ -159,13 +160,13 @@ export default function PlanCard( { plan, onDismiss } ) {
 							<span>
 								{ isUpdate
 									? __( 'Updated content', 'stilus' )
-									: __( 'Outline', 'stilus' ) }
+									: __( 'Content', 'stilus' ) }
 							</span>
 							<textarea
 								id="wpaim-plan-edit-outline"
-								value={ editOutline }
+								value={ editContent }
 								onChange={ ( e ) =>
-									setEditOutline( e.target.value )
+									setEditContent( e.target.value )
 								}
 								rows={ 3 }
 								className="wpaim-input"

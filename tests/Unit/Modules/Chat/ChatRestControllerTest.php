@@ -1272,6 +1272,50 @@ class ChatRestControllerTest extends TestCase {
         $this->assertSame( 'get_site_info', $calls[0]['name'] );
     }
 
+    public function test_extract_tool_calls_returns_all_claude_tool_use_blocks(): void {
+        $response = new CompletionResponse(
+            content: '',
+            model: 'claude-3-5-sonnet',
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            raw: [
+                'content' => [
+                    [ 'type' => 'tool_use', 'id' => 'tu_1', 'name' => 'get_recent_posts', 'input' => [ 'count' => 3 ] ],
+                    [ 'type' => 'text', 'text' => 'thinking…' ],
+                    [ 'type' => 'tool_use', 'id' => 'tu_2', 'name' => 'get_site_info', 'input' => [] ],
+                ],
+            ],
+            tool_call: [ 'id' => 'tu_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+        );
+
+        $calls = $this->call_extract_tool_calls( $response, 'claude' );
+
+        $this->assertCount( 2, $calls, 'Both tool_use blocks must be extracted; text blocks must be skipped' );
+        $this->assertSame( 'tu_1', $calls[0]['id'] );
+        $this->assertSame( 'get_recent_posts', $calls[0]['name'] );
+        $this->assertSame( [ 'count' => 3 ], $calls[0]['input'] );
+        $this->assertSame( 'tu_2', $calls[1]['id'] );
+        $this->assertSame( 'get_site_info', $calls[1]['name'] );
+    }
+
+    public function test_extract_tool_calls_falls_back_to_tool_call_when_raw_is_empty(): void {
+        $response = new CompletionResponse(
+            content: '',
+            model: 'claude-3-5-sonnet',
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            raw: [ 'content' => [] ],
+            tool_call: [ 'id' => 'tc_1', 'name' => 'get_site_info', 'arguments' => [ 'extra' => 'val' ] ],
+        );
+
+        $calls = $this->call_extract_tool_calls( $response, 'claude' );
+
+        $this->assertCount( 1, $calls );
+        $this->assertSame( 'tc_1', $calls[0]['id'] );
+        $this->assertSame( 'get_site_info', $calls[0]['name'] );
+        $this->assertSame( [ 'extra' => 'val' ], $calls[0]['input'] );
+    }
+
     // ── send_message: Gemini multi-tool execution ──────────────────────────────
 
     public function test_send_message_executes_all_gemini_tool_calls_in_one_turn(): void {

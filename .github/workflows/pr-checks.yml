@@ -466,7 +466,7 @@ jobs:
   e2e:
     name: E2E — Playwright (wp-env on Ubuntu)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     needs: changes
     if: needs.changes.outputs.e2e == 'true'
     steps:

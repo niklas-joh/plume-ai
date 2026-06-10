@@ -2,26 +2,26 @@
 /**
  * REST controller for executing or dismissing pending AI-proposed plans.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Modules\Chat;
+namespace Plume\Modules\Chat;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Core\RestApi;
-use Stilus\Tools\PostWriter;
-use Stilus\Tools\ToolExecutor;
+use Plume\Core\RestApi;
+use Plume\Tools\PostWriter;
+use Plume\Tools\ToolExecutor;
 
 /**
  * REST controller for pending plan execution.
  *
  * Route:
- *   POST /stilus/v1/plans/{id}/execute — execute an AI-proposed plan (create or update post).
+ *   POST /plume/v1/plans/{id}/execute — execute an AI-proposed plan (create or update post).
  *
  * Plans are stored as WordPress transients keyed by user ID + plan ID, ensuring
  * only the owning user can execute them. Transients expire after one hour.
@@ -106,7 +106,7 @@ class PlansRestController {
 		if ( false === $plan ) {
 			return new \WP_Error(
 				'plan_not_found',
-				\__( 'This plan has expired or does not exist. Please ask the assistant again.', 'stilus' ),
+				\__( 'This plan has expired or does not exist. Please ask the assistant again.', 'plume' ),
 				[ 'status' => 404 ]
 			);
 		}
@@ -158,7 +158,7 @@ class PlansRestController {
 		if ( ! \current_user_can( 'edit_posts' ) ) {
 			return new \WP_Error(
 				'rest_forbidden',
-				\__( 'Insufficient permissions.', 'stilus' ),
+				\__( 'Insufficient permissions.', 'plume' ),
 				[ 'status' => 403 ]
 			);
 		}

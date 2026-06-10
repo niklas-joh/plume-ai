@@ -2,16 +2,16 @@
 /**
  * Sends authenticated requests to the Cloudflare Worker AI proxy.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Proxy;
+namespace Plume\Proxy;
 
 use WP_Error;
-use Stilus\Tiers\TierConfig;
-use Stilus\Tiers\UsageTracker;
+use Plume\Tiers\TierConfig;
+use Plume\Tiers\UsageTracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -46,14 +46,14 @@ class ProxyClient {
 			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'not_registered', __( 'Site not connected to Stilus - Write and Design. Please reload the page.', 'stilus' ) );
+			return new WP_Error( 'not_registered', __( 'Site not connected to Plume - Write and Design. Please reload the page.', 'plume' ) );
 		}
 
 		$user_id = get_current_user_id();
 
 		// Fail-fast pre-check (WordPress meta). Cloudflare KV is authoritative for enforcement.
 		if ( ! UsageTracker::check_limit( $user_id ) ) {
-			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'stilus' ) );
+			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'plume' ) );
 		}
 
 		$payload = [
@@ -76,7 +76,7 @@ class ProxyClient {
 
 		$body_json = wp_json_encode( $payload );
 		if ( false === $body_json ) {
-			return new WP_Error( 'json_encode_failed', __( 'Failed to encode request payload.', 'stilus' ) );
+			return new WP_Error( 'json_encode_failed', __( 'Failed to encode request payload.', 'plume' ) );
 		}
 
 		$response = wp_remote_post(
@@ -99,7 +99,7 @@ class ProxyClient {
 		$body = json_decode( wp_remote_retrieve_body( $response ), true ) ?? [];
 
 		if ( 429 === $code ) {
-			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'stilus' ) );
+			return new WP_Error( 'rate_limit_exceeded', __( 'Monthly usage limit reached.', 'plume' ) );
 		}
 
 		if ( 401 === $code ) {
@@ -110,12 +110,12 @@ class ProxyClient {
 			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'auth_failed', __( 'Connection to Stilus - Write and Design failed. Please reload the page and try again.', 'stilus' ) );
+			return new WP_Error( 'auth_failed', __( 'Connection to Plume - Write and Design failed. Please reload the page and try again.', 'plume' ) );
 		}
 
 		if ( $code < 200 || $code >= 300 ) {
 			// translators: %d is the HTTP status code returned by the service.
-			return new WP_Error( 'service_error', $body['error'] ?? sprintf( __( 'Stilus - Write and Design returned HTTP %d', 'stilus' ), $code ) );
+			return new WP_Error( 'service_error', $body['error'] ?? sprintf( __( 'Plume - Write and Design returned HTTP %d', 'plume' ), $code ) );
 		}
 
 		// Mirror usage locally for dashboard display only — KV is authoritative for quota enforcement.

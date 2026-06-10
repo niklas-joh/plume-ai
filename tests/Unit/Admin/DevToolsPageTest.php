@@ -1,16 +1,16 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Admin;
+namespace Plume\Tests\Unit\Admin;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use Stilus\Admin\DevToolsPage;
+use Plume\Admin\DevToolsPage;
 
 // Ensure the constant is defined for all tests in this class.
-if ( ! defined( 'STILUS_DEV_KEY' ) ) {
-	define( 'STILUS_DEV_KEY', 'test-dev-key' );
+if ( ! defined( 'PLUME_DEV_KEY' ) ) {
+	define( 'PLUME_DEV_KEY', 'test-dev-key' );
 }
 
 class DevToolsPageTest extends TestCase {
@@ -27,8 +27,8 @@ class DevToolsPageTest extends TestCase {
 
 	// ── PAGE_SLUG constant ───────────────────────────────────────────────────
 
-	public function test_page_slug_constant_has_expected_stilus_value(): void {
-		$this->assertSame( 'stilus-dev-tools', DevToolsPage::PAGE_SLUG );
+	public function test_page_slug_constant_has_expected_plume_value(): void {
+		$this->assertSame( 'plume-dev-tools', DevToolsPage::PAGE_SLUG );
 	}
 
 	// ── is_active() — capability guard ───────────────────────────────────────

@@ -6,17 +6,17 @@
  * including permission checks, tier gating, prompt construction, and
  * database writes.
  *
- * @package Stilus\Tests\Integration\Seo
+ * @package Plume\Tests\Integration\Seo
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Integration\Seo;
+namespace Plume\Tests\Integration\Seo;
 
-use Stilus\Tests\Integration\IntegrationTestCase;
+use Plume\Tests\Integration\IntegrationTestCase;
 
 /**
- * Integration tests for POST /stilus/v1/seo/generate and /seo/apply.
+ * Integration tests for POST /plume/v1/seo/generate and /seo/apply.
  *
  * @since 1.0.0
  */
@@ -36,7 +36,7 @@ class SeoGenerateTest extends IntegrationTestCase {
 
 		$post_id = self::factory()->post->create( [ 'post_status' => 'publish' ] );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/seo/generate', [ 'post_id' => $post_id ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/seo/generate', [ 'post_id' => $post_id ] );
 
 		$this->assertSame( 403, $response->get_status() );
 	}
@@ -56,7 +56,7 @@ class SeoGenerateTest extends IntegrationTestCase {
 
 		$post_id = self::factory()->post->create( [ 'post_status' => 'publish' ] );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/seo/generate', [ 'post_id' => $post_id ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/seo/generate', [ 'post_id' => $post_id ] );
 
 		$this->assertSame( 403, $response->get_status() );
 	}
@@ -106,7 +106,7 @@ class SeoGenerateTest extends IntegrationTestCase {
 
 		$this->mock_http_with_claude_fixture( $fixture );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/seo/generate', [ 'post_id' => $post_id ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/seo/generate', [ 'post_id' => $post_id ] );
 
 		$this->assertSame( 200, $response->get_status(), 'Expected 200 from generate endpoint for trial user.' );
 
@@ -157,7 +157,7 @@ class SeoGenerateTest extends IntegrationTestCase {
 
 		$response = $this->rest_do(
 			'POST',
-			'/stilus/v1/seo/apply',
+			'/plume/v1/seo/apply',
 			[
 				'post_id'        => $post_id,
 				'meta_title'     => 'Integration Meta Title',
@@ -233,7 +233,7 @@ class SeoGenerateTest extends IntegrationTestCase {
 
 		$response = $this->rest_do(
 			'POST',
-			'/stilus/v1/seo/apply',
+			'/plume/v1/seo/apply',
 			[
 				'post_id'  => $post_id,
 				'alt_text' => 'Integration Alt Text',

@@ -2,20 +2,20 @@
 /**
  * AI provider implementation for the OpenAI API.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Providers;
+namespace Plume\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Proxy\ProxyClient;
-use Stilus\Proxy\SiteRegistration;
-use Stilus\Tiers\TierManager;
-use Stilus\Tools\ToolRegistry;
+use Plume\Proxy\ProxyClient;
+use Plume\Proxy\SiteRegistration;
+use Plume\Tiers\TierManager;
+use Plume\Tools\ToolRegistry;
 
 /**
  * Handles completions, streaming, and image generation for OpenAI models.
@@ -293,7 +293,7 @@ class OpenAIProvider extends AbstractProvider {
 		$response = wp_remote_post(
 			self::API_BASE . $path,
 			[
-				'timeout' => STILUS_HTTP_TIMEOUT,
+				'timeout' => PLUME_HTTP_TIMEOUT,
 				'headers' => [
 					'Authorization' => 'Bearer ' . $this->api_key,
 					'Content-Type'  => 'application/json',

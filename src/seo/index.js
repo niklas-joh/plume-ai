@@ -4,12 +4,12 @@ import SeoApp from './SeoApp';
 import '../styles/tokens.css';
 import './seo.css';
 
-const { nonce } = window.stilusData ?? {};
+const { nonce } = window.plumeData ?? {};
 if ( nonce ) {
 	apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 }
 
-const root = document.getElementById( 'stilus-seo' );
+const root = document.getElementById( 'plume-seo' );
 if ( root ) {
 	render( <SeoApp />, root );
 }

@@ -2,19 +2,19 @@
 /**
  * Admin page rendering the AI SEO metadata manager.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Renders the Stilus SEO admin page.
+ * Renders the Plume SEO admin page.
  *
  * Outputs a React mount point; assets are enqueued by SeoModule.
  */
@@ -27,6 +27,6 @@ class SeoPage {
 	 * @return void
 	 */
 	public static function render(): void {
-		echo '<div id="stilus-seo" class="stilus-page"></div>';
+		echo '<div id="plume-seo" class="plume-page"></div>';
 	}
 }

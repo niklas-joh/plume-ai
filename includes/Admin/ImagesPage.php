@@ -2,19 +2,19 @@
 /**
  * Admin page rendering the AI image generation interface.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Renders the Stilus image-generation admin page.
+ * Renders the Plume image-generation admin page.
  *
  * Outputs a React mount point; assets are enqueued by ImagesModule.
  */
@@ -27,6 +27,6 @@ class ImagesPage {
 	 * @return void
 	 */
 	public static function render(): void {
-		echo '<div id="stilus-images" class="stilus-page"></div>';
+		echo '<div id="plume-images" class="plume-page"></div>';
 	}
 }

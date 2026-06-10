@@ -7,14 +7,14 @@
  *
  * Cost: ~$0.0005/run (claude-haiku-4-5-20251001, short post generation).
  *
- * @package Stilus\Tests\RealIntegration\Generator
+ * @package Plume\Tests\RealIntegration\Generator
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tests\RealIntegration\Generator;
+namespace Plume\Tests\RealIntegration\Generator;
 
-use Stilus\Tests\RealIntegration\RealIntegrationTestCase;
+use Plume\Tests\RealIntegration\RealIntegrationTestCase;
 
 /**
  * @since 1.8.0
@@ -36,7 +36,7 @@ class RealGeneratorTest extends RealIntegrationTestCase {
 	/**
 	 * Generator produces real content and persists a draft post via Pro-BYOK.
 	 *
-	 * Endpoint: POST /stilus/v1/generate
+	 * Endpoint: POST /plume/v1/generate
 	 * Required: title (string)
 	 * Optional: keywords, tone, length (short|medium|long)
 	 *
@@ -47,7 +47,7 @@ class RealGeneratorTest extends RealIntegrationTestCase {
 
 		$response = $this->rest_do(
 			'POST',
-			'/stilus/v1/generate',
+			'/plume/v1/generate',
 			[
 				'title'    => 'Why automated tests matter',
 				'tone'     => 'professional',

@@ -15,12 +15,12 @@ export default function ImagesBadge( { post } ) {
 
 	if ( post.featured_media && thumbUrl ) {
 		return (
-			<span className="wpaim-image-badge-cell">
-				<img src={ thumbUrl } alt="" className="wpaim-list-thumb" />
-				<span className="wpaim-badge wpaim-badge--has">Has image</span>
+			<span className="plume-image-badge-cell">
+				<img src={ thumbUrl } alt="" className="plume-list-thumb" />
+				<span className="plume-badge plume-badge--has">Has image</span>
 			</span>
 		);
 	}
 
-	return <span className="wpaim-badge wpaim-badge--none">No image</span>;
+	return <span className="plume-badge plume-badge--none">No image</span>;
 }

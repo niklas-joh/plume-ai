@@ -2,12 +2,12 @@
 /**
  * Common contract for all AI completion providers.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Providers;
+namespace Plume\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

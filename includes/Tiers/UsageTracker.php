@@ -2,12 +2,12 @@
 /**
  * Tracks per-user monthly API request consumption against tier limits.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tiers;
+namespace Plume\Tiers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -28,10 +28,10 @@ class UsageTracker {
 	 * only this method needs updating.
 	 *
 	 * @since 1.11.0
-	 * @return string Meta key in the form stilus_usage_YYYY_MM.
+	 * @return string Meta key in the form plume_usage_YYYY_MM.
 	 */
 	public static function get_current_month_key(): string {
-		return 'stilus_usage_' . gmdate( 'Y_m' );
+		return 'plume_usage_' . gmdate( 'Y_m' );
 	}
 
 	/**

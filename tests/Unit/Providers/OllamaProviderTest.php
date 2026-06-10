@@ -1,11 +1,11 @@
 <?php
-namespace Stilus\Tests\Unit\Providers;
+namespace Plume\Tests\Unit\Providers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Providers\OllamaProvider;
-use Stilus\Providers\CompletionRequest;
-use Stilus\Providers\ProviderException;
+use Plume\Providers\OllamaProvider;
+use Plume\Providers\CompletionRequest;
+use Plume\Providers\ProviderException;
 use PHPUnit\Framework\TestCase;
 
 class OllamaProviderTest extends TestCase {
@@ -18,7 +18,7 @@ class OllamaProviderTest extends TestCase {
 		$wpdb = new class extends \stdClass {
 			public string $usermeta      = 'wp_usermeta';
 			public int    $rows_affected = 1;
-			public string $prefix        = 'wpaim_';
+			public string $prefix        = 'plume_';
 			public function insert(): int { return 1; }
 			public function prepare( string $sql, ...$args ): string { return $sql; }
 			public function query( string $sql ): int { return 1; }

@@ -7,16 +7,16 @@ import OnboardingPage from './OnboardingPage';
 import './dashboard.css';
 
 /**
- * Root dashboard application shown on the main Stilus admin page.
+ * Root dashboard application shown on the main Plume admin page.
  *
- * Reads all page data from the `stilusDashboard` global injected by PHP.
+ * Reads all page data from the `plumeDashboard` global injected by PHP.
  * Renders the onboarding wizard in place of the normal dashboard when
  * `onboardingSeen` is false, so first-time users are guided through setup.
  *
  * @return {ReactElement}
  */
 export default function DashboardApp() {
-	const data = window.stilusDashboard ?? {};
+	const data = window.plumeDashboard ?? {};
 	const {
 		bannerState = 'none',
 		onboardingSeen = true,
@@ -36,23 +36,23 @@ export default function DashboardApp() {
 	}
 
 	return (
-		<div className="wpaim-dashboard">
+		<div className="plume-dashboard">
 			{ /* Top bar */ }
-			<div className="wpaim-dash-topbar">
+			<div className="plume-dash-topbar">
 				<div>
-					<div className="wpaim-dash-title">
-						Stilus - Write and Design
+					<div className="plume-dash-title">
+						Plume - Write and Design
 					</div>
-					<div className="wpaim-dash-subtitle">
+					<div className="plume-dash-subtitle">
 						AI-powered content creation for WordPress
 					</div>
 				</div>
-				<span className="wpaim-dash-version">v{ version }</span>
+				<span className="plume-dash-version">v{ version }</span>
 			</div>
 
 			<StatusBanner bannerState={ bannerState } urls={ urls } />
 
-			<div className="wpaim-dash-body">
+			<div className="plume-dash-body">
 				<StartTiles urls={ urls } />
 				<UsageWidget usage={ usage } />
 				<ResourceList

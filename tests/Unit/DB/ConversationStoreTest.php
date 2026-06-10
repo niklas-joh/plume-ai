@@ -1,9 +1,9 @@
 <?php
-namespace Stilus\Tests\Unit\DB;
+namespace Plume\Tests\Unit\DB;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\DB\ConversationStore;
+use Plume\DB\ConversationStore;
 use PHPUnit\Framework\TestCase;
 
 /**

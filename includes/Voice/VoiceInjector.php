@@ -2,11 +2,11 @@
 /**
  * Builds system prompts by merging site-wide and per-user voice preferences.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Voice;
+namespace Plume\Voice;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -19,8 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class VoiceInjector {
 
-	private const SITE_OPTION = 'stilus_site_voice';
-	private const USER_META   = 'stilus_voice';
+	private const SITE_OPTION = 'plume_site_voice';
+	private const USER_META   = 'plume_voice';
 
 	/**
 	 * Build a system prompt combining voice preferences and a feature-specific instruction.

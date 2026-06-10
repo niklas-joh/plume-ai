@@ -6,16 +6,16 @@
  * No WordPress functions are called by the class under test, so Brain Monkey
  * bootstrapping is not required here.
  *
- * @package Stilus\Tests\Unit\Tiers
+ * @package Plume\Tests\Unit\Tiers
  * @since   1.0.0
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Tiers;
+namespace Plume\Tests\Unit\Tiers;
 
 use PHPUnit\Framework\TestCase;
-use Stilus\Tiers\TierConfig;
+use Plume\Tiers\TierConfig;
 
 /**
  * Exhaustive matrix tests for TierConfig capability and limit data.

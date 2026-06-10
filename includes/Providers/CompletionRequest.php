@@ -2,12 +2,12 @@
 /**
  * Immutable value object representing an AI completion request.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Providers;
+namespace Plume\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

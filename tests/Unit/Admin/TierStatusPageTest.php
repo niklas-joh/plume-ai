@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Admin;
+namespace Plume\Tests\Unit\Admin;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use Stilus\Admin\TierStatusPage;
+use Plume\Admin\TierStatusPage;
 
 class TierStatusPageTest extends TestCase {
 
@@ -33,7 +33,7 @@ class TierStatusPageTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html_e' )->echoArg();
 		Functions\when( 'number_format_i18n' )->alias( fn( $n ) => (string) number_format( (int) $n ) );
-		Functions\when( 'get_admin_page_title' )->justReturn( 'Stilus - Write and Design - Plan &amp; Usage' );
+		Functions\when( 'get_admin_page_title' )->justReturn( 'Plume - Write and Design - Plan &amp; Usage' );
 		Functions\when( 'admin_url' )->alias( fn( $path ) => 'http://example.com/wp-admin/' . ltrim( $path, '/' ) );
 	}
 
@@ -45,17 +45,17 @@ class TierStatusPageTest extends TestCase {
 	 * @param int    $used       Tokens used this month (ignored for unlimited tiers).
 	 */
 	private function stub_tier_and_registration( string $tier, bool $registered, int $used = 0 ): void {
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 		$token     = $registered ? 'test-site-token' : '';
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key, bool $single = false ) use ( $tier, $month_key, $used ): string {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return $tier;
 				}
-				if ( 'stilus_trial_started' === $key && 'trial' === $tier ) {
+				if ( 'plume_trial_started' === $key && 'trial' === $tier ) {
 					return (string) time();
 				}
 				if ( $month_key === $key ) {
@@ -66,10 +66,10 @@ class TierStatusPageTest extends TestCase {
 		);
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, $default = null ) use ( $token, $tier ) {
-				if ( 'stilus_site_token' === $key ) {
+				if ( 'plume_site_token' === $key ) {
 					return $token;
 				}
-				if ( 'stilus_site_tier' === $key ) {
+				if ( 'plume_site_tier' === $key ) {
 					// Paid tiers are site-wide; trial/free are per-user so leave the
 					// site option at the default and let user meta drive resolution.
 					return ( 'pro_managed' === $tier || 'pro_byok' === $tier ) ? $tier : $default;
@@ -115,7 +115,7 @@ class TierStatusPageTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Not connected', $output );
-		$this->assertStringNotContainsString( 'wpaim-status--active', $output );
+		$this->assertStringNotContainsString( 'plume-status--active', $output );
 	}
 
 	// ── Upgrade section — checkout URLs ──────────────────────────────────────
@@ -201,7 +201,7 @@ class TierStatusPageTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Manage your API keys', $output );
-		$this->assertStringContainsString( 'stilus-settings', $output );
+		$this->assertStringContainsString( 'plume-settings', $output );
 	}
 
 	public function test_render_omits_api_keys_link_for_free_tier(): void {

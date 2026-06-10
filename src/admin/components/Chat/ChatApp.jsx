@@ -10,18 +10,18 @@ import apiFetch from '@wordpress/api-fetch';
 import { LAUNCH_ACTIONS } from './actions';
 import { storageGet, storageSet } from '../../utils/storage';
 
-const NEW_CONVERSATION_TITLE = __( 'New conversation', 'stilus' );
+const NEW_CONVERSATION_TITLE = __( 'New conversation', 'plume' );
 
 const LAUNCH_SUGGESTIONS = [
 	{
 		...LAUNCH_ACTIONS[ 0 ],
-		label: __( 'Summarise this post', 'stilus' ),
+		label: __( 'Summarise this post', 'plume' ),
 	},
 	{
 		...LAUNCH_ACTIONS[ 1 ],
-		label: __( 'Improve readability', 'stilus' ),
+		label: __( 'Improve readability', 'plume' ),
 	},
-	{ ...LAUNCH_ACTIONS[ 2 ], label: __( 'Write a post', 'stilus' ) },
+	{ ...LAUNCH_ACTIONS[ 2 ], label: __( 'Write a post', 'plume' ) },
 ];
 
 /**
@@ -33,7 +33,7 @@ const LAUNCH_SUGGESTIONS = [
  * @return {ReactElement}
  */
 export default function ChatApp() {
-	const { isPro } = window.stilusData || {};
+	const { isPro } = window.plumeData || {};
 
 	const [ conversations, setConversations ] = useState( [] );
 	const [ activeConvId, setActiveConvId ] = useState( null );
@@ -43,7 +43,7 @@ export default function ChatApp() {
 	const [ selectedModel, setSelectedModel ] = useState( '' );
 	const [ providers, setProviders ] = useState( [] );
 	const [ isSidebarCollapsed, setIsSidebarCollapsed ] = useState(
-		() => storageGet( 'wpaim-sidebar-collapsed' ) === '1'
+		() => storageGet( 'plume-sidebar-collapsed' ) === '1'
 	);
 	const [ attachedPost, setAttachedPost ] = useState( null );
 	const [ pendingQuickAction, setPendingQuickAction ] = useState( null );
@@ -73,7 +73,7 @@ export default function ChatApp() {
 	async function loadConversations() {
 		try {
 			const data = await apiFetch( {
-				path: '/stilus/v1/conversations',
+				path: '/plume/v1/conversations',
 			} );
 			setConversations( data );
 		} catch ( e ) {
@@ -83,10 +83,10 @@ export default function ChatApp() {
 
 	async function loadProviders() {
 		try {
-			const data = await apiFetch( { path: '/stilus/v1/providers' } );
+			const data = await apiFetch( { path: '/plume/v1/providers' } );
 			setProviders( data );
 			if ( data.length > 0 ) {
-				const storedDefault = window.stilusData?.defaultProvider;
+				const storedDefault = window.plumeData?.defaultProvider;
 				const match = data.find( ( p ) => p.slug === storedDefault );
 				setSelectedProvider( ( match ?? data[ 0 ] ).slug );
 			}
@@ -97,14 +97,14 @@ export default function ChatApp() {
 
 	async function loadMessages( convId ) {
 		const data = await apiFetch( {
-			path: `/stilus/v1/conversations/${ convId }/messages`,
+			path: `/plume/v1/conversations/${ convId }/messages`,
 		} );
 		setMessages( data );
 	}
 
 	async function newConversation() {
 		const conv = await apiFetch( {
-			path: '/stilus/v1/conversations',
+			path: '/plume/v1/conversations',
 			method: 'POST',
 			data: { title: NEW_CONVERSATION_TITLE },
 		} );
@@ -133,7 +133,7 @@ export default function ChatApp() {
 		setDeletingIds( ( prev ) => new Set( [ ...prev, convId ] ) );
 		try {
 			await apiFetch( {
-				path: `/stilus/v1/conversations/${ convId }`,
+				path: `/plume/v1/conversations/${ convId }`,
 				method: 'DELETE',
 			} );
 			removeConversationFromState( convId );
@@ -148,7 +148,7 @@ export default function ChatApp() {
 					...prev,
 					[ convId ]: __(
 						'Failed to delete. Please try again.',
-						'stilus'
+						'plume'
 					),
 				} ) );
 			}
@@ -169,7 +169,7 @@ export default function ChatApp() {
 
 		if ( ! convId ) {
 			const conv = await apiFetch( {
-				path: '/stilus/v1/conversations',
+				path: '/plume/v1/conversations',
 				method: 'POST',
 				data: { title: content.slice( 0, 60 ) },
 			} );
@@ -195,7 +195,7 @@ export default function ChatApp() {
 
 		try {
 			const res = await apiFetch( {
-				path: `/stilus/v1/conversations/${ convId }/messages`,
+				path: `/plume/v1/conversations/${ convId }/messages`,
 				method: 'POST',
 				data: {
 					content,
@@ -228,7 +228,7 @@ export default function ChatApp() {
 				const newTitle = rawTitle.replace( /\s+\S*$/, '' ) || rawTitle;
 				if ( newTitle.trim() ) {
 					apiFetch( {
-						path: `/stilus/v1/conversations/${ convId }`,
+						path: `/plume/v1/conversations/${ convId }`,
 						method: 'PATCH',
 						data: { title: newTitle },
 					} )
@@ -244,7 +244,7 @@ export default function ChatApp() {
 						} )
 						.catch( ( err ) =>
 							// eslint-disable-next-line no-console
-							console.warn( '[stilus] title update failed', err )
+							console.warn( '[plume] title update failed', err )
 						);
 				}
 			}
@@ -295,25 +295,25 @@ export default function ChatApp() {
 	}
 
 	const toggleLabel = isSidebarCollapsed
-		? __( 'Expand sidebar', 'stilus' )
-		: __( 'Collapse sidebar', 'stilus' );
+		? __( 'Expand sidebar', 'plume' )
+		: __( 'Collapse sidebar', 'plume' );
 
 	return (
 		<div
-			className={ `wpaim-shell${
-				isSidebarCollapsed ? ' wpaim-shell--sidebar-collapsed' : ''
+			className={ `plume-shell${
+				isSidebarCollapsed ? ' plume-shell--sidebar-collapsed' : ''
 			}` }
 		>
-			<aside className="wpaim-sidebar">
-				<div className="wpaim-sidebar__header">
+			<aside className="plume-sidebar">
+				<div className="plume-sidebar__header">
 					{ ! isSidebarCollapsed && (
-						<span className="wpaim-sidebar__title">
-							{ __( 'Conversations', 'stilus' ) }
+						<span className="plume-sidebar__title">
+							{ __( 'Conversations', 'plume' ) }
 						</span>
 					) }
 					{ ! isSidebarCollapsed && (
 						<button
-							className="wpaim-btn wpaim-btn--ghost wpaim-btn--icon"
+							className="plume-btn plume-btn--ghost plume-btn--icon"
 							onClick={ newConversation }
 							title={ NEW_CONVERSATION_TITLE }
 							aria-label={ NEW_CONVERSATION_TITLE }
@@ -323,12 +323,12 @@ export default function ChatApp() {
 						</button>
 					) }
 					<button
-						className="wpaim-btn wpaim-btn--ghost wpaim-btn--icon wpaim-sidebar__toggle"
+						className="plume-btn plume-btn--ghost plume-btn--icon plume-sidebar__toggle"
 						onClick={ () =>
 							setIsSidebarCollapsed( ( prev ) => {
 								const next = ! prev;
 								storageSet(
-									'wpaim-sidebar-collapsed',
+									'plume-sidebar-collapsed',
 									next ? '1' : '0'
 								);
 								return next;
@@ -356,7 +356,7 @@ export default function ChatApp() {
 				/>
 			</aside>
 
-			<main className="wpaim-main">
+			<main className="plume-main">
 				{ messages.length === 0 && ! isLoading ? (
 					<CenteredLaunch
 						suggestions={ LAUNCH_SUGGESTIONS }
@@ -387,7 +387,7 @@ export default function ChatApp() {
 				) }
 			</main>
 
-			<aside className="wpaim-right-panel">
+			<aside className="plume-right-panel">
 				<ModelSelector
 					providers={ providers }
 					selectedProvider={ selectedProvider }
@@ -435,16 +435,16 @@ function CenteredLaunch( {
 	onPickerClose,
 } ) {
 	return (
-		<div className="wpaim-launch">
-			<div className="wpaim-launch__inner">
-				<p className="wpaim-launch__title">
-					{ __( 'How can I help you today?', 'stilus' ) }
+		<div className="plume-launch">
+			<div className="plume-launch__inner">
+				<p className="plume-launch__title">
+					{ __( 'How can I help you today?', 'plume' ) }
 				</p>
-				<div className="wpaim-launch__suggestions">
+				<div className="plume-launch__suggestions">
 					{ suggestions.map( ( s ) => (
 						<button
 							key={ s.id }
-							className="wpaim-suggestion-chip"
+							className="plume-suggestion-chip"
 							type="button"
 							onClick={ () => onSend( s.prompt, s.requiresPost ) }
 						>

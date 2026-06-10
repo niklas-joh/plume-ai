@@ -2,20 +2,20 @@
 /**
  * AI provider implementation for the Google Gemini API.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Providers;
+namespace Plume\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Proxy\ProxyClient;
-use Stilus\Proxy\SiteRegistration;
-use Stilus\Tiers\TierManager;
-use Stilus\Tools\ToolRegistry;
+use Plume\Proxy\ProxyClient;
+use Plume\Proxy\SiteRegistration;
+use Plume\Tiers\TierManager;
+use Plume\Tools\ToolRegistry;
 
 /**
  * Handles completions, streaming, and image generation for Google Gemini models.
@@ -276,7 +276,7 @@ class GeminiProvider extends AbstractProvider {
 		}
 
 		// Decode base64 directly to temp file (avoids second HTTP request).
-		$tmp_file = tempnam( sys_get_temp_dir(), 'wpaim_img_' );
+		$tmp_file = tempnam( sys_get_temp_dir(), 'plume_img_' );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writing AI-generated image to temp file; WP_Filesystem is not available in this context.
 		file_put_contents( $tmp_file, base64_decode( $b64 ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode,WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Decoding AI-generated image data; temp file write before media_handle_sideload.
 		$ext      = str_contains( $mime, 'png' ) ? 'png' : 'jpg';
@@ -302,7 +302,7 @@ class GeminiProvider extends AbstractProvider {
 				'gemini'
 			);
 		}
-		update_post_meta( $attachment_id, '_stilus_prompt', sanitize_textarea_field( $prompt ) );
+		update_post_meta( $attachment_id, '_plume_prompt', sanitize_textarea_field( $prompt ) );
 		return $attachment_id;
 	}
 
@@ -337,7 +337,7 @@ class GeminiProvider extends AbstractProvider {
 		$response = wp_remote_post(
 			$url,
 			[
-				'timeout' => STILUS_HTTP_TIMEOUT,
+				'timeout' => PLUME_HTTP_TIMEOUT,
 				'headers' => [ 'Content-Type' => 'application/json' ],
 				'body'    => wp_json_encode( $body ),
 			]

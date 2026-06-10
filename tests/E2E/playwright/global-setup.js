@@ -54,12 +54,12 @@ async function globalSetup() {
 	// the fieldset disabled and preventing the settings save test from working).
 	// Tier-gating tests that need to simulate free tier override isPro client-side
 	// via addInitScript, so this site-level setting does not interfere with them.
-	wpCli( 'option set stilus_site_tier pro_managed', { stdio: 'inherit' } );
+	wpCli( 'option set plume_site_tier pro_managed', { stdio: 'inherit' } );
 	console.log( '[E2E setup] Site tier set to pro_managed.' );
 
 	// Mark onboarding as seen so the dashboard renders normally.
 	// On a fresh install the wizard blocks the dashboard and chat views.
-	wpCli( 'option set stilus_onboarding_seen 1', { stdio: 'inherit' } );
+	wpCli( 'option set plume_onboarding_seen 1', { stdio: 'inherit' } );
 	console.log( '[E2E setup] Onboarding marked as seen.' );
 
 	// ── Real API key injection (optional) ────────────────────────────────────
@@ -76,13 +76,13 @@ async function globalSetup() {
 		}
 		console.log( '[E2E setup] Storing Claude API key for real-API tests.' );
 		wpCli(
-			`eval "( new \\\\Stilus\\\\Settings\\\\ProviderSettings() )->set_api_key( 'claude', '${ claudeApiKey }' );"`,
+			`eval "( new \\\\Plume\\\\Settings\\\\ProviderSettings() )->set_api_key( 'claude', '${ claudeApiKey }' );"`,
 			{ stdio: 'inherit' }
 		);
 		// Switch to pro_byok so the direct Claude path is used, not the proxy.
 		// Mocked E2E tests override tier state client-side via addInitScript so
 		// this site-level change does not break them.
-		wpCli( 'option set stilus_site_tier pro_byok', { stdio: 'inherit' } );
+		wpCli( 'option set plume_site_tier pro_byok', { stdio: 'inherit' } );
 		console.log( '[E2E setup] Site tier set to pro_byok for real-API tests.' );
 	}
 }

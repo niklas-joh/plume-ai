@@ -2,43 +2,43 @@
 /**
  * REST controller handling conversation and message endpoints for the chat feature.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Modules\Chat;
+namespace Plume\Modules\Chat;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Core\RestApi;
-use Stilus\DB\ConversationStore;
-use Stilus\Providers\ProviderFactory;
-use Stilus\Providers\CompletionRequest;
-use Stilus\Providers\CompletionResponse;
-use Stilus\Providers\ProviderException;
-use Stilus\Settings\ProviderSettings;
-use Stilus\Tools\ToolRegistry;
-use Stilus\Tools\ToolExecutor;
-use Stilus\Voice\VoiceInjector;
-use Stilus\Proxy\SiteRegistration;
-use Stilus\Tiers\TierConfig;
-use Stilus\Tiers\TierManager;
-use Stilus\Tiers\UsageTracker;
+use Plume\Core\RestApi;
+use Plume\DB\ConversationStore;
+use Plume\Providers\ProviderFactory;
+use Plume\Providers\CompletionRequest;
+use Plume\Providers\CompletionResponse;
+use Plume\Providers\ProviderException;
+use Plume\Settings\ProviderSettings;
+use Plume\Tools\ToolRegistry;
+use Plume\Tools\ToolExecutor;
+use Plume\Voice\VoiceInjector;
+use Plume\Proxy\SiteRegistration;
+use Plume\Tiers\TierConfig;
+use Plume\Tiers\TierManager;
+use Plume\Tiers\UsageTracker;
 
 /**
  * REST controller for chat conversations, providers, and post search.
  *
  * Routes:
- *   GET    /stilus/v1/conversations               — list conversations
- *   POST   /stilus/v1/conversations               — create conversation
- *   GET    /stilus/v1/conversations/{id}/messages — get messages
- *   POST   /stilus/v1/conversations/{id}/messages — send message (AI turn)
- *   PATCH  /stilus/v1/conversations/{id}          — update conversation title
- *   DELETE /stilus/v1/conversations/{id}          — delete conversation
- *   GET    /stilus/v1/providers                   — list available providers
- *   GET    /stilus/v1/search-posts                — search posts
+ *   GET    /plume/v1/conversations               — list conversations
+ *   POST   /plume/v1/conversations               — create conversation
+ *   GET    /plume/v1/conversations/{id}/messages — get messages
+ *   POST   /plume/v1/conversations/{id}/messages — send message (AI turn)
+ *   PATCH  /plume/v1/conversations/{id}          — update conversation title
+ *   DELETE /plume/v1/conversations/{id}          — delete conversation
+ *   GET    /plume/v1/providers                   — list available providers
+ *   GET    /plume/v1/search-posts                — search posts
  *
  * All routes require the edit_posts capability except delete, which also
  * allows manage_options to delete any conversation.
@@ -219,11 +219,11 @@ class ChatRestController {
 			! empty( $post_id_param ) ? (int) $post_id_param : null
 		);
 		if ( 0 === $id ) {
-			return new \WP_REST_Response( [ 'message' => __( 'Failed to create conversation.', 'stilus' ) ], 500 );
+			return new \WP_REST_Response( [ 'message' => __( 'Failed to create conversation.', 'plume' ) ], 500 );
 		}
 		$conversation = $store->get_conversation( $id );
 		if ( null === $conversation ) {
-			return new \WP_REST_Response( [ 'message' => __( 'Failed to retrieve conversation.', 'stilus' ) ], 500 );
+			return new \WP_REST_Response( [ 'message' => __( 'Failed to retrieve conversation.', 'plume' ) ], 500 );
 		}
 		return new \WP_REST_Response(
 			[
@@ -265,7 +265,7 @@ class ChatRestController {
 		$conv_id        = (int) $request->get_param( 'id' );
 		$content        = $request->get_param( 'content' );
 		$provider_param = $request->get_param( 'provider' );
-		$provider_slug  = ! empty( $provider_param ) ? $provider_param : \get_option( 'stilus_default_provider', 'claude' );
+		$provider_slug  = ! empty( $provider_param ) ? $provider_param : \get_option( 'plume_default_provider', 'claude' );
 		$model          = $request->get_param( 'model' );
 
 		$user_id = \get_current_user_id();
@@ -317,7 +317,7 @@ class ChatRestController {
 					}
 					return new \WP_REST_Response(
 						[
-							'message' => __( 'Could not connect to Stilus — Write and Design. Please reload the page and try again.', 'stilus' ),
+							'message' => __( 'Could not connect to Plume — Write and Design. Please reload the page and try again.', 'plume' ),
 						],
 						503
 					);
@@ -327,7 +327,7 @@ class ChatRestController {
 					[
 						'message' => sprintf(
 							/* translators: %s: provider slug */
-							__( 'No API key configured for "%s". Please add one in Stilus → Settings.', 'stilus' ),
+							__( 'No API key configured for "%s". Please add one in Plume → Settings.', 'plume' ),
 							$provider_slug
 						),
 					],
@@ -462,17 +462,17 @@ class ChatRestController {
 		$conv    = $store->get_conversation( $conv_id );
 
 		if ( ! $conv ) {
-			return new \WP_Error( 'not_found', __( 'Not found.', 'stilus' ), [ 'status' => 404 ] );
+			return new \WP_Error( 'not_found', __( 'Not found.', 'plume' ), [ 'status' => 404 ] );
 		}
 		if ( get_current_user_id() !== (int) $conv['user_id'] ) {
-			return new \WP_Error( 'forbidden', __( 'You cannot update this conversation.', 'stilus' ), [ 'status' => 403 ] );
+			return new \WP_Error( 'forbidden', __( 'You cannot update this conversation.', 'plume' ), [ 'status' => 403 ] );
 		}
 
 		// Sanitise explicitly: the route schema runs sanitize_callback in production,
 		// but unit tests bypass the schema, so a second call here ensures correctness.
 		$updated = $store->update_title( $conv_id, sanitize_text_field( $request->get_param( 'title' ) ) );
 		if ( ! $updated ) {
-			return new \WP_Error( 'db_error', __( 'Failed to update conversation.', 'stilus' ), [ 'status' => 500 ] );
+			return new \WP_Error( 'db_error', __( 'Failed to update conversation.', 'plume' ), [ 'status' => 500 ] );
 		}
 		return rest_ensure_response( [ 'updated' => true ] );
 	}
@@ -490,10 +490,10 @@ class ChatRestController {
 		$conv    = $store->get_conversation( $conv_id );
 
 		if ( ! $conv ) {
-			return new \WP_Error( 'not_found', __( 'Not found.', 'stilus' ), [ 'status' => 404 ] );
+			return new \WP_Error( 'not_found', __( 'Not found.', 'plume' ), [ 'status' => 404 ] );
 		}
 		if ( get_current_user_id() !== (int) $conv['user_id'] && ! current_user_can( 'manage_options' ) ) {
-			return new \WP_Error( 'forbidden', __( 'You cannot delete this conversation.', 'stilus' ), [ 'status' => 403 ] );
+			return new \WP_Error( 'forbidden', __( 'You cannot delete this conversation.', 'plume' ), [ 'status' => 403 ] );
 		}
 
 		$store->delete( $conv_id );
@@ -576,7 +576,7 @@ class ChatRestController {
 		if ( ! current_user_can( 'edit_posts' ) ) {
 			return new \WP_Error(
 				'rest_forbidden',
-				__( 'Insufficient permissions.', 'stilus' ),
+				__( 'Insufficient permissions.', 'plume' ),
 				[ 'status' => 403 ]
 			);
 		}
@@ -586,7 +586,7 @@ class ChatRestController {
 		if ( ! $this->user_can_chat( $user_id ) ) {
 			return new \WP_Error(
 				'rest_tier_denied',
-				__( 'Your current plan does not include chat access.', 'stilus' ),
+				__( 'Your current plan does not include chat access.', 'plume' ),
 				[ 'status' => 403 ]
 			);
 		}
@@ -594,7 +594,7 @@ class ChatRestController {
 		if ( ! $this->user_within_quota( $user_id ) ) {
 			return new \WP_Error(
 				'rest_quota_exceeded',
-				__( 'You have reached your monthly usage limit.', 'stilus' ),
+				__( 'You have reached your monthly usage limit.', 'plume' ),
 				[ 'status' => 403 ]
 			);
 		}

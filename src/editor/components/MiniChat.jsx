@@ -40,7 +40,7 @@ export default function MiniChat( { postId } ) {
 			let cid = convId;
 			if ( ! cid ) {
 				const conv = await apiFetch( {
-					path: '/stilus/v1/conversations',
+					path: '/plume/v1/conversations',
 					method: 'POST',
 					data: { title: text.slice( 0, 60 ), post_id: postId },
 				} );
@@ -48,7 +48,7 @@ export default function MiniChat( { postId } ) {
 				setConvId( cid ); // capture new ID — stale closure fix
 			}
 			const res = await apiFetch( {
-				path: `/stilus/v1/conversations/${ cid }/messages`,
+				path: `/plume/v1/conversations/${ cid }/messages`,
 				method: 'POST',
 				data: { content: text, context_post_id: postId ?? 0 },
 			} );
@@ -62,8 +62,8 @@ export default function MiniChat( { postId } ) {
 	}
 
 	return (
-		<div className="wpaim-editor-mini-chat">
-			<div className="wpaim-editor-mini-chat__messages">
+		<div className="plume-editor-mini-chat">
+			<div className="plume-editor-mini-chat__messages">
 				{ messages.length === 0 && (
 					<p
 						style={ {
@@ -79,7 +79,7 @@ export default function MiniChat( { postId } ) {
 				{ messages.map( ( m, i ) => (
 					<div
 						key={ i }
-						className={ `wpaim-editor-mini-chat__bubble wpaim-editor-mini-chat__bubble--${
+						className={ `plume-editor-mini-chat__bubble plume-editor-mini-chat__bubble--${
 							m.role === 'user' ? 'user' : 'ai'
 						}` }
 					>
@@ -91,15 +91,15 @@ export default function MiniChat( { postId } ) {
 					</div>
 				) ) }
 				{ isLoading && (
-					<div className="wpaim-editor-mini-chat__bubble wpaim-editor-mini-chat__bubble--ai">
-						<Loader2 size={ 14 } className="wpaim-spin" />
+					<div className="plume-editor-mini-chat__bubble plume-editor-mini-chat__bubble--ai">
+						<Loader2 size={ 14 } className="plume-spin" />
 					</div>
 				) }
 				<div ref={ endRef } />
 			</div>
-			<div className="wpaim-editor-mini-chat__composer">
+			<div className="plume-editor-mini-chat__composer">
 				<input
-					className="wpaim-editor-mini-chat__input"
+					className="plume-editor-mini-chat__input"
 					value={ input }
 					onChange={ ( e ) => setInput( e.target.value ) }
 					onKeyDown={ ( e ) =>
@@ -111,12 +111,12 @@ export default function MiniChat( { postId } ) {
 					disabled={ isLoading }
 				/>
 				<button
-					className="wpaim-editor-mini-chat__send"
+					className="plume-editor-mini-chat__send"
 					onClick={ send }
 					disabled={ isLoading || ! input.trim() }
 				>
 					{ isLoading ? (
-						<Loader2 size={ 14 } className="wpaim-spin" />
+						<Loader2 size={ 14 } className="plume-spin" />
 					) : (
 						<Send size={ 14 } />
 					) }

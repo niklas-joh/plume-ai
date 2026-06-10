@@ -2,8 +2,8 @@
 /**
  * Permanent URL-contract guard: Worker source ↔ WordPress REST namespace.
  *
- * Verifies that every TypeScript source file in stilus-proxy/src/ uses the
- * correct /stilus/v1 REST namespace and contains no legacy /wp-ai-mind/
+ * Verifies that every TypeScript source file in plume-proxy/src/ uses the
+ * correct /plume/v1 REST namespace and contains no legacy /wp-ai-mind/
  * references. Run with: npm test -- namespace-contract
  */
 import { describe, it, expect } from 'vitest';
@@ -18,9 +18,9 @@ function readSrc( filename: string ): string {
 }
 
 describe( 'Worker → WordPress REST namespace contract', () => {
-	it( 'registration.ts uses /wp-json/stilus/v1/activation-verify', () => {
+	it( 'registration.ts uses /wp-json/plume/v1/activation-verify', () => {
 		const source = readSrc( 'registration.ts' );
-		expect( source ).toContain( '/wp-json/stilus/v1/activation-verify' );
+		expect( source ).toContain( '/wp-json/plume/v1/activation-verify' );
 	} );
 
 	it( 'all Worker source files are free of legacy wp-ai-mind namespace', () => {

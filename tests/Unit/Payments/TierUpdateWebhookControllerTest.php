@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Payments;
+namespace Plume\Tests\Unit\Payments;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use Stilus\Payments\TierUpdateWebhookController;
+use Plume\Payments\TierUpdateWebhookController;
 use WP_REST_Request;
 
 /**
@@ -38,10 +38,10 @@ class TierUpdateWebhookControllerTest extends TestCase {
 	 */
 	private function makeSignedRequest( string $body, int $timestamp, string $secret = self::SECRET ): WP_REST_Request {
 		$signature = hash_hmac( 'sha256', $timestamp . '.' . $body, $secret );
-		$req       = new WP_REST_Request( 'POST', '/stilus/v1/tier-update' );
+		$req       = new WP_REST_Request( 'POST', '/plume/v1/tier-update' );
 		$req->set_header( 'content_type', 'application/json' );
-		$req->set_header( 'x_stilus_signature', $signature );
-		$req->set_header( 'x_stilus_timestamp', (string) $timestamp );
+		$req->set_header( 'x_plume_signature', $signature );
+		$req->set_header( 'x_plume_timestamp', (string) $timestamp );
 		$req->set_body( $body );
 		return $req;
 	}
@@ -77,11 +77,11 @@ class TierUpdateWebhookControllerTest extends TestCase {
 		// Assert that the replay-protection transient key follows the expected format.
 		Functions\expect( 'set_transient' )
 			->once()
-			->with( \Mockery::pattern( '/^stilus_tier_sig_[a-f0-9]{32}$/' ), 1, 360 )
+			->with( \Mockery::pattern( '/^plume_tier_sig_[a-f0-9]{32}$/' ), 1, 360 )
 			->andReturn( true );
 		Functions\expect( 'update_option' )
 			->once()
-			->with( 'stilus_site_tier', 'pro_managed', false )
+			->with( 'plume_site_tier', 'pro_managed', false )
 			->andReturn( true );
 		Functions\when( 'do_action' )->justReturn( null );
 
@@ -170,7 +170,7 @@ class TierUpdateWebhookControllerTest extends TestCase {
 		$this->stubOptionsAndTransients();
 		Functions\expect( 'update_option' )->never();
 
-		$req = new WP_REST_Request( 'POST', '/stilus/v1/tier-update' );
+		$req = new WP_REST_Request( 'POST', '/plume/v1/tier-update' );
 		$req->set_header( 'content_type', 'application/json' );
 		$req->set_body( '{"tier":"pro_managed"}' );
 		// No signature or timestamp headers.
@@ -229,7 +229,7 @@ class TierUpdateWebhookControllerTest extends TestCase {
 		$this->stubOptionsAndTransients();
 		Functions\expect( 'update_option' )
 			->once()
-			->with( 'stilus_site_tier', 'pro_managed', false )
+			->with( 'plume_site_tier', 'pro_managed', false )
 			->andReturn( true );
 		Functions\when( 'do_action' )->justReturn( null );
 

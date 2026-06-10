@@ -2,19 +2,19 @@
 /**
  * Chat module bootstrap — registers assets and REST routes for the chat feature.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Modules\Chat;
+namespace Plume\Modules\Chat;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Tools\PostWriter;
-use Stilus\Tools\ToolRegistry;
-use Stilus\Tools\ToolExecutor;
+use Plume\Tools\PostWriter;
+use Plume\Tools\ToolRegistry;
+use Plume\Tools\ToolExecutor;
 
 /**
  * Bootstraps the Chat module by registering its REST routes on rest_api_init.

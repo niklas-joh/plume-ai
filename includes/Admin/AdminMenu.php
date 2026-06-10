@@ -1,19 +1,19 @@
 <?php
 /**
- * Registers the Stilus admin menu and sub-menu pages.
+ * Registers the Plume admin menu and sub-menu pages.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Registers the top-level Stilus admin menu and all sub-menu pages.
+ * Registers the top-level Plume admin menu and all sub-menu pages.
  *
  * The 'Upgrade' sub-menu is conditionally added only for free and trial users;
  * Pro users see a clean menu without the upsell entry.
@@ -28,10 +28,10 @@ class AdminMenu {
 	 */
 	public static function register(): void {
 		add_menu_page(
-			__( 'Stilus - Write and Design', 'stilus' ),
-			__( 'Stilus', 'stilus' ),
+			__( 'Plume - Write and Design', 'plume' ),
+			__( 'Plume', 'plume' ),
 			'edit_posts',
-			'stilus',
+			'plume',
 			[ DashboardPage::class, 'render' ],
 			self::get_menu_icon(),
 			30
@@ -39,22 +39,22 @@ class AdminMenu {
 
 		// First submenu entry must share parent slug — WordPress uses it to rename
 		// the parent item in the submenu list. Label it "Dashboard".
-		add_submenu_page( 'stilus', __( 'Dashboard', 'stilus' ), __( 'Dashboard', 'stilus' ), 'edit_posts', 'stilus', [ DashboardPage::class, 'render' ] );
-		add_submenu_page( 'stilus', __( 'Chat', 'stilus' ), __( 'Chat', 'stilus' ), 'edit_posts', 'stilus-chat', [ ChatPage::class, 'render' ] );
-		add_submenu_page( 'stilus', __( 'Generator', 'stilus' ), __( 'Generator', 'stilus' ), 'edit_posts', 'stilus-generator', [ GeneratorPage::class, 'render' ] );
-		add_submenu_page( 'stilus', __( 'SEO', 'stilus' ), __( 'SEO', 'stilus' ), 'edit_posts', 'stilus-seo', [ SeoPage::class, 'render' ] );
-		add_submenu_page( 'stilus', __( 'Images', 'stilus' ), __( 'Images', 'stilus' ), 'edit_posts', 'stilus-images', [ ImagesPage::class, 'render' ] );
-		add_submenu_page( 'stilus', __( 'Settings', 'stilus' ), __( 'Settings', 'stilus' ), 'manage_options', 'stilus-settings', [ SettingsPage::class, 'render' ] );
+		add_submenu_page( 'plume', __( 'Dashboard', 'plume' ), __( 'Dashboard', 'plume' ), 'edit_posts', 'plume', [ DashboardPage::class, 'render' ] );
+		add_submenu_page( 'plume', __( 'Chat', 'plume' ), __( 'Chat', 'plume' ), 'edit_posts', 'plume-chat', [ ChatPage::class, 'render' ] );
+		add_submenu_page( 'plume', __( 'Generator', 'plume' ), __( 'Generator', 'plume' ), 'edit_posts', 'plume-generator', [ GeneratorPage::class, 'render' ] );
+		add_submenu_page( 'plume', __( 'SEO', 'plume' ), __( 'SEO', 'plume' ), 'edit_posts', 'plume-seo', [ SeoPage::class, 'render' ] );
+		add_submenu_page( 'plume', __( 'Images', 'plume' ), __( 'Images', 'plume' ), 'edit_posts', 'plume-images', [ ImagesPage::class, 'render' ] );
+		add_submenu_page( 'plume', __( 'Settings', 'plume' ), __( 'Settings', 'plume' ), 'manage_options', 'plume-settings', [ SettingsPage::class, 'render' ] );
 
-		$tier = \Stilus\Tiers\TierManager::get_user_tier();
+		$tier = \Plume\Tiers\TierManager::get_user_tier();
 		if ( in_array( $tier, [ 'free', 'trial' ], true ) ) {
 			add_submenu_page(
-				'stilus',
-				__( 'Upgrade', 'stilus' ),
-				__( 'Upgrade ✦', 'stilus' ),
+				'plume',
+				__( 'Upgrade', 'plume' ),
+				__( 'Upgrade ✦', 'plume' ),
 				'edit_posts',
-				'stilus-upgrade',
-				[ \Stilus\Admin\TierStatusPage::class, 'render' ]
+				'plume-upgrade',
+				[ \Plume\Admin\TierStatusPage::class, 'render' ]
 			);
 		}
 	}

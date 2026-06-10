@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Tools;
+namespace Plume\Tests\Unit\Tools;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Tools\ToolExecutor;
-use Stilus\Tools\ToolRegistry;
+use Plume\Tools\ToolExecutor;
+use Plume\Tools\ToolRegistry;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -201,11 +201,11 @@ class ToolExecutorTest extends TestCase {
 
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'wp_strip_all_tags' )->alias( fn( $s ) => $s );
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 		// pro_managed is site-level now; usage meta still per-user.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'stilus_site_tier' === $key ? 'pro_managed' : $default
+				'plume_site_tier' === $key ? 'pro_managed' : $default
 		);
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key, bool $single ) use ( $month_key ): mixed {

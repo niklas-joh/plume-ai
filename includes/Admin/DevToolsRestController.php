@@ -2,18 +2,18 @@
 /**
  * REST controller for developer tools: tier switching and usage manipulation.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
-use Stilus\Tiers\TierConfig;
-use Stilus\Tiers\TierManager;
-use Stilus\Tiers\UsageTracker;
+use Plume\Tiers\TierConfig;
+use Plume\Tiers\TierManager;
+use Plume\Tiers\UsageTracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -22,8 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * REST endpoints for the developer tools page.
  *
- * All routes live under /stilus/v1/dev/ and require both the manage_options
- * capability and a valid STILUS_DEV_KEY constant. Routes are only registered
+ * All routes live under /plume/v1/dev/ and require both the manage_options
+ * capability and a valid PLUME_DEV_KEY constant. Routes are only registered
  * when the constant is defined, so they return 404 on sites without the key.
  *
  * @since 1.11.0
@@ -35,7 +35,7 @@ class DevToolsRestController {
 	 *
 	 * @since 1.11.0
 	 */
-	private const REST_NAMESPACE = 'stilus/v1';
+	private const REST_NAMESPACE = 'plume/v1';
 
 	/**
 	 * Register all developer tools REST routes.
@@ -104,9 +104,9 @@ class DevToolsRestController {
 		$tier_labels = TierConfig::get_tier_labels();
 
 		if ( null === $usage['limit'] ) {
-			$display = __( 'Unlimited', 'stilus' );
+			$display = __( 'Unlimited', 'plume' );
 		} else {
-			$display = number_format_i18n( $usage['used'] ) . ' / ' . number_format_i18n( $usage['limit'] ) . ' ' . __( 'tokens', 'stilus' );
+			$display = number_format_i18n( $usage['used'] ) . ' / ' . number_format_i18n( $usage['limit'] ) . ' ' . __( 'tokens', 'plume' );
 		}
 
 		return new WP_REST_Response(
@@ -141,7 +141,7 @@ class DevToolsRestController {
 			return new WP_REST_Response(
 				[
 					'success' => false,
-					'message' => __( 'Failed to update tier.', 'stilus' ),
+					'message' => __( 'Failed to update tier.', 'plume' ),
 				],
 				500
 			);
@@ -152,7 +152,7 @@ class DevToolsRestController {
 			[
 				'success' => true,
 				/* translators: %s: human-readable tier name e.g. "Pro Managed" */
-				'message' => sprintf( __( 'Tier switched to %s.', 'stilus' ), $labels[ $tier ] ?? $tier ),
+				'message' => sprintf( __( 'Tier switched to %s.', 'plume' ), $labels[ $tier ] ?? $tier ),
 			],
 			200
 		);
@@ -172,7 +172,7 @@ class DevToolsRestController {
 		return new WP_REST_Response(
 			[
 				'success' => true,
-				'message' => __( 'Usage reset to zero.', 'stilus' ),
+				'message' => __( 'Usage reset to zero.', 'plume' ),
 			],
 			200
 		);
@@ -196,7 +196,7 @@ class DevToolsRestController {
 			return new WP_REST_Response(
 				[
 					'success' => true,
-					'message' => __( 'Pro BYOK has no ceiling — usage is unlimited.', 'stilus' ),
+					'message' => __( 'Pro BYOK has no ceiling — usage is unlimited.', 'plume' ),
 				],
 				200
 			);
@@ -209,7 +209,7 @@ class DevToolsRestController {
 			[
 				'success' => true,
 				/* translators: %s: formatted token count e.g. "50,000" */
-				'message' => sprintf( __( 'Usage set to ceiling: %s tokens.', 'stilus' ), number_format_i18n( $limit ) ),
+				'message' => sprintf( __( 'Usage set to ceiling: %s tokens.', 'plume' ), number_format_i18n( $limit ) ),
 			],
 			200
 		);
@@ -228,7 +228,7 @@ class DevToolsRestController {
 		if ( ! DevToolsPage::is_active() ) {
 			return new \WP_Error(
 				'rest_forbidden',
-				__( 'Developer tools are not enabled on this site.', 'stilus' ),
+				__( 'Developer tools are not enabled on this site.', 'plume' ),
 				[ 'status' => 403 ]
 			);
 		}

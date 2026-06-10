@@ -35,25 +35,25 @@ const TILES = [
 export default function StartTiles( { urls } ) {
 	return (
 		<div>
-			<div className="wpaim-dash-section-head">
-				<span className="wpaim-dash-section-title">Start</span>
+			<div className="plume-dash-section-head">
+				<span className="plume-dash-section-title">Start</span>
 			</div>
-			<div className="wpaim-dash-tiles">
+			<div className="plume-dash-tiles">
 				{ TILES.map( ( tile ) => (
 					<a
 						key={ tile.urlKey }
 						href={ urls[ tile.urlKey ] }
-						className={ `wpaim-dash-tile${
-							tile.primary ? ' wpaim-dash-tile--primary' : ''
+						className={ `plume-dash-tile${
+							tile.primary ? ' plume-dash-tile--primary' : ''
 						}` }
 					>
-						<div className="wpaim-dash-tile__verb">
+						<div className="plume-dash-tile__verb">
 							{ tile.verb }
 						</div>
-						<div className="wpaim-dash-tile__desc">
+						<div className="plume-dash-tile__desc">
 							{ tile.desc }
 						</div>
-						<span className="wpaim-dash-tile__arrow">&#x2197;</span>
+						<span className="plume-dash-tile__arrow">&#x2197;</span>
 					</a>
 				) ) }
 			</div>

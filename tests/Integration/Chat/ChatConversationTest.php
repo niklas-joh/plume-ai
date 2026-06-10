@@ -6,22 +6,22 @@
  * and history retrieval — against a real WordPress instance, including
  * permission checks and database writes.
  *
- * @package Stilus\Tests\Integration\Chat
+ * @package Plume\Tests\Integration\Chat
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Integration\Chat;
+namespace Plume\Tests\Integration\Chat;
 
-use Stilus\Tests\Integration\IntegrationTestCase;
+use Plume\Tests\Integration\IntegrationTestCase;
 
 /**
  * Integration tests for the chat conversation REST endpoints.
  *
  * Covers:
- *   POST   /stilus/v1/conversations               — creation + permissions
- *   POST   /stilus/v1/conversations/{id}/messages — AI turn + HTTP interception
- *   GET    /stilus/v1/conversations/{id}/messages — history retrieval
+ *   POST   /plume/v1/conversations               — creation + permissions
+ *   POST   /plume/v1/conversations/{id}/messages — AI turn + HTTP interception
+ *   GET    /plume/v1/conversations/{id}/messages — history retrieval
  *
  * @since 1.0.0
  */
@@ -39,7 +39,7 @@ class ChatConversationTest extends IntegrationTestCase {
 	public function test_create_conversation_requires_edit_posts(): void {
 		wp_set_current_user( self::$subscriber_user_id );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'Test Conversation' ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/conversations', [ 'title' => 'Test Conversation' ] );
 
 		$this->assertSame( 403, $response->get_status() );
 	}
@@ -56,7 +56,7 @@ class ChatConversationTest extends IntegrationTestCase {
 	public function test_create_conversation_succeeds_for_editor(): void {
 		wp_set_current_user( self::$editor_user_id );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'My Test Chat' ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/conversations', [ 'title' => 'My Test Chat' ] );
 
 		$this->assertSame( 201, $response->get_status() );
 
@@ -79,7 +79,7 @@ class ChatConversationTest extends IntegrationTestCase {
 		wp_set_current_user( self::$editor_user_id );
 
 		// Step 1 — create a conversation.
-		$create_response = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'AI Test' ] );
+		$create_response = $this->rest_do( 'POST', '/plume/v1/conversations', [ 'title' => 'AI Test' ] );
 		$this->assertSame( 201, $create_response->get_status() );
 		$conv_id = $create_response->get_data()['id'];
 
@@ -100,7 +100,7 @@ class ChatConversationTest extends IntegrationTestCase {
 		// Step 3 — send a message.
 		$response = $this->rest_do(
 			'POST',
-			"/stilus/v1/conversations/{$conv_id}/messages",
+			"/plume/v1/conversations/{$conv_id}/messages",
 			[ 'content' => 'Hello' ]
 		);
 
@@ -124,7 +124,7 @@ class ChatConversationTest extends IntegrationTestCase {
 		wp_set_current_user( self::$editor_user_id );
 
 		// Create the conversation.
-		$create_response = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'History Test' ] );
+		$create_response = $this->rest_do( 'POST', '/plume/v1/conversations', [ 'title' => 'History Test' ] );
 		$this->assertSame( 201, $create_response->get_status() );
 		$conv_id = $create_response->get_data()['id'];
 
@@ -142,12 +142,12 @@ class ChatConversationTest extends IntegrationTestCase {
 		// Send a message so there is something in the DB.
 		$this->rest_do(
 			'POST',
-			"/stilus/v1/conversations/{$conv_id}/messages",
+			"/plume/v1/conversations/{$conv_id}/messages",
 			[ 'content' => 'What is the capital of Sweden?' ]
 		);
 
 		// Retrieve history.
-		$response = $this->rest_do( 'GET', "/stilus/v1/conversations/{$conv_id}/messages" );
+		$response = $this->rest_do( 'GET', "/plume/v1/conversations/{$conv_id}/messages" );
 
 		$this->assertSame( 200, $response->get_status() );
 

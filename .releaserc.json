@@ -43,7 +43,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "sed -i 's/ \\* Version:.*/ * Version:           ${nextRelease.version}/' stilus.php && sed -i \"s/define( 'STILUS_VERSION', '[^']*' )/define( 'STILUS_VERSION', '${nextRelease.version}' )/\" stilus.php && sed -i 's/^Stable tag:.*/Stable tag: ${nextRelease.version}/' readme.txt && ./bin/build-wporg.sh --version ${nextRelease.version} --skip-build"
+        "prepareCmd": "sed -i 's/ \\* Version:.*/ * Version:           ${nextRelease.version}/' plume.php && sed -i \"s/define( 'PLUME_VERSION', '[^']*' )/define( 'PLUME_VERSION', '${nextRelease.version}' )/\" plume.php && sed -i 's/^Stable tag:.*/Stable tag: ${nextRelease.version}/' readme.txt && ./bin/build-wporg.sh --version ${nextRelease.version} --skip-build"
       }
     ],
     [
@@ -59,7 +59,7 @@
           "CHANGELOG.md",
           "package.json",
           "package-lock.json",
-          "stilus.php",
+          "plume.php",
           "readme.txt"
         ],
         "message": "chore(release): ${nextRelease.version} [skip ci]"
@@ -70,8 +70,8 @@
       {
         "assets": [
           {
-            "path": "dist/stilus-*.zip",
-            "label": "stilus-${nextRelease.version}.zip"
+            "path": "dist/plume-*.zip",
+            "label": "plume-${nextRelease.version}.zip"
           }
         ]
       }

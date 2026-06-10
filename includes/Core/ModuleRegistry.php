@@ -2,11 +2,11 @@
 /**
  * Registry that tracks enabled/disabled state for all AI modules.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Core;
+namespace Plume\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -15,14 +15,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Registry that tracks enabled/disabled state for all AI modules.
  *
- * State is persisted in the `stilus_modules` option and merged with
+ * State is persisted in the `plume_modules` option and merged with
  * hard-coded defaults so new modules are on by default without a migration.
  *
  * @since 1.0.0
  */
 class ModuleRegistry {
 
-	private const OPTION_KEY = 'stilus_modules';
+	private const OPTION_KEY = 'plume_modules';
 
 	/** Modules that are on by default (no user action required). */
 	private const DEFAULTS = [

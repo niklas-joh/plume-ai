@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Admin;
+namespace Plume\Tests\Unit\Admin;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use Stilus\Admin\ActivationVerifyRestController;
+use Plume\Admin\ActivationVerifyRestController;
 
 class ActivationVerifyRestControllerTest extends TestCase {
 
@@ -35,7 +35,7 @@ class ActivationVerifyRestControllerTest extends TestCase {
 
 		ActivationVerifyRestController::register_routes();
 
-		$this->assertSame( 'stilus/v1', $registered_ns );
+		$this->assertSame( 'plume/v1', $registered_ns );
 		$this->assertSame( '/activation-verify', $registered_route );
 	}
 
@@ -53,7 +53,7 @@ class ActivationVerifyRestControllerTest extends TestCase {
 		ActivationVerifyRestController::store_challenge( 'abc123' );
 
 		$this->assertStringContainsString( 'abc123', $captured_key );
-		$this->assertStringStartsWith( 'stilus_challenge_', $captured_key );
+		$this->assertStringStartsWith( 'plume_challenge_', $captured_key );
 	}
 
 	// ── handle — challenge found ────────────────────────────────────────────────
@@ -88,7 +88,7 @@ class ActivationVerifyRestControllerTest extends TestCase {
 
 		ActivationVerifyRestController::handle( $request );
 
-		$this->assertSame( 'stilus_challenge_' . $challenge, $deleted_key );
+		$this->assertSame( 'plume_challenge_' . $challenge, $deleted_key );
 	}
 
 	// ── handle — challenge missing ──────────────────────────────────────────────
@@ -125,6 +125,6 @@ class ActivationVerifyRestControllerTest extends TestCase {
 
 		ActivationVerifyRestController::handle( $request );
 
-		$this->assertSame( 'stilus_challenge_' . $challenge, $captured_key );
+		$this->assertSame( 'plume_challenge_' . $challenge, $captured_key );
 	}
 }

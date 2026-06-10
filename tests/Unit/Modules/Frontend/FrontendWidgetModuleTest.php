@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Modules\Frontend;
+namespace Plume\Tests\Unit\Modules\Frontend;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Modules\Frontend\FrontendWidgetModule;
+use Plume\Modules\Frontend\FrontendWidgetModule;
 use PHPUnit\Framework\TestCase;
 
 class FrontendWidgetModuleTest extends TestCase {
@@ -37,7 +37,7 @@ class FrontendWidgetModuleTest extends TestCase {
 
         $output = FrontendWidgetModule::render_shortcode( [] );
 
-        self::assertStringContainsString( 'stilus-widget', $output );
+        self::assertStringContainsString( 'plume-widget', $output );
         self::assertStringContainsString( 'data-post-id="42"', $output );
     }
 }

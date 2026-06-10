@@ -2,12 +2,12 @@
 /**
  * Registers all available AI tools and formats them for each provider's wire format.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tools;
+namespace Plume\Tools;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -41,13 +41,13 @@ class ToolRegistry {
 	/**
 	 * Return tools formatted for the given provider slug.
 	 *
-	 * Write tools are omitted when the stilus_enable_write_tools option is falsy.
+	 * Write tools are omitted when the plume_enable_write_tools option is falsy.
 	 *
 	 * @param string $provider_slug One of: claude, openai, gemini, ollama.
 	 * @return array
 	 */
 	public function get_for_provider( string $provider_slug ): array {
-		$write_enabled = (bool) \get_option( 'stilus_enable_write_tools', false );
+		$write_enabled = (bool) \get_option( 'plume_enable_write_tools', false );
 
 		$tools = array_filter(
 			$this->tools,
@@ -70,8 +70,8 @@ class ToolRegistry {
 	 */
 	public function allowed_post_types(): array {
 		return \apply_filters(
-			'stilus_allowed_post_types',
-			\get_option( 'stilus_allowed_post_types', [ 'post', 'page' ] )
+			'plume_allowed_post_types',
+			\get_option( 'plume_allowed_post_types', [ 'post', 'page' ] )
 		);
 	}
 
@@ -378,7 +378,7 @@ class ToolRegistry {
 	/**
 	 * Format tools in the canonical provider-neutral format for the proxy.
 	 *
-	 * The Worker (stilus-proxy) receives this format and translates it to the
+	 * The Worker (plume-proxy) receives this format and translates it to the
 	 * wire format required by the target provider. Using a single canonical shape
 	 * here keeps the PHP side decoupled from provider-specific schema conventions.
 	 *

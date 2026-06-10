@@ -6,17 +6,17 @@
  * Boots a real WordPress instance so REST routes, database writes, and
  * capability checks can be exercised end-to-end without mocking.
  *
- * @package Stilus\Tests\Integration
+ * @package Plume\Tests\Integration
  */
 
 declare( strict_types=1 );
 
 // Plugin constants must exist before WordPress bootstraps.
-if ( ! defined( 'STILUS_BASENAME' ) ) {
-	define( 'STILUS_BASENAME', 'stilus/stilus.php' );
+if ( ! defined( 'PLUME_BASENAME' ) ) {
+	define( 'PLUME_BASENAME', 'plume/plume.php' );
 }
-if ( ! defined( 'STILUS_HTTP_TIMEOUT' ) ) {
-	define( 'STILUS_HTTP_TIMEOUT', 60 );
+if ( ! defined( 'PLUME_HTTP_TIMEOUT' ) ) {
+	define( 'PLUME_HTTP_TIMEOUT', 60 );
 }
 
 // WordPress test library path — wp-env sets this automatically in the
@@ -35,7 +35,7 @@ require_once $_tests_dir . '/includes/functions.php';
 tests_add_filter(
 	'muplugins_loaded',
 	static function () {
-		require_once dirname( __DIR__ ) . '/stilus.php';
+		require_once dirname( __DIR__ ) . '/plume.php';
 	}
 );
 

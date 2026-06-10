@@ -2,12 +2,12 @@
 /**
  * Exception thrown by AI providers on API errors, timeouts, or invalid responses.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Providers;
+namespace Plume\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

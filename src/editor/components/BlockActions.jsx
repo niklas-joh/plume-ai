@@ -54,13 +54,13 @@ export default function BlockActions( { convId, onResult } ) {
 				convId ||
 				(
 					await apiFetch( {
-						path: '/stilus/v1/conversations',
+						path: '/plume/v1/conversations',
 						method: 'POST',
 						data: { title: action.label },
 					} )
 				).id;
 			const res = await apiFetch( {
-				path: `/stilus/v1/conversations/${ cid }/messages`,
+				path: `/plume/v1/conversations/${ cid }/messages`,
 				method: 'POST',
 				data: { content: action.prompt + blockText },
 			} );
@@ -72,18 +72,18 @@ export default function BlockActions( { convId, onResult } ) {
 
 	if ( ! blockText ) {
 		return (
-			<p className="wpaim-block-actions__empty">
+			<p className="plume-block-actions__empty">
 				Select a text block to use AI actions.
 			</p>
 		);
 	}
 
 	return (
-		<div className="wpaim-block-actions">
+		<div className="plume-block-actions">
 			{ ACTIONS.map( ( action ) => (
 				<button
 					key={ action.slug }
-					className="wpaim-block-actions__btn"
+					className="plume-block-actions__btn"
 					onClick={ () => runAction( action ) }
 				>
 					<action.icon size={ 14 } strokeWidth={ 1.5 } />

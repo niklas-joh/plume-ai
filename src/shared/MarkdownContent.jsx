@@ -16,7 +16,7 @@ marked.setOptions( { breaks: true, gfm: true } );
  * @return {ReactElement}
  *
  * @example
- * <MarkdownContent content={ message.content } className="wpaim-bubble__markdown" />
+ * <MarkdownContent content={ message.content } className="plume-bubble__markdown" />
  */
 export default function MarkdownContent( { content, className } ) {
 	const html = useMemo(

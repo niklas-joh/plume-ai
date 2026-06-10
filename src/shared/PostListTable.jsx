@@ -37,7 +37,7 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 				// Fetch all pages for a given post-type base path.
 				// context=edit is required so WordPress includes fields
 				// registered with schema context ['edit'], such as
-				// wpaim_seo_status. Without it the default 'view' context
+				// plume_seo_status. Without it the default 'view' context
 				// strips those fields and they arrive as undefined.
 				const fetchAllPages = async ( base ) => {
 					const firstResponse = await apiFetch( {
@@ -122,20 +122,20 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 	};
 
 	if ( loading ) {
-		return <div className="wpaim-list-loading">Loading posts…</div>;
+		return <div className="plume-list-loading">Loading posts…</div>;
 	}
 	if ( error ) {
-		return <div className="wpaim-list-error">Error: { error }</div>;
+		return <div className="plume-list-error">Error: { error }</div>;
 	}
 
 	return (
-		<div className="wpaim-post-list">
-			<div className="wpaim-list-toolbar">
-				<div className="wpaim-list-tabs">
+		<div className="plume-post-list">
+			<div className="plume-list-toolbar">
+				<div className="plume-list-tabs">
 					{ tabs.map( ( tab ) => (
 						<button
 							key={ tab.id }
-							className={ `wpaim-tab${
+							className={ `plume-tab${
 								activeTab === tab.id ? ' is-active' : ''
 							}` }
 							onClick={ () => handleTabChange( tab.id ) }
@@ -146,7 +146,7 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 				</div>
 				<input
 					type="search"
-					className="wpaim-list-search"
+					className="plume-list-search"
 					placeholder="Search posts…"
 					value={ search }
 					onChange={ handleSearch }
@@ -201,12 +201,12 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 			</table>
 
 			{ totalPages > 1 && (
-				<div className="wpaim-list-pagination">
-					<span className="wpaim-list-count">
+				<div className="plume-list-pagination">
+					<span className="plume-list-count">
 						Showing { visible.length } of { filtered.length } posts
 						and pages
 					</span>
-					<div className="wpaim-list-page-btns">
+					<div className="plume-list-page-btns">
 						<button
 							className="button"
 							onClick={ () => setPage( ( p ) => p - 1 ) }
@@ -268,7 +268,7 @@ function PostRow( {
 					} }
 				/>
 				<td>
-					<span className="wpaim-type-badge">{ post.type }</span>
+					<span className="plume-type-badge">{ post.type }</span>
 				</td>
 				{ columns.map( ( col ) => (
 					<td key={ col.label }>{ col.render( post ) }</td>
@@ -284,7 +284,7 @@ function PostRow( {
 				</td>
 			</tr>
 			{ expanded && (
-				<tr className="wpaim-work-row">
+				<tr className="plume-work-row">
 					<td colSpan={ colSpan }>
 						<WorkArea
 							post={ post }

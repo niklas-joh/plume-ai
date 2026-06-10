@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Modules\Images;
+namespace Plume\Tests\Unit\Modules\Images;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Modules\Images\ImagesModule;
+use Plume\Modules\Images\ImagesModule;
 use PHPUnit\Framework\TestCase;
 
 class ImagesModuleTest extends TestCase {
@@ -38,12 +38,12 @@ class ImagesModuleTest extends TestCase {
 		$permission_callback = $captured_args['/images/generate']['permission_callback'];
 
 		// User has permission but is over the free monthly limit.
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function( $user_id, $key, $single ) use ( $month_key ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'free';
 				}
 				if ( $month_key === $key ) {
@@ -73,15 +73,15 @@ class ImagesModuleTest extends TestCase {
 
 		// User has permission and has tokens remaining.
 		// trial tier is required — free tier has images: false in TierConfig.
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function( $user_id, $key, $single ) use ( $month_key ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'trial';
 				}
-				if ( 'stilus_trial_started' === $key ) {
+				if ( 'plume_trial_started' === $key ) {
 					// is_trial_active() needs a fresh trial timestamp.
 					return (string) time();
 				}

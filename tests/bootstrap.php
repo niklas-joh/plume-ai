@@ -5,15 +5,15 @@ declare( strict_types=1 );
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', dirname( __DIR__ ) . '/' );
 }
-if ( ! defined( 'STILUS_BASENAME' ) ) {
-	define( 'STILUS_BASENAME', 'stilus/stilus.php' );
+if ( ! defined( 'PLUME_BASENAME' ) ) {
+	define( 'PLUME_BASENAME', 'plume/plume.php' );
 }
-if ( ! defined( 'STILUS_HTTP_TIMEOUT' ) ) {
-	define( 'STILUS_HTTP_TIMEOUT', 60 );
+if ( ! defined( 'PLUME_HTTP_TIMEOUT' ) ) {
+	define( 'PLUME_HTTP_TIMEOUT', 60 );
 }
 // Prevent get_proxy_url() from calling get_option() in unit tests.
-if ( ! defined( 'STILUS_PROXY_URL' ) ) {
-	define( 'STILUS_PROXY_URL', 'https://stilus-proxy.stilus.workers.dev' );
+if ( ! defined( 'PLUME_PROXY_URL' ) ) {
+	define( 'PLUME_PROXY_URL', 'https://plume-proxy.plume.workers.dev' );
 }
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
@@ -115,6 +115,6 @@ if ( ! function_exists( 'rest_ensure_response' ) ) {
 // that don't set up their own $wpdb mock (e.g. provider tests).
 global $wpdb;
 if ( null === $wpdb ) {
-	$wpdb = \Stilus\Tests\Helpers\WpdbStubFactory::create();
+	$wpdb = \Plume\Tests\Helpers\WpdbStubFactory::create();
 }
 

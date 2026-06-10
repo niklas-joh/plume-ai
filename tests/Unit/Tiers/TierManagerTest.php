@@ -1,12 +1,12 @@
 <?php
-namespace Stilus\Tests\Unit\Tiers;
+namespace Plume\Tests\Unit\Tiers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use Stilus\Payments\TierUpdateWebhookController;
-use Stilus\Tiers\TierConfig;
-use Stilus\Tiers\TierManager;
+use Plume\Payments\TierUpdateWebhookController;
+use Plume\Tiers\TierConfig;
+use Plume\Tiers\TierManager;
 
 /**
  * Unit tests for TierManager.
@@ -30,7 +30,7 @@ class TierManagerTest extends TestCase {
 	public function test_get_user_tier_defaults_to_free_when_no_meta_and_no_site_option(): void {
 		Functions\expect( 'get_current_user_id' )->once()->andReturn( 1 );
 		Functions\expect( 'get_option' )->once()->with( TierManager::SITE_OPTION, 'free' )->andReturn( 'free' );
-		Functions\expect( 'get_user_meta' )->once()->with( 1, 'stilus_tier', true )->andReturn( '' );
+		Functions\expect( 'get_user_meta' )->once()->with( 1, 'plume_tier', true )->andReturn( '' );
 
 		$this->assertSame( 'free', TierManager::get_user_tier() );
 	}
@@ -58,7 +58,7 @@ class TierManagerTest extends TestCase {
 		// get_user_tier reads meta once; is_trial_active reads it twice more.
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $uid, $key ) use ( $started ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'trial';
 				}
 				return $started;
@@ -73,7 +73,7 @@ class TierManagerTest extends TestCase {
 		Functions\expect( 'get_option' )->once()->with( TierManager::SITE_OPTION, 'free' )->andReturn( 'free' );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $uid, $key ) use ( $expired ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'trial';
 				}
 				return $expired;
@@ -106,7 +106,7 @@ class TierManagerTest extends TestCase {
 	}
 
 	public function test_set_user_tier_stores_valid_tier(): void {
-		Functions\expect( 'update_user_meta' )->once()->with( 3, 'stilus_tier', 'pro_managed' )->andReturn( true );
+		Functions\expect( 'update_user_meta' )->once()->with( 3, 'plume_tier', 'pro_managed' )->andReturn( true );
 
 		$this->assertTrue( TierManager::set_user_tier( 'pro_managed', 3 ) );
 	}
@@ -130,7 +130,7 @@ class TierManagerTest extends TestCase {
 			->andReturn( '' );
 		Functions\expect( 'do_action' )
 			->once()
-			->with( 'stilus_tier_changed', 'pro_managed' );
+			->with( 'plume_tier_changed', 'pro_managed' );
 
 		$this->assertTrue( TierManager::set_site_tier( 'pro_managed' ) );
 	}
@@ -150,7 +150,7 @@ class TierManagerTest extends TestCase {
 	public function test_free_user_can_chat_but_not_model_selection(): void {
 		Functions\expect( 'get_current_user_id' )->twice()->andReturn( 1 );
 		Functions\expect( 'get_option' )->twice()->with( TierManager::SITE_OPTION, 'free' )->andReturn( 'free' );
-		Functions\expect( 'get_user_meta' )->twice()->with( 1, 'stilus_tier', true )->andReturn( '' );
+		Functions\expect( 'get_user_meta' )->twice()->with( 1, 'plume_tier', true )->andReturn( '' );
 
 		$this->assertTrue( TierManager::user_can( 'chat' ) );
 		$this->assertFalse( TierManager::user_can( 'model_selection' ) );
@@ -181,7 +181,7 @@ class TierManagerTest extends TestCase {
 	public function test_free_user_cannot_use_content_features(): void {
 		Functions\expect( 'get_current_user_id' )->times( 3 )->andReturn( 1 );
 		Functions\expect( 'get_option' )->times( 3 )->with( TierManager::SITE_OPTION, 'free' )->andReturn( 'free' );
-		Functions\expect( 'get_user_meta' )->times( 3 )->with( 1, 'stilus_tier', true )->andReturn( '' );
+		Functions\expect( 'get_user_meta' )->times( 3 )->with( 1, 'plume_tier', true )->andReturn( '' );
 
 		$this->assertFalse( TierManager::user_can( 'generator' ) );
 		$this->assertFalse( TierManager::user_can( 'seo' ) );
@@ -218,39 +218,39 @@ class TierManagerTest extends TestCase {
 
 	public function test_start_trial_sets_tier_and_timestamp(): void {
 		Functions\expect( 'update_user_meta' )
-			->once()->with( 4, 'stilus_tier', 'trial' )->andReturn( true );
+			->once()->with( 4, 'plume_tier', 'trial' )->andReturn( true );
 		Functions\expect( 'update_user_meta' )
-			->once()->with( 4, 'stilus_trial_started', \Mockery::type( 'int' ) )->andReturn( true );
+			->once()->with( 4, 'plume_trial_started', \Mockery::type( 'int' ) )->andReturn( true );
 
 		$this->assertTrue( TierManager::start_trial( 4 ) );
 	}
 
 	public function test_is_trial_active_returns_false_for_non_trial_tier(): void {
 		// is_trial_active() reads meta directly, not via get_user_tier.
-		Functions\expect( 'get_user_meta' )->once()->with( 5, 'stilus_tier', true )->andReturn( 'free' );
+		Functions\expect( 'get_user_meta' )->once()->with( 5, 'plume_tier', true )->andReturn( 'free' );
 
 		$this->assertFalse( TierManager::is_trial_active( 5 ) );
 	}
 
 	public function test_is_trial_active_returns_true_within_window(): void {
-		Functions\expect( 'get_user_meta' )->once()->with( 6, 'stilus_tier', true )->andReturn( 'trial' );
-		Functions\expect( 'get_user_meta' )->once()->with( 6, 'stilus_trial_started', true )->andReturn( (string) time() );
+		Functions\expect( 'get_user_meta' )->once()->with( 6, 'plume_tier', true )->andReturn( 'trial' );
+		Functions\expect( 'get_user_meta' )->once()->with( 6, 'plume_trial_started', true )->andReturn( (string) time() );
 
 		$this->assertTrue( TierManager::is_trial_active( 6 ) );
 	}
 
 	public function test_is_trial_active_returns_false_after_thirty_days(): void {
 		$started = time() - ( 31 * DAY_IN_SECONDS );
-		Functions\expect( 'get_user_meta' )->once()->with( 6, 'stilus_tier', true )->andReturn( 'trial' );
-		Functions\expect( 'get_user_meta' )->once()->with( 6, 'stilus_trial_started', true )->andReturn( (string) $started );
+		Functions\expect( 'get_user_meta' )->once()->with( 6, 'plume_tier', true )->andReturn( 'trial' );
+		Functions\expect( 'get_user_meta' )->once()->with( 6, 'plume_trial_started', true )->andReturn( (string) $started );
 
 		$this->assertFalse( TierManager::is_trial_active( 6 ) );
 	}
 
 	public function test_is_trial_active_returns_true_within_thirty_days(): void {
 		$started = time() - ( 29 * DAY_IN_SECONDS );
-		Functions\expect( 'get_user_meta' )->once()->with( 6, 'stilus_tier', true )->andReturn( 'trial' );
-		Functions\expect( 'get_user_meta' )->once()->with( 6, 'stilus_trial_started', true )->andReturn( (string) $started );
+		Functions\expect( 'get_user_meta' )->once()->with( 6, 'plume_tier', true )->andReturn( 'trial' );
+		Functions\expect( 'get_user_meta' )->once()->with( 6, 'plume_trial_started', true )->andReturn( (string) $started );
 
 		$this->assertTrue( TierManager::is_trial_active( 6 ) );
 	}
@@ -276,7 +276,7 @@ class TierManagerTest extends TestCase {
 			->times( 400 )
 			->andReturnUsing(
 				function ( $uid, $key ) use ( $started_at ) {
-					if ( 'stilus_tier' === $key ) {
+					if ( 'plume_tier' === $key ) {
 						return 'trial';
 					}
 					return $started_at;
@@ -305,7 +305,7 @@ class TierManagerTest extends TestCase {
 		Functions\expect( 'get_user_meta' )
 			->andReturnUsing(
 				function ( $uid, $key ) use ( $expired_start ) {
-					if ( 'stilus_tier' === $key ) {
+					if ( 'plume_tier' === $key ) {
 						return 'trial';
 					}
 					return (string) $expired_start;
@@ -315,7 +315,7 @@ class TierManagerTest extends TestCase {
 		// delete_user_meta called once per expired user (210 total).
 		Functions\expect( 'delete_user_meta' )
 			->times( 210 )
-			->with( \Mockery::type( 'int' ), 'stilus_tier' )
+			->with( \Mockery::type( 'int' ), 'plume_tier' )
 			->andReturn( true );
 
 		TierManager::maybe_demote_expired_trials();
@@ -339,7 +339,7 @@ class TierManagerTest extends TestCase {
 		Functions\expect( 'get_user_meta' )
 			->andReturnUsing(
 				function ( $uid, $key ) use ( $expired_start, $active_start ) {
-					if ( 'stilus_tier' === $key ) {
+					if ( 'plume_tier' === $key ) {
 						return 'trial';
 					}
 					if ( $uid >= 101 && $uid <= 200 ) {
@@ -352,7 +352,7 @@ class TierManagerTest extends TestCase {
 		// delete_user_meta called once per expired user: 100 from batch 1 + 10 from batch 2.
 		Functions\expect( 'delete_user_meta' )
 			->times( 110 )
-			->with( \Mockery::type( 'int' ), 'stilus_tier' )
+			->with( \Mockery::type( 'int' ), 'plume_tier' )
 			->andReturn( true );
 
 		TierManager::maybe_demote_expired_trials();
@@ -450,7 +450,7 @@ class TierManagerTest extends TestCase {
 			->andReturn( true );
 		Functions\expect( 'do_action' )
 			->once()
-			->with( 'stilus_tier_changed', $tier );
+			->with( 'plume_tier_changed', $tier );
 
 		$this->assertTrue( TierManager::set_site_tier( $tier ) );
 	}
@@ -473,7 +473,7 @@ class TierManagerTest extends TestCase {
 			->with( TierManager::SITE_OPTION_SIG, \Mockery::any(), false );
 		Functions\expect( 'do_action' )
 			->once()
-			->with( 'stilus_tier_changed', 'free' );
+			->with( 'plume_tier_changed', 'free' );
 
 		$this->assertTrue( TierManager::set_site_tier( 'free' ) );
 	}

@@ -4,7 +4,7 @@
 
 import type { SiteTier } from './types';
 
-const TIER_UPDATE_PATH = '/wp-json/stilus/v1/tier-update';
+const TIER_UPDATE_PATH = '/wp-json/plume/v1/tier-update';
 const BACKOFF_MS = [ 1000, 3000, 9000 ];
 const REQUEST_TIMEOUT_MS = 5_000;
 
@@ -82,8 +82,8 @@ export async function pushTierUpdate(
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'X-Stilus-Signature': signature,
-					'X-Stilus-Timestamp': String( timestamp ),
+					'X-Plume-Signature': signature,
+					'X-Plume-Timestamp': String( timestamp ),
 				},
 				body,
 				signal: AbortSignal.timeout( REQUEST_TIMEOUT_MS ),

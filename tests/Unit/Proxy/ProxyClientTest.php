@@ -1,13 +1,13 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Proxy;
+namespace Plume\Tests\Unit\Proxy;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use Stilus\Proxy\ProxyClient;
-use Stilus\Proxy\SiteRegistration;
+use Plume\Proxy\ProxyClient;
+use Plume\Proxy\SiteRegistration;
 
 class ProxyClientTest extends TestCase {
 
@@ -79,7 +79,7 @@ class ProxyClientTest extends TestCase {
 		// get_user_meta: tier=free, usage above the 50 000 free limit.
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'free';
 				}
 				return 51000;
@@ -101,7 +101,7 @@ class ProxyClientTest extends TestCase {
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'free';
 				}
 				return 0;
@@ -137,7 +137,7 @@ class ProxyClientTest extends TestCase {
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'free';
 				}
 				return 0;
@@ -171,7 +171,7 @@ class ProxyClientTest extends TestCase {
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'free';
 				}
 				return 0;
@@ -208,7 +208,7 @@ class ProxyClientTest extends TestCase {
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'free';
 				}
 				return 0;
@@ -241,7 +241,7 @@ class ProxyClientTest extends TestCase {
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'free';
 				}
 				return 0;

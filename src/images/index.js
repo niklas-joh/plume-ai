@@ -4,12 +4,12 @@ import ImagesApp from './ImagesApp';
 import '../styles/tokens.css';
 import './images.css';
 
-const { nonce } = window.stilusData ?? {};
+const { nonce } = window.plumeData ?? {};
 if ( nonce ) {
 	apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 }
 
-const root = document.getElementById( 'stilus-images' );
+const root = document.getElementById( 'plume-images' );
 if ( root ) {
 	render( <ImagesApp />, root );
 }

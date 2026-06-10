@@ -7,14 +7,14 @@
  *
  * Cost: ~$0.0003/run (claude-haiku-4-5-20251001, minimal prompts).
  *
- * @package Stilus\Tests\RealIntegration\Chat
+ * @package Plume\Tests\RealIntegration\Chat
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tests\RealIntegration\Chat;
+namespace Plume\Tests\RealIntegration\Chat;
 
-use Stilus\Tests\RealIntegration\RealIntegrationTestCase;
+use Plume\Tests\RealIntegration\RealIntegrationTestCase;
 
 /**
  * @since 1.8.0
@@ -41,14 +41,14 @@ class RealChatTest extends RealIntegrationTestCase {
 	public function test_send_message_returns_ai_response(): void {
 		wp_set_current_user( self::$editor_user_id );
 
-		$create = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'Real Chat Test' ] );
+		$create = $this->rest_do( 'POST', '/plume/v1/conversations', [ 'title' => 'Real Chat Test' ] );
 		$this->assertSame( 201, $create->get_status() );
 		$conv_id = $create->get_data()['id'];
 
 		// No HTTP mock — live Anthropic API call.
 		$response = $this->rest_do(
 			'POST',
-			"/stilus/v1/conversations/{$conv_id}/messages",
+			"/plume/v1/conversations/{$conv_id}/messages",
 			[
 				'content'  => 'Reply with only the word "pong". Nothing else.',
 				'provider' => 'claude',
@@ -74,12 +74,12 @@ class RealChatTest extends RealIntegrationTestCase {
 	public function test_message_history_persisted_after_real_turn(): void {
 		wp_set_current_user( self::$editor_user_id );
 
-		$create  = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'History Test' ] );
+		$create  = $this->rest_do( 'POST', '/plume/v1/conversations', [ 'title' => 'History Test' ] );
 		$conv_id = $create->get_data()['id'];
 
 		$this->rest_do(
 			'POST',
-			"/stilus/v1/conversations/{$conv_id}/messages",
+			"/plume/v1/conversations/{$conv_id}/messages",
 			[
 				'content'  => 'Say "ok".',
 				'provider' => 'claude',
@@ -87,7 +87,7 @@ class RealChatTest extends RealIntegrationTestCase {
 			]
 		);
 
-		$history  = $this->rest_do( 'GET', "/stilus/v1/conversations/{$conv_id}/messages" );
+		$history  = $this->rest_do( 'GET', "/plume/v1/conversations/{$conv_id}/messages" );
 		$messages = $history->get_data();
 
 		$this->assertGreaterThanOrEqual( 2, count( $messages ), 'Must have user + assistant turns.' );
@@ -103,7 +103,7 @@ class RealChatTest extends RealIntegrationTestCase {
 	public function test_multi_turn_conversation_maintains_context(): void {
 		wp_set_current_user( self::$editor_user_id );
 
-		$create  = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'Context Test' ] );
+		$create  = $this->rest_do( 'POST', '/plume/v1/conversations', [ 'title' => 'Context Test' ] );
 		$conv_id = $create->get_data()['id'];
 
 		// First turn: tell Claude a number. Assert it succeeds so a failure here
@@ -111,7 +111,7 @@ class RealChatTest extends RealIntegrationTestCase {
 		// on the second turn caused by a missing assistant message in history.
 		$first = $this->rest_do(
 			'POST',
-			"/stilus/v1/conversations/{$conv_id}/messages",
+			"/plume/v1/conversations/{$conv_id}/messages",
 			[
 				'content'  => 'My secret number is 77. Acknowledge with just "ack".',
 				'provider' => 'claude',
@@ -126,7 +126,7 @@ class RealChatTest extends RealIntegrationTestCase {
 		);
 
 		// Verify both user and assistant messages are in the DB before the second turn.
-		$history = $this->rest_do( 'GET', "/stilus/v1/conversations/{$conv_id}/messages" );
+		$history = $this->rest_do( 'GET', "/plume/v1/conversations/{$conv_id}/messages" );
 		$this->assertGreaterThanOrEqual( 2, count( $history->get_data() ), 'History must contain user + assistant before second turn.' );
 
 		// Second turn: ask Claude to repeat from the in-context messages above.
@@ -135,7 +135,7 @@ class RealChatTest extends RealIntegrationTestCase {
 		// explicitly to the current conversation's message history.
 		$recall = $this->rest_do(
 			'POST',
-			"/stilus/v1/conversations/{$conv_id}/messages",
+			"/plume/v1/conversations/{$conv_id}/messages",
 			[
 				'content'  => 'Looking at the messages above in this conversation, what number did I give you at the start? Reply with just the number.',
 				'provider' => 'claude',

@@ -102,19 +102,19 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: stilus-proxy/package-lock.json
+          cache-dependency-path: plume-proxy/package-lock.json
 
       - name: Install Worker dependencies
         run: npm ci --no-audit --no-fund
-        working-directory: stilus-proxy
+        working-directory: plume-proxy
 
       - name: Run tests
         run: npm test
-        working-directory: stilus-proxy
+        working-directory: plume-proxy
 
       - name: Deploy prod Worker
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          workingDirectory: stilus-proxy
+          workingDirectory: plume-proxy
           command: deploy --env="" # explicit empty string targets top-level env; omitting it triggers a warning when named envs exist

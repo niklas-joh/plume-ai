@@ -6,17 +6,17 @@
  * including a live database and functional REST server. Adds skip-if-no-key
  * helpers and tier-configuration shortcuts needed for real API calls.
  *
- * @package Stilus\Tests\RealIntegration
+ * @package Plume\Tests\RealIntegration
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tests\RealIntegration;
+namespace Plume\Tests\RealIntegration;
 
-use Stilus\Tests\Integration\IntegrationTestCase;
-use Stilus\Tiers\TierManager;
-use Stilus\Proxy\SiteRegistration;
-use Stilus\Settings\ProviderSettings;
+use Plume\Tests\Integration\IntegrationTestCase;
+use Plume\Tiers\TierManager;
+use Plume\Proxy\SiteRegistration;
+use Plume\Settings\ProviderSettings;
 
 /**
  * @since 1.8.0
@@ -37,13 +37,13 @@ abstract class RealIntegrationTestCase extends IntegrationTestCase {
 	}
 
 	/**
-	 * Skip if STILUS_CI_SITE_TOKEN env var is absent.
+	 * Skip if PLUME_CI_SITE_TOKEN env var is absent.
 	 *
 	 * @since 1.8.0
 	 */
 	protected static function skip_without_proxy_token(): void {
-		if ( '' === ( getenv( 'STILUS_CI_SITE_TOKEN' ) ?: '' ) ) {
-			self::markTestSkipped( 'STILUS_CI_SITE_TOKEN not set — skipping real proxy tests.' );
+		if ( '' === ( getenv( 'PLUME_CI_SITE_TOKEN' ) ?: '' ) ) {
+			self::markTestSkipped( 'PLUME_CI_SITE_TOKEN not set — skipping real proxy tests.' );
 		}
 	}
 

@@ -107,7 +107,7 @@ export async function handleRegistration(
 	// Verify the site is live by calling back to its WP REST endpoint.
 	const verifyUrl =
 		siteUrl.replace( /\/$/, '' ) +
-		'/wp-json/stilus/v1/activation-verify' +
+		'/wp-json/plume/v1/activation-verify' +
 		'?challenge=' +
 		encodeURIComponent( challengeToken );
 	let siteVerified = false;

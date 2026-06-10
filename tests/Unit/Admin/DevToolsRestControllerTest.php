@@ -1,16 +1,16 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Admin;
+namespace Plume\Tests\Unit\Admin;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use Stilus\Admin\DevToolsRestController;
+use Plume\Admin\DevToolsRestController;
 
 // Ensure the constant is defined so DevToolsPage::is_active() can be exercised.
-if ( ! defined( 'STILUS_DEV_KEY' ) ) {
-	define( 'STILUS_DEV_KEY', 'test-dev-key' );
+if ( ! defined( 'PLUME_DEV_KEY' ) ) {
+	define( 'PLUME_DEV_KEY', 'test-dev-key' );
 }
 
 class DevToolsRestControllerTest extends TestCase {
@@ -27,7 +27,7 @@ class DevToolsRestControllerTest extends TestCase {
 
 	// ── register_routes() — namespace and path prefix ────────────────────────
 
-	public function test_register_routes_uses_stilus_v1_dev_prefix(): void {
+	public function test_register_routes_uses_plume_v1_dev_prefix(): void {
 		$registered = [];
 		Functions\expect( 'register_rest_route' )
 			->times( 4 )
@@ -41,7 +41,7 @@ class DevToolsRestControllerTest extends TestCase {
 		DevToolsRestController::register_routes();
 
 		foreach ( $registered as $entry ) {
-			$this->assertSame( 'stilus/v1', $entry['namespace'] );
+			$this->assertSame( 'plume/v1', $entry['namespace'] );
 			$this->assertStringStartsWith( '/dev/', $entry['route'] );
 		}
 	}
@@ -66,7 +66,7 @@ class DevToolsRestControllerTest extends TestCase {
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, $default = null ) use ( $stored_hash ) {
-				if ( 'stilus_dev_key_hash' === $key ) {
+				if ( 'plume_dev_key_hash' === $key ) {
 					return $stored_hash;
 				}
 				return $default;
@@ -85,7 +85,7 @@ class DevToolsRestControllerTest extends TestCase {
 		// pro_byok is the site-wide tier; no sync secret means verification passes.
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, $default = null ) {
-				if ( 'stilus_site_tier' === $key ) {
+				if ( 'plume_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				// Return '' for OPTION_SECRET so is_site_tier_verified() returns true.
@@ -108,7 +108,7 @@ class DevToolsRestControllerTest extends TestCase {
 		Functions\when( 'get_option' )->alias( fn( $key, $default = null ) => $default );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $uid, string $key ): string {
-				return 'stilus_tier' === $key ? '' : '';
+				return 'plume_tier' === $key ? '' : '';
 			}
 		);
 		Functions\expect( 'update_user_meta' )

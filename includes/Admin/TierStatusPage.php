@@ -2,16 +2,16 @@
 /**
  * Admin page displaying the current user's licence tier and usage status.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
-use Stilus\Proxy\SiteRegistration;
-use Stilus\Tiers\TierConfig;
-use Stilus\Tiers\TierManager;
-use Stilus\Tiers\UsageTracker;
+use Plume\Proxy\SiteRegistration;
+use Plume\Tiers\TierConfig;
+use Plume\Tiers\TierManager;
+use Plume\Tiers\UsageTracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class TierStatusPage {
 
 	private const STYLE_HOOKS = [
-		'ai-mind_page_stilus-upgrade',
+		'ai-mind_page_plume-upgrade',
 	];
 
 	/**
@@ -53,10 +53,10 @@ class TierStatusPage {
 			return;
 		}
 		wp_enqueue_style(
-			'stilus-admin-widgets',
-			STILUS_URL . 'assets/admin/stilus-admin-widgets.css',
+			'plume-admin-widgets',
+			PLUME_URL . 'assets/admin/plume-admin-widgets.css',
 			[],
-			STILUS_VERSION
+			PLUME_VERSION
 		);
 	}
 
@@ -82,22 +82,22 @@ class TierStatusPage {
 
 			<table class="form-table" role="presentation">
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Current plan', 'stilus' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Current plan', 'plume' ); ?></th>
 					<td><strong><?php echo esc_html( $tier_label ); ?></strong></td>
 				</tr>
 				<tr>
-				<th scope="row"><?php esc_html_e( 'Service connection', 'stilus' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Service connection', 'plume' ); ?></th>
 					<td>
 						<?php if ( $registered ) : ?>
-							<span class="stilus-status--active">&#10003; <?php esc_html_e( 'Connected', 'stilus' ); ?></span>
+							<span class="plume-status--active">&#10003; <?php esc_html_e( 'Connected', 'plume' ); ?></span>
 						<?php else : ?>
-							<span class="stilus-status--expired"><?php esc_html_e( 'Not connected — will auto-connect on next page load', 'stilus' ); ?></span>
+							<span class="plume-status--expired"><?php esc_html_e( 'Not connected — will auto-connect on next page load', 'plume' ); ?></span>
 						<?php endif; ?>
 					</td>
 				</tr>
 				<?php if ( null !== $usage['limit'] ) : ?>
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Tokens used this month', 'stilus' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Tokens used this month', 'plume' ); ?></th>
 					<td>
 						<?php
 						echo esc_html(
@@ -106,45 +106,45 @@ class TierStatusPage {
 						?>
 						<br>
 						<progress
-							class="stilus-usage-meter"
+							class="plume-usage-meter"
 							max="<?php echo esc_attr( (string) $usage['limit'] ); ?>"
 							value="<?php echo esc_attr( (string) $usage['used'] ); ?>">
 						</progress>
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Tokens remaining', 'stilus' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Tokens remaining', 'plume' ); ?></th>
 					<td><?php echo esc_html( number_format_i18n( $usage['remaining'] ?? 0 ) ); ?></td>
 				</tr>
 				<?php else : ?>
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Token usage', 'stilus' ); ?></th>
-					<td><?php esc_html_e( 'Unlimited (your API key, your cost)', 'stilus' ); ?></td>
+					<th scope="row"><?php esc_html_e( 'Token usage', 'plume' ); ?></th>
+					<td><?php esc_html_e( 'Unlimited (your API key, your cost)', 'plume' ); ?></td>
 				</tr>
 				<?php endif; ?>
 			</table>
 
 			<?php if ( 'free' === $tier || 'trial' === $tier ) : ?>
-			<div class="card stilus-upgrade-card">
-				<h2><?php esc_html_e( 'Upgrade your plan', 'stilus' ); ?></h2>
-				<p><?php esc_html_e( 'Pro Managed gives you 2M tokens/month with model selection. Pro BYOK gives you unlimited usage with your own API key.', 'stilus' ); ?></p>
-				<div class="stilus-upgrade-actions">
+			<div class="card plume-upgrade-card">
+				<h2><?php esc_html_e( 'Upgrade your plan', 'plume' ); ?></h2>
+				<p><?php esc_html_e( 'Pro Managed gives you 2M tokens/month with model selection. Pro BYOK gives you unlimited usage with your own API key.', 'plume' ); ?></p>
+				<div class="plume-upgrade-actions">
 					<a href="<?php echo esc_url( SiteRegistration::checkout_url_pro_managed_monthly() ); ?>" class="button button-primary">
-						<?php esc_html_e( 'Pro Managed — Monthly', 'stilus' ); ?>
+						<?php esc_html_e( 'Pro Managed — Monthly', 'plume' ); ?>
 					</a>
 					<a href="<?php echo esc_url( SiteRegistration::checkout_url_pro_managed_annual() ); ?>" class="button button-primary">
-						<?php esc_html_e( 'Pro Managed — Annual', 'stilus' ); ?>
+						<?php esc_html_e( 'Pro Managed — Annual', 'plume' ); ?>
 					</a>
 					<a href="<?php echo esc_url( SiteRegistration::checkout_url_pro_byok_onetime() ); ?>" class="button">
-						<?php esc_html_e( 'Pro BYOK — One-time', 'stilus' ); ?>
+						<?php esc_html_e( 'Pro BYOK — One-time', 'plume' ); ?>
 					</a>
 				</div>
 			</div>
 			<?php endif; ?>
 			<?php if ( 'pro_byok' === $tier ) : ?>
 			<p>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=stilus-settings' ) ); ?>">
-					<?php esc_html_e( 'Manage your API keys →', 'stilus' ); ?>
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=plume-settings' ) ); ?>">
+					<?php esc_html_e( 'Manage your API keys →', 'plume' ); ?>
 				</a>
 			</p>
 			<?php endif; ?>

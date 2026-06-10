@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Stilus\Core\RestApi;
 use Stilus\DB\ConversationStore;
 use Stilus\Providers\ProviderFactory;
 use Stilus\Providers\CompletionRequest;
@@ -44,7 +45,6 @@ use Stilus\Tiers\UsageTracker;
  */
 class ChatRestController {
 
-	private const NAMESPACE           = 'stilus/v1';
 	private const MAX_TOOL_ITERATIONS = 5;
 
 	/**
@@ -68,7 +68,7 @@ class ChatRestController {
 	public function register_routes(): void {
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestApi::API_NAMESPACE,
 			'/conversations',
 			[
 				[
@@ -95,7 +95,7 @@ class ChatRestController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestApi::API_NAMESPACE,
 			'/conversations/(?P<id>\d+)/messages',
 			[
 				[
@@ -131,7 +131,7 @@ class ChatRestController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestApi::API_NAMESPACE,
 			'/conversations/(?P<id>\d+)',
 			[
 				[
@@ -156,7 +156,7 @@ class ChatRestController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestApi::API_NAMESPACE,
 			'/providers',
 			[
 				'methods'             => \WP_REST_Server::READABLE,
@@ -166,7 +166,7 @@ class ChatRestController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestApi::API_NAMESPACE,
 			'/search-posts',
 			[
 				'methods'             => \WP_REST_Server::READABLE,
@@ -375,28 +375,13 @@ class ChatRestController {
 					break;
 				}
 
-				// Collect ALL tool_use blocks from the raw response (Claude may request multiple in one turn).
-				$all_tool_uses = [];
-				foreach ( $response->raw['content'] ?? [] as $block ) {
-					if ( ( $block['type'] ?? '' ) === 'tool_use' ) {
-						$all_tool_uses[] = $block;
-					}
-				}
-
-				// Fall back to the single tool_call extracted by the provider if raw parsing found nothing.
-				if ( empty( $all_tool_uses ) ) {
-					$tc              = $response->tool_call;
-					$all_tool_uses[] = [
-						'id'    => $tc['id'],
-						'name'  => $tc['name'],
-						'input' => $tc['arguments'],
-					];
-				}
+				// Collect ALL tool calls from the raw response (providers may request multiple in one turn).
+				$all_tool_uses = $this->extract_tool_calls( $response, $provider_slug );
 
 				// Detect chat_response tool — the model's exit signal.
 				$chat_response_tu = null;
 				foreach ( $all_tool_uses as $tu ) {
-					if ( 'chat_response' === ( $tu['name'] ?? '' ) ) {
+					if ( 'chat_response' === $tu['name'] ) {
 						$chat_response_tu = $tu;
 						break;
 					}
@@ -405,11 +390,11 @@ class ChatRestController {
 				// Execute all non-chat_response tools and collect results.
 				$tool_results = [];
 				foreach ( $all_tool_uses as $tu ) {
-					if ( 'chat_response' === ( $tu['name'] ?? '' ) ) {
+					if ( 'chat_response' === $tu['name'] ) {
 						continue;
 					}
 					$tool_name                 = $tu['name'];
-					$result                    = $this->tool_executor->execute( $tool_name, $tu['input'] ?? [], $user_id );
+					$result                    = $this->tool_executor->execute( $tool_name, $tu['input'], $user_id );
 					$tool_results[ $tu['id'] ] = $result;
 					$tools_called[]            = $tool_name;
 
@@ -694,6 +679,60 @@ class ChatRestController {
 	// ── Private helpers ───────────────────────────────────────────────────────
 
 	/**
+	 * Extract every tool call from a provider response in a normalised shape.
+	 *
+	 * Claude exposes tool_use blocks in raw['content']; Gemini exposes functionCall
+	 * parts in raw['data']. Gemini frequently omits call ids, so the tool name is
+	 * used as the result key — append_tool_exchange applies the same id-or-name
+	 * rule when matching results back to functionResponse parts.
+	 *
+	 * @since 1.9.0
+	 * @param CompletionResponse $response      Provider response flagged as a tool call.
+	 * @param string             $provider_slug Provider identifier.
+	 * @return array<int, array{id: string, name: string, input: array}> Normalised tool calls.
+	 */
+	private function extract_tool_calls( CompletionResponse $response, string $provider_slug ): array {
+		$tool_uses = [];
+
+		if ( 'gemini' === $provider_slug ) {
+			$raw_parts = $response->raw['data']['candidates'][0]['content']['parts'] ?? [];
+			foreach ( $raw_parts as $part ) {
+				if ( ! isset( $part['functionCall'] ) ) {
+					continue;
+				}
+				$fc          = $part['functionCall'];
+				$tool_uses[] = [
+					'id'    => $fc['id'] ?? $fc['name'],
+					'name'  => $fc['name'],
+					'input' => $fc['args'] ?? [],
+				];
+			}
+		} else {
+			foreach ( $response->raw['content'] ?? [] as $block ) {
+				if ( ( $block['type'] ?? '' ) === 'tool_use' ) {
+					$tool_uses[] = [
+						'id'    => $block['id'],
+						'name'  => $block['name'],
+						'input' => $block['input'] ?? [],
+					];
+				}
+			}
+		}
+
+		// Fall back to the single tool_call extracted by the provider if raw parsing found nothing.
+		if ( empty( $tool_uses ) ) {
+			$tc          = $response->tool_call;
+			$tool_uses[] = [
+				'id'    => $tc['id'],
+				'name'  => $tc['name'],
+				'input' => $tc['arguments'],
+			];
+		}
+
+		return $tool_uses;
+	}
+
+	/**
 	 * Append a complete tool exchange (assistant tool call + user tool result) to the message history.
 	 *
 	 * @since 1.0.0
@@ -824,11 +863,13 @@ class ChatRestController {
 				foreach ( $function_calls as $fc_part ) {
 					$fc               = $fc_part['functionCall'];
 					$fc_id            = $fc['id'] ?? $fc['name'];
+					$result           = $tool_results[ $fc_id ] ?? [];
 					$response_parts[] = [
 						'functionResponse' => [
 							'id'       => $fc_id,
 							'name'     => $fc['name'],
-							'response' => $tool_results[ $fc_id ] ?? [],
+							// json_encode turns [] into a JSON array; Gemini requires response to be an object.
+							'response' => empty( $result ) ? new \stdClass() : $result,
 						],
 					];
 				}

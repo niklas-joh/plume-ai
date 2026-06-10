@@ -1171,4 +1171,315 @@ class ChatRestControllerTest extends TestCase {
         $this->assertSame( 'c2', $user_parts[1]['functionResponse']['id'] );
         $this->assertSame( 'get_site_info', $user_parts[1]['functionResponse']['name'] );
     }
+
+    public function test_gemini_append_tool_exchange_matches_results_by_name_when_ids_missing(): void {
+        // Real Gemini responses frequently omit functionCall ids.
+        $raw_data = [
+            'data' => [
+                'candidates' => [ [
+                    'content' => [
+                        'parts' => [
+                            [ 'functionCall' => [ 'name' => 'get_recent_posts', 'args' => [] ] ],
+                            [ 'functionCall' => [ 'name' => 'get_site_info', 'args' => [] ] ],
+                        ],
+                    ],
+                ] ],
+            ],
+            'call_id' => 'gemini_generated_1',
+        ];
+
+        $response = new CompletionResponse(
+            content: '',
+            model: 'gemini-2.0-flash',
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            raw: $raw_data,
+            tool_call: [ 'id' => 'gemini_generated_1', 'name' => 'get_recent_posts', 'arguments' => [] ],
+        );
+
+        // extract_tool_calls keys results by name when the id is absent.
+        $messages = $this->call_append_tool_exchange( [], 'gemini', $response, [
+            'get_recent_posts' => [ 'posts' => [ [ 'id' => 1 ] ] ],
+        ] );
+
+        $user_parts = $messages[1]['parts'];
+        $this->assertCount( 2, $user_parts );
+        $this->assertSame( [ 'posts' => [ [ 'id' => 1 ] ] ], $user_parts[0]['functionResponse']['response'] );
+        // A missing result must be encoded as a JSON object, never a JSON array.
+        $this->assertInstanceOf( \stdClass::class, $user_parts[1]['functionResponse']['response'] );
+    }
+
+    // ── extract_tool_calls ─────────────────────────────────────────────────────
+
+    /**
+     * Call the private extract_tool_calls method via reflection.
+     */
+    private function call_extract_tool_calls( CompletionResponse $response, string $provider_slug ): array {
+        $method = new \ReflectionMethod( ChatRestController::class, 'extract_tool_calls' );
+        $method->setAccessible( true );
+        $controller = new ChatRestController( $this->tool_registry, $this->tool_executor );
+        return $method->invoke( $controller, $response, $provider_slug );
+    }
+
+    public function test_extract_tool_calls_returns_all_gemini_function_calls(): void {
+        $response = new CompletionResponse(
+            content: '',
+            model: 'gemini-2.0-flash',
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            raw: [
+                'data' => [
+                    'candidates' => [ [
+                        'content' => [
+                            'parts' => [
+                                [ 'functionCall' => [ 'name' => 'get_recent_posts', 'args' => [ 'count' => 3 ] ] ],
+                                [ 'text' => 'thinking…' ],
+                                [ 'functionCall' => [ 'name' => 'get_site_info', 'args' => [] ] ],
+                            ],
+                        ],
+                    ] ],
+                ],
+                'call_id' => 'gemini_generated_1',
+            ],
+            tool_call: [ 'id' => 'gemini_generated_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+        );
+
+        $calls = $this->call_extract_tool_calls( $response, 'gemini' );
+
+        $this->assertCount( 2, $calls, 'Both functionCall parts must be extracted for execution' );
+        $this->assertSame( 'get_recent_posts', $calls[0]['name'] );
+        $this->assertSame( [ 'count' => 3 ], $calls[0]['input'] );
+        // Without a provider id, the name doubles as the result key.
+        $this->assertSame( 'get_recent_posts', $calls[0]['id'] );
+        $this->assertSame( 'get_site_info', $calls[1]['name'] );
+        $this->assertSame( 'get_site_info', $calls[1]['id'] );
+    }
+
+    public function test_extract_tool_calls_falls_back_to_normalised_tool_call(): void {
+        $response = new CompletionResponse(
+            content: '',
+            model: 'gemini-2.0-flash',
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            raw: [ 'call_id' => 'gemini_generated_1' ],
+            tool_call: [ 'id' => 'gemini_generated_1', 'name' => 'get_site_info', 'arguments' => [] ],
+        );
+
+        $calls = $this->call_extract_tool_calls( $response, 'gemini' );
+
+        $this->assertCount( 1, $calls );
+        $this->assertSame( 'gemini_generated_1', $calls[0]['id'] );
+        $this->assertSame( 'get_site_info', $calls[0]['name'] );
+    }
+
+    // ── send_message: Gemini multi-tool execution ──────────────────────────────
+
+    public function test_send_message_executes_all_gemini_tool_calls_in_one_turn(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'gemini' );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [
+            [ 'role' => 'user', 'content' => 'Hello' ],
+        ] );
+
+        // Gemini requests two tools in one turn, omitting functionCall ids.
+        $tool_response = new CompletionResponse(
+            content:           '',
+            model:             'gemini-2.0-flash',
+            prompt_tokens:     10,
+            completion_tokens: 5,
+            cost_usd:          0.0,
+            raw:               [
+                'data' => [
+                    'candidates' => [ [
+                        'content' => [
+                            'parts' => [
+                                [ 'functionCall' => [ 'name' => 'get_recent_posts', 'args' => [ 'count' => 3 ] ] ],
+                                [ 'functionCall' => [ 'name' => 'get_site_info', 'args' => [] ] ],
+                            ],
+                        ],
+                    ] ],
+                ],
+                'call_id' => 'gemini_generated_1',
+            ],
+            tool_call:         [ 'id' => 'gemini_generated_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+        );
+
+        $final_response = new CompletionResponse(
+            content:           'Here is your site overview.',
+            model:             'gemini-2.0-flash',
+            prompt_tokens:     20,
+            completion_tokens: 15,
+            cost_usd:          0.0,
+            raw:               [],
+            tool_call:         null,
+        );
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [ [ 'functionDeclarations' => [] ] ] );
+
+        $executed = [];
+        $this->tool_executor->expects( $this->exactly( 2 ) )
+            ->method( 'execute' )
+            ->willReturnCallback( function ( string $name, array $args, int $user_id ) use ( &$executed ): array {
+                $executed[] = $name;
+                return [ 'ok' => true ];
+            } );
+
+        $provider_mock = $this->createMock( \Stilus\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( true );
+        $provider_mock->method( 'complete' )->willReturnOnConsecutiveCalls( $tool_response, $final_response );
+
+        $factory_mock = $this->createMock( \Stilus\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Stilus\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '42' ] );
+        $request->set_body_params( [ 'content' => 'Hello', 'provider' => 'gemini', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $this->assertInstanceOf( \WP_REST_Response::class, $response );
+        $this->assertSame( 200, $response->get_status() );
+        $this->assertSame( [ 'get_recent_posts', 'get_site_info' ], $executed, 'Both Gemini tool calls must be executed' );
+        $this->assertSame( 'Here is your site overview.', $response->data['content'] );
+    }
+
+    // ── send_message: chat_response extraction and pending_plan ───────────────
+
+    public function test_send_message_uses_chat_response_message_as_final_content(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [
+            [ 'role' => 'user', 'content' => 'Hello' ],
+        ] );
+
+        $chat_response = new CompletionResponse(
+            content:           '',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     10,
+            completion_tokens: 5,
+            cost_usd:          0.0,
+            raw:               [
+                'content' => [
+                    [ 'type' => 'tool_use', 'id' => 'tu_1', 'name' => 'chat_response', 'input' => [ 'message' => 'Hi! How can I help?' ] ],
+                ],
+            ],
+            tool_call:         [ 'id' => 'tu_1', 'name' => 'chat_response', 'arguments' => [ 'message' => 'Hi! How can I help?' ] ],
+        );
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [ [ 'name' => 'chat_response' ] ] );
+        $this->tool_executor->expects( $this->never() )->method( 'execute' );
+
+        $provider_mock = $this->createMock( \Stilus\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( true );
+        $provider_mock->method( 'complete' )->willReturn( $chat_response );
+
+        $factory_mock = $this->createMock( \Stilus\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Stilus\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '42' ] );
+        $request->set_body_params( [ 'content' => 'Hello', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $this->assertSame( 200, $response->get_status() );
+        $this->assertSame( 'Hi! How can I help?', $response->data['content'] );
+    }
+
+    public function test_send_message_includes_pending_plan_when_plan_stored(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+
+        $store_mock = $this->createMock( \Stilus\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [
+            [ 'role' => 'user', 'content' => 'Write a post about widgets' ],
+        ] );
+
+        $plan_response = new CompletionResponse(
+            content:           '',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     10,
+            completion_tokens: 5,
+            cost_usd:          0.0,
+            raw:               [
+                'content' => [
+                    [ 'type' => 'tool_use', 'id' => 'tu_1', 'name' => 'plan_post', 'input' => [ 'title' => 'Widgets', 'content' => 'Full body.' ] ],
+                ],
+            ],
+            tool_call:         [ 'id' => 'tu_1', 'name' => 'plan_post', 'arguments' => [ 'title' => 'Widgets', 'content' => 'Full body.' ] ],
+        );
+
+        $final_response = new CompletionResponse(
+            content:           'I have proposed a post for your approval.',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     20,
+            completion_tokens: 15,
+            cost_usd:          0.0,
+            raw:               [],
+            tool_call:         null,
+        );
+
+        $pending = [
+            'id'          => 'abc12345',
+            'status'      => 'pending_approval',
+            'plan_type'   => 'create',
+            'title'       => 'Widgets',
+            'content'     => 'Full body.',
+            'post_status' => 'draft',
+        ];
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [ [ 'name' => 'plan_post' ] ] );
+        $this->tool_executor->expects( $this->once() )
+            ->method( 'execute' )
+            ->with( 'plan_post', [ 'title' => 'Widgets', 'content' => 'Full body.' ], 1 )
+            ->willReturn( $pending );
+
+        $provider_mock = $this->createMock( \Stilus\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( true );
+        $provider_mock->method( 'complete' )->willReturnOnConsecutiveCalls( $plan_response, $final_response );
+
+        $factory_mock = $this->createMock( \Stilus\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Stilus\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '42' ] );
+        $request->set_body_params( [ 'content' => 'Write a post about widgets', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $this->assertSame( 200, $response->get_status() );
+        $this->assertSame( $pending, $response->data['pending_plan'], 'pending_plan must be surfaced in the REST response' );
+        $this->assertContains( 'plan_post', $response->data['tools_called'] );
+    }
 }

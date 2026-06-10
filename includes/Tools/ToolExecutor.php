@@ -2,12 +2,12 @@
 /**
  * Executes AI tool calls on behalf of authenticated WordPress users.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tools;
+namespace Plume\Tools;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -373,7 +373,7 @@ class ToolExecutor {
 	 * @return string
 	 */
 	public static function plan_transient_key( int $user_id, string $plan_id ): string {
-		return "stilus_plan_{$user_id}_{$plan_id}";
+		return "plume_plan_{$user_id}_{$plan_id}";
 	}
 
 	/**
@@ -406,38 +406,38 @@ class ToolExecutor {
 	private function generate_seo_meta( array $args, int $user_id ): array {
 		$post_id = \absint( $args['post_id'] ?? 0 );
 		if ( 0 === $post_id ) {
-			return [ 'error' => __( 'A valid post_id is required.', 'stilus' ) ];
+			return [ 'error' => __( 'A valid post_id is required.', 'plume' ) ];
 		}
 
 		$post = \get_post( $post_id );
 		if ( null === $post ) {
-			return [ 'error' => __( 'Post not found.', 'stilus' ) ];
+			return [ 'error' => __( 'Post not found.', 'plume' ) ];
 		}
 
 		if ( ! \user_can( $user_id, 'edit_post', $post_id ) ) {
-			return [ 'error' => __( 'Insufficient permissions.', 'stilus' ) ];
+			return [ 'error' => __( 'Insufficient permissions.', 'plume' ) ];
 		}
 
-		if ( ! \Stilus\Tiers\TierManager::user_can( 'seo', $user_id ) ) {
+		if ( ! \Plume\Tiers\TierManager::user_can( 'seo', $user_id ) ) {
 			return [
 				'seo_access'           => false,
 				'post_title'           => \html_entity_decode( $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 				'post_content_snippet' => mb_substr( \wp_strip_all_tags( $post->post_content ), 0, 500 ),
-				'note'                 => __( 'SEO auto-generation requires the Pro plan. Use the post data above to suggest appropriate SEO fields manually, and let the user know they can upgrade to Pro for one-click automated SEO optimisation.', 'stilus' ),
+				'note'                 => __( 'SEO auto-generation requires the Pro plan. Use the post data above to suggest appropriate SEO fields manually, and let the user know they can upgrade to Pro for one-click automated SEO optimisation.', 'plume' ),
 			];
 		}
 
-		if ( ! \Stilus\Tiers\UsageTracker::check_limit( $user_id ) ) {
-			return [ 'error' => __( 'Monthly usage limit reached. Please upgrade your plan to continue.', 'stilus' ) ];
+		if ( ! \Plume\Tiers\UsageTracker::check_limit( $user_id ) ) {
+			return [ 'error' => __( 'Monthly usage limit reached. Please upgrade your plan to continue.', 'plume' ) ];
 		}
 
-		$seo_data = \Stilus\Modules\Seo\SeoModule::generate_for_post( $post_id, $user_id );
+		$seo_data = \Plume\Modules\Seo\SeoModule::generate_for_post( $post_id, $user_id );
 		if ( \is_wp_error( $seo_data ) ) {
 			return [ 'error' => $seo_data->get_error_message() ];
 		}
 
-		\Stilus\Tiers\UsageTracker::log_usage( $seo_data['tokens_used'], $user_id );
-		$applied = \Stilus\Modules\Seo\SeoModule::apply_for_post( $post_id, $seo_data );
+		\Plume\Tiers\UsageTracker::log_usage( $seo_data['tokens_used'], $user_id );
+		$applied = \Plume\Modules\Seo\SeoModule::apply_for_post( $post_id, $seo_data );
 
 		return [
 			'post_id'        => $post_id,

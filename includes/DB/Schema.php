@@ -2,11 +2,11 @@
 /**
  * Manages the plugin's custom database tables via dbDelta.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\DB;
+namespace Plume\DB;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -16,11 +16,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Manages the plugin's custom database tables.
  *
  * All table names are prefixed with $wpdb->prefix and the plugin-specific
- * 'wpaim_' prefix to avoid collisions with other plugins.
+ * 'plume_' prefix to avoid collisions with other plugins.
  */
 class Schema {
 
-	private const PREFIX = 'wpaim_';
+	private const PREFIX = 'plume_';
 
 	private const TABLES = [
 		'conversations' => 'conversations',

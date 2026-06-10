@@ -1,4 +1,4 @@
-# Deploys the Cloudflare Worker in stilus-proxy/ on every push to main
+# Deploys the Cloudflare Worker in plume-proxy/ on every push to main
 # that touches Worker source. Uses cloudflare/wrangler-action@v3 with a
 # CLOUDFLARE_API_TOKEN secret — no personal machine or Tailscale dependency.
 #
@@ -11,10 +11,10 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'stilus-proxy/src/**'
-      - 'stilus-proxy/wrangler.toml'
-      - 'stilus-proxy/package.json'
-      - 'stilus-proxy/package-lock.json'
+      - 'plume-proxy/src/**'
+      - 'plume-proxy/wrangler.toml'
+      - 'plume-proxy/package.json'
+      - 'plume-proxy/package-lock.json'
       - '.github/workflows/deploy-proxy.yml'
   workflow_dispatch:
 
@@ -37,19 +37,19 @@ jobs:
         with:
           node-version: '24' # >=22.12.0 satisfies @rolldown/binding-linux-x64-gnu engine constraint
           cache: npm
-          cache-dependency-path: stilus-proxy/package-lock.json
+          cache-dependency-path: plume-proxy/package-lock.json
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
-        working-directory: stilus-proxy
+        working-directory: plume-proxy
 
       - name: Run tests
         run: npm test
-        working-directory: stilus-proxy
+        working-directory: plume-proxy
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          workingDirectory: stilus-proxy
-          command: deploy --env="dev" # targets stilus-proxy-dev; prod deploy happens in release.yml
+          workingDirectory: plume-proxy
+          command: deploy --env="dev" # targets plume-proxy-dev; prod deploy happens in release.yml

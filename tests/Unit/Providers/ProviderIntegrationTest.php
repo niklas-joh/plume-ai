@@ -1,13 +1,13 @@
 <?php
-namespace Stilus\Tests\Unit\Providers;
+namespace Plume\Tests\Unit\Providers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Providers\ProviderFactory;
-use Stilus\Providers\CompletionRequest;
-use Stilus\Providers\ClaudeProvider;
-use Stilus\Settings\ProviderSettings;
-use Stilus\Voice\VoiceInjector;
+use Plume\Providers\ProviderFactory;
+use Plume\Providers\CompletionRequest;
+use Plume\Providers\ClaudeProvider;
+use Plume\Settings\ProviderSettings;
+use Plume\Voice\VoiceInjector;
 use PHPUnit\Framework\TestCase;
 
 class ProviderIntegrationTest extends TestCase {
@@ -18,8 +18,8 @@ class ProviderIntegrationTest extends TestCase {
     public function test_factory_and_voice_injector_produce_valid_request(): void {
         // Arrange: mock WP options + user meta.
         Functions\when( 'get_option' )->alias( fn( $k, $d = null ) => match ( $k ) {
-            'stilus_site_voice'      => [ 'tone' => 'Professional', 'language' => 'British English' ],
-            'stilus_default_provider' => 'claude',
+            'plume_site_voice'      => [ 'tone' => 'Professional', 'language' => 'British English' ],
+            'plume_default_provider' => 'claude',
             default                       => ( is_array( $d ) ? $d : [] ),
         } );
         Functions\when( 'get_user_meta' )->justReturn( [] );

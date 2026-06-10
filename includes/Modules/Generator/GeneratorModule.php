@@ -2,20 +2,20 @@
 /**
  * Generator module — REST routes and asset enqueuing for the post-generation wizard.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Modules\Generator;
+namespace Plume\Modules\Generator;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Providers\ProviderFactory;
-use Stilus\Settings\ProviderSettings;
-use Stilus\Tiers\TierManager;
-use Stilus\Tiers\UsageTracker;
+use Plume\Providers\ProviderFactory;
+use Plume\Settings\ProviderSettings;
+use Plume\Tiers\TierManager;
+use Plume\Tiers\UsageTracker;
 
 /**
  * Registers the post-generator admin assets and REST route.
@@ -42,32 +42,32 @@ class GeneratorModule {
 	 */
 	public static function enqueue_assets( string $hook ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by admin_enqueue_scripts hook signature.
 		// Only load on the generator admin page.
-		if ( ! isset( $_GET['page'] ) || 'stilus-generator' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ! isset( $_GET['page'] ) || 'plume-generator' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return;
 		}
 
-		$asset_file = STILUS_DIR . 'assets/generator/index.asset.php';
+		$asset_file = PLUME_DIR . 'assets/generator/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => STILUS_VERSION,
+				'version'      => PLUME_VERSION,
 			];
 
 		\wp_enqueue_script(
-			'stilus-generator',
-			STILUS_URL . 'assets/generator/index.js',
+			'plume-generator',
+			PLUME_URL . 'assets/generator/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-api-fetch', 'wp-i18n' ] ),
 			$asset['version'],
 			true
 		);
 
 		\wp_localize_script(
-			'stilus-generator',
-			'stilusData',
+			'plume-generator',
+			'plumeData',
 			[
 				'nonce'         => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'       => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
+				'restUrl'       => \esc_url_raw( \rest_url( 'plume/v1' ) ),
 				'currentPostId' => 0,
 				'isPro'         => TierManager::user_can( 'generator' ),
 				'siteTitle'     => \get_bloginfo( 'name' ),
@@ -76,14 +76,14 @@ class GeneratorModule {
 	}
 
 	/**
-	 * Register the /stilus/v1/generate REST route.
+	 * Register the /plume/v1/generate REST route.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
 	public static function register_routes(): void {
 		\register_rest_route(
-			'stilus/v1',
+			'plume/v1',
 			'/generate',
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
@@ -153,9 +153,9 @@ class GeneratorModule {
 		try {
 			$factory  = new ProviderFactory( new ProviderSettings() );
 			$provider = $factory->make_default();
-			$voice    = new \Stilus\Voice\VoiceInjector();
+			$voice    = new \Plume\Voice\VoiceInjector();
 
-			$req = new \Stilus\Providers\CompletionRequest(
+			$req = new \Plume\Providers\CompletionRequest(
 				messages:    [
 					[
 						'role'    => 'user',
@@ -205,7 +205,7 @@ class GeneratorModule {
 		} catch ( \Throwable $e ) {
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				\error_log( '[Stilus][Generator] ' . get_class( $e ) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
+				\error_log( '[Plume][Generator] ' . get_class( $e ) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
 			}
 			return new \WP_REST_Response( [ 'error' => $e->getMessage() ], 500 );
 		}

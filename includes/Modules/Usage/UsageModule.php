@@ -2,19 +2,19 @@
 /**
  * Usage module — REST routes and asset enqueuing for the usage dashboard.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Modules\Usage;
+namespace Plume\Modules\Usage;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Tiers\TierManager;
-use Stilus\Tiers\UsageTracker;
+use Plume\Tiers\TierManager;
+use Plume\Tiers\UsageTracker;
 
 /**
  * Registers the Usage admin page assets and REST endpoint.
@@ -40,32 +40,32 @@ class UsageModule {
 	 * @return void
 	 */
 	public static function enqueue_assets( string $hook ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by admin_enqueue_scripts hook signature.
-		if ( ! isset( $_GET['page'] ) || 'stilus-usage' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ! isset( $_GET['page'] ) || 'plume-usage' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return;
 		}
 
-		$asset_file = STILUS_DIR . 'assets/usage/index.asset.php';
+		$asset_file = PLUME_DIR . 'assets/usage/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => STILUS_VERSION,
+				'version'      => PLUME_VERSION,
 			];
 
 		\wp_enqueue_script(
-			'stilus-usage',
-			STILUS_URL . 'assets/usage/index.js',
+			'plume-usage',
+			PLUME_URL . 'assets/usage/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-api-fetch', 'wp-i18n' ] ),
 			$asset['version'],
 			true
 		);
 
 		\wp_localize_script(
-			'stilus-usage',
-			'stilusData',
+			'plume-usage',
+			'plumeData',
 			[
 				'nonce'         => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'       => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
+				'restUrl'       => \esc_url_raw( \rest_url( 'plume/v1' ) ),
 				'currentPostId' => 0,
 				'isPro'         => TierManager::user_can( 'generator' ),
 				'siteTitle'     => \get_bloginfo( 'name' ),
@@ -73,22 +73,22 @@ class UsageModule {
 		);
 
 		\wp_enqueue_style(
-			'stilus-usage',
-			STILUS_URL . 'assets/usage/index.css',
+			'plume-usage',
+			PLUME_URL . 'assets/usage/index.css',
 			[],
 			$asset['version']
 		);
 	}
 
 	/**
-	 * Register the /stilus/v1/usage REST route.
+	 * Register the /plume/v1/usage REST route.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
 	public static function register_routes(): void {
 		\register_rest_route(
-			'stilus/v1',
+			'plume/v1',
 			'/usage',
 			[
 				'methods'             => \WP_REST_Server::READABLE,

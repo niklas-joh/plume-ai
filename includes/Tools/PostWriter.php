@@ -2,12 +2,12 @@
 /**
  * Performs direct post create/update operations on behalf of approved plans.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tools;
+namespace Plume\Tools;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -41,7 +41,7 @@ class PostWriter {
 	 * @return array Post data on success; ['error' => string] on failure.
 	 */
 	public function create( array $args, int $user_id ): array {
-		if ( ! (bool) \get_option( 'stilus_enable_write_tools', false ) ) {
+		if ( ! (bool) \get_option( 'plume_enable_write_tools', false ) ) {
 			return [ 'error' => 'Write tools are disabled.' ];
 		}
 
@@ -100,7 +100,7 @@ class PostWriter {
 	 * @return array ['post_id', 'updated' => true] on success; ['error' => string] on failure.
 	 */
 	public function update( array $args, int $user_id ): array {
-		if ( ! (bool) \get_option( 'stilus_enable_write_tools', false ) ) {
+		if ( ! (bool) \get_option( 'plume_enable_write_tools', false ) ) {
 			return [ 'error' => 'Write tools are disabled.' ];
 		}
 

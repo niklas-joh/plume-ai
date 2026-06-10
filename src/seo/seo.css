@@ -1,24 +1,24 @@
 @import "../shared/shared.css";
 
 /* SEO fields grid */
-.wpaim-seo-fields-grid {
+.plume-seo-fields-grid {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: var(--space-3);
 	margin-bottom: var(--space-2);
 }
 
-.wpaim-field {
+.plume-field {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-2);
 }
 
-.wpaim-field--full {
+.plume-field--full {
 	grid-column: 1 / -1;
 }
 
-.wpaim-field-label {
+.plume-field-label {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -30,13 +30,13 @@
 	margin-bottom: 0;
 }
 
-.wpaim-char-count {
+.plume-char-count {
 	font-weight: 400;
 	color: var(--color-text-muted);
 	letter-spacing: 0;
 }
 
-.wpaim-field-input {
+.plume-field-input {
 	width: 100%;
 	padding: var(--space-2);
 	font-size: 13px;
@@ -47,17 +47,17 @@
 	box-sizing: border-box;
 }
 
-.wpaim-field-input.is-generated {
+.plume-field-input.is-generated {
 	border-color: var(--wp-admin-theme-color);
 	background: rgba(var(--wp-admin-theme-color--rgb, 0, 115, 170), 0.04);
 }
 
-textarea.wpaim-field-input {
+textarea.plume-field-input {
 	resize: vertical;
 	min-height: 72px;
 }
 
-.wpaim-field-input:focus {
+.plume-field-input:focus {
 	outline: none;
 	border-color: var(--wp-admin-theme-color);
 	box-shadow: 0 0 0 1px var(--wp-admin-theme-color);

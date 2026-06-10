@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Modules\Images;
+namespace Plume\Tests\Unit\Modules\Images;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Modules\Images\ImagesModule;
+use Plume\Modules\Images\ImagesModule;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -47,14 +47,14 @@ class ImagesTierGatingTest extends TestCase {
 		$this->assertArrayHasKey( '/images/generate', $this->captured_routes );
 		$permission_callback = $this->captured_routes['/images/generate']['permission_callback'];
 
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 
 		// Free tier: edit_posts capability present, within usage limit, but images feature is disabled.
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key, $single = false ) use ( $month_key ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'free';
 				}
 				if ( $month_key === $key ) {
@@ -72,17 +72,17 @@ class ImagesTierGatingTest extends TestCase {
 		$this->assertArrayHasKey( '/images/generate', $this->captured_routes );
 		$permission_callback = $this->captured_routes['/images/generate']['permission_callback'];
 
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 
 		// Trial tier: edit_posts capability present, within usage limit, images feature enabled.
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 2 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $user_id, $key, $single = false ) use ( $month_key ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'trial';
 				}
-				if ( 'stilus_trial_started' === $key ) {
+				if ( 'plume_trial_started' === $key ) {
 					return (string) time(); // trial started now, well within the trial period
 				}
 				if ( $month_key === $key ) {

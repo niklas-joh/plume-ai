@@ -1,11 +1,11 @@
 <?php
-namespace Stilus\Tests\Unit\Providers;
+namespace Plume\Tests\Unit\Providers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Providers\ClaudeProvider;
-use Stilus\Providers\CompletionRequest;
-use Stilus\Providers\ProviderException;
+use Plume\Providers\ClaudeProvider;
+use Plume\Providers\CompletionRequest;
+use Plume\Providers\ProviderException;
 use PHPUnit\Framework\TestCase;
 
 class ClaudeProviderTest extends TestCase {
@@ -24,7 +24,7 @@ class ClaudeProviderTest extends TestCase {
 		$wpdb = new class extends \stdClass {
 			public string $usermeta      = 'wp_usermeta';
 			public int    $rows_affected = 1;
-			public string $prefix        = 'wpaim_';
+			public string $prefix        = 'plume_';
 			public function insert(): int { return 1; }
 			public function prepare( string $sql, ...$args ): string { return $sql; }
 			public function query( string $sql ): int { return 1; }
@@ -34,7 +34,7 @@ class ClaudeProviderTest extends TestCase {
 		// Tier is now site-level, so we stub the SITE_OPTION not user meta.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'stilus_site_tier' === $key ? 'pro_byok' : $default
+				'plume_site_tier' === $key ? 'pro_byok' : $default
 		);
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
@@ -105,7 +105,7 @@ class ClaudeProviderTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'stilus_site_tier' === $key ? 'pro_byok' : $default
+				'plume_site_tier' === $key ? 'pro_byok' : $default
 		);
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 

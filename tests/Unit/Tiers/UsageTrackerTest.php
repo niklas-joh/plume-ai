@@ -1,12 +1,12 @@
 <?php
 
-namespace Stilus\Tests\Unit\Tiers;
+namespace Plume\Tests\Unit\Tiers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use Stilus\Tests\Helpers\WpdbStubFactory;
-use Stilus\Tiers\UsageTracker;
+use Plume\Tests\Helpers\WpdbStubFactory;
+use Plume\Tiers\UsageTracker;
 
 class UsageTrackerTest extends TestCase {
 
@@ -27,11 +27,11 @@ class UsageTrackerTest extends TestCase {
 	}
 
 	public function test_get_usage_returns_correct_structure_for_free_user(): void {
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 
 		Functions\expect( 'get_current_user_id' )->once()->andReturn( 1 );
 		Functions\expect( 'get_user_meta' )
-			->once()->with( 1, 'stilus_tier', true )->andReturn( 'free' );
+			->once()->with( 1, 'plume_tier', true )->andReturn( 'free' );
 		Functions\expect( 'get_user_meta' )
 			->once()->with( 1, $month_key, true )->andReturn( '25000' );
 
@@ -45,11 +45,11 @@ class UsageTrackerTest extends TestCase {
 	}
 
 	public function test_get_usage_can_use_false_when_limit_exceeded(): void {
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 
 		// Passing explicit user_id — get_current_user_id is NOT called.
 		Functions\expect( 'get_user_meta' )
-			->once()->with( 2, 'stilus_tier', true )->andReturn( 'free' );
+			->once()->with( 2, 'plume_tier', true )->andReturn( 'free' );
 		Functions\expect( 'get_user_meta' )
 			->once()->with( 2, $month_key, true )->andReturn( '55000' );
 
@@ -59,16 +59,16 @@ class UsageTrackerTest extends TestCase {
 	}
 
 	public function test_get_usage_trial_tier_uses_300k_limit(): void {
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 
 		// get_user_tier reads tier meta; is_trial_active reads tier + trial_started meta;
 		// then get_usage reads month meta. Stub generically.
 		Functions\when( 'get_user_meta' )->alias(
 			function ( $uid, $key, $single ) use ( $month_key ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'trial';
 				}
-				if ( 'stilus_trial_started' === $key ) {
+				if ( 'plume_trial_started' === $key ) {
 					return (string) time();
 				}
 				if ( $month_key === $key ) {
@@ -86,12 +86,12 @@ class UsageTrackerTest extends TestCase {
 	}
 
 	public function test_get_usage_pro_byok_is_always_unlimited(): void {
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 
 		// pro_byok now lives on the site option, not user meta.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'stilus_site_tier' === $key ? 'pro_byok' : $default
+				'plume_site_tier' === $key ? 'pro_byok' : $default
 		);
 		Functions\expect( 'get_user_meta' )
 			->once()->with( 3, $month_key, true )->andReturn( '999999' );
@@ -104,7 +104,7 @@ class UsageTrackerTest extends TestCase {
 
 	public function test_log_usage_performs_atomic_sql_increment(): void {
 		global $wpdb;
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 
 		$wpdb                = \Mockery::mock( 'wpdb' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 		$wpdb->usermeta      = 'wp_usermeta';
@@ -122,7 +122,7 @@ class UsageTrackerTest extends TestCase {
 
 	public function test_log_usage_falls_back_to_insert_when_no_row_exists(): void {
 		global $wpdb;
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 
 		$wpdb                = \Mockery::mock( 'wpdb' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 		$wpdb->usermeta      = 'wp_usermeta';
@@ -145,16 +145,16 @@ class UsageTrackerTest extends TestCase {
 	public function test_get_current_month_key_returns_expected_format(): void {
 	$key = UsageTracker::get_current_month_key();
 
-		$this->assertMatchesRegularExpression( '/^stilus_usage_\d{4}_\d{2}$/', $key );
-		$this->assertSame( 'stilus_usage_' . gmdate( 'Y_m' ), $key );
+		$this->assertMatchesRegularExpression( '/^plume_usage_\d{4}_\d{2}$/', $key );
+		$this->assertSame( 'plume_usage_' . gmdate( 'Y_m' ), $key );
 	}
 
 	public function test_check_limit_returns_false_when_exhausted(): void {
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 
 		Functions\expect( 'get_current_user_id' )->once()->andReturn( 1 );
 		Functions\expect( 'get_user_meta' )
-			->once()->with( 1, 'stilus_tier', true )->andReturn( 'free' );
+			->once()->with( 1, 'plume_tier', true )->andReturn( 'free' );
 		Functions\expect( 'get_user_meta' )
 			->once()->with( 1, $month_key, true )->andReturn( '60000' );
 

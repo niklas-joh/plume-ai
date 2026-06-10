@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Proxy;
+namespace Plume\Tests\Unit\Proxy;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use Stilus\Proxy\SiteRegistration;
+use Plume\Proxy\SiteRegistration;
 
 class SiteRegistrationTest extends TestCase {
 
@@ -261,7 +261,7 @@ class SiteRegistrationTest extends TestCase {
 		$this->assertSame( $secret, $captured[ SiteRegistration::OPTION_SECRET ]['value'] );
 		$this->assertFalse( $captured[ SiteRegistration::OPTION_SECRET ]['autoload'] );
 		// Tier should also have been persisted via set_site_tier().
-		$this->assertSame( 'pro_managed', $captured['stilus_site_tier']['value'] );
+		$this->assertSame( 'pro_managed', $captured['plume_site_tier']['value'] );
 	}
 
 	public function test_register_succeeds_without_secret_or_tier_for_legacy_workers(): void {
@@ -306,7 +306,7 @@ class SiteRegistrationTest extends TestCase {
 		// Only the token option must have been written — no secret, no tier.
 		$this->assertArrayHasKey( SiteRegistration::OPTION_TOKEN, $captured );
 		$this->assertArrayNotHasKey( SiteRegistration::OPTION_SECRET, $captured );
-		$this->assertArrayNotHasKey( 'stilus_site_tier', $captured );
+		$this->assertArrayNotHasKey( 'plume_site_tier', $captured );
 	}
 
 	// ── rotate_secret() ─────────────────────────────────────────────────────
@@ -367,6 +367,6 @@ class SiteRegistrationTest extends TestCase {
 
 		$this->assertSame( $secret, $result );
 		$this->assertSame( $secret, $captured[ SiteRegistration::OPTION_SECRET ] );
-		$this->assertSame( 'pro_managed', $captured['stilus_site_tier'] );
+		$this->assertSame( 'pro_managed', $captured['plume_site_tier'] );
 	}
 }

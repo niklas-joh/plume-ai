@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Modules\Usage;
+namespace Plume\Tests\Unit\Modules\Usage;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Modules\Usage\UsageModule;
+use Plume\Modules\Usage\UsageModule;
 use PHPUnit\Framework\TestCase;
 
 class UsageModuleTest extends TestCase {

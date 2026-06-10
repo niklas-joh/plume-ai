@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Modules\Editor;
+namespace Plume\Tests\Unit\Modules\Editor;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Modules\Editor\EditorModule;
+use Plume\Modules\Editor\EditorModule;
 use PHPUnit\Framework\TestCase;
 
 class EditorModuleTest extends TestCase {

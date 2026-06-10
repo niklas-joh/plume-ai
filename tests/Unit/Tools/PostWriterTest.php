@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Tools;
+namespace Plume\Tests\Unit\Tools;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Tools\PostWriter;
-use Stilus\Tools\ToolRegistry;
+use Plume\Tools\PostWriter;
+use Plume\Tools\ToolRegistry;
 use PHPUnit\Framework\TestCase;
 
 if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
@@ -47,7 +47,7 @@ class PostWriterTest extends TestCase {
 
 	public function test_create_returns_error_when_post_type_not_allowed(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
-			'stilus_enable_write_tools' === $key ? true : $default
+			'plume_enable_write_tools' === $key ? true : $default
 		);
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
@@ -60,7 +60,7 @@ class PostWriterTest extends TestCase {
 
 	public function test_create_returns_error_when_insufficient_permissions(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
-			'stilus_enable_write_tools' === $key ? true : $default
+			'plume_enable_write_tools' === $key ? true : $default
 		);
 		Functions\when( 'user_can' )->justReturn( false );
 		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
@@ -73,7 +73,7 @@ class PostWriterTest extends TestCase {
 
 	public function test_create_returns_error_when_title_empty(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
-			'stilus_enable_write_tools' === $key ? true : $default
+			'plume_enable_write_tools' === $key ? true : $default
 		);
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
@@ -87,7 +87,7 @@ class PostWriterTest extends TestCase {
 
 	public function test_create_inserts_post_and_returns_data(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
-			'stilus_enable_write_tools' === $key ? true : $default
+			'plume_enable_write_tools' === $key ? true : $default
 		);
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
@@ -106,7 +106,7 @@ class PostWriterTest extends TestCase {
 
 	public function test_create_applies_meta_fields(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
-			'stilus_enable_write_tools' === $key ? true : $default
+			'plume_enable_write_tools' === $key ? true : $default
 		);
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
@@ -148,7 +148,7 @@ class PostWriterTest extends TestCase {
 
 	public function test_update_returns_error_when_post_id_zero(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
-			'stilus_enable_write_tools' === $key ? true : $default
+			'plume_enable_write_tools' === $key ? true : $default
 		);
 		Functions\when( 'absint' )->justReturn( 0 );
 
@@ -160,7 +160,7 @@ class PostWriterTest extends TestCase {
 
 	public function test_update_returns_error_when_insufficient_permissions(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
-			'stilus_enable_write_tools' === $key ? true : $default
+			'plume_enable_write_tools' === $key ? true : $default
 		);
 		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
 		Functions\when( 'user_can' )->justReturn( false );
@@ -173,7 +173,7 @@ class PostWriterTest extends TestCase {
 
 	public function test_update_returns_error_when_no_fields_provided(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
-			'stilus_enable_write_tools' === $key ? true : $default
+			'plume_enable_write_tools' === $key ? true : $default
 		);
 		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
 		Functions\when( 'user_can' )->justReturn( true );
@@ -186,7 +186,7 @@ class PostWriterTest extends TestCase {
 
 	public function test_update_applies_meta_fields(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
-			'stilus_enable_write_tools' === $key ? true : $default
+			'plume_enable_write_tools' === $key ? true : $default
 		);
 		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
 		Functions\when( 'user_can' )->justReturn( true );
@@ -217,7 +217,7 @@ class PostWriterTest extends TestCase {
 
 	public function test_create_returns_error_when_wp_insert_post_fails(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
-			'stilus_enable_write_tools' === $key ? true : $default
+			'plume_enable_write_tools' === $key ? true : $default
 		);
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
@@ -236,7 +236,7 @@ class PostWriterTest extends TestCase {
 
 	public function test_update_returns_error_when_wp_update_post_fails(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
-			'stilus_enable_write_tools' === $key ? true : $default
+			'plume_enable_write_tools' === $key ? true : $default
 		);
 		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
 		Functions\when( 'user_can' )->justReturn( true );

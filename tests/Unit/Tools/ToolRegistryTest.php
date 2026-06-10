@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Tools;
+namespace Plume\Tests\Unit\Tools;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Tools\ToolRegistry;
+use Plume\Tools\ToolRegistry;
 use PHPUnit\Framework\TestCase;
 
 class ToolRegistryTest extends TestCase {
@@ -31,10 +31,10 @@ class ToolRegistryTest extends TestCase {
 	private function stub_write_tools( bool $enabled ): void {
 		Functions\when( 'get_option' )
 			->alias( static function ( string $key, $default = false ) use ( $enabled ) {
-				if ( 'stilus_enable_write_tools' === $key ) {
+				if ( 'plume_enable_write_tools' === $key ) {
 					return $enabled;
 				}
-				if ( 'stilus_allowed_post_types' === $key ) {
+				if ( 'plume_allowed_post_types' === $key ) {
 					return $default; // Return default passthrough.
 				}
 				return $default;
@@ -149,7 +149,7 @@ class ToolRegistryTest extends TestCase {
 	public function test_allowed_post_types_returns_default(): void {
 		Functions\when( 'get_option' )
 			->alias( static function ( string $key, $default = false ) {
-				if ( 'stilus_allowed_post_types' === $key ) {
+				if ( 'plume_allowed_post_types' === $key ) {
 					return $default; // Returns ['post', 'page'].
 				}
 				return false;
@@ -166,7 +166,7 @@ class ToolRegistryTest extends TestCase {
 	public function test_allowed_post_types_honours_filter(): void {
 		Functions\when( 'get_option' )
 			->alias( static function ( string $key, $default = false ) {
-				if ( 'stilus_allowed_post_types' === $key ) {
+				if ( 'plume_allowed_post_types' === $key ) {
 					return $default;
 				}
 				return false;
@@ -175,7 +175,7 @@ class ToolRegistryTest extends TestCase {
 		// Override the filter to append 'product'.
 		Functions\when( 'apply_filters' )
 			->alias( static function ( string $tag, $value ) {
-				if ( 'stilus_allowed_post_types' === $tag ) {
+				if ( 'plume_allowed_post_types' === $tag ) {
 					return [ 'post', 'page', 'product' ];
 				}
 				return $value;

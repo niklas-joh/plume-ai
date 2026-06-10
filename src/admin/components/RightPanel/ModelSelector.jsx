@@ -3,7 +3,7 @@ import { __ } from '@wordpress/i18n';
 import { Cpu, ChevronRight, ChevronLeft } from 'lucide-react';
 import { storageGet, storageSet } from '../../utils/storage';
 
-const STORAGE_KEY = 'wpaim_advanced_model';
+const STORAGE_KEY = 'plume_advanced_model';
 
 const PROVIDER_LABELS = {
 	claude: 'Claude',
@@ -37,7 +37,7 @@ export default function ModelSelector( {
 	onModelChange,
 	isPro = false,
 } ) {
-	const { defaultModelLabel = 'AI' } = window.stilusData || {};
+	const { defaultModelLabel = 'AI' } = window.plumeData || {};
 
 	const [ isAdvanced, setIsAdvanced ] = useState(
 		() => isPro && storageGet( STORAGE_KEY ) === '1'
@@ -56,19 +56,19 @@ export default function ModelSelector( {
 	const models = active ? Object.entries( active.models ) : [];
 
 	return (
-		<div className="wpaim-panel-section">
-			<div className="wpaim-panel-label">Model</div>
+		<div className="plume-panel-section">
+			<div className="plume-panel-label">Model</div>
 
 			{ ! isAdvanced ? (
-				<div className="wpaim-model-simple">
-					<div className="wpaim-model-selector__row">
+				<div className="plume-model-simple">
+					<div className="plume-model-selector__row">
 						<Cpu size={ 12 } strokeWidth={ 1.5 } />
-						<span className="wpaim-model-default-label">
+						<span className="plume-model-default-label">
 							Plugin default — { defaultModelLabel }
 						</span>
 					</div>
 					<button
-						className="wpaim-model-advanced-toggle"
+						className="plume-model-advanced-toggle"
 						type="button"
 						onClick={ () => toggleAdvanced( true ) }
 						disabled={ ! isPro }
@@ -77,7 +77,7 @@ export default function ModelSelector( {
 								? undefined
 								: __(
 										'Upgrade to Pro to select providers and models',
-										'stilus'
+										'plume'
 								  )
 						}
 					>
@@ -86,12 +86,12 @@ export default function ModelSelector( {
 					</button>
 				</div>
 			) : (
-				<div className="wpaim-model-selector">
-					<div className="wpaim-model-selector__row">
+				<div className="plume-model-selector">
+					<div className="plume-model-selector__row">
 						<Cpu size={ 12 } strokeWidth={ 1.5 } />
 						<select
 							aria-label="AI provider"
-							className="wpaim-select"
+							className="plume-select"
 							value={ selectedProvider }
 							onChange={ ( e ) => {
 								onProviderChange( e.target.value );
@@ -106,9 +106,9 @@ export default function ModelSelector( {
 						</select>
 					</div>
 					{ active && ! active.is_available && (
-						<p className="wpaim-model-no-key">
+						<p className="plume-model-no-key">
 							No API key configured —{ ' ' }
-							<a href="options-general.php?page=stilus-settings">
+							<a href="options-general.php?page=plume-settings">
 								Settings
 							</a>
 						</p>
@@ -116,7 +116,7 @@ export default function ModelSelector( {
 					{ models.length > 0 && active?.is_available && (
 						<select
 							aria-label="Model"
-							className="wpaim-select wpaim-select--sm"
+							className="plume-select plume-select--sm"
 							value={ selectedModel }
 							onChange={ ( e ) =>
 								onModelChange( e.target.value )
@@ -131,7 +131,7 @@ export default function ModelSelector( {
 						</select>
 					) }
 					<button
-						className="wpaim-model-advanced-toggle"
+						className="plume-model-advanced-toggle"
 						type="button"
 						onClick={ () => toggleAdvanced( false ) }
 					>

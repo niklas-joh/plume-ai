@@ -1,2 +1,2 @@
-// Entry point — registers the Stilus Gutenberg sidebar plugin.
+// Entry point — registers the Plume Gutenberg sidebar plugin.
 import './components/EditorSidebar';

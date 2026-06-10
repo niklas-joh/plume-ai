@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Core;
+namespace Plume\Tests\Unit\Core;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Core\Plugin;
+use Plume\Core\Plugin;
 use PHPUnit\Framework\TestCase;
 
 class PluginTest extends TestCase {

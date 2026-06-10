@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Modules\Chat;
+namespace Plume\Tests\Unit\Modules\Chat;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Modules\Chat\PlansRestController;
-use Stilus\Tools\PostWriter;
+use Plume\Modules\Chat\PlansRestController;
+use Plume\Tools\PostWriter;
 use PHPUnit\Framework\TestCase;
 
 class PlansRestControllerTest extends TestCase {
@@ -99,7 +99,7 @@ class PlansRestControllerTest extends TestCase {
 			'post_status' => 'draft',
 			'post_type'   => 'post',
 		] );
-		Functions\expect( 'delete_transient' )->once()->with( 'stilus_plan_3_abc12345' );
+		Functions\expect( 'delete_transient' )->once()->with( 'plume_plan_3_abc12345' );
 		Functions\when( 'get_edit_post_link' )->justReturn( 'http://example.com/wp-admin/post.php?post=99' );
 
 		$this->post_writer
@@ -131,7 +131,7 @@ class PlansRestControllerTest extends TestCase {
 			'changes'     => 'Make intro snappier',
 			'new_content' => 'The updated post body goes here.',
 		] );
-		Functions\expect( 'delete_transient' )->once()->with( 'stilus_plan_4_def67890' );
+		Functions\expect( 'delete_transient' )->once()->with( 'plume_plan_4_def67890' );
 		Functions\when( 'get_edit_post_link' )->justReturn( 'http://example.com/wp-admin/post.php?post=42' );
 
 		$this->post_writer

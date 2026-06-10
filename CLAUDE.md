@@ -373,7 +373,7 @@ If you are in a freshly cloned environment and `.claude/agents/` symlinks are mi
 
 ## WordPress Coding Standards
 
-- Prefix all custom functions: `nj_` (theme/site plugins; Stilus plugin uses `Stilus\` namespace instead)
+- Prefix all custom functions: `nj_` (theme/site plugins; Plume plugin uses `Plume\` namespace instead)
 - Use British English in content and comments
 - Follow WordPress PHP Coding Standards
 - Escape output: `esc_html()`, `esc_attr()`, `esc_url()`
@@ -412,18 +412,18 @@ See `.agents/profiles/wordpress/_shared/block-reference.md` for the full decisio
 
 ---
 
-## Stilus Plugin
+## Plume Plugin
 
-Active plugin. Maintained in a dedicated repository: **[niklas-joh/wp-ai-mind](https://github.com/niklas-joh/wp-ai-mind)** (to be renamed `niklas-joh/stilus` once the GitHub repo is renamed)
+Active plugin. Maintained in a dedicated repository: **[niklas-joh/wp-ai-mind](https://github.com/niklas-joh/wp-ai-mind)** (to be renamed `niklas-joh/plume` once the GitHub repo is renamed)
 
-The plugin is referenced in this blog repo as a git submodule at `wp-content/plugins/stilus/`.
+The plugin is referenced in this blog repo as a git submodule at `wp-content/plugins/plume/`.
 
 | Item | Value |
 |------|-------|
 | Plugin repo | `https://github.com/niklas-joh/wp-ai-mind` |
-| Submodule path | `wp-content/plugins/stilus/` |
+| Submodule path | `wp-content/plugins/plume/` |
 | Active branches | `main` (stable), `develop` (next release) |
-| Namespace | `Stilus\` (not `nj_` prefix) |
+| Namespace | `Plume\` (not `nj_` prefix) |
 | Release docs | `RELEASING.md` in plugin repo |
 
 ### Plugin Development Workflow
@@ -433,7 +433,7 @@ The plugin is referenced in this blog repo as a git submodule at `wp-content/plu
 docker compose up -d && ./bin/db-pull.sh
 
 # Plugin dev — work directly in submodule
-cd wp-content/plugins/stilus
+cd wp-content/plugins/plume
 git checkout develop   # or feature/xxx
 
 # After PHP edits — clear OPcache
@@ -456,9 +456,9 @@ git submodule update --init --recursive
 ### Submodule Update (after plugin repo advances)
 
 ```bash
-git -C wp-content/plugins/stilus pull origin main
-git add wp-content/plugins/stilus
-git commit -m "chore: update stilus submodule"
+git -C wp-content/plugins/plume pull origin main
+git add wp-content/plugins/plume
+git commit -m "chore: update plume submodule"
 ```
 
 ### Local Admin Credentials (Docker only)
@@ -468,7 +468,7 @@ git commit -m "chore: update stilus submodule"
 ### Plugin Gotchas
 - **OPcache**: Docker serves stale bytecode after PHP edits — restart the container
 - **`json_decode($json, true)` converts `{}` → `[]`**: Cast empty arrays to `new \stdClass()` wherever JSON objects are required (tool `properties`, tool `input` fields)
-- **Staging deploy**: `git push origin main` in plugin repo, then `ssh siteground-staging "cd .../public_html && git submodule update --remote wp-content/plugins/stilus"`
+- **Staging deploy**: `git push origin main` in plugin repo, then `ssh siteground-staging "cd .../public_html && git submodule update --remote wp-content/plugins/plume"`
 
 
 

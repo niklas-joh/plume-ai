@@ -8,19 +8,19 @@ test.describe( 'Tier gating', () => {
 	} );
 
 	test( 'generator page loads for authenticated user', async ( { page } ) => {
-		await page.goto( '/wp-admin/admin.php?page=stilus-generator' );
-		// #stilus-generator is the PHP-rendered mount point — always present when
+		await page.goto( '/wp-admin/admin.php?page=plume-generator' );
+		// #plume-generator is the PHP-rendered mount point — always present when
 		// the plugin is active and the page loads without a fatal error.
 		// .first() avoids a strict-mode violation if the fallback selector also matches.
 		await expect(
-			page.locator( '#stilus-generator, .wpaim-generator-app' ).first()
+			page.locator( '#plume-generator, .plume-generator-app' ).first()
 		).toBeVisible();
 	} );
 
 	test( 'images page loads for authenticated user', async ( { page } ) => {
-		await page.goto( '/wp-admin/admin.php?page=stilus-images' );
+		await page.goto( '/wp-admin/admin.php?page=plume-images' );
 		await expect(
-			page.locator( '#stilus-images, .wpaim-images-app' ).first()
+			page.locator( '#plume-images, .plume-images-app' ).first()
 		).toBeVisible();
 	} );
 
@@ -41,13 +41,13 @@ test.describe( 'Tier gating', () => {
 
 		// Navigate into the admin so the browser context is initialised with
 		// the authenticated session from beforeEach.
-		await page.goto( '/wp-admin/admin.php?page=stilus-seo' );
+		await page.goto( '/wp-admin/admin.php?page=plume-seo' );
 
 		// Trigger the fetch from the page (browser) context so page.route()
 		// intercepts it. page.request bypasses route intercepts entirely.
 		const status = await page.evaluate( async () => {
 			const response = await fetch(
-				'/wp-json/stilus/v1/seo/generate',
+				'/wp-json/plume/v1/seo/generate',
 				{
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -60,56 +60,56 @@ test.describe( 'Tier gating', () => {
 	} );
 
 	test( 'SEO page shows Pro-gate upgrade link for free-tier users', async ( { page } ) => {
-		// Override window.stilusData to simulate free tier before React boots.
-		// A getter/setter proxy is used so PHP's inline `var stilusData = {...}`
+		// Override window.plumeData to simulate free tier before React boots.
+		// A getter/setter proxy is used so PHP's inline `var plumeData = {...}`
 		// triggers the setter and gets isPro forced to false, while still receiving
 		// the real restUrl, nonce, and other values from the server.
 		await page.addInitScript( () => {
 			let _data = {};
-			Object.defineProperty( window, 'stilusData', {
+			Object.defineProperty( window, 'plumeData', {
 				get() { return _data; },
 				set( val ) { _data = { ...val, isPro: false }; },
 				configurable: false,
 			} );
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=stilus-seo' );
-		await page.waitForSelector( '#stilus-seo', { timeout: 10000 } );
+		await page.goto( '/wp-admin/admin.php?page=plume-seo' );
+		await page.waitForSelector( '#plume-seo', { timeout: 10000 } );
 
-		// Free-tier renders .wpaim-pro-gate with an upgrade link (SeoApp.jsx line 47).
-		await expect( page.locator( '.wpaim-pro-gate' ) ).toBeVisible( { timeout: 10000 } );
+		// Free-tier renders .plume-pro-gate with an upgrade link (SeoApp.jsx line 47).
+		await expect( page.locator( '.plume-pro-gate' ) ).toBeVisible( { timeout: 10000 } );
 		await expect(
-			page.locator( '.wpaim-pro-gate a[href*="pricing"]' )
+			page.locator( '.plume-pro-gate a[href*="pricing"]' )
 		).toBeVisible();
 	} );
 
 	test( 'settings page shows provider configuration options', async ( { page } ) => {
-		await page.goto( '/wp-admin/admin.php?page=stilus-settings' );
-		// .wpaim-settings-shell hydrates after React boots (confirmed in p3-chat.spec.js line 35).
-		await page.waitForSelector( '.wpaim-settings-shell', { timeout: 10000 } );
-		await expect( page.locator( '.wpaim-settings-shell' ) ).toBeVisible();
-		// The settings page renders tabs via .wpaim-settings-tabpanel (p3-chat.spec.js line 37).
-		await expect( page.locator( '.wpaim-settings-tabpanel' ) ).toBeVisible();
+		await page.goto( '/wp-admin/admin.php?page=plume-settings' );
+		// .plume-settings-shell hydrates after React boots (confirmed in p3-chat.spec.js line 35).
+		await page.waitForSelector( '.plume-settings-shell', { timeout: 10000 } );
+		await expect( page.locator( '.plume-settings-shell' ) ).toBeVisible();
+		// The settings page renders tabs via .plume-settings-tabpanel (p3-chat.spec.js line 37).
+		await expect( page.locator( '.plume-settings-tabpanel' ) ).toBeVisible();
 	} );
 
 	test( 'chat page remains accessible for free-tier users', async ( { page } ) => {
-		// Chat is not Pro-gated — ensure it still renders .wpaim-shell regardless of tier.
+		// Chat is not Pro-gated — ensure it still renders .plume-shell regardless of tier.
 		// Getter/setter proxy forces isPro: false while preserving restUrl, nonce, etc.
 		await page.addInitScript( () => {
 			let _data = {};
-			Object.defineProperty( window, 'wpAiMindData', {
+			Object.defineProperty( window, 'plumeindData', {
 				get() { return _data; },
 				set( val ) { _data = { ...val, isPro: false }; },
 				configurable: false,
 			} );
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
-		// .wpaim-shell is the root chat element (ChatApp.jsx line 297).
-		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
-		await expect( page.locator( '.wpaim-shell' ) ).toBeVisible();
+		await page.goto( '/wp-admin/admin.php?page=plume-chat' );
+		// .plume-shell is the root chat element (ChatApp.jsx line 297).
+		await page.waitForSelector( '.plume-shell', { timeout: 10000 } );
+		await expect( page.locator( '.plume-shell' ) ).toBeVisible();
 		// Sidebar and composer must also be present for free-tier users.
-		await expect( page.locator( '.wpaim-sidebar' ) ).toBeVisible();
-		await expect( page.locator( '.wpaim-composer' ) ).toBeVisible();
+		await expect( page.locator( '.plume-sidebar' ) ).toBeVisible();
+		await expect( page.locator( '.plume-composer' ) ).toBeVisible();
 	} );
 } );

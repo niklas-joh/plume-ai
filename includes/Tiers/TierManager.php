@@ -2,14 +2,14 @@
 /**
  * Manages user licence tiers (Free, Trial, Pro Managed, Pro BYOK).
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tiers;
+namespace Plume\Tiers;
 
-use Stilus\Payments\TierUpdateWebhookController;
+use Plume\Payments\TierUpdateWebhookController;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -27,8 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class TierManager {
 
-	public const META_KEY           = 'stilus_tier';
-	public const TRIAL_STARTED_META = 'stilus_trial_started';
+	public const META_KEY           = 'plume_tier';
+	public const TRIAL_STARTED_META = 'plume_trial_started';
 
 	/**
 	 * Option key for the site-wide tier (paid entitlement source of truth).
@@ -38,7 +38,7 @@ class TierManager {
 	 *
 	 * @since 1.9.0
 	 */
-	public const SITE_OPTION = 'stilus_site_tier';
+	public const SITE_OPTION = 'plume_site_tier';
 
 	/**
 	 * Option key for the HMAC signature that authenticates the stored site tier.
@@ -49,7 +49,7 @@ class TierManager {
 	 *
 	 * @since 1.10.0
 	 */
-	public const SITE_OPTION_SIG = 'stilus_site_tier_sig';
+	public const SITE_OPTION_SIG = 'plume_site_tier_sig';
 
 	// ── Tier CRUD ─────────────────────────────────────────────────────────────
 
@@ -124,7 +124,7 @@ class TierManager {
 	/**
 	 * Sets the site-wide tier (used by the LemonSqueezy webhook receiver).
 	 *
-	 * Fires `stilus_tier_changed` on success so other modules can react
+	 * Fires `plume_tier_changed` on success so other modules can react
 	 * (cache invalidation, audit logs, etc.).
 	 *
 	 * @since 1.9.0
@@ -156,7 +156,7 @@ class TierManager {
 					delete_option( self::SITE_OPTION_SIG );
 				}
 			}
-			do_action( 'stilus_tier_changed', $tier );
+			do_action( 'plume_tier_changed', $tier );
 		}
 		return $ok;
 	}

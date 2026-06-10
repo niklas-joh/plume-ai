@@ -2,21 +2,21 @@
 /**
  * Admin page rendering the AI post-generator wizard.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Tiers\TierManager;
+use Plume\Tiers\TierManager;
 
 /**
- * Renders the Stilus post-generator admin page.
+ * Renders the Plume post-generator admin page.
  *
  * Outputs a React mount point and enqueues the generator bundle.
  */
@@ -30,7 +30,7 @@ class GeneratorPage {
 	 */
 	public static function render(): void {
 		self::enqueue_assets();
-		echo '<div id="stilus-generator" class="stilus-page"></div>';
+		echo '<div id="plume-generator" class="plume-page"></div>';
 	}
 
 	/**
@@ -40,28 +40,28 @@ class GeneratorPage {
 	 * @return void
 	 */
 	public static function enqueue_assets(): void {
-		$asset_file = STILUS_DIR . 'assets/generator/index.asset.php';
+		$asset_file = PLUME_DIR . 'assets/generator/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => STILUS_VERSION,
+				'version'      => PLUME_VERSION,
 			];
 
 		\wp_enqueue_script(
-			'stilus-generator',
-			STILUS_URL . 'assets/generator/index.js',
+			'plume-generator',
+			PLUME_URL . 'assets/generator/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-api-fetch', 'wp-i18n' ] ),
 			$asset['version'],
 			true
 		);
 
 		\wp_localize_script(
-			'stilus-generator',
-			'stilusData',
+			'plume-generator',
+			'plumeData',
 			[
 				'nonce'         => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'       => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
+				'restUrl'       => \esc_url_raw( \rest_url( 'plume/v1' ) ),
 				'currentPostId' => 0,
 				'isPro'         => TierManager::user_can( 'generator' ),
 				'siteTitle'     => \get_bloginfo( 'name' ),
@@ -69,8 +69,8 @@ class GeneratorPage {
 		);
 
 		\wp_enqueue_style(
-			'stilus-generator',
-			STILUS_URL . 'assets/generator/index.css',
+			'plume-generator',
+			PLUME_URL . 'assets/generator/index.css',
 			[],
 			$asset['version']
 		);

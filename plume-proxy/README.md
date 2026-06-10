@@ -1,4 +1,4 @@
-# stilus-proxy
+# plume-proxy
 
 Minimal Cloudflare Worker that protects the Anthropic API key for Free/Trial/Pro Managed users.
 WordPress signs requests with HMAC-SHA256; the Worker validates the signature, enforces per-tier
@@ -7,8 +7,8 @@ token limits via KV, and forwards to Anthropic.
 ## wp-config.php constants
 
 ```php
-// URL of the deployed Worker (or set via WP Admin → Stilus Settings)
-define( 'STILUS_PROXY_URL', 'https://stilus-proxy.stilus.workers.dev' );
+// URL of the deployed Worker (or set via WP Admin → Plume Settings)
+define( 'PLUME_PROXY_URL', 'https://plume-proxy.plume.workers.dev' );
 ```
 
 ## First-time setup
@@ -26,7 +26,7 @@ npx wrangler kv namespace create USAGE_KV --preview
 
 # 4. Set secrets (never commit these values)
 npx wrangler secret put ANTHROPIC_API_KEY
-# Note: no STILUS_PROXY_SECRET wrangler secret is needed — HMAC signing uses a
+# Note: no PLUME_PROXY_SECRET wrangler secret is needed — HMAC signing uses a
 # per-site rotating secret that is generated on first registration and stored in KV.
 
 # 5. Type-check

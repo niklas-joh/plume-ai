@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Modules\Generator;
+namespace Plume\Tests\Unit\Modules\Generator;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Modules\Generator\GeneratorModule;
+use Plume\Modules\Generator\GeneratorModule;
 use PHPUnit\Framework\TestCase;
 
 class GeneratorModuleTest extends TestCase {

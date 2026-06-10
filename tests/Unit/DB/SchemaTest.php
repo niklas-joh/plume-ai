@@ -1,10 +1,10 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\DB;
+namespace Plume\Tests\Unit\DB;
 
 use Brain\Monkey;
-use Stilus\DB\Schema;
+use Plume\DB\Schema;
 use PHPUnit\Framework\TestCase;
 
 class SchemaTest extends TestCase {
@@ -16,14 +16,14 @@ class SchemaTest extends TestCase {
         global $wpdb;
         $wpdb         = new \stdClass();
         $wpdb->prefix = 'wp_';
-        $this->assertSame( 'wp_wpaim_conversations', Schema::table( 'conversations' ) );
+        $this->assertSame( 'wp_plume_conversations', Schema::table( 'conversations' ) );
     }
 
     public function test_table_name_with_custom_prefix(): void {
         global $wpdb;
         $wpdb         = new \stdClass();
         $wpdb->prefix = 'mysite_';
-        $this->assertSame( 'mysite_wpaim_conversations', Schema::table( 'conversations' ) );
+        $this->assertSame( 'mysite_plume_conversations', Schema::table( 'conversations' ) );
     }
 
     public function test_unknown_table_throws_exception(): void {

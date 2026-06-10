@@ -6,15 +6,15 @@
  * including a live database and a functional REST server. Shared helpers
  * cover tier assignment, HTTP interception, and REST dispatch.
  *
- * @package Stilus\Tests\Integration
+ * @package Plume\Tests\Integration
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Integration;
+namespace Plume\Tests\Integration;
 
-use Stilus\Tiers\TierManager;
-use Stilus\Proxy\SiteRegistration;
+use Plume\Tiers\TierManager;
+use Plume\Proxy\SiteRegistration;
 
 /**
  * Base integration test case.
@@ -243,7 +243,7 @@ abstract class IntegrationTestCase extends \WP_UnitTestCase {
 	 *
 	 * @since 1.0.0
 	 * @param string               $method HTTP method ('GET', 'POST', 'PATCH', 'DELETE').
-	 * @param string               $route  REST route path, e.g. '/stilus/v1/conversations'.
+	 * @param string               $route  REST route path, e.g. '/plume/v1/conversations'.
 	 * @param array<string, mixed> $params Request parameters (query string or body).
 	 * @return \WP_REST_Response
 	 */

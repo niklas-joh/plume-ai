@@ -1,9 +1,9 @@
 <?php
-namespace Stilus\Tests\Unit\Voice;
+namespace Plume\Tests\Unit\Voice;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Voice\VoiceInjector;
+use Plume\Voice\VoiceInjector;
 use PHPUnit\Framework\TestCase;
 
 class VoiceInjectorTest extends TestCase {
@@ -13,7 +13,7 @@ class VoiceInjectorTest extends TestCase {
 
     public function test_site_voice_tone_appears_in_prompt(): void {
         Functions\when( 'get_option' )->alias( fn( $k, $d = null ) =>
-            $k === 'stilus_site_voice' ? [ 'tone' => 'Conversational' ] : ( $d ?? null )
+            $k === 'plume_site_voice' ? [ 'tone' => 'Conversational' ] : ( $d ?? null )
         );
         Functions\when( 'get_user_meta' )->justReturn( [] );
         Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
@@ -25,7 +25,7 @@ class VoiceInjectorTest extends TestCase {
 
     public function test_user_override_replaces_site_tone(): void {
         Functions\when( 'get_option' )->alias( fn( $k, $d = null ) =>
-            $k === 'stilus_site_voice' ? [ 'tone' => 'Formal' ] : ( $d ?? null )
+            $k === 'plume_site_voice' ? [ 'tone' => 'Formal' ] : ( $d ?? null )
         );
         Functions\when( 'get_user_meta' )->justReturn( [ 'tone' => 'Casual' ] );
         Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
@@ -39,7 +39,7 @@ class VoiceInjectorTest extends TestCase {
 
     public function test_feature_instruction_appended_when_voice_set(): void {
         Functions\when( 'get_option' )->alias( fn( $k, $d = null ) =>
-            $k === 'stilus_site_voice' ? [ 'tone' => 'Clear' ] : ( $d ?? null )
+            $k === 'plume_site_voice' ? [ 'tone' => 'Clear' ] : ( $d ?? null )
         );
         Functions\when( 'get_user_meta' )->justReturn( [] );
         Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );

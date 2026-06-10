@@ -2,25 +2,25 @@
 /**
  * REST endpoint that receives signed tier-update pushes from the Cloudflare Worker.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Payments;
+namespace Plume\Payments;
 
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
-use Stilus\Tiers\TierConfig;
-use Stilus\Tiers\TierManager;
+use Plume\Tiers\TierConfig;
+use Plume\Tiers\TierManager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * REST controller for POST /stilus/v1/tier-update.
+ * REST controller for POST /plume/v1/tier-update.
  *
  * Called by the Cloudflare Worker after it processes a LemonSqueezy webhook
  * (subscription_created / cancelled / expired / paused). The Worker signs each
@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class TierUpdateWebhookController {
 
-	private const NAMESPACE = 'stilus/v1';
+	private const NAMESPACE = 'plume/v1';
 	private const ROUTE     = '/tier-update';
 
 	/**
@@ -44,7 +44,7 @@ class TierUpdateWebhookController {
 	 *
 	 * @since 1.9.0
 	 */
-	public const OPTION_SECRET = 'stilus_tier_sync_secret';
+	public const OPTION_SECRET = 'plume_tier_sync_secret';
 
 	/**
 	 * Hard cap on the inbound body size.
@@ -128,8 +128,8 @@ class TierUpdateWebhookController {
 			return new WP_REST_Response( [ 'error' => 'payload_too_large' ], 413 );
 		}
 
-		$signature = (string) $request->get_header( 'x_stilus_signature' );
-		$timestamp = (int) $request->get_header( 'x_stilus_timestamp' );
+		$signature = (string) $request->get_header( 'x_plume_signature' );
+		$timestamp = (int) $request->get_header( 'x_plume_timestamp' );
 
 		if ( '' === $signature || 0 === $timestamp ) {
 			return new WP_REST_Response( [ 'error' => 'missing_headers' ], 401 );
@@ -153,7 +153,7 @@ class TierUpdateWebhookController {
 		// Replay protection: a verified signature is single-use within the window.
 		// md5 here is a cache-key, not a security primitive — the signature itself
 		// is the security primitive and was already verified above.
-		$seen_key = 'stilus_tier_sig_' . md5( $signature );
+		$seen_key = 'plume_tier_sig_' . md5( $signature );
 		if ( get_transient( $seen_key ) ) {
 			return new WP_REST_Response( [ 'error' => 'replay' ], 401 );
 		}

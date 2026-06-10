@@ -7,14 +7,14 @@
  *
  * Cost: ~$0.0003/run (claude-haiku-4-5-20251001, short SEO meta generation).
  *
- * @package Stilus\Tests\RealIntegration\Seo
+ * @package Plume\Tests\RealIntegration\Seo
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tests\RealIntegration\Seo;
+namespace Plume\Tests\RealIntegration\Seo;
 
-use Stilus\Tests\RealIntegration\RealIntegrationTestCase;
+use Plume\Tests\RealIntegration\RealIntegrationTestCase;
 
 /**
  * @since 1.8.0
@@ -53,7 +53,7 @@ class RealSeoTest extends RealIntegrationTestCase {
 	/**
 	 * SEO generator produces real meta fields for a post via Pro-BYOK.
 	 *
-	 * Endpoint: POST /stilus/v1/seo/generate
+	 * Endpoint: POST /plume/v1/seo/generate
 	 * Required: post_id (int)
 	 * Response fields: meta_title, og_description, excerpt, alt_text
 	 *
@@ -62,7 +62,7 @@ class RealSeoTest extends RealIntegrationTestCase {
 	public function test_seo_generate_returns_real_meta_fields(): void {
 		$response = $this->rest_do(
 			'POST',
-			'/stilus/v1/seo/generate',
+			'/plume/v1/seo/generate',
 			[ 'post_id' => $this->test_post_id ]
 		);
 
@@ -95,7 +95,7 @@ class RealSeoTest extends RealIntegrationTestCase {
 		// Generate real SEO meta first.
 		$gen_response = $this->rest_do(
 			'POST',
-			'/stilus/v1/seo/generate',
+			'/plume/v1/seo/generate',
 			[ 'post_id' => $this->test_post_id ]
 		);
 		$this->assertSame( 200, $gen_response->get_status() );
@@ -104,7 +104,7 @@ class RealSeoTest extends RealIntegrationTestCase {
 		// Apply the generated meta.
 		$apply_response = $this->rest_do(
 			'POST',
-			'/stilus/v1/seo/apply',
+			'/plume/v1/seo/apply',
 			[
 				'post_id'        => $this->test_post_id,
 				'meta_title'     => $meta['meta_title'] ?? 'Test SEO title',

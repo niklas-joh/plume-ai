@@ -60,8 +60,8 @@ export default function Composer( {
 
 	return (
 		<div
-			className={ `wpaim-composer${
-				borderless ? ' wpaim-composer--borderless' : ''
+			className={ `plume-composer${
+				borderless ? ' plume-composer--borderless' : ''
 			}` }
 		>
 			{ showPicker && (
@@ -77,12 +77,12 @@ export default function Composer( {
 				/>
 			) }
 			{ attachedPost && (
-				<div className="wpaim-composer__attachment">
-					<span className="wpaim-composer__attachment-pill">
+				<div className="plume-composer__attachment">
+					<span className="plume-composer__attachment-pill">
 						<FileText size={ 11 } strokeWidth={ 1.5 } />
 						{ attachedPost.title }
 						<button
-							className="wpaim-composer__attachment-dismiss"
+							className="plume-composer__attachment-dismiss"
 							onClick={ onDetach }
 							title="Remove context"
 							aria-label="Remove context"
@@ -93,9 +93,9 @@ export default function Composer( {
 					</span>
 				</div>
 			) }
-			<div className="wpaim-composer__row">
+			<div className="plume-composer__row">
 				<textarea
-					className="wpaim-composer__input"
+					className="plume-composer__input"
 					placeholder="Ask anything, or describe what you want to create…"
 					value={ value }
 					rows={ 1 }
@@ -104,7 +104,7 @@ export default function Composer( {
 					disabled={ isLoading }
 				/>
 				<button
-					className="wpaim-btn wpaim-btn--ghost wpaim-btn--icon"
+					className="plume-btn plume-btn--ghost plume-btn--icon"
 					onClick={ () => setShowPicker( ( prev ) => ! prev ) }
 					title="Attach post context"
 					aria-label="Attach post context"
@@ -114,7 +114,7 @@ export default function Composer( {
 				</button>
 				<Button
 					variant="primary"
-					className="wpaim-btn--icon"
+					className="plume-btn--icon"
 					onClick={ submit }
 					disabled={ ! value.trim() || isLoading }
 					label="Send (Enter)"
@@ -123,7 +123,7 @@ export default function Composer( {
 						<Loader2
 							size={ 14 }
 							strokeWidth={ 1.5 }
-							className="wpaim-spinner"
+							className="plume-spinner"
 						/>
 					) : (
 						<CornerDownLeft size={ 14 } strokeWidth={ 1.5 } />

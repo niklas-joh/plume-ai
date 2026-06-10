@@ -2,21 +2,21 @@
 /**
  * Images module — REST routes and asset enqueuing for AI image generation.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Modules\Images;
+namespace Plume\Modules\Images;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Providers\ProviderFactory;
-use Stilus\Providers\ProviderException;
-use Stilus\Settings\ProviderSettings;
-use Stilus\Tiers\TierManager;
-use Stilus\Tiers\UsageTracker;
+use Plume\Providers\ProviderFactory;
+use Plume\Providers\ProviderException;
+use Plume\Settings\ProviderSettings;
+use Plume\Tiers\TierManager;
+use Plume\Tiers\UsageTracker;
 
 /**
  * Registers the image-generation admin assets and REST route.
@@ -47,54 +47,54 @@ class ImagesModule {
 	public static function enqueue_assets( string $hook ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by admin_enqueue_scripts hook signature.
 		// Only load on the images admin page.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page detection, never output.
-		if ( sanitize_key( \wp_unslash( $_GET['page'] ?? '' ) ) !== 'stilus-images' ) {
+		if ( sanitize_key( \wp_unslash( $_GET['page'] ?? '' ) ) !== 'plume-images' ) {
 			return;
 		}
 
-		$asset_file = STILUS_DIR . 'assets/images/index.asset.php';
+		$asset_file = PLUME_DIR . 'assets/images/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => STILUS_VERSION,
+				'version'      => PLUME_VERSION,
 			];
 
 		\wp_enqueue_script(
-			'stilus-images',
-			STILUS_URL . 'assets/images/index.js',
+			'plume-images',
+			PLUME_URL . 'assets/images/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-api-fetch', 'wp-i18n' ] ),
 			$asset['version'],
 			true
 		);
 
 		\wp_localize_script(
-			'stilus-images',
-			'stilusData',
+			'plume-images',
+			'plumeData',
 			[
 				'nonce'    => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'  => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
+				'restUrl'  => \esc_url_raw( \rest_url( 'plume/v1' ) ),
 				'isPro'    => TierManager::user_can( 'images' ),
 				'adminUrl' => \esc_url_raw( \admin_url() ),
 			]
 		);
 
 		\wp_enqueue_style(
-			'stilus-images',
-			STILUS_URL . 'assets/images/index.css',
+			'plume-images',
+			PLUME_URL . 'assets/images/index.css',
 			[],
 			$asset['version']
 		);
 	}
 
 	/**
-	 * Register the /stilus/v1/images/generate REST route.
+	 * Register the /plume/v1/images/generate REST route.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
 	public static function register_routes(): void {
 		\register_rest_route(
-			'stilus/v1',
+			'plume/v1',
 			'/images/generate',
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
@@ -180,7 +180,7 @@ class ImagesModule {
 		if ( empty( $images ) ) {
 			return new \WP_REST_Response(
 				[
-					'error'   => __( 'All image generation requests failed.', 'stilus' ),
+					'error'   => __( 'All image generation requests failed.', 'plume' ),
 					'details' => $errors,
 				],
 				500

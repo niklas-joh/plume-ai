@@ -5,7 +5,7 @@ import apiFetch from '@wordpress/api-fetch';
 /**
  * Debounced search popover for attaching a post as chat context.
  *
- * Queries /stilus/v1/search-posts after 300 ms of inactivity.
+ * Queries /plume/v1/search-posts after 300 ms of inactivity.
  * Closes on Escape key. Minimum 2 characters before a search is triggered.
  *
  * @param {Object}   props
@@ -35,7 +35,7 @@ export default function ContextPicker( { onSelect, onClose } ) {
 			setLoading( true );
 			try {
 				const data = await apiFetch( {
-					path: `/stilus/v1/search-posts?q=${ encodeURIComponent(
+					path: `/plume/v1/search-posts?q=${ encodeURIComponent(
 						query
 					) }`,
 				} );
@@ -56,19 +56,19 @@ export default function ContextPicker( { onSelect, onClose } ) {
 
 	return (
 		<div
-			className="wpaim-context-picker"
+			className="plume-context-picker"
 			role="search"
 			aria-label="Search post context"
 		>
-			<div className="wpaim-context-picker__search">
+			<div className="plume-context-picker__search">
 				<Search
 					size={ 12 }
 					strokeWidth={ 1.5 }
-					className="wpaim-context-picker__icon"
+					className="plume-context-picker__icon"
 				/>
 				<input
 					ref={ inputRef }
-					className="wpaim-context-picker__input"
+					className="plume-context-picker__input"
 					placeholder="Search posts, pages, products…"
 					value={ query }
 					onChange={ ( e ) => setQuery( e.target.value ) }
@@ -77,7 +77,7 @@ export default function ContextPicker( { onSelect, onClose } ) {
 			</div>
 			{ loading && (
 				<div
-					className="wpaim-context-picker__status"
+					className="plume-context-picker__status"
 					aria-live="polite"
 				>
 					Searching…
@@ -85,25 +85,25 @@ export default function ContextPicker( { onSelect, onClose } ) {
 			) }
 			{ ! loading && results.length === 0 && query.length >= 2 && (
 				<div
-					className="wpaim-context-picker__status"
+					className="plume-context-picker__status"
 					aria-live="polite"
 				>
 					No results
 				</div>
 			) }
 			{ results.length > 0 && (
-				<ul className="wpaim-context-picker__list" aria-live="polite">
+				<ul className="plume-context-picker__list" aria-live="polite">
 					{ results.map( ( post ) => (
 						<li key={ post.id }>
 							<button
-								className="wpaim-context-picker__item"
+								className="plume-context-picker__item"
 								type="button"
 								onClick={ () => onSelect( post ) }
 							>
-								<span className="wpaim-context-picker__title">
+								<span className="plume-context-picker__title">
 									{ post.title }
 								</span>
-								<span className="wpaim-context-picker__badge">
+								<span className="plume-context-picker__badge">
 									{ post.type_label }
 								</span>
 							</button>

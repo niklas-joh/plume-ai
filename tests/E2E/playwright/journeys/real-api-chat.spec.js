@@ -26,13 +26,13 @@ test.describe( 'Real-API chat (no mocking)', () => {
 
 	test( 'sends a real message and receives a non-empty AI response', async ( { page } ) => {
 		// Zero mocking. ChatApp creates the conversation inline on first send.
-		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
-		await page.waitForSelector( '.wpaim-shell', { timeout: 15_000 } );
+		await page.goto( '/wp-admin/admin.php?page=plume-chat' );
+		await page.waitForSelector( '.plume-shell', { timeout: 15_000 } );
 
-		await page.fill( '.wpaim-composer__input', 'Reply with only the word "pong".' );
-		await page.locator( '.wpaim-composer__input' ).press( 'Enter' );
+		await page.fill( '.plume-composer__input', 'Reply with only the word "pong".' );
+		await page.locator( '.plume-composer__input' ).press( 'Enter' );
 
-		const aiBubble = page.locator( '.wpaim-bubble--ai .wpaim-bubble__content' ).last();
+		const aiBubble = page.locator( '.plume-bubble--ai .plume-bubble__content' ).last();
 		await expect( aiBubble ).not.toBeEmpty( { timeout: 60_000 } );
 
 		const text = await aiBubble.innerText();
@@ -40,19 +40,19 @@ test.describe( 'Real-API chat (no mocking)', () => {
 	} );
 
 	test( 'consecutive messages maintain conversation context', async ( { page } ) => {
-		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
-		await page.waitForSelector( '.wpaim-shell', { timeout: 15_000 } );
+		await page.goto( '/wp-admin/admin.php?page=plume-chat' );
+		await page.waitForSelector( '.plume-shell', { timeout: 15_000 } );
 
-		await page.fill( '.wpaim-composer__input', 'My secret number is 42. Acknowledge with just "ack".' );
-		await page.locator( '.wpaim-composer__input' ).press( 'Enter' );
+		await page.fill( '.plume-composer__input', 'My secret number is 42. Acknowledge with just "ack".' );
+		await page.locator( '.plume-composer__input' ).press( 'Enter' );
 		await expect(
-			page.locator( '.wpaim-bubble--ai .wpaim-bubble__content' ).last()
+			page.locator( '.plume-bubble--ai .plume-bubble__content' ).last()
 		).not.toBeEmpty( { timeout: 60_000 } );
 
-		await page.fill( '.wpaim-composer__input', 'What was my secret number? Reply with just the number.' );
-		await page.locator( '.wpaim-composer__input' ).press( 'Enter' );
+		await page.fill( '.plume-composer__input', 'What was my secret number? Reply with just the number.' );
+		await page.locator( '.plume-composer__input' ).press( 'Enter' );
 
-		const bubbles = page.locator( '.wpaim-bubble--ai .wpaim-bubble__content' );
+		const bubbles = page.locator( '.plume-bubble--ai .plume-bubble__content' );
 		await expect( bubbles ).toHaveCount( 2, { timeout: 60_000 } );
 		// Wait for the second bubble to have content before asserting on it.
 		await expect( bubbles.last() ).not.toBeEmpty( { timeout: 60_000 } );

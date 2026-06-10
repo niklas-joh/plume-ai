@@ -2,14 +2,14 @@
 /**
  * WordPress admin dashboard widget showing current-user token usage.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
-use Stilus\Tiers\TierConfig;
-use Stilus\Tiers\UsageTracker;
+use Plume\Tiers\TierConfig;
+use Plume\Tiers\UsageTracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -45,15 +45,15 @@ class UsageWidget {
 			return;
 		}
 		wp_enqueue_style(
-			'stilus-admin-widgets',
-			STILUS_URL . 'assets/admin/stilus-admin-widgets.css',
+			'plume-admin-widgets',
+			PLUME_URL . 'assets/admin/plume-admin-widgets.css',
 			[],
-			STILUS_VERSION
+			PLUME_VERSION
 		);
 	}
 
 	/**
-	 * Register the Stilus Usage dashboard widget.
+	 * Register the Plume Usage dashboard widget.
 	 *
 	 * @since 1.2.0
 	 * @return void
@@ -63,8 +63,8 @@ class UsageWidget {
 			return;
 		}
 		wp_add_dashboard_widget(
-			'stilus_usage',
-			__( 'Stilus Usage', 'stilus' ),
+			'plume_usage',
+			__( 'Plume Usage', 'plume' ),
 			[ self::class, 'render' ]
 		);
 	}
@@ -83,8 +83,8 @@ class UsageWidget {
 		$tier_labels = TierConfig::get_tier_labels();
 		$tier_label  = $tier_labels[ $tier ] ?? ucwords( str_replace( '_', ' ', $tier ) );
 
-		echo '<div class="stilus-usage-widget">';
-		echo '<p><strong>' . esc_html( $tier_label ) . ' ' . esc_html__( 'Plan', 'stilus' ) . '</strong></p>';
+		echo '<div class="plume-usage-widget">';
+		echo '<p><strong>' . esc_html( $tier_label ) . ' ' . esc_html__( 'Plan', 'plume' ) . '</strong></p>';
 
 		if ( null !== $usage['limit'] && $usage['limit'] > 0 ) {
 			$pct = min( 100, (int) round( ( $usage['used'] / $usage['limit'] ) * 100 ) );
@@ -98,23 +98,23 @@ class UsageWidget {
 			}
 
 			printf(
-				'<div class="stilus-progress-track"><div class="stilus-progress-bar stilus-progress-bar--%s" style="width:%d%%"></div></div>',
+				'<div class="plume-progress-track"><div class="plume-progress-bar plume-progress-bar--%s" style="width:%d%%"></div></div>',
 				esc_attr( $bar_modifier ),
 				absint( $pct )
 			);
 			printf(
-				'<p class="stilus-meta-text">%s / %s %s (%s %s)</p>',
+				'<p class="plume-meta-text">%s / %s %s (%s %s)</p>',
 				esc_html( number_format_i18n( (int) $usage['used'] ) ),
 				esc_html( number_format_i18n( (int) $usage['limit'] ) ),
-				esc_html__( 'tokens', 'stilus' ),
+				esc_html__( 'tokens', 'plume' ),
 				esc_html( number_format_i18n( (int) $usage['remaining'] ) ),
-				esc_html__( 'remaining', 'stilus' )
+				esc_html__( 'remaining', 'plume' )
 			);
 			if ( $pct > 80 ) {
-				echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Over 80% of monthly tokens used. Consider upgrading.', 'stilus' ) . '</p></div>';
+				echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Over 80% of monthly tokens used. Consider upgrading.', 'plume' ) . '</p></div>';
 			}
 		} else {
-			echo '<p>' . esc_html__( 'Unlimited — using your own API key.', 'stilus' ) . '</p>';
+			echo '<p>' . esc_html__( 'Unlimited — using your own API key.', 'plume' ) . '</p>';
 		}
 
 		echo '</div>';

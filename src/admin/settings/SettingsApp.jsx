@@ -27,7 +27,7 @@ export default function SettingsApp() {
 	const [ saveResult, setSaveResult ] = useState( null ); // 'success' | 'error' | null
 
 	useEffect( () => {
-		apiFetch( { path: '/stilus/v1/settings' } )
+		apiFetch( { path: '/plume/v1/settings' } )
 			.then( setSettings )
 			.catch( () => {} );
 	}, [] );
@@ -37,7 +37,7 @@ export default function SettingsApp() {
 		setSaveResult( null );
 		try {
 			await apiFetch( {
-				path: '/stilus/v1/settings',
+				path: '/plume/v1/settings',
 				method: 'POST',
 				data: patch,
 			} );
@@ -51,7 +51,7 @@ export default function SettingsApp() {
 	}
 
 	const handleRunSetup = async () => {
-		const data = window.stilusData ?? {};
+		const data = window.plumeData ?? {};
 		await window.fetch( `${ data.restUrl ?? '' }/onboarding`, {
 			method: 'POST',
 			headers: {
@@ -60,17 +60,17 @@ export default function SettingsApp() {
 			},
 			body: JSON.stringify( { seen: false } ),
 		} );
-		window.location.href = 'admin.php?page=stilus';
+		window.location.href = 'admin.php?page=plume';
 	};
 
 	const tabProps = { settings, saveSettings, isSaving };
 
 	return (
-		<div className="wpaim-settings-shell">
-			<div className="wpaim-settings-header">
-				<div className="wpaim-settings-title">
+		<div className="plume-settings-shell">
+			<div className="plume-settings-header">
+				<div className="plume-settings-title">
 					<Settings size={ 16 } />
-					<span>Stilus — Settings</span>
+					<span>Plume — Settings</span>
 				</div>
 
 				{ saveResult && (
@@ -88,11 +88,11 @@ export default function SettingsApp() {
 				) }
 			</div>
 
-			<TabPanel tabs={ TABS } className="wpaim-settings-tabpanel">
+			<TabPanel tabs={ TABS } className="plume-settings-tabpanel">
 				{ ( tab ) => {
 					if ( settings === null ) {
 						return (
-							<div className="wpaim-settings-loading">
+							<div className="plume-settings-loading">
 								Loading settings…
 							</div>
 						);
@@ -110,21 +110,21 @@ export default function SettingsApp() {
 			</TabPanel>
 
 			<div
-				className="wpaim-settings-section"
+				className="plume-settings-section"
 				style={ {
 					borderTop: '1px solid var(--color-border-subtle)',
 					paddingTop: 'var(--space-4)',
 					marginTop: 'var(--space-4)',
 				} }
 			>
-				<div className="wpaim-settings-label">Setup</div>
-				<p className="wpaim-settings-description">
+				<div className="plume-settings-label">Setup</div>
+				<p className="plume-settings-description">
 					Re-run the onboarding wizard to change your API connection
 					or provider settings.
 				</p>
 				<button
 					type="button"
-					className="wpaim-btn wpaim-btn--secondary"
+					className="plume-btn plume-btn--secondary"
 					onClick={ handleRunSetup }
 				>
 					Run setup again

@@ -1,9 +1,9 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Tools;
+namespace Plume\Tests\Unit\Tools;
 
-use Stilus\Tools\ToolDefinition;
+use Plume\Tools\ToolDefinition;
 use PHPUnit\Framework\TestCase;
 
 class ToolDefinitionTest extends TestCase {

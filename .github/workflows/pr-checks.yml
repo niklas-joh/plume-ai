@@ -55,7 +55,7 @@ jobs:
               - 'package.json'
               - 'playwright.config.*'
             proxy:
-              - 'stilus-proxy/**'
+              - 'plume-proxy/**'
 
   # ── Cloud: PHPStan ──────────────────────────────────────────────────────────
   phpstan:
@@ -145,8 +145,8 @@ jobs:
       - name: npm security audit (plugin)
         run: npm audit --omit=dev --audit-level=high
 
-      - name: npm security audit (stilus-proxy)
-        working-directory: stilus-proxy
+      - name: npm security audit (plume-proxy)
+        working-directory: plume-proxy
         run: npm audit --omit=dev --audit-level=high
 
   # ── Cloud: Semgrep Security Scan ───────────────────────────────────────────
@@ -224,14 +224,14 @@ jobs:
       - name: Install npm dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Build production plugin payload (dist/stilus/)
+      - name: Build production plugin payload (dist/plume/)
         run: bash bin/build-wporg.sh
 
       - name: Configure wp-env to load built plugin
         run: |
           cat > .wp-env.override.json << 'EOF'
           {
-            "plugins": ["./dist/stilus"],
+            "plugins": ["./dist/plume"],
             "config": { "WP_DEBUG": false, "SCRIPT_DEBUG": false }
           }
           EOF
@@ -246,7 +246,7 @@ jobs:
       - name: Run WP Plugin Check
         uses: WordPress/plugin-check-action@18573eb38f13543484a1f095672dae3849a4fbb0 # v1
         with:
-          build-dir: 'dist/stilus'
+          build-dir: 'dist/plume'
           # plugin_repo runs WP.org submission-readiness checks (readme.txt
           # format, headers, screenshots, etc.) — useful even before listing.
           categories: 'general,security,performance,accessibility,plugin_repo'
@@ -286,8 +286,8 @@ jobs:
         # be passed through env to avoid run-shell-injection (Semgrep
         # yaml.github-actions.security.run-shell-injection).
         env:
-          PLUGIN_DIR: dist/stilus
-          BASE_DIR: base-checkout/dist/stilus
+          PLUGIN_DIR: dist/plume
+          BASE_DIR: base-checkout/dist/plume
           BASE_REF: ${{ github.base_ref }}
         run: |
           if [ ! -d "$PLUGIN_DIR" ]; then
@@ -317,7 +317,7 @@ jobs:
             echo "(${sign}$(numfmt --to=iec --suffix=B "$abs"))"
           }
 
-          PLUGIN_VERSION=$(grep "Version:" "$PLUGIN_DIR/stilus.php" | head -1 | sed 's/.*Version:[[:space:]]*//' | tr -d '[:space:]')
+          PLUGIN_VERSION=$(grep "Version:" "$PLUGIN_DIR/plume.php" | head -1 | sed 's/.*Version:[[:space:]]*//' | tr -d '[:space:]')
           BUILD_SIZE=$(du -sh "$PLUGIN_DIR" | awk '{print $1}')
           PHP_COUNT=$(count_php_plugin "$PLUGIN_DIR")
           VENDOR_PHP=$(count_php_vendor "$PLUGIN_DIR")
@@ -367,7 +367,7 @@ jobs:
           message: |
             ## 🔍 Plugin Check — Diagnostic Summary
 
-            **Audited shipping payload** built by `bin/build-wporg.sh` → `dist/stilus/`
+            **Audited shipping payload** built by `bin/build-wporg.sh` → `dist/plume/`
             (matches the production zip uploaded to GitHub Releases.)
 
             | Metric | Value | Δ vs `${{ steps.metrics.outputs.base_ref || 'main' }}` |
@@ -395,7 +395,7 @@ jobs:
   # Performance/SEO are warn-only; accessibility and asset-minification are
   # enforced as errors.
   #
-  # Tests the SHIPPING payload (bin/build-wporg.sh -> dist/stilus/) with
+  # Tests the SHIPPING payload (bin/build-wporg.sh -> dist/plume/) with
   # SCRIPT_DEBUG=false so the audit reflects what real users see, not the
   # development-mode unminified core scripts.
   lighthouse:
@@ -421,14 +421,14 @@ jobs:
       - name: Install npm dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Build production plugin payload (dist/stilus/)
+      - name: Build production plugin payload (dist/plume/)
         run: bash bin/build-wporg.sh
 
       - name: Override wp-env to load the built plugin in production mode
         run: |
           cat > .wp-env.override.json << 'EOF'
           {
-            "plugins": ["./dist/stilus"],
+            "plugins": ["./dist/plume"],
             "config": {
               "WP_DEBUG": false,
               "SCRIPT_DEBUG": false
@@ -558,8 +558,8 @@ jobs:
         run: npx wp-env stop || true
 
   # ── Vitest: Full proxy unit test suite ────────────────────────────────────
-  # Runs the complete stilus-proxy test suite (auth, webhook, tierSync,
-  # namespace-contract, etc.) on every stilus-proxy/** change.
+  # Runs the complete plume-proxy test suite (auth, webhook, tierSync,
+  # namespace-contract, etc.) on every plume-proxy/** change.
   vitest-proxy-unit:
     name: Vitest — Proxy unit tests
     runs-on: ubuntu-latest
@@ -572,16 +572,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version-file: 'stilus-proxy/.nvmrc'
+          node-version-file: 'plume-proxy/.nvmrc'
           cache: 'npm'
-          cache-dependency-path: stilus-proxy/package-lock.json
+          cache-dependency-path: plume-proxy/package-lock.json
 
       - name: Install proxy dependencies
-        working-directory: stilus-proxy
+        working-directory: plume-proxy
         run: npm ci --no-audit --no-fund
 
       - name: Run proxy unit tests
-        working-directory: stilus-proxy
+        working-directory: plume-proxy
         run: npm test
 
   # ── Cloud: Real Integration Tests (live API calls) ─────────────────────────
@@ -649,14 +649,14 @@ jobs:
         # we cd to the plugin directory explicitly before running phpunit.
         env:
           CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
-          STILUS_CI_SITE_TOKEN: ${{ secrets.STILUS_CI_SITE_TOKEN }}
-          STILUS_PROXY_URL: ${{ secrets.STILUS_PROXY_URL }}
+          PLUME_CI_SITE_TOKEN: ${{ secrets.STILUS_CI_SITE_TOKEN }}
+          PLUME_PROXY_URL: ${{ secrets.STILUS_PROXY_URL }}
         run: |
           npx wp-env run tests-wordpress -- bash -c "
             cd /var/www/html/wp-content/plugins/wp-ai-mind
             CLAUDE_API_KEY='${CLAUDE_API_KEY}' \
-            STILUS_CI_SITE_TOKEN='${STILUS_CI_SITE_TOKEN}' \
-            STILUS_PROXY_URL='${STILUS_PROXY_URL}' \
+            PLUME_CI_SITE_TOKEN='${PLUME_CI_SITE_TOKEN}' \
+            PLUME_PROXY_URL='${PLUME_PROXY_URL}' \
             vendor/bin/phpunit \
               -c phpunit-real-integration.xml.dist \
               --colors=always

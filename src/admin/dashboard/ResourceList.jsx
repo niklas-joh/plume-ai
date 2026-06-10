@@ -35,27 +35,27 @@ const RESOURCES = [
 export default function ResourceList( { resourceUrls, version } ) {
 	return (
 		<div>
-			<div className="wpaim-dash-section-head">
-				<span className="wpaim-dash-section-title">Resources</span>
+			<div className="plume-dash-section-head">
+				<span className="plume-dash-section-title">Resources</span>
 			</div>
-			<div className="wpaim-dash-resources">
+			<div className="plume-dash-resources">
 				{ RESOURCES.map( ( item ) => (
 					<a
 						key={ item.urlKey }
 						href={ resourceUrls[ item.urlKey ] }
-						className="wpaim-dash-resource"
+						className="plume-dash-resource"
 						target="_blank"
 						rel="nofollow noreferrer"
 					>
-						<div className="wpaim-dash-resource__body">
-							<div className="wpaim-dash-resource__title">
+						<div className="plume-dash-resource__body">
+							<div className="plume-dash-resource__title">
 								{ item.title }
 							</div>
-							<div className="wpaim-dash-resource__desc">
+							<div className="plume-dash-resource__desc">
 								{ item.desc ?? `What's new in v${ version }.` }
 							</div>
 						</div>
-						<span className="wpaim-dash-resource__arrow">
+						<span className="plume-dash-resource__arrow">
 							&#x2197;
 						</span>
 					</a>

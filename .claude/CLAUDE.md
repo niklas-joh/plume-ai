@@ -1,6 +1,6 @@
-# Stilus — Repo-Specific Agent Instructions
+# Plume — Repo-Specific Agent Instructions
 
-> This file adds rules specific to the `niklas-joh/stilus` repository.
+> This file adds rules specific to the `niklas-joh/plume` repository.
 > It extends (and does not replace) the shared WordPress profile in `CLAUDE.md` → `.agents/profiles/wordpress/AGENTS.md`.
 
 ---
@@ -116,7 +116,7 @@ without explicit user instruction.
    - Breaking change (`!` or `BREAKING CHANGE:`) → major bump
    - `chore:`, `docs:`, `test:`, `refactor:`, `style:`, `build:`, `ci:` → **no release**
 4. If a release is warranted, `semantic-release` automatically:
-   - Updates the version in `stilus.php` (header + constant), `readme.txt`, `package.json`
+   - Updates the version in `plume.php` (header + constant), `readme.txt`, `package.json`
    - Writes `CHANGELOG.md`
    - Commits those changes back with `[skip ci]` to prevent an infinite loop
    - Creates a `vX.Y.Z` tag

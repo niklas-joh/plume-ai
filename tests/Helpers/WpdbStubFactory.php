@@ -1,7 +1,7 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Helpers;
+namespace Plume\Tests\Helpers;
 
 /**
  * Factory for the minimal $wpdb stub shared across the test suite.

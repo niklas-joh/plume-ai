@@ -9,15 +9,15 @@ import { createRoot } from 'react-dom/client';
 import SeoBadge, { getSeoStatus } from '../../src/seo/SeoBadge';
 
 describe( 'getSeoStatus', () => {
-	it( 'returns "missing" when wpaim_seo_status is falsy', () => {
-		expect( getSeoStatus( { wpaim_seo_status: null } ) ).toBe( 'missing' );
-		expect( getSeoStatus( { wpaim_seo_status: undefined } ) ).toBe( 'missing' );
+	it( 'returns "missing" when plume_seo_status is falsy', () => {
+		expect( getSeoStatus( { plume_seo_status: null } ) ).toBe( 'missing' );
+		expect( getSeoStatus( { plume_seo_status: undefined } ) ).toBe( 'missing' );
 		expect( getSeoStatus( {} ) ).toBe( 'missing' );
 	} );
 
 	it( 'returns "missing" when no fields are filled', () => {
 		const post = {
-			wpaim_seo_status: {
+			plume_seo_status: {
 				meta_title: { status: 'empty', value: '' },
 				og_description: { status: 'empty', value: '' },
 			},
@@ -27,7 +27,7 @@ describe( 'getSeoStatus', () => {
 
 	it( 'returns "complete" when all fields are filled', () => {
 		const post = {
-			wpaim_seo_status: {
+			plume_seo_status: {
 				meta_title: { status: 'filled', value: 'My Title' },
 				og_description: { status: 'filled', value: 'My description' },
 			},
@@ -37,7 +37,7 @@ describe( 'getSeoStatus', () => {
 
 	it( 'returns "partial" when some but not all fields are filled', () => {
 		const post = {
-			wpaim_seo_status: {
+			plume_seo_status: {
 				meta_title: { status: 'filled', value: 'My Title' },
 				og_description: { status: 'empty', value: '' },
 			},
@@ -69,8 +69,8 @@ describe( 'SeoBadge', () => {
 		act( () => {
 			root.render( <SeoBadge status="complete" /> );
 		} );
-		// SeoBadge renders a <span> with class wpaim-badge--{status} (SeoBadge.jsx line 38).
-		expect( container.querySelector( 'span.wpaim-badge' ) ).not.toBeNull();
+		// SeoBadge renders a <span> with class plume-badge--{status} (SeoBadge.jsx line 38).
+		expect( container.querySelector( 'span.plume-badge' ) ).not.toBeNull();
 	} );
 
 	it( 'applies the correct modifier class for each status', () => {
@@ -81,7 +81,7 @@ describe( 'SeoBadge', () => {
 				root.render( <SeoBadge status={ status } /> );
 			} );
 
-			const badge = container.querySelector( `span.wpaim-badge--${ status }` );
+			const badge = container.querySelector( `span.plume-badge--${ status }` );
 			expect( badge ).not.toBeNull();
 		} );
 	} );
@@ -91,7 +91,7 @@ describe( 'SeoBadge', () => {
 			root.render( <SeoBadge status="complete" /> );
 		} );
 		// STATUS_LABELS maps 'complete' → 'Complete' (SeoBadge.jsx line 1).
-		expect( container.querySelector( '.wpaim-badge' ).textContent ).toBe( 'Complete' );
+		expect( container.querySelector( '.plume-badge' ).textContent ).toBe( 'Complete' );
 	} );
 
 	it( 'renders the status value as text when status is not in STATUS_LABELS', () => {
@@ -99,6 +99,6 @@ describe( 'SeoBadge', () => {
 			root.render( <SeoBadge status="unknown-status" /> );
 		} );
 		// Fallback: `STATUS_LABELS[status] ?? status` (SeoBadge.jsx line 39).
-		expect( container.querySelector( '.wpaim-badge' ).textContent ).toBe( 'unknown-status' );
+		expect( container.querySelector( '.plume-badge' ).textContent ).toBe( 'unknown-status' );
 	} );
 } );

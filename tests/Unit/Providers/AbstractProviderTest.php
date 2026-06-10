@@ -1,12 +1,12 @@
 <?php
-namespace Stilus\Tests\Unit\Providers;
+namespace Plume\Tests\Unit\Providers;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Providers\AbstractProvider;
-use Stilus\Providers\CompletionRequest;
-use Stilus\Providers\CompletionResponse;
-use Stilus\Providers\ProviderException;
+use Plume\Providers\AbstractProvider;
+use Plume\Providers\CompletionRequest;
+use Plume\Providers\CompletionResponse;
+use Plume\Providers\ProviderException;
 use PHPUnit\Framework\TestCase;
 
 class AbstractProviderTest extends TestCase {

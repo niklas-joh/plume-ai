@@ -2,11 +2,11 @@
 /**
  * Encrypted storage and retrieval of AI provider API keys.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Settings;
+namespace Plume\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ProviderSettings {
 
-	private const OPTION_KEY      = 'stilus_provider_keys';
+	private const OPTION_KEY      = 'plume_provider_keys';
 	private const CIPHER          = 'AES-256-CBC';
 	private const VALID_PROVIDERS = [ 'claude', 'openai', 'gemini', 'ollama' ];
 	private const ENV_VARS        = [

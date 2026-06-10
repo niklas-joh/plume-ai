@@ -20,17 +20,17 @@ export default function MessageList( { messages, isLoading } ) {
 	}, [ messages, isLoading ] );
 
 	return (
-		<div className="wpaim-messages">
+		<div className="plume-messages">
 			{ messages.map( ( msg, i ) => (
 				<MessageBubble key={ i } message={ msg } />
 			) ) }
 			{ isLoading && (
-				<div className="wpaim-bubble wpaim-bubble--ai">
-					<div className="wpaim-bubble__content">
+				<div className="plume-bubble plume-bubble--ai">
+					<div className="plume-bubble__content">
 						<Loader2
 							size={ 14 }
 							strokeWidth={ 1.5 }
-							className="wpaim-spinner"
+							className="plume-spinner"
 						/>
 					</div>
 				</div>

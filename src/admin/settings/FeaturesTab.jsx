@@ -107,19 +107,19 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 	}
 
 	return (
-		<div className="wpaim-features-tab">
-			<section className="wpaim-settings-section">
-				<div className="wpaim-settings-section-header">
-					<h3 className="wpaim-settings-section-title">
+		<div className="plume-features-tab">
+			<section className="plume-settings-section">
+				<div className="plume-settings-section-header">
+					<h3 className="plume-settings-section-title">
 						Enabled Modules
 					</h3>
-					<p className="wpaim-settings-section-desc">
+					<p className="plume-settings-section-desc">
 						Enable or disable individual AI modules. Pro modules
-						require an active Stilus Pro licence.
+						require an active Plume Pro licence.
 					</p>
 				</div>
 
-				<div className="wpaim-features-grid">
+				<div className="plume-features-grid">
 					{ MODULES.map(
 						( {
 							slug,
@@ -133,23 +133,23 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 							return (
 								<div
 									key={ slug }
-									className={ `wpaim-feature-card${
+									className={ `plume-feature-card${
 										isLocked
-											? ' wpaim-feature-card--locked'
+											? ' plume-feature-card--locked'
 											: ''
 									}${
 										isEnabled
-											? ' wpaim-feature-card--enabled'
+											? ' plume-feature-card--enabled'
 											: ''
 									}` }
 								>
-									<div className="wpaim-feature-card-header">
-										<div className="wpaim-feature-card-meta">
-											<span className="wpaim-feature-card-label">
+									<div className="plume-feature-card-header">
+										<div className="plume-feature-card-meta">
+											<span className="plume-feature-card-label">
 												{ label }
 											</span>
 											{ isProModule && (
-												<span className="wpaim-pro-badge">
+												<span className="plume-pro-badge">
 													{ isLocked && (
 														<Lock size={ 10 } />
 													) }
@@ -173,14 +173,14 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 										/>
 									</div>
 
-									<p className="wpaim-feature-card-desc">
+									<p className="plume-feature-card-desc">
 										{ description }
 									</p>
 
 									{ isLocked && (
-										<p className="wpaim-feature-card-locked-msg">
+										<p className="plume-feature-card-locked-msg">
 											<Lock size={ 11 } />
-											Requires Stilus Pro
+											Requires Plume Pro
 										</p>
 									) }
 								</div>
@@ -190,18 +190,18 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 				</div>
 			</section>
 
-			<section className="wpaim-settings-section">
-				<div className="wpaim-settings-section-header">
-					<h3 className="wpaim-settings-section-title">
+			<section className="plume-settings-section">
+				<div className="plume-settings-section-header">
+					<h3 className="plume-settings-section-title">
 						Post Type Access
 					</h3>
-					<p className="wpaim-settings-section-desc">
+					<p className="plume-settings-section-desc">
 						Select which post types the AI assistant can read and
 						write.
 					</p>
 				</div>
 
-				<div className="wpaim-post-type-list">
+				<div className="plume-post-type-list">
 					{ availablePostTypes.map( ( { slug, label } ) => (
 						<CheckboxControl
 							key={ slug }

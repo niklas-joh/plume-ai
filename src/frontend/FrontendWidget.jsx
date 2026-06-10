@@ -3,7 +3,7 @@ import { MessageSquare, X, Send, Loader2 } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 import MarkdownContent from '../shared/MarkdownContent';
 
-const { currentPostId, siteTitle } = window.stilusData || {};
+const { currentPostId, siteTitle } = window.plumeData || {};
 
 /**
  * Floating chat widget rendered on the public-facing site via a shortcode.
@@ -39,7 +39,7 @@ export default function FrontendWidget() {
 			let cid = convId;
 			if ( ! cid ) {
 				const conv = await apiFetch( {
-					path: '/stilus/v1/conversations',
+					path: '/plume/v1/conversations',
 					method: 'POST',
 					data: {
 						title: text.slice( 0, 60 ),
@@ -50,7 +50,7 @@ export default function FrontendWidget() {
 				setConvId( cid );
 			}
 			const res = await apiFetch( {
-				path: `/stilus/v1/conversations/${ cid }/messages`,
+				path: `/plume/v1/conversations/${ cid }/messages`,
 				method: 'POST',
 				data: { content: text },
 			} );
@@ -72,13 +72,13 @@ export default function FrontendWidget() {
 	}
 
 	return (
-		<div className="wpaim-widget">
+		<div className="plume-widget">
 			<div
-				className={ `wpaim-widget__panel ${
-					open ? '' : 'wpaim-widget__panel--hidden'
+				className={ `plume-widget__panel ${
+					open ? '' : 'plume-widget__panel--hidden'
 				}` }
 			>
-				<div className="wpaim-widget__header">
+				<div className="plume-widget__header">
 					<span
 						style={ {
 							fontWeight: 600,
@@ -102,7 +102,7 @@ export default function FrontendWidget() {
 					</button>
 				</div>
 
-				<div className="wpaim-widget__messages">
+				<div className="plume-widget__messages">
 					{ messages.length === 0 && (
 						<p
 							style={ {
@@ -118,7 +118,7 @@ export default function FrontendWidget() {
 					{ messages.map( ( m, i ) => (
 						<div
 							key={ i }
-							className={ `wpaim-widget__bubble wpaim-widget__bubble--${
+							className={ `plume-widget__bubble plume-widget__bubble--${
 								m.role === 'user' ? 'user' : 'ai'
 							}` }
 						>
@@ -130,16 +130,16 @@ export default function FrontendWidget() {
 						</div>
 					) ) }
 					{ isLoading && (
-						<div className="wpaim-widget__bubble wpaim-widget__bubble--ai">
-							<Loader2 size={ 14 } className="wpaim-spin" />
+						<div className="plume-widget__bubble plume-widget__bubble--ai">
+							<Loader2 size={ 14 } className="plume-spin" />
 						</div>
 					) }
 					<div ref={ endRef } />
 				</div>
 
-				<div className="wpaim-widget__composer">
+				<div className="plume-widget__composer">
 					<input
-						className="wpaim-widget__input"
+						className="plume-widget__input"
 						value={ input }
 						onChange={ ( e ) => setInput( e.target.value ) }
 						onKeyDown={ ( e ) =>
@@ -151,12 +151,12 @@ export default function FrontendWidget() {
 						disabled={ isLoading }
 					/>
 					<button
-						className="wpaim-widget__send"
+						className="plume-widget__send"
 						onClick={ send }
 						disabled={ isLoading || ! input.trim() }
 					>
 						{ isLoading ? (
-							<Loader2 size={ 14 } className="wpaim-spin" />
+							<Loader2 size={ 14 } className="plume-spin" />
 						) : (
 							<Send size={ 14 } />
 						) }
@@ -165,7 +165,7 @@ export default function FrontendWidget() {
 			</div>
 
 			<button
-				className="wpaim-widget__toggle"
+				className="plume-widget__toggle"
 				onClick={ () => setOpen( ( prev ) => ! prev ) }
 				aria-label="Open AI chat"
 			>

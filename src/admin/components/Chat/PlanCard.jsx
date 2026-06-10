@@ -42,9 +42,7 @@ export default function PlanCard( { plan, onDismiss } ) {
 		isUpdate ? plan.new_title ?? '' : plan.title ?? ''
 	);
 	const [ editContent, setEditContent ] = useState(
-		isUpdate
-			? plan.new_content ?? ''
-			: plan.content ?? plan.outline ?? ''
+		isUpdate ? plan.new_content ?? '' : plan.content ?? plan.outline ?? ''
 	);
 	const [ editStatus, setEditStatus ] = useState(
 		plan.post_status || 'draft'

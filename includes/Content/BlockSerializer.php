@@ -218,15 +218,17 @@ class BlockSerializer {
 	/**
 	 * Returns the serialised inner HTML of a DOM element.
 	 *
-	 * Concatenates the saveHTML output of every child node and decodes HTML
-	 * entities back to raw UTF-8 so that multibyte characters survive the
-	 * DOMDocument round-trip (DOMDocument encodes them as numeric entities by
-	 * default when substituteEntities is off).
+	 * Concatenates the saveHTML output of every child node and decodes the
+	 * numeric entities DOMDocument uses for multibyte characters back to raw
+	 * UTF-8. Named entities (&lt;, &amp;, …) are deliberately left intact:
+	 * commonmark escapes code-block content with them, and decoding would
+	 * re-introduce live tags that wp_kses_post() then strips — silently
+	 * losing any code snippet that documents HTML or PHP.
 	 *
 	 * @since 1.9.0
 	 * @param DOMElement  $element The element whose children to serialise.
 	 * @param DOMDocument $dom     The owning document.
-	 * @return string Inner HTML with entities decoded to UTF-8.
+	 * @return string Inner HTML with multibyte numeric entities decoded to UTF-8.
 	 */
 	private function inner_html( DOMElement $element, DOMDocument $dom ): string {
 		$html = '';
@@ -234,8 +236,8 @@ class BlockSerializer {
 			$html .= $dom->saveHTML( $child );
 		}
 
-		// DOMDocument encodes multibyte characters as numeric HTML entities;
-		// decode them back so callers receive raw Unicode strings.
-		return html_entity_decode( $html, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		// Decode only numeric entities for code points >= U+0080 (the range
+		// DOMDocument entity-encodes); ASCII named entities must stay escaped.
+		return mb_decode_numericentity( $html, [ 0x80, 0x10FFFF, 0, 0x1FFFFF ], 'UTF-8' );
 	}
 }

@@ -104,4 +104,18 @@ class BlockSerializerTest extends TestCase {
 		$this->assertSame( '', $this->serializer->serialise( '' ) );
 		$this->assertSame( '', $this->serializer->serialise( "  \n  " ) );
 	}
+
+	public function test_code_block_keeps_html_entities_escaped(): void {
+		$out = $this->serializer->serialise( '<pre><code>&lt;?php echo "&lt;b&gt;bold&lt;/b&gt;"; ?&gt;</code></pre>' );
+		$this->assertStringContainsString( '&lt;?php', $out );
+		$this->assertStringContainsString( '&lt;b&gt;', $out );
+		$this->assertStringNotContainsString( '<?php', $out );
+		$this->assertStringNotContainsString( '<b>', $out );
+	}
+
+	public function test_ampersand_entity_stays_escaped_in_paragraph(): void {
+		$out = $this->serializer->serialise( '<p>Fish &amp; chips &lt;tag&gt;</p>' );
+		$this->assertStringContainsString( 'Fish &amp; chips', $out );
+		$this->assertStringContainsString( '&lt;tag&gt;', $out );
+	}
 }

@@ -61,6 +61,12 @@ class ContentNormaliserTest extends TestCase {
 		$this->assertStringContainsString( 'Already HTML.', $out );
 	}
 
+	public function test_code_fence_with_html_keeps_entities_escaped(): void {
+		$out = ( new ContentNormaliser() )->normalise( "```\n<script>alert(1)</script>\n```" );
+		$this->assertStringContainsString( '&lt;script&gt;', $out );
+		$this->assertStringNotContainsString( '<script>', $out );
+	}
+
 	public function test_output_filter_is_applied(): void {
 		Functions\expect( 'apply_filters' )
 			->once()

@@ -1,8 +1,8 @@
-/* Stilus — Editor Sidebar Styles */
+/* Plume — Editor Sidebar Styles */
 @import "../styles/animations.css";
 
 /* ── Sidebar container ──────────────────────────────────────────────── */
-.wpaim-editor-sidebar {
+.plume-editor-sidebar {
 	padding: var(--space-4);
 	background: var(--color-bg);
 	color: var(--color-text-primary);
@@ -10,13 +10,13 @@
 }
 
 /* ── Panel section — layout via adjacent-sibling rule below ─────────── */
-.wpaim-editor-panel + .wpaim-editor-panel {
+.plume-editor-panel + .plume-editor-panel {
 	border-top: 1px solid var(--color-border);
 	padding-top: var(--space-3);
 	margin-top: var(--space-3);
 }
 
-.wpaim-panel__heading {
+.plume-panel__heading {
 	font-size: var(--text-sm);
 	font-weight: 600;
 	color: var(--color-text-muted);
@@ -26,13 +26,13 @@
 }
 
 /* ── Mini Chat ──────────────────────────────────────────────────────── */
-.wpaim-editor-mini-chat {
+.plume-editor-mini-chat {
 	display: flex;
 	flex-direction: column;
 	max-height: 400px;
 }
 
-.wpaim-editor-mini-chat__messages {
+.plume-editor-mini-chat__messages {
 	flex: 1;
 	overflow-y: auto;
 	display: flex;
@@ -42,7 +42,7 @@
 	min-height: 80px;
 }
 
-.wpaim-editor-mini-chat__bubble {
+.plume-editor-mini-chat__bubble {
 	padding: var(--space-2) var(--space-3);
 	border-radius: var(--radius-md);
 	font-size: var(--text-sm);
@@ -50,21 +50,21 @@
 	word-break: break-word;
 }
 
-.wpaim-editor-mini-chat__bubble--user {
+.plume-editor-mini-chat__bubble--user {
 	background: rgba(var(--wp-admin-theme-color--rgb), 0.12);
 	color: var(--color-text-primary);
 	align-self: flex-end;
 	max-width: 85%;
 }
 
-.wpaim-editor-mini-chat__bubble--ai {
+.plume-editor-mini-chat__bubble--ai {
 	background: #f0f0f1;
 	color: #1d2327;
 	align-self: flex-start;
 	max-width: 92%;
 }
 
-.wpaim-editor-mini-chat__composer {
+.plume-editor-mini-chat__composer {
 	display: flex;
 	flex-direction: row;
 	gap: var(--space-2);
@@ -72,7 +72,7 @@
 	align-items: center;
 }
 
-.wpaim-editor-mini-chat__input {
+.plume-editor-mini-chat__input {
 	flex: 1;
 	border: 1px solid #dcdcde;
 	border-radius: var(--radius-sm);
@@ -84,20 +84,20 @@
 	transition: border-color 0.15s ease;
 }
 
-.wpaim-editor-mini-chat__input:focus-visible {
+.plume-editor-mini-chat__input:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color);
 	outline-offset: 2px;
 }
 
-.wpaim-editor-mini-chat__input:focus {
+.plume-editor-mini-chat__input:focus {
 	border-color: var(--wp-admin-theme-color);
 }
 
-.wpaim-editor-mini-chat__input::placeholder {
+.plume-editor-mini-chat__input::placeholder {
 	color: var(--color-text-muted);
 }
 
-.wpaim-editor-mini-chat__send {
+.plume-editor-mini-chat__send {
 	flex-shrink: 0;
 	background: var(--wp-admin-theme-color);
 	color: #fff;
@@ -111,34 +111,34 @@
 	transition: background 0.15s ease;
 }
 
-.wpaim-editor-mini-chat__send:disabled {
+.plume-editor-mini-chat__send:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
 }
 
-.wpaim-editor-mini-chat__send:hover:not(:disabled) {
+.plume-editor-mini-chat__send:hover:not(:disabled) {
 	background: var(--wp-admin-theme-color-darker-10);
 }
 
 /* Spinning animation for Loader2 icon — keyframe defined in styles/animations.css */
-.wpaim-spin {
-	animation: wpaim-spin 1s linear infinite;
+.plume-spin {
+	animation: plume-spin 1s linear infinite;
 }
 
 /* ── Block Actions ──────────────────────────────────────────────────── */
-.wpaim-block-actions__empty {
+.plume-block-actions__empty {
 	color: var(--color-text-muted);
 	font-size: var(--text-sm);
 	margin: 0;
 }
 
-.wpaim-block-actions {
+.plume-block-actions {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-1);
 }
 
-.wpaim-block-actions__btn {
+.plume-block-actions__btn {
 	width: 100%;
 	text-align: left;
 	background: transparent;
@@ -153,46 +153,46 @@
 	transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.wpaim-block-actions__btn > svg {
+.plume-block-actions__btn > svg {
 	margin-right: var(--space-2);
 	flex-shrink: 0;
 }
 
-.wpaim-block-actions__btn:hover {
+.plume-block-actions__btn:hover {
 	background: #f0f0f1;
 	border-color: rgba(var(--wp-admin-theme-color--rgb), 0.3);
 }
 
 /* ── SEO Panel ──────────────────────────────────────────────────────── */
-.wpaim-seo-panel {
+.plume-seo-panel {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-2);
 }
 
-.wpaim-seo-panel--locked {
+.plume-seo-panel--locked {
 	text-align: center;
 	padding: var(--space-4);
 }
 
-.wpaim-seo-panel--locked > svg {
+.plume-seo-panel--locked > svg {
 	color: var(--color-text-muted);
 }
 
-.wpaim-seo-panel__locked-text {
+.plume-seo-panel__locked-text {
 	color: var(--color-text-muted);
 	font-size: var(--text-sm);
 	margin-top: var(--space-2);
 }
 
-.wpaim-seo-panel__score-row {
+.plume-seo-panel__score-row {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
 	margin-bottom: var(--space-3);
 }
 
-.wpaim-seo-panel__score {
+.plume-seo-panel__score {
 	display: inline-block;
 	border-radius: var(--radius-lg, 9999px);
 	font-size: var(--text-xs);
@@ -202,12 +202,12 @@
 	padding: var(--space-0-5) var(--space-2);
 }
 
-.wpaim-seo-panel__word-count {
+.plume-seo-panel__word-count {
 	font-size: var(--text-sm);
 	color: var(--color-text-muted);
 }
 
-.wpaim-seo-panel__item {
+.plume-seo-panel__item {
 	display: flex;
 	flex-direction: row;
 	align-items: flex-start;
@@ -217,11 +217,11 @@
 	line-height: 1.4;
 }
 
-.wpaim-seo-panel__item > svg {
+.plume-seo-panel__item > svg {
 	flex-shrink: 0;
 }
 
-.wpaim-seo-panel__item-tip {
+.plume-seo-panel__item-tip {
 	color: var(--color-text-muted);
 	font-size: var(--text-xs);
 }

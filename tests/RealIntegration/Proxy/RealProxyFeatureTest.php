@@ -6,18 +6,18 @@
  * and SEO features to verify the full proxy pipeline works for all features
  * that require the proxy tier, not just chat.
  *
- * SKIPPED when STILUS_CI_SITE_TOKEN is absent.
+ * SKIPPED when PLUME_CI_SITE_TOKEN is absent.
  * Cost: ~$0.001/run (claude-haiku-4-5-20251001, three short AI turns).
  *
- * @package Stilus\Tests\RealIntegration\Proxy
+ * @package Plume\Tests\RealIntegration\Proxy
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tests\RealIntegration\Proxy;
+namespace Plume\Tests\RealIntegration\Proxy;
 
-use Stilus\Tests\RealIntegration\RealIntegrationTestCase;
-use Stilus\Proxy\SiteRegistration;
+use Plume\Tests\RealIntegration\RealIntegrationTestCase;
+use Plume\Proxy\SiteRegistration;
 
 /**
  * @since 1.8.0
@@ -35,11 +35,11 @@ class RealProxyFeatureTest extends RealIntegrationTestCase {
 		parent::setUp();
 
 		// Inject the real CI site token so ProxyClient sends valid Bearer auth.
-		update_option( SiteRegistration::OPTION_TOKEN, getenv( 'STILUS_CI_SITE_TOKEN' ) ?: '' );
+		update_option( SiteRegistration::OPTION_TOKEN, getenv( 'PLUME_CI_SITE_TOKEN' ) ?: '' );
 
-		$proxy_url = getenv( 'STILUS_PROXY_URL' );
+		$proxy_url = getenv( 'PLUME_PROXY_URL' );
 		if ( false !== $proxy_url && '' !== $proxy_url ) {
-			update_option( 'stilus_proxy_url', rtrim( $proxy_url, '/' ) );
+			update_option( 'plume_proxy_url', rtrim( $proxy_url, '/' ) );
 		}
 
 		// Use trial tier — all features enabled, routes via proxy.
@@ -54,12 +54,12 @@ class RealProxyFeatureTest extends RealIntegrationTestCase {
 	public function test_proxy_chat_returns_real_response(): void {
 		wp_set_current_user( self::$editor_user_id );
 
-		$create  = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'Proxy Chat Test' ] );
+		$create  = $this->rest_do( 'POST', '/plume/v1/conversations', [ 'title' => 'Proxy Chat Test' ] );
 		$conv_id = $create->get_data()['id'];
 
 		$response = $this->rest_do(
 			'POST',
-			"/stilus/v1/conversations/{$conv_id}/messages",
+			"/plume/v1/conversations/{$conv_id}/messages",
 			[
 				'content'  => 'Reply with only the word "pong".',
 				'provider' => 'claude',
@@ -86,7 +86,7 @@ class RealProxyFeatureTest extends RealIntegrationTestCase {
 
 		$response = $this->rest_do(
 			'POST',
-			'/stilus/v1/generate',
+			'/plume/v1/generate',
 			[
 				'title'  => 'Automated testing benefits',
 				'tone'   => 'professional',
@@ -114,7 +114,7 @@ class RealProxyFeatureTest extends RealIntegrationTestCase {
 		$post_id = self::factory()->post->create(
 			[
 				'post_title'   => 'Proxy SEO test post',
-				'post_content' => 'Content for SEO meta generation via the Stilus proxy.',
+				'post_content' => 'Content for SEO meta generation via the Plume proxy.',
 				'post_status'  => 'draft',
 				'post_author'  => self::$editor_user_id,
 			]
@@ -122,7 +122,7 @@ class RealProxyFeatureTest extends RealIntegrationTestCase {
 
 		$response = $this->rest_do(
 			'POST',
-			'/stilus/v1/seo/generate',
+			'/plume/v1/seo/generate',
 			[ 'post_id' => $post_id ]
 		);
 

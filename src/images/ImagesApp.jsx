@@ -3,7 +3,7 @@ import PostListTable from '../shared/PostListTable';
 import ImagesBadge from './ImagesBadge';
 import ImagesWorkArea from './ImagesWorkArea';
 
-const { isPro } = window.stilusData ?? {};
+const { isPro } = window.plumeData ?? {};
 
 const IMAGES_TABS = [
 	{ id: 'all', label: 'All', filter: () => true },
@@ -35,15 +35,15 @@ const IMAGES_COLUMNS = [
 export default function ImagesApp() {
 	if ( ! isPro ) {
 		return (
-			<div className="wpaim-pro-gate">
+			<div className="plume-pro-gate">
 				<Lock size={ 32 } />
-				<h2>AI image generation requires Stilus Pro</h2>
+				<h2>AI image generation requires Plume Pro</h2>
 				<p>
 					Generate beautiful featured images from a text prompt and
 					set them directly on any post or page.
 				</p>
 				<a
-					href="https://wpaimind.com/pricing"
+					href="https://plumeind.com/pricing"
 					className="button button-primary button-large"
 				>
 					Upgrade to Pro →
@@ -53,10 +53,10 @@ export default function ImagesApp() {
 	}
 
 	return (
-		<div className="wpaim-page">
-			<div className="wpaim-page-header">
+		<div className="plume-page">
+			<div className="plume-page-header">
 				<h1>
-					Images <span className="wpaim-pro-badge">PRO</span>
+					Images <span className="plume-pro-badge">PRO</span>
 				</h1>
 				<p>
 					Generate featured images for your posts and pages with AI.

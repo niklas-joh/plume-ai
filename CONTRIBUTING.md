@@ -1,4 +1,4 @@
-# Contributing to Stilus
+# Contributing to Plume
 
 ## Prerequisites
 

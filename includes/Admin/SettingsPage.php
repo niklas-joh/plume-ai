@@ -2,21 +2,21 @@
 /**
  * Admin page rendering the plugin settings screen.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Tiers\TierManager;
+use Plume\Tiers\TierManager;
 
 /**
- * Renders the Stilus settings admin page.
+ * Renders the Plume settings admin page.
  *
  * Outputs a React mount point and enqueues the shared admin bundle.
  * The React app reads the mount-point ID or a URL hash to decide
@@ -32,7 +32,7 @@ class SettingsPage {
 	 */
 	public static function render(): void {
 		self::enqueue_assets();
-		echo '<div id="stilus-settings" class="stilus-page"></div>';
+		echo '<div id="plume-settings" class="plume-page"></div>';
 	}
 
 	/**
@@ -42,29 +42,29 @@ class SettingsPage {
 	 * @return void
 	 */
 	public static function enqueue_assets(): void {
-		$asset_file = STILUS_DIR . 'assets/admin/index.asset.php';
+		$asset_file = PLUME_DIR . 'assets/admin/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => STILUS_VERSION,
+				'version'      => PLUME_VERSION,
 			];
 
 		wp_enqueue_script(
-			'stilus-admin',
-			STILUS_URL . 'assets/admin/index.js',
+			'plume-admin',
+			PLUME_URL . 'assets/admin/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-i18n', 'wp-api-fetch' ] ),
 			$asset['version'],
 			true
 		);
 
 		wp_localize_script(
-			'stilus-admin',
-			'stilusData',
+			'plume-admin',
+			'plumeData',
 			[
 				'nonce'         => wp_create_nonce( 'wp_rest' ),
-				'restUrl'       => esc_url_raw( rest_url( 'stilus/v1' ) ),
-				'upgradeUrl'    => esc_url( admin_url( 'admin.php?page=stilus-upgrade' ) ),
+				'restUrl'       => esc_url_raw( rest_url( 'plume/v1' ) ),
+				'upgradeUrl'    => esc_url( admin_url( 'admin.php?page=plume-upgrade' ) ),
 				'currentPostId' => 0,
 				'isPro'         => TierManager::user_can( 'generator' ),
 				'siteTitle'     => get_bloginfo( 'name' ),
@@ -77,8 +77,8 @@ class SettingsPage {
 		);
 
 		wp_enqueue_style(
-			'stilus-admin',
-			STILUS_URL . 'assets/admin/index.css',
+			'plume-admin',
+			PLUME_URL . 'assets/admin/index.css',
 			[],
 			$asset['version']
 		);

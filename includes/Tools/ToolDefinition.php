@@ -2,12 +2,12 @@
 /**
  * Immutable value object describing a single AI tool definition.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tools;
+namespace Plume\Tools;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

@@ -1,10 +1,10 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Content;
+namespace Plume\Tests\Unit\Content;
 
 use PHPUnit\Framework\TestCase;
-use Stilus\Content\BlockSerializer;
+use Plume\Content\BlockSerializer;
 
 class BlockSerializerTest extends TestCase {
 

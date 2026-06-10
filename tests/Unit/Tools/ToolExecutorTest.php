@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Tools;
+namespace Plume\Tests\Unit\Tools;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Tools\ToolExecutor;
-use Stilus\Tools\ToolRegistry;
+use Plume\Tools\ToolExecutor;
+use Plume\Tools\ToolRegistry;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -117,26 +117,6 @@ class ToolExecutorTest extends TestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// create_post
-	// -------------------------------------------------------------------------
-
-	public function test_create_post_blocked_when_write_tools_disabled(): void {
-		Functions\when( 'get_option' )
-			->alias( static function ( string $key, $default = false ) {
-				if ( 'stilus_enable_write_tools' === $key ) {
-					return false;
-				}
-				return $default;
-			} );
-
-		$executor = $this->make_executor();
-		$result   = $executor->execute( 'create_post', [ 'title' => 'Test' ], 1 );
-
-		$this->assertArrayHasKey( 'error', $result );
-		$this->assertStringContainsString( 'disabled', strtolower( $result['error'] ) );
-	}
-
-	// -------------------------------------------------------------------------
 	// generate_seo_meta
 	// -------------------------------------------------------------------------
 
@@ -221,11 +201,11 @@ class ToolExecutorTest extends TestCase {
 
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'wp_strip_all_tags' )->alias( fn( $s ) => $s );
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 		// pro_managed is site-level now; usage meta still per-user.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'stilus_site_tier' === $key ? 'pro_managed' : $default
+				'plume_site_tier' === $key ? 'pro_managed' : $default
 		);
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key, bool $single ) use ( $month_key ): mixed {
@@ -241,50 +221,6 @@ class ToolExecutorTest extends TestCase {
 
 		$this->assertArrayHasKey( 'error', $result );
 		$this->assertStringContainsString( 'limit', strtolower( $result['error'] ) );
-	}
-
-	// -------------------------------------------------------------------------
-	// update_post
-	// -------------------------------------------------------------------------
-
-	public function test_update_post_blocked_without_edit_post_cap(): void {
-		Functions\when( 'get_option' )
-			->alias( static function ( string $key, $default = false ) {
-				if ( 'stilus_enable_write_tools' === $key ) {
-					return true;
-				}
-				return $default;
-			} );
-
-		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
-
-		// user_can returns false for edit_post check.
-		Functions\when( 'user_can' )->justReturn( false );
-
-		$executor = $this->make_executor();
-		$result   = $executor->execute( 'update_post', [ 'post_id' => 5, 'title' => 'New title' ], 1 );
-
-		$this->assertArrayHasKey( 'error', $result );
-		$this->assertStringContainsString( 'permissions', strtolower( $result['error'] ) );
-	}
-
-	public function test_update_post_returns_error_when_no_fields_provided(): void {
-		Functions\when( 'get_option' )
-			->alias( static function ( string $key, $default = false ) {
-				if ( 'stilus_enable_write_tools' === $key ) {
-					return true;
-				}
-				return $default;
-			} );
-
-		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
-		Functions\when( 'user_can' )->justReturn( true );
-
-		$executor = $this->make_executor();
-		$result   = $executor->execute( 'update_post', [ 'post_id' => 5 ], 1 );
-
-		$this->assertArrayHasKey( 'error', $result );
-		$this->assertStringContainsString( 'No fields', $result['error'] );
 	}
 
 	// -------------------------------------------------------------------------
@@ -344,70 +280,4 @@ class ToolExecutorTest extends TestCase {
 		$this->assertSame( 'pending_approval', $result['status'] );
 	}
 
-	// -------------------------------------------------------------------------
-	// Normalisation
-	// -------------------------------------------------------------------------
-
-	public function test_create_post_normalises_markdown_content(): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( $key, $default = false ) => 'stilus_enable_write_tools' === $key ? true : $default
-		);
-		Functions\when( 'user_can' )->justReturn( true );
-		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
-		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
-		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
-		Functions\when( 'has_blocks' )->alias( static fn( $c ) => str_contains( (string) $c, '<!-- wp:' ) );
-		Functions\when( 'apply_filters' )->returnArg( 2 );
-		Functions\when( 'get_edit_post_link' )->justReturn( 'http://example.test/edit' );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-
-		$captured = null;
-		Functions\when( 'wp_insert_post' )->alias(
-			static function ( array $data ) use ( &$captured ) {
-				$captured = $data;
-				return 123;
-			}
-		);
-
-		$executor = $this->make_executor();
-		$result   = $executor->execute(
-			'create_post',
-			[ 'title' => 'T', 'content' => "## Heading\n\nBody text." ],
-			1
-		);
-
-		$this->assertSame( 123, $result['post_id'] );
-		$this->assertNotNull( $captured );
-		$this->assertStringContainsString( '<!-- wp:heading -->', $captured['post_content'] );
-		$this->assertStringContainsString( '<!-- wp:paragraph -->', $captured['post_content'] );
-	}
-
-	public function test_update_post_normalises_markdown_content(): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( $key, $default = false ) => 'stilus_enable_write_tools' === $key ? true : $default
-		);
-		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
-		Functions\when( 'user_can' )->justReturn( true );
-		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
-		Functions\when( 'has_blocks' )->alias( static fn( $c ) => str_contains( (string) $c, '<!-- wp:' ) );
-		Functions\when( 'apply_filters' )->returnArg( 2 );
-		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-
-		$captured = null;
-		Functions\when( 'wp_update_post' )->alias(
-			static function ( array $data ) use ( &$captured ) {
-				$captured = $data;
-				return 42;
-			}
-		);
-
-		$executor = $this->make_executor();
-		$result   = $executor->execute( 'update_post', [ 'post_id' => 42, 'content' => '*emphasis* text' ], 1 );
-
-		$this->assertTrue( $result['updated'] );
-		$this->assertNotNull( $captured );
-		$this->assertStringContainsString( '<!-- wp:paragraph -->', $captured['post_content'] );
-		$this->assertStringContainsString( '<em>emphasis</em>', $captured['post_content'] );
-	}
 }

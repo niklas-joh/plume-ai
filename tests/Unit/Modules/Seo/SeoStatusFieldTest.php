@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Modules\Seo;
+namespace Plume\Tests\Unit\Modules\Seo;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Modules\Seo\SeoModule;
+use Plume\Modules\Seo\SeoModule;
 use PHPUnit\Framework\TestCase;
 
 class SeoStatusFieldTest extends TestCase {

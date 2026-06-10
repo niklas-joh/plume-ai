@@ -3,13 +3,13 @@ const { test, expect } = require( '@playwright/test' );
 const { wpLogin } = require( '../helpers/login' );
 
 // URL predicates used for route intercepts — matches both pretty-permalink
-// (/wp-json/stilus/v1/...) and plain-permalink (?rest_route=...) formats.
+// (/wp-json/plume/v1/...) and plain-permalink (?rest_route=...) formats.
 const isConversationsUrl = ( url ) =>
-	url.href.includes( 'stilus/v1/conversations' ) &&
+	url.href.includes( 'plume/v1/conversations' ) &&
 	! url.href.includes( '/messages' );
 
 const isMessagesUrl = ( url ) =>
-	url.href.includes( 'stilus/v1/conversations' ) &&
+	url.href.includes( 'plume/v1/conversations' ) &&
 	url.href.includes( '/messages' );
 
 test.describe( 'Chat journey', () => {
@@ -53,22 +53,22 @@ test.describe( 'Chat journey', () => {
 			}
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
-		// Wait for React to hydrate — .wpaim-shell is the root chat element.
-		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
+		await page.goto( '/wp-admin/admin.php?page=plume-chat' );
+		// Wait for React to hydrate — .plume-shell is the root chat element.
+		await page.waitForSelector( '.plume-shell', { timeout: 10000 } );
 
-		// The composer textarea is .wpaim-composer__input (Composer.jsx line 98).
-		// On the launch screen the composer is inside .wpaim-launch; after first
-		// message it moves inside .wpaim-main — both render the same class.
-		await page.fill( '.wpaim-composer__input', 'Summarise the benefits of integration testing' );
+		// The composer textarea is .plume-composer__input (Composer.jsx line 98).
+		// On the launch screen the composer is inside .plume-launch; after first
+		// message it moves inside .plume-main — both render the same class.
+		await page.fill( '.plume-composer__input', 'Summarise the benefits of integration testing' );
 
 		// Composer submits on Enter (without Shift) — handleKeyDown in Composer.jsx.
-		await page.locator( '.wpaim-composer__input' ).press( 'Enter' );
+		await page.locator( '.plume-composer__input' ).press( 'Enter' );
 
-		// AI message bubbles carry .wpaim-bubble--ai (MessageBubble.jsx line 24).
-		// The text is rendered inside .wpaim-bubble__content via MarkdownContent.
+		// AI message bubbles carry .plume-bubble--ai (MessageBubble.jsx line 24).
+		// The text is rendered inside .plume-bubble__content via MarkdownContent.
 		await expect(
-			page.locator( '.wpaim-bubble--ai .wpaim-bubble__content' ).last()
+			page.locator( '.plume-bubble--ai .plume-bubble__content' ).last()
 		).toContainText( 'uniquely identifiable integration test response', { timeout: 10000 } );
 	} );
 
@@ -102,14 +102,14 @@ test.describe( 'Chat journey', () => {
 			}
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
-		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
+		await page.goto( '/wp-admin/admin.php?page=plume-chat' );
+		await page.waitForSelector( '.plume-shell', { timeout: 10000 } );
 
-		// The sidebar is <aside class="wpaim-sidebar"> (ChatApp.jsx line 301).
-		// Conversation titles are rendered in .wpaim-conv-item__title
-		// (ConversationHistory.jsx line 54) inside the .wpaim-conv-list <nav>.
+		// The sidebar is <aside class="plume-sidebar"> (ChatApp.jsx line 301).
+		// Conversation titles are rendered in .plume-conv-item__title
+		// (ConversationHistory.jsx line 54) inside the .plume-conv-list <nav>.
 		await expect(
-			page.locator( '.wpaim-sidebar .wpaim-conv-list' )
+			page.locator( '.plume-sidebar .plume-conv-list' )
 		).toContainText( 'Journey Test Conversation', { timeout: 10000 } );
 	} );
 
@@ -133,13 +133,13 @@ test.describe( 'Chat journey', () => {
 			}
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
-		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
+		await page.goto( '/wp-admin/admin.php?page=plume-chat' );
+		await page.waitForSelector( '.plume-shell', { timeout: 10000 } );
 
-		// Each .wpaim-conv-item has a .wpaim-conv-item__delete button
+		// Each .plume-conv-item has a .plume-conv-item__delete button
 		// (ConversationHistory.jsx line 101).
 		await expect(
-			page.locator( '.wpaim-conv-item .wpaim-conv-item__delete' ).first()
+			page.locator( '.plume-conv-item .plume-conv-item__delete' ).first()
 		).toBeVisible( { timeout: 10000 } );
 	} );
 
@@ -157,12 +157,12 @@ test.describe( 'Chat journey', () => {
 			}
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
-		await page.waitForSelector( '.wpaim-shell', { timeout: 10000 } );
+		await page.goto( '/wp-admin/admin.php?page=plume-chat' );
+		await page.waitForSelector( '.plume-shell', { timeout: 10000 } );
 
-		// Empty-state node is .wpaim-sidebar__empty (ConversationHistory.jsx line 34).
+		// Empty-state node is .plume-sidebar__empty (ConversationHistory.jsx line 34).
 		await expect(
-			page.locator( '.wpaim-sidebar .wpaim-sidebar__empty' )
+			page.locator( '.plume-sidebar .plume-sidebar__empty' )
 		).toBeVisible( { timeout: 10000 } );
 	} );
 } );

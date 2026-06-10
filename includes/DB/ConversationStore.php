@@ -2,11 +2,11 @@
 /**
  * Data-access layer for conversations and their messages.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\DB;
+namespace Plume\DB;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

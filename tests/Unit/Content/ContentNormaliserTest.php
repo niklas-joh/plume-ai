@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Content;
+namespace Plume\Tests\Unit\Content;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use Stilus\Content\ContentNormaliser;
+use Plume\Content\ContentNormaliser;
 
 class ContentNormaliserTest extends TestCase {
 
@@ -70,7 +70,7 @@ class ContentNormaliserTest extends TestCase {
 	public function test_output_filter_is_applied(): void {
 		Functions\expect( 'apply_filters' )
 			->once()
-			->with( 'stilus_normalised_content', \Mockery::type( 'string' ), 'Hi.' )
+			->with( 'plume_normalised_content', \Mockery::type( 'string' ), 'Hi.' )
 			->andReturnUsing( static fn( $tag, $value ) => $value . '<!-- filtered -->' );
 
 		$out = ( new ContentNormaliser() )->normalise( 'Hi.' );

@@ -25,7 +25,7 @@ const IMAGE_PROVIDER_OPTIONS = [
  *
  * API keys are stored per-provider in a dirty-state map and only persisted
  * when the user explicitly clicks Save, preventing accidental overwrites.
- * Pro feature gates (model_selection, own_api_key) are read from stilusData.
+ * Pro feature gates (model_selection, own_api_key) are read from plumeData.
  *
  * @param {Object}   props
  * @param {Object}   props.settings      Full settings object from the REST API.
@@ -34,9 +34,9 @@ const IMAGE_PROVIDER_OPTIONS = [
  * @return {ReactElement}
  */
 export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
-	const features = window.stilusData?.features ?? {};
+	const features = window.plumeData?.features ?? {};
 	const upgradeUrl =
-		window.stilusData?.upgradeUrl ?? 'admin.php?page=stilus-upgrade';
+		window.plumeData?.upgradeUrl ?? 'admin.php?page=plume-upgrade';
 	const apiKeys = settings?.api_keys ?? {};
 	const [ dirty, setDirty ] = useState( {} ); // { [provider]: string }
 
@@ -69,28 +69,28 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 	}
 
 	return (
-		<div className="wpaim-providers-tab">
+		<div className="plume-providers-tab">
 			{ /* Default & image provider selects */ }
-			<section className="wpaim-settings-section">
-				<h3 className="wpaim-settings-section-title">
+			<section className="plume-settings-section">
+				<h3 className="plume-settings-section-title">
 					Default Providers
 				</h3>
 
 				{ ! features.model_selection && (
-					<p className="wpaim-upgrade-notice">
+					<p className="plume-upgrade-notice">
 						{ __(
 							'Model selection is available on the Pro plan.',
-							'stilus'
+							'plume'
 						) }{ ' ' }
 						<a href={ upgradeUrl }>
-							{ __( 'Upgrade →', 'stilus' ) }
+							{ __( 'Upgrade →', 'plume' ) }
 						</a>
 					</p>
 				) }
 
 				<fieldset disabled={ ! features.model_selection }>
 					<SelectControl
-						label={ __( 'Default AI Provider', 'stilus' ) }
+						label={ __( 'Default AI Provider', 'plume' ) }
 						options={ PROVIDER_OPTIONS }
 						value={ settings?.default_provider ?? '' }
 						onChange={ ( val ) =>
@@ -100,7 +100,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 					/>
 
 					<SelectControl
-						label={ __( 'Image Provider', 'stilus' ) }
+						label={ __( 'Image Provider', 'plume' ) }
 						options={ IMAGE_PROVIDER_OPTIONS }
 						value={ settings?.image_provider ?? '' }
 						onChange={ ( val ) =>
@@ -112,17 +112,17 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 			</section>
 
 			{ /* API key inputs */ }
-			<section className="wpaim-settings-section">
-				<h3 className="wpaim-settings-section-title">API Keys</h3>
+			<section className="plume-settings-section">
+				<h3 className="plume-settings-section-title">API Keys</h3>
 
 				{ ! features.own_api_key && (
-					<p className="wpaim-upgrade-notice">
+					<p className="plume-upgrade-notice">
 						{ __(
 							'API key management is available on the Pro BYOK plan.',
-							'stilus'
+							'plume'
 						) }{ ' ' }
 						<a href={ upgradeUrl }>
-							{ __( 'Upgrade →', 'stilus' ) }
+							{ __( 'Upgrade →', 'plume' ) }
 						</a>
 					</p>
 				) }
@@ -130,9 +130,9 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 				{ API_KEY_PROVIDERS.map( ( { id, label } ) => (
 					<div
 						key={ id }
-						className="wpaim-field-row wpaim-field-row--key"
+						className="plume-field-row plume-field-row--key"
 					>
-						<div className="wpaim-field-input-group">
+						<div className="plume-field-input-group">
 							<TextControl
 								label={ label }
 								type="password"
@@ -166,13 +166,13 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 			</section>
 
 			{ /* Ollama URL */ }
-			<section className="wpaim-settings-section">
-				<h3 className="wpaim-settings-section-title">
+			<section className="plume-settings-section">
+				<h3 className="plume-settings-section-title">
 					Ollama (Self-hosted)
 				</h3>
 
-				<div className="wpaim-field-row wpaim-field-row--key">
-					<div className="wpaim-field-input-group">
+				<div className="plume-field-row plume-field-row--key">
+					<div className="plume-field-input-group">
 						<TextControl
 							label="Ollama URL"
 							type="url"

@@ -2,19 +2,19 @@
 /**
  * Admin page rendering the token usage dashboard.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Renders the Stilus usage & cost admin page.
+ * Renders the Plume usage & cost admin page.
  *
  * Outputs a React mount point; assets are enqueued by UsageModule.
  */
@@ -27,6 +27,6 @@ class UsagePage {
 	 * @return void
 	 */
 	public static function render(): void {
-		echo '<div id="stilus-usage" class="stilus-page"></div>';
+		echo '<div id="plume-usage" class="plume-page"></div>';
 	}
 }

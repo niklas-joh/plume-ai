@@ -17,7 +17,7 @@ import '../editor.css';
  *
  * @return {ReactElement}
  */
-function StilusSidebar() {
+function PlumeSidebar() {
 	const postId = useSelect( ( select ) =>
 		select( 'core/editor' ).getCurrentPostId()
 	);
@@ -38,28 +38,28 @@ function StilusSidebar() {
 
 	return (
 		<>
-			<PluginSidebarMoreMenuItem target="stilus-sidebar">
+			<PluginSidebarMoreMenuItem target="plume-sidebar">
 				AI Mind
 			</PluginSidebarMoreMenuItem>
 			<PluginSidebar
-				name="stilus-sidebar"
+				name="plume-sidebar"
 				title="AI Mind"
 				icon={ <Sparkles size={ 16 } /> }
 			>
-				<div className="wpaim-editor-sidebar">
-					<div className="wpaim-editor-panel">
-						<h3 className="wpaim-panel__heading">Chat</h3>
+				<div className="plume-editor-sidebar">
+					<div className="plume-editor-panel">
+						<h3 className="plume-panel__heading">Chat</h3>
 						<MiniChat postId={ postId } />
 					</div>
-					<div className="wpaim-editor-panel">
-						<h3 className="wpaim-panel__heading">Block Actions</h3>
+					<div className="plume-editor-panel">
+						<h3 className="plume-panel__heading">Block Actions</h3>
 						<BlockActions
 							convId={ convId }
 							onResult={ handleBlockResult }
 						/>
 					</div>
-					<div className="wpaim-editor-panel">
-						<h3 className="wpaim-panel__heading">SEO</h3>
+					<div className="plume-editor-panel">
+						<h3 className="plume-panel__heading">SEO</h3>
 						<SeoPanel />
 					</div>
 				</div>
@@ -68,4 +68,4 @@ function StilusSidebar() {
 	);
 }
 
-registerPlugin( 'stilus', { render: StilusSidebar } );
+registerPlugin( 'plume', { render: PlumeSidebar } );

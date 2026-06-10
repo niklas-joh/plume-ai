@@ -2,19 +2,19 @@
 /**
  * AI provider implementation for the Anthropic Claude API.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Providers;
+namespace Plume\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Proxy\ProxyClient;
-use Stilus\Proxy\SiteRegistration;
-use Stilus\Tiers\TierManager;
+use Plume\Proxy\ProxyClient;
+use Plume\Proxy\SiteRegistration;
+use Plume\Tiers\TierManager;
 
 /**
  * Handles completions, streaming, and tier-aware routing for Anthropic Claude.
@@ -30,7 +30,7 @@ class ClaudeProvider extends AbstractProvider {
 	private const API_VERSION   = '2023-06-01';
 	private const DEFAULT_MODEL = 'claude-sonnet-4-6';
 
-	// Mirrors TIER_MODELS in stilus-proxy/src/index.ts — update both when adding models.
+	// Mirrors TIER_MODELS in plume-proxy/src/index.ts — update both when adding models.
 	private const MODELS = [
 		'claude-opus-4-6'           => 'Claude Opus 4.6',
 		'claude-sonnet-4-6'         => 'Claude Sonnet 4.6',
@@ -306,7 +306,7 @@ class ClaudeProvider extends AbstractProvider {
 		$response = wp_remote_post(
 			self::API_BASE . $path,
 			[
-				'timeout' => STILUS_HTTP_TIMEOUT,
+				'timeout' => PLUME_HTTP_TIMEOUT,
 				'headers' => [
 					'x-api-key'         => $this->api_key,
 					'anthropic-version' => self::API_VERSION,

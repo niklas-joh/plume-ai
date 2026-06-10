@@ -2,17 +2,17 @@
 /**
  * Factory for instantiating AI provider instances.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Providers;
+namespace Plume\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Settings\ProviderSettings;
+use Plume\Settings\ProviderSettings;
 
 /**
  * Creates concrete provider instances from a slug and decrypted API keys.
@@ -43,8 +43,8 @@ class ProviderFactory {
 			'openai' => new OpenAIProvider( $this->settings->get_api_key( 'openai' ) ),
 			'gemini' => new GeminiProvider( $this->settings->get_api_key( 'gemini' ) ),
 			'ollama' => new OllamaProvider(
-				(string) get_option( 'stilus_ollama_url', 'http://localhost:11434' ),
-				(string) get_option( 'stilus_ollama_model', 'llama3.2' )
+				(string) get_option( 'plume_ollama_url', 'http://localhost:11434' ),
+				(string) get_option( 'plume_ollama_model', 'llama3.2' )
 			),
 			default  => throw new \InvalidArgumentException( "Unknown provider: {$slug}" ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		};
@@ -57,7 +57,7 @@ class ProviderFactory {
 	 * @return ProviderInterface
 	 */
 	public function make_default(): ProviderInterface {
-		$slug = get_option( 'stilus_default_provider', 'claude' );
+		$slug = get_option( 'plume_default_provider', 'claude' );
 		return $this->make( ! empty( $slug ) ? $slug : 'claude' );
 	}
 
@@ -68,7 +68,7 @@ class ProviderFactory {
 	 * @return ProviderInterface
 	 */
 	public function make_image_provider(): ProviderInterface {
-		$slug = get_option( 'stilus_image_provider', 'gemini' );
+		$slug = get_option( 'plume_image_provider', 'gemini' );
 		return $this->make( ! empty( $slug ) ? $slug : 'gemini' );
 	}
 

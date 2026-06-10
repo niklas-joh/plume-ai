@@ -2,32 +2,32 @@
 /**
  * REST controller for reading and updating plugin settings.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Modules\Chat;
+namespace Plume\Modules\Chat;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Settings\ProviderSettings;
-use Stilus\Tiers\TierManager;
+use Plume\Settings\ProviderSettings;
+use Plume\Tiers\TierManager;
 
 /**
  * REST controller for plugin settings.
  *
  * Routes:
- *   GET  /stilus/v1/settings — returns all plugin settings (api_keys masked).
- *   POST /stilus/v1/settings — saves plugin settings.
+ *   GET  /plume/v1/settings — returns all plugin settings (api_keys masked).
+ *   POST /plume/v1/settings — saves plugin settings.
  *
  * Both routes require the `manage_options` capability.
  */
 class SettingsRestController {
 
-	private const NAMESPACE = 'stilus/v1';
+	private const NAMESPACE = 'plume/v1';
 
 	/**
 	 * Register the /settings REST routes.
@@ -70,19 +70,19 @@ class SettingsRestController {
 		$provider_settings = $this->make_provider_settings();
 
 		$data = [
-			'default_provider'     => sanitize_text_field( (string) get_option( 'stilus_default_provider', 'claude' ) ),
-			'image_provider'       => sanitize_text_field( (string) get_option( 'stilus_image_provider', '' ) ),
-			'site_voice'           => sanitize_text_field( (string) get_option( 'stilus_site_voice', '' ) ),
-			'enabled_modules'      => array_keys( array_filter( (array) get_option( 'stilus_modules', [] ) ) ),
+			'default_provider'     => sanitize_text_field( (string) get_option( 'plume_default_provider', 'claude' ) ),
+			'image_provider'       => sanitize_text_field( (string) get_option( 'plume_image_provider', '' ) ),
+			'site_voice'           => sanitize_text_field( (string) get_option( 'plume_site_voice', '' ) ),
+			'enabled_modules'      => array_keys( array_filter( (array) get_option( 'plume_modules', [] ) ) ),
 			'api_keys'             => [
 				'claude'     => $this->mask_key( $provider_settings->has_key( 'claude' ) ),
 				'openai'     => $this->mask_key( $provider_settings->has_key( 'openai' ) ),
 				'gemini'     => $this->mask_key( $provider_settings->has_key( 'gemini' ) ),
-				'ollama_url' => sanitize_text_field( (string) get_option( 'stilus_ollama_url', '' ) ),
+				'ollama_url' => sanitize_text_field( (string) get_option( 'plume_ollama_url', '' ) ),
 			],
-			'allowed_post_types'   => \get_option( 'stilus_allowed_post_types', [ 'post', 'page' ] ),
+			'allowed_post_types'   => \get_option( 'plume_allowed_post_types', [ 'post', 'page' ] ),
 			'available_post_types' => $this->get_public_post_types(),
-			'enable_write_tools'   => (bool) \get_option( 'stilus_enable_write_tools', false ),
+			'enable_write_tools'   => (bool) \get_option( 'plume_enable_write_tools', false ),
 			// Note: intentionally snake_case to match WP REST convention; JS reads this as `settings.is_pro` (see FeaturesTab.jsx).
 			'is_pro'               => TierManager::user_can( 'generator' ),
 		];
@@ -109,11 +109,11 @@ class SettingsRestController {
 			if ( ! TierManager::user_can( 'model_selection' ) ) {
 				return new \WP_Error(
 					'rest_plan_required',
-					__( 'Model selection requires the Pro Managed or Pro BYOK plan.', 'stilus' ),
+					__( 'Model selection requires the Pro Managed or Pro BYOK plan.', 'plume' ),
 					[ 'status' => 403 ]
 				);
 			}
-			update_option( 'stilus_default_provider', sanitize_text_field( (string) $default_provider ) );
+			update_option( 'plume_default_provider', sanitize_text_field( (string) $default_provider ) );
 		}
 
 		$image_provider = $request->get_param( 'image_provider' );
@@ -121,28 +121,28 @@ class SettingsRestController {
 			if ( ! TierManager::user_can( 'model_selection' ) ) {
 				return new \WP_Error(
 					'rest_plan_required',
-					__( 'Model selection requires the Pro Managed or Pro BYOK plan.', 'stilus' ),
+					__( 'Model selection requires the Pro Managed or Pro BYOK plan.', 'plume' ),
 					[ 'status' => 403 ]
 				);
 			}
-			update_option( 'stilus_image_provider', sanitize_text_field( (string) $image_provider ) );
+			update_option( 'plume_image_provider', sanitize_text_field( (string) $image_provider ) );
 		}
 
 		$site_voice = $request->get_param( 'site_voice' );
 		if ( null !== $site_voice ) {
-			update_option( 'stilus_site_voice', sanitize_text_field( (string) $site_voice ) );
+			update_option( 'plume_site_voice', sanitize_text_field( (string) $site_voice ) );
 		}
 
 		// Module toggles — convert string list to boolean map matching ModuleRegistry.
 		$enabled_modules = $request->get_param( 'enabled_modules' );
 		if ( null !== $enabled_modules ) {
 			$enabled_list = array_map( 'sanitize_text_field', (array) $enabled_modules );
-			$all_slugs    = array_keys( ( new \Stilus\Core\ModuleRegistry() )->get_all() );
+			$all_slugs    = array_keys( ( new \Plume\Core\ModuleRegistry() )->get_all() );
 			$bool_map     = [];
 			foreach ( $all_slugs as $slug ) {
 				$bool_map[ $slug ] = in_array( $slug, $enabled_list, true );
 			}
-			update_option( 'stilus_modules', $bool_map );
+			update_option( 'plume_modules', $bool_map );
 		}
 
 		// API keys — skip any that are the mask placeholder (i.e. unchanged).
@@ -151,7 +151,7 @@ class SettingsRestController {
 			if ( ! TierManager::user_can( 'own_api_key' ) ) {
 				return new \WP_Error(
 					'rest_plan_required',
-					__( 'API key management requires the Pro BYOK plan.', 'stilus' ),
+					__( 'API key management requires the Pro BYOK plan.', 'plume' ),
 					[ 'status' => 403 ]
 				);
 			}
@@ -165,7 +165,7 @@ class SettingsRestController {
 			}
 
 			if ( isset( $api_keys['ollama_url'] ) && '••••••' !== $api_keys['ollama_url'] ) {
-				update_option( 'stilus_ollama_url', esc_url_raw( (string) $api_keys['ollama_url'] ) );
+				update_option( 'plume_ollama_url', esc_url_raw( (string) $api_keys['ollama_url'] ) );
 			}
 		}
 
@@ -173,11 +173,11 @@ class SettingsRestController {
 			$sanitised = \array_map( 'sanitize_key', $params['allowed_post_types'] );
 			$valid     = \array_keys( \get_post_types( [ 'public' => true ] ) );
 			$sanitised = \array_values( \array_intersect( $sanitised, $valid ) );
-			\update_option( 'stilus_allowed_post_types', $sanitised );
+			\update_option( 'plume_allowed_post_types', $sanitised );
 		}
 
 		if ( isset( $params['enable_write_tools'] ) ) {
-			\update_option( 'stilus_enable_write_tools', (bool) $params['enable_write_tools'] );
+			\update_option( 'plume_enable_write_tools', (bool) $params['enable_write_tools'] );
 		}
 
 		return rest_ensure_response( [ 'saved' => true ] );
@@ -195,7 +195,7 @@ class SettingsRestController {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return new \WP_Error(
 				'rest_forbidden',
-				__( 'Insufficient permissions.', 'stilus' ),
+				__( 'Insufficient permissions.', 'plume' ),
 				[ 'status' => 403 ]
 			);
 		}

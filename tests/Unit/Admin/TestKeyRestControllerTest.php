@@ -1,11 +1,11 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Admin;
+namespace Plume\Tests\Unit\Admin;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Admin\TestKeyRestController;
+use Plume\Admin\TestKeyRestController;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -47,7 +47,7 @@ class TestKeyRestControllerTest extends TestCase {
 
 		TestKeyRestController::register_routes();
 
-		$this->assertSame( 'stilus/v1', $registered_ns );
+		$this->assertSame( 'plume/v1', $registered_ns );
 		$this->assertSame( '/test-key', $registered_route );
 	}
 

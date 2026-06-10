@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Modules\Seo;
+namespace Plume\Tests\Unit\Modules\Seo;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Modules\Seo\SeoModule;
-use Stilus\Tests\Helpers\WpdbStubFactory;
+use Plume\Modules\Seo\SeoModule;
+use Plume\Tests\Helpers\WpdbStubFactory;
 use PHPUnit\Framework\TestCase;
 
 class SeoModuleTest extends TestCase {
@@ -51,14 +51,14 @@ class SeoModuleTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default = null ) {
-				if ( 'stilus_default_provider' === $key ) {
+				if ( 'plume_default_provider' === $key ) {
 					return 'claude';
 				}
-				if ( 'stilus_provider_settings' === $key ) {
+				if ( 'plume_provider_settings' === $key ) {
 					return [];
 				}
 				// pro_byok is now site-level — routes ClaudeProvider::do_complete() direct.
-				if ( 'stilus_site_tier' === $key ) {
+				if ( 'plume_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				return $default;
@@ -108,13 +108,13 @@ class SeoModuleTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default = null ) {
-				if ( 'stilus_default_provider' === $key ) {
+				if ( 'plume_default_provider' === $key ) {
 					return 'claude';
 				}
-				if ( 'stilus_provider_settings' === $key ) {
+				if ( 'plume_provider_settings' === $key ) {
 					return [];
 				}
-				if ( 'stilus_site_tier' === $key ) {
+				if ( 'plume_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				return $default;
@@ -166,13 +166,13 @@ class SeoModuleTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default = null ) {
-				if ( 'stilus_default_provider' === $key ) {
+				if ( 'plume_default_provider' === $key ) {
 					return 'claude';
 				}
-				if ( 'stilus_provider_settings' === $key ) {
+				if ( 'plume_provider_settings' === $key ) {
 					return [];
 				}
-				if ( 'stilus_site_tier' === $key ) {
+				if ( 'plume_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				return $default;
@@ -219,14 +219,14 @@ class SeoModuleTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default = null ) {
-				if ( 'stilus_default_provider' === $key ) {
+				if ( 'plume_default_provider' === $key ) {
 					return 'claude';
 				}
-				if ( 'stilus_provider_settings' === $key ) {
+				if ( 'plume_provider_settings' === $key ) {
 					return [];
 				}
 				// pro_byok is now site-level — routes ClaudeProvider::do_complete() direct.
-				if ( 'stilus_site_tier' === $key ) {
+				if ( 'plume_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				return $default;
@@ -276,14 +276,14 @@ class SeoModuleTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default = null ) {
-				if ( 'stilus_default_provider' === $key ) {
+				if ( 'plume_default_provider' === $key ) {
 					return 'claude';
 				}
-				if ( 'stilus_provider_settings' === $key ) {
+				if ( 'plume_provider_settings' === $key ) {
 					return [];
 				}
 				// pro_byok is now site-level — routes ClaudeProvider::do_complete() direct.
-				if ( 'stilus_site_tier' === $key ) {
+				if ( 'plume_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				return $default;
@@ -429,14 +429,14 @@ class SeoModuleTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default = null ) {
-				if ( 'stilus_default_provider' === $key ) {
+				if ( 'plume_default_provider' === $key ) {
 					return 'claude';
 				}
-				if ( 'stilus_provider_settings' === $key ) {
+				if ( 'plume_provider_settings' === $key ) {
 					return [];
 				}
 				// pro_byok is now site-level — routes ClaudeProvider::do_complete() direct.
-				if ( 'stilus_site_tier' === $key ) {
+				if ( 'plume_site_tier' === $key ) {
 					return 'pro_byok';
 				}
 				return $default;
@@ -558,12 +558,12 @@ class SeoModuleTest extends TestCase {
 		$permission_callback = $captured_args['/seo/generate']['permission_callback'];
 
 		// User has permission but is over the free monthly limit.
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function( $user_id, $key, $single ) use ( $month_key ) {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'free';
 				}
 				if ( $month_key === $key ) {

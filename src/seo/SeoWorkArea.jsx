@@ -3,7 +3,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { Loader2 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 
-const { nonce, restUrl, adminUrl = '/wp-admin/' } = window.stilusData ?? {};
+const { nonce, restUrl, adminUrl = '/wp-admin/' } = window.plumeData ?? {};
 
 const EMPTY_FIELDS = {
 	meta_title: '',
@@ -18,10 +18,10 @@ const EMPTY_FIELDS = {
  * Generates meta title, OG description, excerpt, and alt text in one request.
  * A re-generate guard (`confirmReplace`) prevents accidental overwrites of
  * already-generated fields. On apply, the work area closes and the parent
- * table row is patched with updated `wpaim_seo_status` values.
+ * table row is patched with updated `plume_seo_status` values.
  *
  * @param {Object}   props
- * @param {Object}   props.post      WordPress post object; must include `wpaim_seo_status`.
+ * @param {Object}   props.post      WordPress post object; must include `plume_seo_status`.
  * @param {Function} props.onClose   Called when the work area should be dismissed.
  * @param {Function} props.onUpdate  Called with a partial post patch after SEO fields are applied.
  * @return {ReactElement}
@@ -39,7 +39,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 	// Pre-populate fields from existing meta values when the row is expanded.
 	// Depends on post.id so a different post's expand resets correctly.
 	useEffect( () => {
-		const status = post?.wpaim_seo_status;
+		const status = post?.plume_seo_status;
 		if ( ! status ) {
 			return;
 		}
@@ -54,7 +54,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 		if ( Object.values( prePopulated ).some( Boolean ) ) {
 			setHasGenerated( true );
 		}
-		// wpaim_seo_status intentionally excluded: fields should only seed once per
+		// plume_seo_status intentionally excluded: fields should only seed once per
 		// post expand, not re-seed on every status update after a partial apply.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ post?.id ] );
@@ -115,7 +115,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 			// reflects the user's deliberate removal rather than the previous state.
 			onUpdate( {
 				id: post.id,
-				wpaim_seo_status: {
+				plume_seo_status: {
 					meta_title: fields.meta_title
 						? { status: 'filled', value: fields.meta_title }
 						: { status: 'empty', value: '' },
@@ -138,14 +138,14 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 		}
 	};
 
-	const inputClass = ( base = 'wpaim-field-input' ) =>
+	const inputClass = ( base = 'plume-field-input' ) =>
 		`${ base }${ hasGenerated ? ' is-generated' : '' }`;
 
 	return (
-		<div className="wpaim-work-area">
-			<div className="wpaim-work-header">
+		<div className="plume-work-area">
+			<div className="plume-work-header">
 				<span
-					className="wpaim-work-title"
+					className="plume-work-title"
 					dangerouslySetInnerHTML={ {
 						__html: DOMPurify.sanitize( post.title.rendered ),
 					} }
@@ -157,7 +157,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 				>
 					{ generating ? (
 						<>
-							<Loader2 size={ 12 } className="wpaim-spin" />{ ' ' }
+							<Loader2 size={ 12 } className="plume-spin" />{ ' ' }
 							Generating…
 						</>
 					) : (
@@ -168,7 +168,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 
 			{ confirmReplace && (
 				<div
-					className="wpaim-confirm-replace"
+					className="plume-confirm-replace"
 					role="alertdialog"
 					aria-live="assertive"
 					aria-label="Replace confirmation"
@@ -190,14 +190,14 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 				</div>
 			) }
 
-			<div className="wpaim-seo-fields-grid">
-				<div className="wpaim-field">
+			<div className="plume-seo-fields-grid">
+				<div className="plume-field">
 					<label
 						htmlFor="seo-meta-title"
-						className="wpaim-field-label"
+						className="plume-field-label"
 					>
 						Meta title
-						<span className="wpaim-char-count">
+						<span className="plume-char-count">
 							{ fields.meta_title.length } / 60
 						</span>
 					</label>
@@ -211,10 +211,10 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					/>
 				</div>
 
-				<div className="wpaim-field">
-					<label htmlFor="seo-og-desc" className="wpaim-field-label">
+				<div className="plume-field">
+					<label htmlFor="seo-og-desc" className="plume-field-label">
 						OG description
-						<span className="wpaim-char-count">
+						<span className="plume-char-count">
 							{ fields.og_description.length } / 160
 						</span>
 					</label>
@@ -228,8 +228,8 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					/>
 				</div>
 
-				<div className="wpaim-field wpaim-field--full">
-					<label htmlFor="seo-excerpt" className="wpaim-field-label">
+				<div className="plume-field plume-field--full">
+					<label htmlFor="seo-excerpt" className="plume-field-label">
 						Excerpt
 					</label>
 					<textarea
@@ -242,8 +242,8 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					/>
 				</div>
 
-				<div className="wpaim-field wpaim-field--full">
-					<label htmlFor="seo-alt-text" className="wpaim-field-label">
+				<div className="plume-field plume-field--full">
+					<label htmlFor="seo-alt-text" className="plume-field-label">
 						Featured image alt text
 					</label>
 					<input
@@ -257,14 +257,14 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 				</div>
 			</div>
 
-			{ error && <p className="wpaim-work-error">{ error }</p> }
+			{ error && <p className="plume-work-error">{ error }</p> }
 
-			<div className="wpaim-work-actions">
+			<div className="plume-work-actions">
 				<a
 					href={ editUrl }
 					target="_blank"
 					rel="noreferrer"
-					className="wpaim-action-link"
+					className="plume-action-link"
 				>
 					Edit post →
 				</a>

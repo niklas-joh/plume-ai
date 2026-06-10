@@ -2,12 +2,12 @@
 /**
  * Static configuration for tier capabilities and monthly request limits.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tiers;
+namespace Plume\Tiers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -88,20 +88,20 @@ class TierConfig {
 	/**
 	 * Return the base URL of the Cloudflare Worker proxy.
 	 *
-	 * Can be overridden via the STILUS_PROXY_URL constant for local dev or staging.
+	 * Can be overridden via the PLUME_PROXY_URL constant for local dev or staging.
 	 *
 	 * @since 1.2.0
 	 * @return string Base URL without trailing slash.
 	 */
 	public static function get_proxy_url(): string {
-		if ( defined( 'STILUS_PROXY_URL' ) ) {
-			return rtrim( STILUS_PROXY_URL, '/' );
+		if ( defined( 'PLUME_PROXY_URL' ) ) {
+			return rtrim( PLUME_PROXY_URL, '/' );
 		}
-		$option = (string) get_option( 'stilus_proxy_url', '' );
+		$option = (string) get_option( 'plume_proxy_url', '' );
 		if ( '' !== $option ) {
 			return rtrim( $option, '/' );
 		}
-		return 'https://stilus-proxy.stilus.workers.dev';
+		return 'https://plume-proxy.plumewp.workers.dev';
 	}
 
 	/**
@@ -137,10 +137,10 @@ class TierConfig {
 	 */
 	public static function get_tier_labels(): array {
 		return [
-			'free'        => __( 'Free', 'stilus' ),
-			'trial'       => __( 'Trial', 'stilus' ),
-			'pro_managed' => __( 'Pro Managed', 'stilus' ),
-			'pro_byok'    => __( 'Pro BYOK', 'stilus' ),
+			'free'        => __( 'Free', 'plume' ),
+			'trial'       => __( 'Trial', 'plume' ),
+			'pro_managed' => __( 'Pro Managed', 'plume' ),
+			'pro_byok'    => __( 'Pro BYOK', 'plume' ),
 		];
 	}
 

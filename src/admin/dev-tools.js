@@ -25,7 +25,7 @@
 	}
 
 	function showNotice( msg, type ) {
-		const el = document.getElementById( 'stilus-dev-notice' );
+		const el = document.getElementById( 'plume-dev-notice' );
 		el.className = 'notice notice-' + type + ' inline';
 		el.textContent = msg;
 		el.style.display = '';
@@ -39,20 +39,20 @@
 			const strong = document.createElement( 'strong' );
 			strong.textContent = data.tier_label;
 			document
-				.getElementById( 'stilus-dev-tier-label' )
+				.getElementById( 'plume-dev-tier-label' )
 				.replaceChildren( strong );
-			document.getElementById( 'stilus-dev-usage' ).textContent =
+			document.getElementById( 'plume-dev-usage' ).textContent =
 				data.usage_display;
-			document.getElementById( 'stilus-dev-can-use' ).textContent =
+			document.getElementById( 'plume-dev-can-use' ).textContent =
 				data.can_use ? '✓ Yes' : '✗ No (limit reached)';
-			document.getElementById( 'stilus-tier-select' ).value = data.tier;
+			document.getElementById( 'plume-tier-select' ).value = data.tier;
 		} );
 	}
 
 	document
-		.getElementById( 'stilus-apply-tier' )
+		.getElementById( 'plume-apply-tier' )
 		.addEventListener( 'click', function () {
-			const tier = document.getElementById( 'stilus-tier-select' ).value;
+			const tier = document.getElementById( 'plume-tier-select' ).value;
 			post( 'set-tier', { tier } ).then( function ( data ) {
 				showNotice(
 					data.message || ( data.success ? 'Done.' : 'Error.' ),
@@ -65,7 +65,7 @@
 		} );
 
 	document
-		.getElementById( 'stilus-reset-usage' )
+		.getElementById( 'plume-reset-usage' )
 		.addEventListener( 'click', function () {
 			post( 'reset-usage', {} ).then( function ( data ) {
 				showNotice(
@@ -79,7 +79,7 @@
 		} );
 
 	document
-		.getElementById( 'stilus-set-ceiling' )
+		.getElementById( 'plume-set-ceiling' )
 		.addEventListener( 'click', function () {
 			post( 'set-ceiling', {} ).then( function ( data ) {
 				showNotice(

@@ -6,17 +6,17 @@
  * including permission checks, tier gating, prompt construction, draft
  * post creation, and response shape.
  *
- * @package Stilus\Tests\Integration\Generator
+ * @package Plume\Tests\Integration\Generator
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Integration\Generator;
+namespace Plume\Tests\Integration\Generator;
 
-use Stilus\Tests\Integration\IntegrationTestCase;
+use Plume\Tests\Integration\IntegrationTestCase;
 
 /**
- * Integration tests for POST /stilus/v1/generate.
+ * Integration tests for POST /plume/v1/generate.
  *
  * @since 1.0.0
  */
@@ -34,7 +34,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 	public function test_generate_requires_edit_posts_capability(): void {
 		wp_set_current_user( self::$subscriber_user_id );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/generate', [ 'title' => 'Test Post' ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/generate', [ 'title' => 'Test Post' ] );
 
 		$this->assertSame( 403, $response->get_status() );
 	}
@@ -52,7 +52,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 		$this->set_user_tier( self::$editor_user_id, 'free' );
 		wp_set_current_user( self::$editor_user_id );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/generate', [ 'title' => 'Test Post' ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/generate', [ 'title' => 'Test Post' ] );
 
 		$this->assertSame( 403, $response->get_status() );
 	}
@@ -87,7 +87,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 
 		$response = $this->rest_do(
 			'POST',
-			'/stilus/v1/generate',
+			'/plume/v1/generate',
 			[
 				'title'    => 'My Integration Test Post',
 				'keywords' => 'integration, testing',
@@ -138,7 +138,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 
 		$this->rest_do(
 			'POST',
-			'/stilus/v1/generate',
+			'/plume/v1/generate',
 			[
 				'title'    => 'Distinctive Generator Title',
 				'keywords' => 'distinctive-keyword-xyz',
@@ -191,7 +191,7 @@ class GeneratorModuleTest extends IntegrationTestCase {
 
 		$response = $this->rest_do(
 			'POST',
-			'/stilus/v1/generate',
+			'/plume/v1/generate',
 			[ 'title' => 'Test Post For Error Path' ]
 		);
 

@@ -2,28 +2,28 @@
 /**
  * SEO module — REST routes and asset enqueuing for the AI SEO admin page.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Modules\Seo;
+namespace Plume\Modules\Seo;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Providers\ProviderFactory;
-use Stilus\Providers\CompletionRequest;
-use Stilus\Providers\ProviderException;
-use Stilus\Settings\ProviderSettings;
-use Stilus\Tiers\TierManager;
-use Stilus\Tiers\UsageTracker;
+use Plume\Providers\ProviderFactory;
+use Plume\Providers\CompletionRequest;
+use Plume\Providers\ProviderException;
+use Plume\Settings\ProviderSettings;
+use Plume\Tiers\TierManager;
+use Plume\Tiers\UsageTracker;
 
 /**
- * Registers the SEO module admin assets, REST routes, and the wpaim_seo_status REST field.
+ * Registers the SEO module admin assets, REST routes, and the plume_seo_status REST field.
  *
- * The wpaim_seo_status field is registered with context ['edit'] so it only
+ * The plume_seo_status field is registered with context ['edit'] so it only
  * appears when the REST request uses context=edit (e.g. PostListTable).
  */
 class SeoModule {
@@ -50,54 +50,54 @@ class SeoModule {
 	public static function enqueue_assets( string $hook ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by admin_enqueue_scripts hook signature.
 		// Only load on the SEO admin page.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page detection, never output.
-		if ( sanitize_key( \wp_unslash( $_GET['page'] ?? '' ) ) !== 'stilus-seo' ) {
+		if ( sanitize_key( \wp_unslash( $_GET['page'] ?? '' ) ) !== 'plume-seo' ) {
 			return;
 		}
 
-		$asset_file = STILUS_DIR . 'assets/seo/index.asset.php';
+		$asset_file = PLUME_DIR . 'assets/seo/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => STILUS_VERSION,
+				'version'      => PLUME_VERSION,
 			];
 
 		\wp_enqueue_script(
-			'stilus-seo',
-			STILUS_URL . 'assets/seo/index.js',
+			'plume-seo',
+			PLUME_URL . 'assets/seo/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-api-fetch', 'wp-i18n' ] ),
 			$asset['version'],
 			true
 		);
 
 		\wp_localize_script(
-			'stilus-seo',
-			'stilusData',
+			'plume-seo',
+			'plumeData',
 			[
 				'nonce'    => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'  => \esc_url_raw( \rest_url( 'stilus/v1' ) ),
+				'restUrl'  => \esc_url_raw( \rest_url( 'plume/v1' ) ),
 				'isPro'    => TierManager::user_can( 'seo' ),
 				'adminUrl' => \esc_url_raw( \admin_url() ),
 			]
 		);
 
 		\wp_enqueue_style(
-			'stilus-seo',
-			STILUS_URL . 'assets/seo/index.css',
+			'plume-seo',
+			PLUME_URL . 'assets/seo/index.css',
 			[],
 			$asset['version']
 		);
 	}
 
 	/**
-	 * Register the /stilus/v1/seo/generate and /stilus/v1/seo/apply REST routes.
+	 * Register the /plume/v1/seo/generate and /plume/v1/seo/apply REST routes.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
 	public static function register_routes(): void {
 		\register_rest_route(
-			'stilus/v1',
+			'plume/v1',
 			'/seo/generate',
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
@@ -117,7 +117,7 @@ class SeoModule {
 		);
 
 		\register_rest_route(
-			'stilus/v1',
+			'plume/v1',
 			'/seo/apply',
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
@@ -186,11 +186,11 @@ class SeoModule {
 		$post = \get_post( $post_id );
 
 		if ( ! $post ) {
-			return new \WP_Error( 'not_found', __( 'Post not found.', 'stilus' ) );
+			return new \WP_Error( 'not_found', __( 'Post not found.', 'plume' ) );
 		}
 
 		if ( ! \user_can( $user_id, 'edit_post', $post_id ) ) {
-			return new \WP_Error( 'forbidden', __( 'Forbidden.', 'stilus' ) );
+			return new \WP_Error( 'forbidden', __( 'Forbidden.', 'plume' ) );
 		}
 
 		$title   = $post->post_title;
@@ -236,10 +236,10 @@ class SeoModule {
 		} catch ( ProviderException $e ) {
 			// Surface the provider message when it is user-actionable (e.g. proxy auth, not registered).
 			$raw_msg = $e->getMessage();
-			$msg     = '' !== $raw_msg ? $raw_msg : __( 'Provider error. Please try again later.', 'stilus' );
+			$msg     = '' !== $raw_msg ? $raw_msg : __( 'Provider error. Please try again later.', 'plume' );
 			return new \WP_Error( 'provider_error', $msg );
 		} catch ( \Throwable $e ) {
-			return new \WP_Error( 'unexpected_error', __( 'An unexpected error occurred. Please try again later.', 'stilus' ) );
+			return new \WP_Error( 'unexpected_error', __( 'An unexpected error occurred. Please try again later.', 'plume' ) );
 		}
 
 		$raw  = trim( $response->content );
@@ -248,7 +248,7 @@ class SeoModule {
 		$data = json_decode( $raw, true );
 
 		if ( ! is_array( $data ) ) {
-			return new \WP_Error( 'invalid_json', __( 'AI returned invalid JSON.', 'stilus' ) );
+			return new \WP_Error( 'invalid_json', __( 'AI returned invalid JSON.', 'plume' ) );
 		}
 
 		return [
@@ -261,7 +261,7 @@ class SeoModule {
 	}
 
 	/**
-	 * REST handler for POST /stilus/v1/seo/generate.
+	 * REST handler for POST /plume/v1/seo/generate.
 	 *
 	 * Validates the request, checks post-level edit capability, then delegates
 	 * to generate_for_post() and maps any WP_Error to the appropriate HTTP status.
@@ -276,7 +276,7 @@ class SeoModule {
 
 		$post = \get_post( $post_id );
 		if ( ! $post ) {
-			return new \WP_REST_Response( [ 'error' => __( 'Post not found.', 'stilus' ) ], 404 );
+			return new \WP_REST_Response( [ 'error' => __( 'Post not found.', 'plume' ) ], 404 );
 		}
 
 		$result = self::generate_for_post( $post_id, $user_id );
@@ -355,7 +355,7 @@ class SeoModule {
 	}
 
 	/**
-	 * REST handler for POST /stilus/v1/seo/apply.
+	 * REST handler for POST /plume/v1/seo/apply.
 	 *
 	 * Validates the request, checks post-level edit capability, then delegates
 	 * to apply_for_post() and returns the list of applied fields.
@@ -369,11 +369,11 @@ class SeoModule {
 		$post    = \get_post( $post_id );
 
 		if ( ! $post ) {
-			return new \WP_REST_Response( [ 'error' => __( 'Post not found.', 'stilus' ) ], 404 );
+			return new \WP_REST_Response( [ 'error' => __( 'Post not found.', 'plume' ) ], 404 );
 		}
 
 		if ( ! \current_user_can( 'edit_post', $post_id ) ) {
-			return new \WP_REST_Response( [ 'error' => __( 'Forbidden.', 'stilus' ) ], 403 );
+			return new \WP_REST_Response( [ 'error' => __( 'Forbidden.', 'plume' ) ], 403 );
 		}
 
 		$fields = [
@@ -389,7 +389,7 @@ class SeoModule {
 	}
 
 	/**
-	 * Register the wpaim_seo_status REST field on all configured post types.
+	 * Register the plume_seo_status REST field on all configured post types.
 	 *
 	 * Each field property is an object with a 'status' (filled|empty) key and a
 	 * 'value' key containing the actual stored string, so JS consumers can
@@ -400,11 +400,11 @@ class SeoModule {
 	 * @return void
 	 */
 	public static function register_seo_status_field(): void {
-		$post_types = (array) \apply_filters( 'stilus_seo_post_types', [ 'post', 'page' ] );
+		$post_types = (array) \apply_filters( 'plume_seo_post_types', [ 'post', 'page' ] );
 		foreach ( $post_types as $post_type ) {
 			\register_rest_field(
 				$post_type,
-				'wpaim_seo_status',
+				'plume_seo_status',
 				[
 					'get_callback'    => [ self::class, 'get_seo_status' ],
 					'update_callback' => null,
@@ -483,7 +483,7 @@ class SeoModule {
 		// Short-circuit repeated REST hits for the same post within a request.
 		// Excerpt is live data from the REST payload, so it is read after the cache check.
 		$cache_key  = 'seo_status_meta_' . $post_id;
-		$meta_cache = \wp_cache_get( $cache_key, 'stilus' );
+		$meta_cache = \wp_cache_get( $cache_key, 'plume' );
 
 		if ( false === $meta_cache ) {
 			$yoast_title = \get_post_meta( $post_id, '_yoast_wpseo_title', true );
@@ -503,7 +503,7 @@ class SeoModule {
 				'og_description' => (string) $og_description,
 				'alt_text'       => (string) $alt_text,
 			];
-			\wp_cache_set( $cache_key, $meta_cache, 'stilus' );
+			\wp_cache_set( $cache_key, $meta_cache, 'plume' );
 		}
 
 		$excerpt = $post_data['excerpt']['raw'] ?? '';

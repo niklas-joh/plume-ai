@@ -32,14 +32,14 @@ export default function QuickActions( {
 	}
 
 	return (
-		<div className="wpaim-panel-section">
-			<div className="wpaim-panel-label">Quick actions</div>
-			<div className="wpaim-quick-actions">
+		<div className="plume-panel-section">
+			<div className="plume-panel-label">Quick actions</div>
+			<div className="plume-quick-actions">
 				{ actions.map( ( action ) => (
 					<Button
 						key={ action.id }
 						variant="tertiary"
-						className="wpaim-quick-action"
+						className="plume-quick-action"
 						onClick={ () => handleClick( action ) }
 					>
 						<action.icon size={ 12 } strokeWidth={ 1.5 } />
@@ -47,7 +47,7 @@ export default function QuickActions( {
 					</Button>
 				) ) }
 				{ ! isPro && (
-					<div className="wpaim-pro-teaser">
+					<div className="plume-pro-teaser">
 						<span>More actions with Pro</span>
 					</div>
 				) }

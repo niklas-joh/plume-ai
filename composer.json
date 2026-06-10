@@ -1,5 +1,5 @@
 {
-  "name": "njohansson/stilus",
+  "name": "njohansson/plume",
   "description": "AI-powered content co-pilot for WordPress",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
@@ -24,12 +24,12 @@
   },
   "autoload": {
     "psr-4": {
-      "Stilus\\": "includes/"
+      "Plume\\": "includes/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Stilus\\Tests\\": "tests/"
+      "Plume\\Tests\\": "tests/"
     }
   },
   "scripts": {

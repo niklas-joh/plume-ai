@@ -1,7 +1,7 @@
 import { useSelect } from '@wordpress/data';
 import { CheckCircle2, XCircle, AlertCircle, Lock } from 'lucide-react';
 
-const { isPro } = window.stilusData || {};
+const { isPro } = window.plumeData || {};
 
 function scoreItem( label, pass, tip ) {
 	let Icon;
@@ -22,12 +22,12 @@ function scoreItem( label, pass, tip ) {
 	}
 
 	return (
-		<div key={ label } className="wpaim-seo-panel__item">
+		<div key={ label } className="plume-seo-panel__item">
 			<Icon size={ 14 } style={ { color } } />
 			<span>
 				{ label }
 				{ tip && (
-					<span className="wpaim-seo-panel__item-tip">
+					<span className="plume-seo-panel__item-tip">
 						{ ' — ' }
 						{ tip }
 					</span>
@@ -58,10 +58,10 @@ export default function SeoPanel() {
 
 	if ( ! isPro ) {
 		return (
-			<div className="wpaim-seo-panel wpaim-seo-panel--locked">
+			<div className="plume-seo-panel plume-seo-panel--locked">
 				<Lock size={ 20 } />
-				<p className="wpaim-seo-panel__locked-text">
-					SEO analysis requires Stilus Pro.
+				<p className="plume-seo-panel__locked-text">
+					SEO analysis requires Plume Pro.
 				</p>
 			</div>
 		);
@@ -87,15 +87,15 @@ export default function SeoPanel() {
 	}
 
 	return (
-		<div className="wpaim-seo-panel">
-			<div className="wpaim-seo-panel__score-row">
+		<div className="plume-seo-panel">
+			<div className="plume-seo-panel__score-row">
 				<span
-					className="wpaim-seo-panel__score"
+					className="plume-seo-panel__score"
 					style={ { background: scoreColor } }
 				>
 					{ score }/3
 				</span>
-				<span className="wpaim-seo-panel__word-count">
+				<span className="plume-seo-panel__word-count">
 					{ wordCount } words
 				</span>
 			</div>

@@ -2,12 +2,12 @@
 /**
  * Activation notice: one-time external-services disclosure.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -15,10 +15,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Displays a one-time admin notice after plugin activation disclosing
- * that the plugin connects to Stilus - Write and Design and to
+ * that the plugin connects to Plume - Write and Design and to
  * third-party AI providers.
  *
- * Uses the stilus_just_activated option as a single-use flag.
+ * Uses the plume_just_activated option as a single-use flag.
  * The option is deleted before rendering so it cannot be displayed twice,
  * even if the page is reloaded.
  *
@@ -26,8 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ActivationNotice {
 
-	private const OPTION         = 'stilus_just_activated';
-	private const LEARN_MORE_URL = 'https://wpaimind.com/privacy-policy'; // TODO: update to canonical Stilus domain once finalised.
+	private const OPTION         = 'plume_just_activated';
+	private const LEARN_MORE_URL = 'https://plumeind.com/privacy-policy'; // TODO: update to canonical Plume domain once finalised.
 
 	/**
 	 * Register the admin_notices hook.
@@ -59,13 +59,13 @@ class ActivationNotice {
 		?>
 		<div class="notice notice-info is-dismissible">
 			<p>
-			<strong><?php \esc_html_e( 'Stilus - Write and Design — External Services & Privacy Notice', 'stilus' ); ?></strong>
+			<strong><?php \esc_html_e( 'Plume - Write and Design — External Services & Privacy Notice', 'plume' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				\esc_html_e(
-					'This plugin connects to Stilus - Write and Design and to third-party AI providers (Anthropic Claude, OpenAI, Google Gemini). Only your site address is shared during setup — no content leaves your site until you start a conversation. Your messages are then forwarded to the AI provider on your behalf.',
-					'stilus'
+					'This plugin connects to Plume - Write and Design and to third-party AI providers (Anthropic Claude, OpenAI, Google Gemini). Only your site address is shared during setup — no content leaves your site until you start a conversation. Your messages are then forwarded to the AI provider on your behalf.',
+					'plume'
 				);
 				?>
 				<?php
@@ -73,7 +73,7 @@ class ActivationNotice {
 					sprintf(
 						' <a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
 						\esc_url( self::LEARN_MORE_URL ),
-						\esc_html__( 'Learn more', 'stilus' )
+						\esc_html__( 'Learn more', 'plume' )
 					),
 					[
 						'a' => [

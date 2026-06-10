@@ -6,14 +6,14 @@
  * Rejections happen before any AI call, so no secrets are needed.
  * Covers all 4 tiers × gated features from TierConfig::FEATURES.
  *
- * @package Stilus\Tests\RealIntegration\TierGating
+ * @package Plume\Tests\RealIntegration\TierGating
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Tests\RealIntegration\TierGating;
+namespace Plume\Tests\RealIntegration\TierGating;
 
-use Stilus\Tests\RealIntegration\RealIntegrationTestCase;
+use Plume\Tests\RealIntegration\RealIntegrationTestCase;
 
 /**
  * @since 1.8.0
@@ -34,7 +34,7 @@ class RealTierGatingTest extends RealIntegrationTestCase {
 		$this->activate_free_tier( self::$editor_user_id );
 		wp_set_current_user( self::$editor_user_id );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'Free Tier Test' ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/conversations', [ 'title' => 'Free Tier Test' ] );
 		$this->assertSame(
 			201,
 			$response->get_status(),
@@ -51,7 +51,7 @@ class RealTierGatingTest extends RealIntegrationTestCase {
 		$this->activate_free_tier( self::$editor_user_id );
 		wp_set_current_user( self::$editor_user_id );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/generate', [ 'title' => 'test' ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/generate', [ 'title' => 'test' ] );
 		$this->assertSame( 403, $response->get_status(), 'Free tier must receive 403 from the generator endpoint.' );
 	}
 
@@ -65,7 +65,7 @@ class RealTierGatingTest extends RealIntegrationTestCase {
 		wp_set_current_user( self::$editor_user_id );
 
 		$post_id  = self::factory()->post->create( [ 'post_status' => 'draft', 'post_author' => self::$editor_user_id ] );
-		$response = $this->rest_do( 'POST', '/stilus/v1/seo/generate', [ 'post_id' => $post_id ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/seo/generate', [ 'post_id' => $post_id ] );
 		$this->assertSame( 403, $response->get_status(), 'Free tier must receive 403 from the SEO endpoint.' );
 	}
 
@@ -78,7 +78,7 @@ class RealTierGatingTest extends RealIntegrationTestCase {
 		$this->activate_free_tier( self::$editor_user_id );
 		wp_set_current_user( self::$editor_user_id );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/images/generate', [ 'prompt' => 'test' ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/images/generate', [ 'prompt' => 'test' ] );
 		$this->assertSame( 403, $response->get_status(), 'Free tier must receive 403 from the images endpoint.' );
 	}
 
@@ -94,7 +94,7 @@ class RealTierGatingTest extends RealIntegrationTestCase {
 		$this->activate_trial_tier( self::$subscriber_user_id );
 		wp_set_current_user( self::$subscriber_user_id );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'Subscriber Test' ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/conversations', [ 'title' => 'Subscriber Test' ] );
 		$this->assertSame(
 			403,
 			$response->get_status(),
@@ -116,7 +116,7 @@ class RealTierGatingTest extends RealIntegrationTestCase {
 		$this->activate_trial_tier( self::$editor_user_id );
 		wp_set_current_user( self::$editor_user_id );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/generate', [ 'title' => 'test' ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/generate', [ 'title' => 'test' ] );
 		$this->assertNotSame(
 			403,
 			$response->get_status(),
@@ -134,7 +134,7 @@ class RealTierGatingTest extends RealIntegrationTestCase {
 		wp_set_current_user( self::$editor_user_id );
 
 		$post_id  = self::factory()->post->create( [ 'post_status' => 'draft', 'post_author' => self::$editor_user_id ] );
-		$response = $this->rest_do( 'POST', '/stilus/v1/seo/generate', [ 'post_id' => $post_id ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/seo/generate', [ 'post_id' => $post_id ] );
 		$this->assertNotSame(
 			403,
 			$response->get_status(),
@@ -151,7 +151,7 @@ class RealTierGatingTest extends RealIntegrationTestCase {
 		$this->activate_trial_tier( self::$editor_user_id );
 		wp_set_current_user( self::$editor_user_id );
 
-		$response = $this->rest_do( 'POST', '/stilus/v1/images/generate', [ 'prompt' => 'test' ] );
+		$response = $this->rest_do( 'POST', '/plume/v1/images/generate', [ 'prompt' => 'test' ] );
 		$this->assertNotSame(
 			403,
 			$response->get_status(),
@@ -170,7 +170,7 @@ class RealTierGatingTest extends RealIntegrationTestCase {
 		// Owner creates a conversation.
 		$this->activate_trial_tier( self::$editor_user_id );
 		wp_set_current_user( self::$editor_user_id );
-		$create  = $this->rest_do( 'POST', '/stilus/v1/conversations', [ 'title' => 'Owner Convo' ] );
+		$create  = $this->rest_do( 'POST', '/plume/v1/conversations', [ 'title' => 'Owner Convo' ] );
 		$conv_id = $create->get_data()['id'];
 
 		// A different user tries to post into it.
@@ -180,7 +180,7 @@ class RealTierGatingTest extends RealIntegrationTestCase {
 
 		$response = $this->rest_do(
 			'POST',
-			"/stilus/v1/conversations/{$conv_id}/messages",
+			"/plume/v1/conversations/{$conv_id}/messages",
 			[ 'content' => 'Intrusion attempt.' ]
 		);
 		$this->assertSame( 403, $response->get_status(), 'Cross-user conversation access must be blocked.' );

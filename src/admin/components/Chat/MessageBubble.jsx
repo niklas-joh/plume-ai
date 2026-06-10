@@ -5,12 +5,12 @@ import MarkdownContent from '../../../shared/MarkdownContent';
 import PlanCard from './PlanCard';
 
 const TOOL_LABELS = {
-	get_recent_posts: __( 'Fetched recent posts', 'stilus' ),
-	get_post_content: __( 'Read post content', 'stilus' ),
-	search_posts: __( 'Searched posts', 'stilus' ),
-	get_pages: __( 'Fetched pages', 'stilus' ),
-	get_site_info: __( 'Read site info', 'stilus' ),
-	generate_seo_meta: __( 'Generated SEO data', 'stilus' ),
+	get_recent_posts: __( 'Fetched recent posts', 'plume' ),
+	get_post_content: __( 'Read post content', 'plume' ),
+	search_posts: __( 'Searched posts', 'plume' ),
+	get_pages: __( 'Fetched pages', 'plume' ),
+	get_site_info: __( 'Read site info', 'plume' ),
+	generate_seo_meta: __( 'Generated SEO data', 'plume' ),
 };
 
 /**
@@ -37,31 +37,31 @@ export default function MessageBubble( { message } ) {
 
 	return (
 		<div
-			className={ `wpaim-bubble wpaim-bubble--${ isAI ? 'ai' : 'user' }${
-				message.isError ? ' wpaim-bubble--error' : ''
+			className={ `plume-bubble plume-bubble--${ isAI ? 'ai' : 'user' }${
+				message.isError ? ' plume-bubble--error' : ''
 			}` }
 		>
-			<div className="wpaim-bubble__content">
+			<div className="plume-bubble__content">
 				{ isAI ? (
 					<MarkdownContent
 						content={ message.content }
-						className="wpaim-bubble__markdown"
+						className="plume-bubble__markdown"
 					/>
 				) : (
 					<p>{ message.content }</p>
 				) }
 			</div>
 			{ isAI && message.tools_used && message.tools_used.length > 0 && (
-				<div className="wpaim-bubble__tools">
+				<div className="plume-bubble__tools">
 					{ message.tools_used.map( ( t ) => (
-						<span key={ t } className="wpaim-tool-pill">
+						<span key={ t } className="plume-tool-pill">
 							{ TOOL_LABELS[ t ] ?? t }
 						</span>
 					) ) }
 				</div>
 			) }
 			{ isAI && message.model && (
-				<div className="wpaim-bubble__meta">
+				<div className="plume-bubble__meta">
 					<Cpu size={ 10 } strokeWidth={ 1.5 } />
 					<span>{ message.model }</span>
 					{ message.tokens && <span>{ message.tokens } tokens</span> }

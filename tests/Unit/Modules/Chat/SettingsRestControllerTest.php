@@ -2,11 +2,11 @@
 // tests/Unit/Modules/Chat/SettingsRestControllerTest.php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Modules\Chat;
+namespace Plume\Tests\Unit\Modules\Chat;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Modules\Chat\SettingsRestController;
+use Plume\Modules\Chat\SettingsRestController;
 use PHPUnit\Framework\TestCase;
 
 class SettingsRestControllerTest extends TestCase {
@@ -32,7 +32,7 @@ class SettingsRestControllerTest extends TestCase {
         $controller = new SettingsRestController();
         $controller->register_routes();
 
-        $this->assertContains( 'stilus/v1/settings', $registered );
+        $this->assertContains( 'plume/v1/settings', $registered );
     }
 
     // ── GET /settings — masked keys ───────────────────────────────────────────
@@ -41,14 +41,14 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'free' : null );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
         Functions\when( 'get_option' )->alias( function( $key, $default = '' ) {
             $map = [
-                'stilus_default_provider' => 'claude',
-                'stilus_image_provider'   => 'gemini',
-                'stilus_site_voice'        => 'friendly',
-                'stilus_modules'          => [ 'chat' => true, 'text_rewrite' => false, 'summaries' => false, 'seo' => false, 'images' => false, 'generator' => false, 'frontend_widget' => false, 'usage' => false ],
-                'stilus_ollama_url'        => 'http://localhost:11434',
+                'plume_default_provider' => 'claude',
+                'plume_image_provider'   => 'gemini',
+                'plume_site_voice'        => 'friendly',
+                'plume_modules'          => [ 'chat' => true, 'text_rewrite' => false, 'summaries' => false, 'seo' => false, 'images' => false, 'generator' => false, 'frontend_widget' => false, 'usage' => false ],
+                'plume_ollama_url'        => 'http://localhost:11434',
             ];
             return $map[ $key ] ?? $default;
         } );
@@ -62,8 +62,8 @@ class SettingsRestControllerTest extends TestCase {
         // Simpler: test mask() logic indirectly through get_settings with a stubbed ProviderSettings.
         // We'll use a test-double subclass.
         $controller = new class extends SettingsRestController {
-            protected function make_provider_settings(): \Stilus\Settings\ProviderSettings {
-                $stub = new class extends \Stilus\Settings\ProviderSettings {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                $stub = new class extends \Plume\Settings\ProviderSettings {
                     public function __construct() {} // Skip get_option in constructor.
                     public function has_key( string $provider ): bool {
                         return in_array( $provider, [ 'claude', 'gemini' ], true );
@@ -91,13 +91,13 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'free' : null );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
         Functions\when( 'get_option' )->justReturn( '' );
-        Functions\when( 'stilus_is_pro' )->justReturn( false );
+        Functions\when( 'plume_is_pro' )->justReturn( false );
 
         $controller = new class extends SettingsRestController {
-            protected function make_provider_settings(): \Stilus\Settings\ProviderSettings {
-                $stub = new class extends \Stilus\Settings\ProviderSettings {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                $stub = new class extends \Plume\Settings\ProviderSettings {
                     public function __construct() {}
                     public function has_key( string $provider ): bool { return false; }
                     public function get_api_key( string $provider ): string { return ''; }
@@ -121,8 +121,8 @@ class SettingsRestControllerTest extends TestCase {
         $controller = new class( $is_pro ) extends SettingsRestController {
             private bool $is_pro;
             public function __construct( bool $is_pro ) { $this->is_pro = $is_pro; }
-            protected function make_provider_settings(): \Stilus\Settings\ProviderSettings {
-                $stub = new class extends \Stilus\Settings\ProviderSettings {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                $stub = new class extends \Plume\Settings\ProviderSettings {
                     public function __construct() {}
                     public function has_key( string $provider ): bool { return false; }
                     public function get_api_key( string $provider ): string { return ''; }
@@ -131,8 +131,8 @@ class SettingsRestControllerTest extends TestCase {
             }
         };
 
-        // Wrap the controller so stilus_is_pro() is available as a mocked function.
-        Functions\when( 'stilus_is_pro' )->justReturn( $is_pro );
+        // Wrap the controller so plume_is_pro() is available as a mocked function.
+        Functions\when( 'plume_is_pro' )->justReturn( $is_pro );
 
         return $controller;
     }
@@ -142,7 +142,7 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'get_option' )->justReturn( '' );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'free' : null );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
 
         $controller = $this->make_controller_with_is_pro( false );
 
@@ -155,7 +155,7 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'get_option' )->justReturn( '' );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'free' : null );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
 
         foreach ( [ false, true ] as $value ) {
             $controller = $this->make_controller_with_is_pro( $value );
@@ -168,13 +168,13 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( '' );
         Functions\when( 'get_post_types' )->justReturn( [] );
-        Functions\when( 'stilus_is_pro' )->justReturn( false );
+        Functions\when( 'plume_is_pro' )->justReturn( false );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
         // Tier is now site-level — flip the SITE_OPTION between the two responses.
         $tier = 'free';
         Functions\when( 'get_option' )->alias( function( $key, $default = false ) use ( &$tier ) {
-            if ( 'stilus_site_tier' === $key ) {
+            if ( 'plume_site_tier' === $key ) {
                 return $tier;
             }
             return $default;
@@ -204,7 +204,7 @@ class SettingsRestControllerTest extends TestCase {
         // pro_byok is now a site-level entitlement, so the SITE_OPTION returns it
         // while ModuleRegistry's other reads fall back to []/false.
         Functions\when( 'get_option' )->alias( function( $key, $default = false ) {
-            if ( 'stilus_site_tier' === $key ) {
+            if ( 'plume_site_tier' === $key ) {
                 return 'pro_byok';
             }
             if ( is_array( $default ) ) {
@@ -213,16 +213,16 @@ class SettingsRestControllerTest extends TestCase {
             return $default;
         } );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'pro_byok' : null );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'pro_byok' : null );
         Functions\when( '__' )->returnArg();
 
         $api_key_calls = [];
         $controller = new class( $api_key_calls ) extends SettingsRestController {
             private array $calls;
             public function __construct( array &$calls ) { $this->calls = &$calls; }
-            protected function make_provider_settings(): \Stilus\Settings\ProviderSettings {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
                 $calls = &$this->calls;
-                $stub  = new class( $calls ) extends \Stilus\Settings\ProviderSettings {
+                $stub  = new class( $calls ) extends \Plume\Settings\ProviderSettings {
                     private array $calls;
                     public function __construct( array &$calls ) {
                         $this->calls = &$calls;
@@ -255,11 +255,11 @@ class SettingsRestControllerTest extends TestCase {
         $this->assertTrue( $response->data['saved'] );
 
         // Options updated.
-        $this->assertSame( 'claude',                     $stored['stilus_default_provider'] );
-        $this->assertSame( 'gemini',                     $stored['stilus_image_provider'] );
-        $this->assertSame( 'professional',               $stored['stilus_site_voice'] );
-        $this->assertArrayHasKey( 'stilus_modules', $stored );
-        $modules_map = $stored['stilus_modules'];
+        $this->assertSame( 'claude',                     $stored['plume_default_provider'] );
+        $this->assertSame( 'gemini',                     $stored['plume_image_provider'] );
+        $this->assertSame( 'professional',               $stored['plume_site_voice'] );
+        $this->assertArrayHasKey( 'plume_modules', $stored );
+        $modules_map = $stored['plume_modules'];
         $this->assertTrue( $modules_map['chat'] );
         $this->assertTrue( $modules_map['summaries'] );
         $this->assertFalse( $modules_map['text_rewrite'] );
@@ -268,7 +268,7 @@ class SettingsRestControllerTest extends TestCase {
         $this->assertFalse( $modules_map['generator'] );
         $this->assertFalse( $modules_map['frontend_widget'] );
         $this->assertFalse( $modules_map['usage'] );
-        $this->assertSame( 'http://localhost:11434',      $stored['stilus_ollama_url'] );
+        $this->assertSame( 'http://localhost:11434',      $stored['plume_ollama_url'] );
 
         // set_api_key called for non-masked keys only.
         $providers_saved = array_column( $api_key_calls, 0 );
@@ -282,19 +282,19 @@ class SettingsRestControllerTest extends TestCase {
     public function test_get_settings_returns_allowed_post_types(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'free' : null );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
         Functions\when( 'get_option' )->alias( function( $key, $default = '' ) {
-            if ( 'stilus_allowed_post_types' === $key ) {
+            if ( 'plume_allowed_post_types' === $key ) {
                 return [ 'post' ];
             }
             return is_array( $default ) ? $default : '';
         } );
         Functions\when( 'get_post_types' )->justReturn( [] );
-        Functions\when( 'stilus_is_pro' )->justReturn( false );
+        Functions\when( 'plume_is_pro' )->justReturn( false );
 
         $controller = new class extends SettingsRestController {
-            protected function make_provider_settings(): \Stilus\Settings\ProviderSettings {
-                $stub = new class extends \Stilus\Settings\ProviderSettings {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                $stub = new class extends \Plume\Settings\ProviderSettings {
                     public function __construct() {}
                     public function has_key( string $provider ): bool { return false; }
                     public function get_api_key( string $provider ): string { return ''; }
@@ -314,11 +314,11 @@ class SettingsRestControllerTest extends TestCase {
     public function test_get_settings_returns_available_post_types(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'free' : null );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
         Functions\when( 'get_option' )->alias( function( $key, $default = '' ) {
             return is_array( $default ) ? $default : '';
         } );
-        Functions\when( 'stilus_is_pro' )->justReturn( false );
+        Functions\when( 'plume_is_pro' )->justReturn( false );
 
         // Build fake WP post type objects.
         $fake_post  = new \stdClass();
@@ -335,8 +335,8 @@ class SettingsRestControllerTest extends TestCase {
         ] );
 
         $controller = new class extends SettingsRestController {
-            protected function make_provider_settings(): \Stilus\Settings\ProviderSettings {
-                $stub = new class extends \Stilus\Settings\ProviderSettings {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                $stub = new class extends \Plume\Settings\ProviderSettings {
                     public function __construct() {}
                     public function has_key( string $provider ): bool { return false; }
                     public function get_api_key( string $provider ): string { return ''; }
@@ -368,8 +368,8 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'get_post_types' )->justReturn( [ 'post' => true, 'page' => true ] );
 
         $controller = new class extends SettingsRestController {
-            protected function make_provider_settings(): \Stilus\Settings\ProviderSettings {
-                $stub = new class extends \Stilus\Settings\ProviderSettings {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                $stub = new class extends \Plume\Settings\ProviderSettings {
                     public function __construct() {}
                     public function set_api_key( string $provider, string $key ): void {}
                 };
@@ -382,8 +382,8 @@ class SettingsRestControllerTest extends TestCase {
 
         $controller->save_settings( $request );
 
-        $this->assertArrayHasKey( 'stilus_allowed_post_types', $stored );
-        $this->assertSame( [ 'post', 'page' ], $stored['stilus_allowed_post_types'] );
+        $this->assertArrayHasKey( 'plume_allowed_post_types', $stored );
+        $this->assertSame( [ 'post', 'page' ], $stored['plume_allowed_post_types'] );
     }
 
     public function test_post_settings_saves_enable_write_tools(): void {
@@ -396,8 +396,8 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'get_post_types' )->justReturn( [] );
 
         $controller = new class extends SettingsRestController {
-            protected function make_provider_settings(): \Stilus\Settings\ProviderSettings {
-                $stub = new class extends \Stilus\Settings\ProviderSettings {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                $stub = new class extends \Plume\Settings\ProviderSettings {
                     public function __construct() {}
                     public function set_api_key( string $provider, string $key ): void {}
                 };
@@ -410,8 +410,8 @@ class SettingsRestControllerTest extends TestCase {
 
         $controller->save_settings( $request );
 
-        $this->assertArrayHasKey( 'stilus_enable_write_tools', $stored );
-        $this->assertTrue( $stored['stilus_enable_write_tools'] );
+        $this->assertArrayHasKey( 'plume_enable_write_tools', $stored );
+        $this->assertTrue( $stored['plume_enable_write_tools'] );
     }
 
     // ── GET /settings — is_pro field ─────────────────────────────────────────
@@ -421,14 +421,14 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_option' )->alias(
             fn( $key, $default = false ) =>
-                'stilus_site_tier' === $key ? 'pro_managed' : ( is_array( $default ) ? $default : ( $default ?: '' ) )
+                'plume_site_tier' === $key ? 'pro_managed' : ( is_array( $default ) ? $default : ( $default ?: '' ) )
         );
         Functions\when( 'get_current_user_id' )->justReturn( 2 );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'pro_managed' : null );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'pro_managed' : null );
 
         $controller = new class extends SettingsRestController {
-            protected function make_provider_settings(): \Stilus\Settings\ProviderSettings {
-                $stub = new class extends \Stilus\Settings\ProviderSettings {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                $stub = new class extends \Plume\Settings\ProviderSettings {
                     public function __construct() {}
                     public function has_key( string $provider ): bool { return false; }
                     public function get_api_key( string $provider ): string { return ''; }
@@ -451,11 +451,11 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_option' )->justReturn( '' );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'free' : null );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
 
         $controller = new class extends SettingsRestController {
-            protected function make_provider_settings(): \Stilus\Settings\ProviderSettings {
-                $stub = new class extends \Stilus\Settings\ProviderSettings {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                $stub = new class extends \Plume\Settings\ProviderSettings {
                     public function __construct() {}
                     public function has_key( string $provider ): bool { return false; }
                     public function get_api_key( string $provider ): string { return ''; }
@@ -480,18 +480,18 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'get_option' )->alias(
             fn( $key, $default = false ) =>
-                'stilus_site_tier' === $key ? 'pro_byok' : $default
+                'plume_site_tier' === $key ? 'pro_byok' : $default
         );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'pro_byok' : null );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'pro_byok' : null );
         Functions\when( '__' )->returnArg();
 
         $api_key_calls = [];
         $controller = new class( $api_key_calls ) extends SettingsRestController {
             private array $calls;
             public function __construct( array &$calls ) { $this->calls = &$calls; }
-            protected function make_provider_settings(): \Stilus\Settings\ProviderSettings {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
                 $calls = &$this->calls;
-                $stub  = new class( $calls ) extends \Stilus\Settings\ProviderSettings {
+                $stub  = new class( $calls ) extends \Plume\Settings\ProviderSettings {
                     private array $calls;
                     public function __construct( array &$calls ) { $this->calls = &$calls; }
                     public function set_api_key( string $provider, string $key ): void {
@@ -523,11 +523,11 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( '__' )->alias( fn( $s ) => $s );
         // tier gate: simulate a free-tier user.
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'stilus_tier' ? 'free' : null );
+        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
 
         $controller = new class extends SettingsRestController {
-            protected function make_provider_settings(): \Stilus\Settings\ProviderSettings {
-                $stub = new class extends \Stilus\Settings\ProviderSettings {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                $stub = new class extends \Plume\Settings\ProviderSettings {
                     public function __construct() {}
                     public function set_api_key( string $provider, string $key ): void {}
                 };

@@ -8,35 +8,39 @@ test.describe( 'SEO journey', () => {
 	} );
 
 	test( 'SEO page renders its root container', async ( { page } ) => {
-		await page.goto( '/wp-admin/admin.php?page=stilus-seo' );
-		// SeoApp renders either .wpaim-pro-gate (free) or .wpaim-page (Pro).
+		await page.goto( '/wp-admin/admin.php?page=plume-seo' );
+		// SeoApp renders either .plume-pro-gate (free) or .plume-page (Pro).
 		await expect(
-			page.locator( '#stilus-seo' )
+			page.locator( '#plume-seo' )
 		).toBeVisible( { timeout: 10000 } );
 	} );
 
 	test( 'Pro SEO page shows post list table when Pro is active', async ( { page } ) => {
 		// This test is conditional: if the site is free-tier, the gate renders instead.
 		// We check for one of the two valid states rather than assuming Pro.
-		await page.goto( '/wp-admin/admin.php?page=stilus-seo' );
-		await page.waitForSelector( '#stilus-seo', { timeout: 10000 } );
+		await page.goto( '/wp-admin/admin.php?page=plume-seo' );
+		// Wait for React to mount — either the gate or the Pro page must exist before
+		// checking isProGate. Without this, the cold-asset load on the first SEO-page
+		// navigation races the point-in-time isVisible() check and the wrong branch
+		// is taken (isProGate = false before React has rendered anything).
+		await page.waitForSelector( '.plume-pro-gate, .plume-page', { timeout: 10000 } );
 
-		const isProGate = await page.locator( '.wpaim-pro-gate' ).isVisible();
+		const isProGate = await page.locator( '.plume-pro-gate' ).isVisible();
 		if ( isProGate ) {
 			// Free-tier: gate renders with an upgrade link (SeoApp.jsx line 47).
-			await expect( page.locator( '.wpaim-pro-gate a[href*="pricing"]' ) ).toBeVisible();
+			await expect( page.locator( '.plume-pro-gate a[href*="pricing"]' ) ).toBeVisible();
 		} else {
-			// Pro: .wpaim-page wraps the table header and PostListTable (SeoApp.jsx line 65).
-			await expect( page.locator( '.wpaim-page' ) ).toBeVisible();
-			// PostListTable renders a .wpaim-post-list container (PostListTable.jsx line 132).
-			await expect( page.locator( '.wpaim-post-list' ) ).toBeVisible( { timeout: 10000 } );
+			// Pro: .plume-page wraps the table header and PostListTable (SeoApp.jsx line 65).
+			await expect( page.locator( '.plume-page' ) ).toBeVisible();
+			// PostListTable renders a .plume-post-list container (PostListTable.jsx line 132).
+			await expect( page.locator( '.plume-post-list' ) ).toBeVisible( { timeout: 10000 } );
 		}
 	} );
 
 	test( 'generates SEO suggestions and renders specific fixture response text', async ( { page } ) => {
 		// Mock the seo/generate endpoint — uses the full restUrl path built in SeoWorkArea.jsx.
 		// The URL is constructed as `${restUrl}/seo/generate` where restUrl comes from
-		// window.wpAiMindData, so we match on the path segment.
+		// window.plumeindData, so we match on the path segment.
 		// URL predicate matches both pretty (/wp-json/.../seo/generate) and plain
 		// (?rest_route=.../seo/generate) REST permalink formats.
 		await page.route( ( url ) => url.href.includes( 'seo/generate' ), async ( route ) => {
@@ -52,35 +56,35 @@ test.describe( 'SEO journey', () => {
 			} );
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=stilus-seo' );
-		await page.waitForSelector( '#stilus-seo', { timeout: 10000 } );
+		await page.goto( '/wp-admin/admin.php?page=plume-seo' );
+		await page.waitForSelector( '#plume-seo', { timeout: 10000 } );
 
 		// Skip this test if we hit the Pro gate — generation requires Pro.
-		const isProGate = await page.locator( '.wpaim-pro-gate' ).isVisible();
+		const isProGate = await page.locator( '.plume-pro-gate' ).isVisible();
 		if ( isProGate ) {
 			test.skip();
 		}
 
 		// Wait for the post list to finish loading.
-		// PostListTable shows .wpaim-list-loading while fetching (PostListTable.jsx line 125).
-		await page.waitForSelector( '.wpaim-list-loading', { state: 'hidden', timeout: 15000 } );
+		// PostListTable shows .plume-list-loading while fetching (PostListTable.jsx line 125).
+		await page.waitForSelector( '.plume-list-loading', { state: 'hidden', timeout: 15000 } );
 
 		// The expand button text is "Generate ▼" (PostListTable.jsx line 283).
 		// Click the first row's expand button to open SeoWorkArea.
 		const expandButton = page.locator( 'button.button-small', { hasText: 'Generate' } ).first();
 		if ( ! await expandButton.isVisible( { timeout: 5000 } ) ) {
 			// No posts in the test environment — verify the empty state renders instead.
-			await expect( page.locator( '.wpaim-post-list' ) ).toBeVisible();
+			await expect( page.locator( '.plume-post-list' ) ).toBeVisible();
 			return;
 		}
 		await expandButton.click();
 
-		// SeoWorkArea renders inside .wpaim-work-area (SeoWorkArea.jsx line 113).
-		await page.waitForSelector( '.wpaim-work-area', { timeout: 5000 } );
+		// SeoWorkArea renders inside .plume-work-area (SeoWorkArea.jsx line 113).
+		await page.waitForSelector( '.plume-work-area', { timeout: 5000 } );
 
-		// Click "✦ Generate SEO" — the primary button inside .wpaim-work-header
+		// Click "✦ Generate SEO" — the primary button inside .plume-work-header
 		// (SeoWorkArea.jsx line 124).
-		await page.locator( '.wpaim-work-header button.button-primary' ).click();
+		await page.locator( '.plume-work-header button.button-primary' ).click();
 
 		// After generation, the meta title input (#seo-meta-title) is populated
 		// with the fixture value (SeoWorkArea.jsx line 172).
@@ -95,24 +99,24 @@ test.describe( 'SEO journey', () => {
 	} );
 
 	test( 'SEO field inputs are present after work area is expanded', async ( { page } ) => {
-		await page.goto( '/wp-admin/admin.php?page=stilus-seo' );
-		await page.waitForSelector( '#stilus-seo', { timeout: 10000 } );
+		await page.goto( '/wp-admin/admin.php?page=plume-seo' );
+		await page.waitForSelector( '#plume-seo', { timeout: 10000 } );
 
-		const isProGate = await page.locator( '.wpaim-pro-gate' ).isVisible();
+		const isProGate = await page.locator( '.plume-pro-gate' ).isVisible();
 		if ( isProGate ) {
 			test.skip();
 		}
 
-		await page.waitForSelector( '.wpaim-list-loading', { state: 'hidden', timeout: 15000 } );
+		await page.waitForSelector( '.plume-list-loading', { state: 'hidden', timeout: 15000 } );
 
 		const expandButton = page.locator( 'button.button-small', { hasText: 'Generate' } ).first();
 		if ( ! await expandButton.isVisible( { timeout: 5000 } ) ) {
-			await expect( page.locator( '.wpaim-post-list' ) ).toBeVisible();
+			await expect( page.locator( '.plume-post-list' ) ).toBeVisible();
 			return;
 		}
 		await expandButton.click();
 
-		await page.waitForSelector( '.wpaim-work-area', { timeout: 5000 } );
+		await page.waitForSelector( '.plume-work-area', { timeout: 5000 } );
 
 		// Verify all four SEO field inputs are rendered (SeoWorkArea.jsx lines 172, 189, 202, 220).
 		await expect( page.locator( '#seo-meta-title' ) ).toBeVisible();

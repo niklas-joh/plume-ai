@@ -1,14 +1,14 @@
 <?php
 /**
  * REST endpoint called by the proxy Worker to verify a site is live and running
- * Stilus.
+ * Plume.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
 use WP_REST_Request;
 use WP_REST_Response;
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Handles the GET /stilus/v1/activation-verify callback invoked by the
+ * Handles the GET /plume/v1/activation-verify callback invoked by the
  * Cloudflare Worker during site registration.
  *
  * The Worker generates a challenge token, stores it in KV, and sends it back
@@ -32,9 +32,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ActivationVerifyRestController {
 
-	private const NAMESPACE     = 'stilus/v1';
+	private const NAMESPACE     = 'plume/v1';
 	private const ROUTE         = '/activation-verify';
-	private const TRANSIENT     = 'stilus_challenge_';
+	private const TRANSIENT     = 'plume_challenge_';
 	private const CHALLENGE_TTL = 300; // Seconds — must match worker CHALLENGE_TTL.
 
 	/**

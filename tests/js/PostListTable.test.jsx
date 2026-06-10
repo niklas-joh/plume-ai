@@ -38,7 +38,7 @@ const FIXTURE_POSTS = [
 		type: 'post',
 		status: 'publish',
 		modified: new Date().toISOString(),
-		wpaim_seo_status: null,
+		plume_seo_status: null,
 	},
 	{
 		id: 2,
@@ -46,7 +46,7 @@ const FIXTURE_POSTS = [
 		type: 'page',
 		status: 'publish',
 		modified: new Date().toISOString(),
-		wpaim_seo_status: null,
+		plume_seo_status: null,
 	},
 ];
 
@@ -92,7 +92,7 @@ describe( 'PostListTable', () => {
 			root.render( <PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } /> );
 		} );
 
-		// PostListTable renders .wpaim-list-loading while fetching (line 125).
+		// PostListTable renders .plume-list-loading while fetching (line 125).
 		// After the mocked fetch resolves, it renders a <table> (line 156).
 		const table = container.querySelector( 'table.wp-list-table' );
 		expect( table ).not.toBeNull();
@@ -103,8 +103,8 @@ describe( 'PostListTable', () => {
 			root.render( <PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } /> );
 		} );
 
-		// Tab buttons are rendered in .wpaim-list-tabs (PostListTable.jsx line 134).
-		const tabButtons = container.querySelectorAll( '.wpaim-list-tabs .wpaim-tab' );
+		// Tab buttons are rendered in .plume-list-tabs (PostListTable.jsx line 134).
+		const tabButtons = container.querySelectorAll( '.plume-list-tabs .plume-tab' );
 		expect( tabButtons.length ).toBe( STUB_TABS.length );
 
 		const labels = Array.from( tabButtons ).map( ( btn ) => btn.textContent );
@@ -128,8 +128,8 @@ describe( 'PostListTable', () => {
 			root.render( <PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } /> );
 		} );
 
-		// .wpaim-list-search is the <input type="search"> (PostListTable.jsx line 147).
-		const searchInput = container.querySelector( '.wpaim-list-search' );
+		// .plume-list-search is the <input type="search"> (PostListTable.jsx line 147).
+		const searchInput = container.querySelector( '.plume-list-search' );
 		expect( searchInput ).not.toBeNull();
 		expect( searchInput.getAttribute( 'type' ) ).toBe( 'search' );
 	} );

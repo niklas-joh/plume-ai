@@ -337,13 +337,13 @@ describe( 'handleWebhook', () => {
 			RequestInit,
 		];
 		expect( calledUrl ).toBe(
-			'https://wp.example.com/wp-json/stilus/v1/tier-update'
+			'https://wp.example.com/wp-json/plume/v1/tier-update'
 		);
 		expect( opts.method ).toBe( 'POST' );
 		const headers = opts.headers as Record< string, string >;
 		expect( headers[ 'Content-Type' ] ).toBe( 'application/json' );
-		expect( headers[ 'X-Stilus-Signature' ] ).toMatch( /^[0-9a-f]{64}$/ );
-		expect( headers[ 'X-Stilus-Timestamp' ] ).toMatch( /^\d+$/ );
+		expect( headers[ 'X-Plume-Signature' ] ).toMatch( /^[0-9a-f]{64}$/ );
+		expect( headers[ 'X-Plume-Timestamp' ] ).toMatch( /^\d+$/ );
 		expect( JSON.parse( opts.body as string ) ).toEqual( {
 			tier: 'pro_managed',
 		} );

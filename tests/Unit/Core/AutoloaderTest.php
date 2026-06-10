@@ -1,9 +1,9 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Core;
+namespace Plume\Tests\Unit\Core;
 
-use Stilus\Core\Autoloader;
+use Plume\Core\Autoloader;
 use PHPUnit\Framework\TestCase;
 
 class AutoloaderTest extends TestCase {
@@ -15,6 +15,6 @@ class AutoloaderTest extends TestCase {
 
     public function test_loads_existing_class(): void {
         // After register, a real class in the namespace should autoload.
-        $this->assertTrue( class_exists( 'Stilus\Core\Plugin' ) );
+        $this->assertTrue( class_exists( 'Plume\Core\Plugin' ) );
     }
 }

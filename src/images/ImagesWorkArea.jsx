@@ -3,7 +3,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { Loader2 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 
-const { nonce, restUrl, adminUrl = '/wp-admin/' } = window.stilusData ?? {};
+const { nonce, restUrl, adminUrl = '/wp-admin/' } = window.plumeData ?? {};
 
 const ASPECT_RATIOS = [ '16:9', '1:1', '4:3', '9:16' ];
 
@@ -119,35 +119,35 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 	};
 
 	return (
-		<div className="wpaim-work-area">
-			<div className="wpaim-work-header">
+		<div className="plume-work-area">
+			<div className="plume-work-header">
 				<span
-					className="wpaim-work-title"
+					className="plume-work-title"
 					dangerouslySetInnerHTML={ {
 						__html: DOMPurify.sanitize( post.title.rendered ),
 					} }
 				/>
 			</div>
 
-			<div className="wpaim-images-prompt-row">
+			<div className="plume-images-prompt-row">
 				<textarea
-					className="wpaim-prompt-input"
+					className="plume-prompt-input"
 					placeholder="Describe the image you want to generate…"
 					value={ prompt }
 					onChange={ ( e ) => setPrompt( e.target.value ) }
 					rows={ 4 }
 				/>
-				<div className="wpaim-images-controls">
-					<div className="wpaim-control">
+				<div className="plume-images-controls">
+					<div className="plume-control">
 						<label
 							htmlFor="img-aspect-ratio"
-							className="wpaim-field-label"
+							className="plume-field-label"
 						>
 							Aspect ratio
 						</label>
 						<select
 							id="img-aspect-ratio"
-							className="wpaim-field-input"
+							className="plume-field-input"
 							value={ aspectRatio }
 							onChange={ ( e ) =>
 								setAspectRatio( e.target.value )
@@ -160,13 +160,13 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 							) ) }
 						</select>
 					</div>
-					<div className="wpaim-control">
-						<span className="wpaim-field-label">Count</span>
-						<div className="wpaim-count-pills">
+					<div className="plume-control">
+						<span className="plume-field-label">Count</span>
+						<div className="plume-count-pills">
 							{ [ 1, 2, 3 ].map( ( n ) => (
 								<button
 									key={ n }
-									className={ `wpaim-pill${
+									className={ `plume-pill${
 										count === n ? ' is-active' : ''
 									}` }
 									onClick={ () => setCount( n ) }
@@ -183,7 +183,7 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 					>
 						{ generating ? (
 							<>
-								<Loader2 size={ 12 } className="wpaim-spin" />{ ' ' }
+								<Loader2 size={ 12 } className="plume-spin" />{ ' ' }
 								Generating…
 							</>
 						) : (
@@ -194,10 +194,10 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 			</div>
 
 			{ warning && (
-				<p className="wpaim-work-warning">
+				<p className="plume-work-warning">
 					⚠ { warning }
 					<button
-						className="wpaim-dismiss"
+						className="plume-dismiss"
 						onClick={ () => setWarning( null ) }
 					>
 						✕
@@ -206,11 +206,11 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 			) }
 
 			{ images.length > 0 && (
-				<div className="wpaim-image-grid">
+				<div className="plume-image-grid">
 					{ images.map( ( img ) => (
 						<div
 							key={ img.attachment_id }
-							className={ `wpaim-image-card${
+							className={ `plume-image-card${
 								selectedId === img.attachment_id
 									? ' is-selected'
 									: ''
@@ -226,14 +226,14 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 							<img
 								src={ img.url }
 								alt={ prompt }
-								className="wpaim-image-thumb"
+								className="plume-image-thumb"
 							/>
 							{ selectedId === img.attachment_id && (
-								<span className="wpaim-selected-badge">
+								<span className="plume-selected-badge">
 									✓ Selected
 								</span>
 							) }
-							<div className="wpaim-image-footer">
+							<div className="plume-image-footer">
 								<a
 									href={ `${ adminUrl }post.php?post=${ img.attachment_id }&action=edit` }
 									target="_blank"
@@ -248,14 +248,14 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 				</div>
 			) }
 
-			{ error && <p className="wpaim-work-error">{ error }</p> }
+			{ error && <p className="plume-work-error">{ error }</p> }
 
-			<div className="wpaim-work-actions">
+			<div className="plume-work-actions">
 				<a
 					href={ editUrl }
 					target="_blank"
 					rel="noreferrer"
-					className="wpaim-action-link"
+					className="plume-action-link"
 				>
 					Edit post →
 				</a>

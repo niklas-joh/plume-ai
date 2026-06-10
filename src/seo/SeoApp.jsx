@@ -3,7 +3,7 @@ import PostListTable from '../shared/PostListTable';
 import SeoBadge, { getSeoStatus } from './SeoBadge';
 import SeoWorkArea from './SeoWorkArea';
 
-const { isPro } = window.stilusData ?? {};
+const { isPro } = window.plumeData ?? {};
 
 const SEO_TABS = [
 	{ id: 'all', label: 'All', filter: () => true },
@@ -44,15 +44,15 @@ const SEO_COLUMNS = [
 export default function SeoApp() {
 	if ( ! isPro ) {
 		return (
-			<div className="wpaim-pro-gate">
+			<div className="plume-pro-gate">
 				<Lock size={ 32 } />
-				<h2>AI SEO requires Stilus Pro</h2>
+				<h2>AI SEO requires Plume Pro</h2>
 				<p>
 					Automatically generate meta titles, OG descriptions,
 					excerpts, and image alt text for every post — in one click.
 				</p>
 				<a
-					href="https://wpaimind.com/pricing"
+					href="https://plumeind.com/pricing"
 					className="button button-primary button-large"
 				>
 					Upgrade to Pro →
@@ -62,10 +62,10 @@ export default function SeoApp() {
 	}
 
 	return (
-		<div className="wpaim-page">
-			<div className="wpaim-page-header">
+		<div className="plume-page">
+			<div className="plume-page-header">
 				<h1>
-					SEO <span className="wpaim-pro-badge">PRO</span>
+					SEO <span className="plume-pro-badge">PRO</span>
 				</h1>
 				<p>
 					Generate and apply AI-written SEO metadata for your posts

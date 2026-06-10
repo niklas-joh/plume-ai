@@ -2,22 +2,22 @@
 /**
  * Admin page rendering the main AI chat interface.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Providers\ProviderFactory;
-use Stilus\Settings\ProviderSettings;
-use Stilus\Tiers\TierManager;
+use Plume\Providers\ProviderFactory;
+use Plume\Settings\ProviderSettings;
+use Plume\Tiers\TierManager;
 
 /**
- * Renders the Stilus chat admin page.
+ * Renders the Plume chat admin page.
  *
  * Outputs a React mount point and enqueues the shared admin bundle with
  * localised data that includes the default model label for the UI header.
@@ -32,7 +32,7 @@ class ChatPage {
 	 */
 	public static function render(): void {
 		self::enqueue_assets();
-		echo '<div id="stilus-chat" class="stilus-page"></div>';
+		echo '<div id="plume-chat" class="plume-page"></div>';
 	}
 
 	/**
@@ -45,23 +45,23 @@ class ChatPage {
 	 * @return void
 	 */
 	private static function enqueue_assets(): void {
-		$asset_file = STILUS_DIR . 'assets/admin/index.asset.php';
+		$asset_file = PLUME_DIR . 'assets/admin/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [],
-				'version'      => STILUS_VERSION,
+				'version'      => PLUME_VERSION,
 			];
 
 		wp_enqueue_script(
-			'stilus-admin',
-			STILUS_URL . 'assets/admin/index.js',
+			'plume-admin',
+			PLUME_URL . 'assets/admin/index.js',
 			array_merge( $asset['dependencies'], [ 'wp-element', 'wp-i18n', 'wp-api-fetch' ] ),
 			$asset['version'],
 			true
 		);
 
-		$default_slug        = (string) get_option( 'stilus_default_provider', 'claude' );
+		$default_slug        = (string) get_option( 'plume_default_provider', 'claude' );
 		$provider_factory    = new ProviderFactory( new ProviderSettings() );
 		$default_model_label = 'AI';
 		try {
@@ -74,11 +74,11 @@ class ChatPage {
 		}
 
 		wp_localize_script(
-			'stilus-admin',
-			'stilusData',
+			'plume-admin',
+			'plumeData',
 			[
 				'nonce'             => wp_create_nonce( 'wp_rest' ),
-				'restUrl'           => esc_url_raw( rest_url( 'stilus/v1' ) ),
+				'restUrl'           => esc_url_raw( rest_url( 'plume/v1' ) ),
 				'currentPostId'     => 0,
 				'isPro'             => TierManager::user_can( 'chat' ),
 				'siteTitle'         => get_bloginfo( 'name' ),
@@ -88,8 +88,8 @@ class ChatPage {
 		);
 
 		wp_enqueue_style(
-			'stilus-admin',
-			STILUS_URL . 'assets/admin/index.css',
+			'plume-admin',
+			PLUME_URL . 'assets/admin/index.css',
 			[],
 			$asset['version']
 		);

@@ -1,12 +1,12 @@
 <?php
 declare( strict_types=1 );
 
-namespace Stilus\Tests\Unit\Admin;
+namespace Plume\Tests\Unit\Admin;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
-use Stilus\Admin\UsageWidget;
+use Plume\Admin\UsageWidget;
 
 class UsageWidgetTest extends TestCase {
 
@@ -54,7 +54,7 @@ class UsageWidgetTest extends TestCase {
 
 		UsageWidget::add_dashboard_widget();
 
-		$this->assertSame( 'stilus_usage', $registered_id );
+		$this->assertSame( 'plume_usage', $registered_id );
 	}
 
 	public function test_add_dashboard_widget_skipped_without_manage_options(): void {
@@ -75,13 +75,13 @@ class UsageWidgetTest extends TestCase {
 	// ── render() — limited tier (free) ───────────────────────────────────────
 
 	public function test_render_shows_plan_label_and_progress_bar_for_free_tier(): void {
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		// tier meta is called once inside get_usage(); render() reads $usage['tier'] directly
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key ) use ( $month_key ): string {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'free';
 				}
 				if ( $month_key === $key ) {
@@ -103,16 +103,16 @@ class UsageWidgetTest extends TestCase {
 		$this->assertStringContainsString( 'Free', $output );
 		$this->assertStringContainsString( '25,000', $output );
 		$this->assertStringContainsString( '50,000', $output );
-		$this->assertStringContainsString( 'stilus-progress-track', $output );
+		$this->assertStringContainsString( 'plume-progress-track', $output );
 	}
 
 	public function test_render_shows_upgrade_notice_when_above_80_percent(): void {
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key ) use ( $month_key ): string {
-				if ( 'stilus_tier' === $key ) {
+				if ( 'plume_tier' === $key ) {
 					return 'free'; // limit = 50000
 				}
 				if ( $month_key === $key ) {
@@ -132,19 +132,19 @@ class UsageWidgetTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Over 80%', $output );
-		$this->assertStringContainsString( 'stilus-progress-bar--danger', $output );
+		$this->assertStringContainsString( 'plume-progress-bar--danger', $output );
 	}
 
 	// ── render() — unlimited tier (pro_byok) ─────────────────────────────────
 
 	public function test_render_shows_unlimited_message_for_pro_byok(): void {
-		$month_key = 'stilus_usage_' . gmdate( 'Y_m' );
+		$month_key = 'plume_usage_' . gmdate( 'Y_m' );
 
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		// pro_byok lives on the site option now.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
-				'stilus_site_tier' === $key ? 'pro_byok' : $default
+				'plume_site_tier' === $key ? 'pro_byok' : $default
 		);
 		Functions\when( 'get_user_meta' )->alias(
 			function ( int $user_id, string $key ) use ( $month_key ): string {
@@ -165,6 +165,6 @@ class UsageWidgetTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Unlimited', $output );
-		$this->assertStringNotContainsString( 'stilus-progress-track', $output );
+		$this->assertStringNotContainsString( 'plume-progress-track', $output );
 	}
 }

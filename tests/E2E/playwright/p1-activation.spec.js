@@ -25,21 +25,21 @@ async function loginAsAdmin( page ) {
 
 test.describe( 'P1 — Plugin activation', () => {
 
-	test( 'Admin menu item "Stilus" appears after activation', async ( { page } ) => {
+	test( 'Admin menu item "Plume" appears after activation', async ( { page } ) => {
 		await loginAsAdmin( page );
 		await page.goto( '/wp-admin/' );
-		await expect( page.locator( '#adminmenu' ) ).toContainText( 'Stilus' );
+		await expect( page.locator( '#adminmenu' ) ).toContainText( 'Plume' );
 	} );
 
-	test( 'Chat page renders the React mount point (#stilus-chat)', async ( { page } ) => {
+	test( 'Chat page renders the React mount point (#plume-chat)', async ( { page } ) => {
 		await loginAsAdmin( page );
-		await page.goto( '/wp-admin/admin.php?page=stilus-chat' );
-		await expect( page.locator( '#stilus-chat' ) ).toBeAttached();
+		await page.goto( '/wp-admin/admin.php?page=plume-chat' );
+		await expect( page.locator( '#plume-chat' ) ).toBeAttached();
 	} );
 
 	test( 'Plugin page loads without PHP fatal errors', async ( { page } ) => {
 		await loginAsAdmin( page );
-		await page.goto( '/wp-admin/admin.php?page=stilus' );
+		await page.goto( '/wp-admin/admin.php?page=plume' );
 		await expect( page ).not.toHaveTitle( /Fatal error/i );
 		// Also confirm the page title is not a generic WordPress error.
 		await expect( page ).not.toHaveTitle( /Error/i );

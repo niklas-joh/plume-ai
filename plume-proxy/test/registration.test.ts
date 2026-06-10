@@ -196,7 +196,7 @@ describe( 'handleRegistration', () => {
 		expect( stored?.tier_sync_secret ).toBe( data.tier_sync_secret );
 	} );
 
-	it( 'calls the activation-verify endpoint with the correct stilus/v1 URL', async () => {
+	it( 'calls the activation-verify endpoint with the correct plume/v1 URL', async () => {
 		const challenge = 'a'.repeat( 64 );
 		const fetchSpy = vi
 			.fn()
@@ -217,7 +217,7 @@ describe( 'handleRegistration', () => {
 
 		expect( fetchSpy ).toHaveBeenCalledTimes( 1 );
 		const [ calledUrl ] = fetchSpy.mock.calls[ 0 ] as [ string ];
-		expect( calledUrl ).toContain( '/wp-json/stilus/v1/activation-verify' );
+		expect( calledUrl ).toContain( '/wp-json/plume/v1/activation-verify' );
 	} );
 
 	it( 'consumes the challenge (single-use)', async () => {

@@ -2,17 +2,17 @@
 /**
  * Base class shared by all AI completion providers.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Providers;
+namespace Plume\Providers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Stilus\Tiers\UsageTracker;
+use Plume\Tiers\UsageTracker;
 
 /**
  * Provides retry logic, usage logging, and media-library image saving for concrete providers.
@@ -117,7 +117,7 @@ abstract class AbstractProvider implements ProviderInterface {
 			throw new ProviderException( 'Failed to save image: ' . $attachment_id->get_error_message(), $this->get_slug() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
-		update_post_meta( $attachment_id, '_stilus_prompt', sanitize_textarea_field( $prompt ) );
+		update_post_meta( $attachment_id, '_plume_prompt', sanitize_textarea_field( $prompt ) );
 		return $attachment_id;
 	}
 

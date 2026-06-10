@@ -2,12 +2,12 @@
 /**
  * Converts HTML fragments into Gutenberg block markup.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Content;
+namespace Plume\Content;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

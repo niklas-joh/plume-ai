@@ -2,12 +2,12 @@
 /**
  * Normalises AI-generated content into Gutenberg block markup.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Content;
+namespace Plume\Content;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -34,7 +34,7 @@ class ContentNormaliser {
 	 * Returns empty string for blank input. Returns the input unchanged when
 	 * Gutenberg block delimiters are already present (idempotent). Otherwise
 	 * converts markdown to HTML via GFM converter, serialises to block markup,
-	 * and applies the stilus_normalised_content filter.
+	 * and applies the plume_normalised_content filter.
 	 *
 	 * @since 1.9.0
 	 * @param string $content Raw content from the AI provider (markdown, HTML, or block markup).
@@ -67,6 +67,6 @@ class ContentNormaliser {
 		 * @param string $blocks  Generated Gutenberg block markup.
 		 * @param string $content Original raw AI content.
 		 */
-		return \apply_filters( 'stilus_normalised_content', $blocks, $content );
+		return \apply_filters( 'plume_normalised_content', $blocks, $content );
 	}
 }

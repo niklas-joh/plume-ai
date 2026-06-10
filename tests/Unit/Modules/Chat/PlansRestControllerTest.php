@@ -1,20 +1,22 @@
 <?php
-namespace Stilus\Tests\Unit\Modules\Chat;
+declare( strict_types=1 );
+
+namespace Plume\Tests\Unit\Modules\Chat;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Stilus\Modules\Chat\PlansRestController;
-use Stilus\Tools\ToolExecutor;
+use Plume\Modules\Chat\PlansRestController;
+use Plume\Tools\PostWriter;
 use PHPUnit\Framework\TestCase;
 
 class PlansRestControllerTest extends TestCase {
 
-	private ToolExecutor $executor;
+	private PostWriter $post_writer;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		$this->executor = $this->createMock( ToolExecutor::class );
+		$this->post_writer = $this->createMock( PostWriter::class );
 	}
 
 	protected function tearDown(): void {
@@ -28,7 +30,7 @@ class PlansRestControllerTest extends TestCase {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$controller = new PlansRestController( $this->executor );
+		$controller = new PlansRestController( $this->post_writer );
 		$result     = $controller->check_permission();
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -38,7 +40,7 @@ class PlansRestControllerTest extends TestCase {
 	public function test_check_permission_returns_true_when_authorised(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 
-		$controller = new PlansRestController( $this->executor );
+		$controller = new PlansRestController( $this->post_writer );
 		$result     = $controller->check_permission();
 
 		$this->assertTrue( $result );
@@ -51,7 +53,7 @@ class PlansRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_transient' )->justReturn( false );
 
-		$controller = new PlansRestController( $this->executor );
+		$controller = new PlansRestController( $this->post_writer );
 		$request    = $this->make_request( 'abc12345' );
 
 		$response = $controller->execute_plan( $request );
@@ -60,9 +62,9 @@ class PlansRestControllerTest extends TestCase {
 		$this->assertSame( 404, $response->get_error_data()['status'] );
 	}
 
-	// ── execute_plan: executor error — transient must NOT be deleted ─────────
+	// ── execute_plan: writer error — transient must NOT be deleted ────────────
 
-	public function test_execute_plan_returns_422_and_preserves_transient_on_executor_error(): void {
+	public function test_execute_plan_returns_422_and_preserves_transient_on_writer_error(): void {
 		Functions\when( '__' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_current_user_id' )->justReturn( 2 );
 		Functions\when( 'get_transient' )->justReturn( [
@@ -75,9 +77,9 @@ class PlansRestControllerTest extends TestCase {
 		] );
 		Functions\expect( 'delete_transient' )->never();
 
-		$this->executor->method( 'execute' )->willReturn( [ 'error' => 'Write tools are disabled.' ] );
+		$this->post_writer->method( 'create' )->willReturn( [ 'error' => 'Write tools are disabled.' ] );
 
-		$controller = new PlansRestController( $this->executor );
+		$controller = new PlansRestController( $this->post_writer );
 		$response   = $controller->execute_plan( $this->make_request( 'abc12345' ) );
 
 		$this->assertInstanceOf( \WP_Error::class, $response );
@@ -97,16 +99,19 @@ class PlansRestControllerTest extends TestCase {
 			'post_status' => 'draft',
 			'post_type'   => 'post',
 		] );
-		Functions\expect( 'delete_transient' )->once()->with( 'stilus_plan_3_abc12345' );
+		Functions\expect( 'delete_transient' )->once()->with( 'plume_plan_3_abc12345' );
 		Functions\when( 'get_edit_post_link' )->justReturn( 'http://example.com/wp-admin/post.php?post=99' );
 
-		$this->executor
+		$this->post_writer
 			->expects( $this->once() )
-			->method( 'execute' )
-			->with( 'create_post', $this->anything(), 3 )
+			->method( 'create' )
+			->with(
+				$this->callback( fn( $args ) => 'New Post' === ( $args['title'] ?? '' ) ),
+				3
+			)
 			->willReturn( [ 'post_id' => 99 ] );
 
-		$controller = new PlansRestController( $this->executor );
+		$controller = new PlansRestController( $this->post_writer );
 		$response   = $controller->execute_plan( $this->make_request( 'abc12345' ) );
 
 		$this->assertInstanceOf( \WP_REST_Response::class, $response );
@@ -126,14 +131,13 @@ class PlansRestControllerTest extends TestCase {
 			'changes'     => 'Make intro snappier',
 			'new_content' => 'The updated post body goes here.',
 		] );
-		Functions\expect( 'delete_transient' )->once()->with( 'stilus_plan_4_def67890' );
+		Functions\expect( 'delete_transient' )->once()->with( 'plume_plan_4_def67890' );
 		Functions\when( 'get_edit_post_link' )->justReturn( 'http://example.com/wp-admin/post.php?post=42' );
 
-		$this->executor
+		$this->post_writer
 			->expects( $this->once() )
-			->method( 'execute' )
+			->method( 'update' )
 			->with(
-				'update_post',
 				$this->callback(
 					fn( $args ) => 42 === ( $args['post_id'] ?? 0 )
 						&& 'The updated post body goes here.' === ( $args['content'] ?? '' )
@@ -142,12 +146,73 @@ class PlansRestControllerTest extends TestCase {
 			)
 			->willReturn( [ 'post_id' => 42 ] );
 
-		$controller = new PlansRestController( $this->executor );
+		$controller = new PlansRestController( $this->post_writer );
 		$response   = $controller->execute_plan( $this->make_request( 'def67890' ) );
 
 		$this->assertInstanceOf( \WP_REST_Response::class, $response );
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( 42, $response->data['post_id'] );
+	}
+
+	// ── execute_plan: stored full content becomes the post body ──────────────
+
+	public function test_execute_plan_uses_stored_content_over_outline(): void {
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+		Functions\when( 'get_current_user_id' )->justReturn( 6 );
+		Functions\when( 'get_transient' )->justReturn( [
+			'id'          => 'bbb22222',
+			'plan_type'   => 'create',
+			'title'       => 'Full Post',
+			'outline'     => 'Short summary for the approval card.',
+			'content'     => 'The complete article body, many paragraphs long.',
+			'post_status' => 'draft',
+			'post_type'   => 'post',
+		] );
+		Functions\when( 'delete_transient' )->justReturn( true );
+		Functions\when( 'get_edit_post_link' )->justReturn( '' );
+
+		$this->post_writer
+			->expects( $this->once() )
+			->method( 'create' )
+			->with(
+				$this->callback(
+					fn( $args ) => 'The complete article body, many paragraphs long.' === ( $args['content'] ?? '' )
+				),
+				6
+			)
+			->willReturn( [ 'post_id' => 7 ] );
+
+		$controller = new PlansRestController( $this->post_writer );
+		$controller->execute_plan( $this->make_request( 'bbb22222' ) );
+	}
+
+	public function test_execute_plan_falls_back_to_outline_for_legacy_plans(): void {
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'get_transient' )->justReturn( [
+			'id'          => 'ccc33333',
+			'plan_type'   => 'create',
+			'title'       => 'Legacy Plan',
+			'outline'     => 'Outline only — stored before content became required.',
+			'post_status' => 'draft',
+			'post_type'   => 'post',
+		] );
+		Functions\when( 'delete_transient' )->justReturn( true );
+		Functions\when( 'get_edit_post_link' )->justReturn( '' );
+
+		$this->post_writer
+			->expects( $this->once() )
+			->method( 'create' )
+			->with(
+				$this->callback(
+					fn( $args ) => 'Outline only — stored before content became required.' === ( $args['content'] ?? '' )
+				),
+				7
+			)
+			->willReturn( [ 'post_id' => 8 ] );
+
+		$controller = new PlansRestController( $this->post_writer );
+		$controller->execute_plan( $this->make_request( 'ccc33333' ) );
 	}
 
 	// ── execute_plan: request-body overrides are merged ───────────────────────
@@ -166,17 +231,16 @@ class PlansRestControllerTest extends TestCase {
 		Functions\when( 'delete_transient' )->justReturn( true );
 		Functions\when( 'get_edit_post_link' )->justReturn( '' );
 
-		$this->executor
+		$this->post_writer
 			->expects( $this->once() )
-			->method( 'execute' )
+			->method( 'create' )
 			->with(
-				'create_post',
 				$this->callback( fn( $args ) => 'Edited title' === ( $args['title'] ?? '' ) ),
 				5
 			)
 			->willReturn( [ 'post_id' => 1 ] );
 
-		$controller = new PlansRestController( $this->executor );
+		$controller = new PlansRestController( $this->post_writer );
 		$request    = $this->make_request( 'aaa11111' );
 		$request->set_body_params( [ 'title' => 'Edited title' ] );
 

@@ -17,7 +17,7 @@ module.exports = {
 		...defaultConfig.output,
 		path: path.resolve( __dirname, 'assets' ),
 		clean: {
-			keep: /stilus-admin-widgets\.css/,
+			keep: /plume-admin-widgets\.css/,
 		},
 	},
 };

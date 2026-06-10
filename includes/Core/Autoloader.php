@@ -1,20 +1,20 @@
 <?php
 /**
- * PSR-4 autoloader for the Stilus namespace, used as a Composer fallback.
+ * PSR-4 autoloader for the Plume namespace, used as a Composer fallback.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
 
-namespace Stilus\Core;
+namespace Plume\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * PSR-4 autoloader for the Stilus namespace.
+ * PSR-4 autoloader for the Plume namespace.
  *
  * Retained as a safety net for environments where the Composer vendor directory
  * is absent. Composer's autoloader takes precedence when available.
@@ -52,14 +52,14 @@ class Autoloader {
 	 * @return void
 	 */
 	public static function load( string $class_name ): void {
-		$prefix = 'Stilus\\';
+		$prefix = 'Plume\\';
 		if ( ! str_starts_with( $class_name, $prefix ) ) {
 			return;
 		}
 		$relative = substr( $class_name, strlen( $prefix ) );
-		// STILUS_DIR is set in the WordPress bootstrap (stilus.php).
+		// PLUME_DIR is set in the WordPress bootstrap (plume.php).
 		// In unit test context it is not defined, so fall back to plugin root.
-		$base = defined( 'STILUS_DIR' ) ? STILUS_DIR : dirname( __DIR__, 2 ) . '/';
+		$base = defined( 'PLUME_DIR' ) ? PLUME_DIR : dirname( __DIR__, 2 ) . '/';
 		$file = $base . 'includes/' . str_replace( '\\', '/', $relative ) . '.php';
 		if ( file_exists( $file ) ) {
 			require_once $file;

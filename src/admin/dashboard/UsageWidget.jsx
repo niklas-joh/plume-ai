@@ -29,41 +29,41 @@ export default function UsageWidget( { usage } ) {
 		: 0;
 
 	return (
-		<div className="wpaim-usage-widget">
-			<div className="wpaim-usage-widget__header">
-				<span className="wpaim-dash-section-title">
-					{ __( 'Usage', 'stilus' ) }
+		<div className="plume-usage-widget">
+			<div className="plume-usage-widget__header">
+				<span className="plume-dash-section-title">
+					{ __( 'Usage', 'plume' ) }
 				</span>
-				<span className="wpaim-usage-widget__tier-badge">
+				<span className="plume-usage-widget__tier-badge">
 					{
 						/* translators: %s: the user's current subscription tier slug */
-						sprintf( __( 'Tier: %s', 'stilus' ), tier )
+						sprintf( __( 'Tier: %s', 'plume' ), tier )
 					}
 				</span>
 			</div>
 
-			<div className="wpaim-usage-widget__value-row">
+			<div className="plume-usage-widget__value-row">
 				<span
-					className={ `wpaim-usage-widget__value${
+					className={ `plume-usage-widget__value${
 						canUse
 							? ''
-							: ' wpaim-usage-widget__value--limit-reached'
+							: ' plume-usage-widget__value--limit-reached'
 					}` }
 				>
-					{ hasLimit ? usedPct + '%' : __( 'Unlimited', 'stilus' ) }
+					{ hasLimit ? usedPct + '%' : __( 'Unlimited', 'plume' ) }
 				</span>
 				{ hasLimit && (
-					<span className="wpaim-usage-widget__sub-label">
-						{ __( 'of quota used', 'stilus' ) }
+					<span className="plume-usage-widget__sub-label">
+						{ __( 'of quota used', 'plume' ) }
 					</span>
 				) }
 			</div>
 
 			{ hasLimit && (
-				<div className="wpaim-usage-widget__token-count">
+				<div className="plume-usage-widget__token-count">
 					{ sprintf(
 						/* translators: 1: used tokens, 2: limit tokens */
-						__( '%1$s / %2$s tokens', 'stilus' ),
+						__( '%1$s / %2$s tokens', 'plume' ),
 						used.toLocaleString(),
 						limit.toLocaleString()
 					) }
@@ -71,12 +71,12 @@ export default function UsageWidget( { usage } ) {
 			) }
 
 			{ hasLimit && (
-				<div className="wpaim-usage-widget__bar-track">
+				<div className="plume-usage-widget__bar-track">
 					<div
-						className={ `wpaim-usage-widget__bar-fill${
+						className={ `plume-usage-widget__bar-fill${
 							canUse
 								? ''
-								: ' wpaim-usage-widget__bar-fill--limit-reached'
+								: ' plume-usage-widget__bar-fill--limit-reached'
 						}` }
 						style={ { width: `${ usedPct }%` } }
 					/>
@@ -84,10 +84,10 @@ export default function UsageWidget( { usage } ) {
 			) }
 
 			{ hasLimit && ! canUse && (
-				<p className="wpaim-usage-widget__limit-message">
+				<p className="plume-usage-widget__limit-message">
 					{ __(
 						'Monthly limit reached. Upgrade your plan to continue.',
-						'stilus'
+						'plume'
 					) }
 				</p>
 			) }

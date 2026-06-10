@@ -2,14 +2,14 @@
 /**
  * REST controller for the onboarding wizard flow.
  *
- * @package Stilus
+ * @package Plume
  */
 
 declare( strict_types=1 );
-namespace Stilus\Admin;
+namespace Plume\Admin;
 
-use Stilus\Settings\ProviderSettings;
-use Stilus\Tiers\TierManager;
+use Plume\Settings\ProviderSettings;
+use Plume\Tiers\TierManager;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
@@ -33,7 +33,7 @@ class OnboardingRestController {
 	 */
 	public static function register_routes(): void {
 		register_rest_route(
-			'stilus/v1',
+			'plume/v1',
 			'/onboarding',
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -89,21 +89,21 @@ class OnboardingRestController {
 		$seen = $request->get_param( 'seen' );
 
 		if ( true === $seen ) {
-			update_option( 'stilus_onboarding_seen', true );
+			update_option( 'plume_onboarding_seen', true );
 		} elseif ( false === $seen ) {
-			delete_option( 'stilus_onboarding_seen' );
+			delete_option( 'plume_onboarding_seen' );
 		}
 
 		$api_keys = $request->get_param( 'api_keys' );
 		$provider = $request->get_param( 'provider' );
 		if ( $provider ) {
-			update_option( 'stilus_default_provider', sanitize_text_field( $provider ) );
+			update_option( 'plume_default_provider', sanitize_text_field( $provider ) );
 		}
 		if ( $api_keys && is_array( $api_keys ) ) {
 			if ( ! TierManager::user_can( 'own_api_key' ) ) {
 				return new \WP_Error(
 					'rest_plan_required',
-					__( 'API key management requires the Pro BYOK plan.', 'stilus' ),
+					__( 'API key management requires the Pro BYOK plan.', 'plume' ),
 					[ 'status' => 403 ]
 				);
 			}
@@ -119,7 +119,7 @@ class OnboardingRestController {
 
 		$image_provider = $request->get_param( 'image_provider' );
 		if ( $image_provider ) {
-			update_option( 'stilus_image_provider', sanitize_text_field( $image_provider ) );
+			update_option( 'plume_image_provider', sanitize_text_field( $image_provider ) );
 		}
 
 		return new WP_REST_Response( [ 'success' => true ], 200 );
@@ -134,7 +134,7 @@ class OnboardingRestController {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return new \WP_Error(
 				'rest_forbidden',
-				__( 'You do not have permission to manage plugin settings.', 'stilus' ),
+				__( 'You do not have permission to manage plugin settings.', 'plume' ),
 				[ 'status' => 403 ]
 			);
 		}

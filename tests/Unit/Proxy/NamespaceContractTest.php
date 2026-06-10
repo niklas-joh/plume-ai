@@ -79,13 +79,23 @@ class NamespaceContractTest extends TestCase {
 
 		$this->assertNotEmpty( $all_controllers, 'No controller files found — includes/ directory missing or empty' );
 
+		// The shared constant is the canonical declaration of the namespace.
+		$rest_api_source = file_get_contents( __DIR__ . '/../../../includes/Core/RestApi.php' );
+		$this->assertNotFalse( $rest_api_source, 'Could not read includes/Core/RestApi.php' );
+		$this->assertStringContainsString(
+			"'stilus/v1'",
+			$rest_api_source,
+			"RestApi::API_NAMESPACE must be 'stilus/v1'."
+		);
+
 		foreach ( $all_controllers as $file_path ) {
 			$source = file_get_contents( $file_path );
 			$this->assertNotFalse( $source, "Could not read: $file_path" );
-			$this->assertStringContainsString(
-				"'stilus/v1'",
-				$source,
-				basename( $file_path ) . " must use 'stilus/v1'."
+			// Controllers either reference the shared RestApi::API_NAMESPACE constant
+			// or (legacy style) declare the 'stilus/v1' literal locally.
+			$this->assertTrue(
+				str_contains( $source, 'RestApi::API_NAMESPACE' ) || str_contains( $source, "'stilus/v1'" ),
+				basename( $file_path ) . " must use RestApi::API_NAMESPACE or the 'stilus/v1' literal."
 			);
 			$this->assertStringNotContainsString(
 				"'wp-ai-mind/v1'",

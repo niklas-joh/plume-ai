@@ -210,4 +210,46 @@ class PostWriterTest extends TestCase {
 		$this->assertTrue( $result['updated'] );
 		$this->assertSame( '19.99', $updated_meta['_price'] );
 	}
+
+	// -------------------------------------------------------------------------
+	// WP_Error paths
+	// -------------------------------------------------------------------------
+
+	public function test_create_returns_error_when_wp_insert_post_fails(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
+			'stilus_enable_write_tools' === $key ? true : $default
+		);
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_insert_post' )->justReturn(
+			new \WP_Error( 'db_insert_error', 'Could not insert post into the database.' )
+		);
+		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
+
+		$result = $this->make_writer()->create( [ 'title' => 'Doomed Post' ], 1 );
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertSame( 'Could not insert post into the database.', $result['error'] );
+	}
+
+	public function test_update_returns_error_when_wp_update_post_fails(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
+			'stilus_enable_write_tools' === $key ? true : $default
+		);
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_update_post' )->justReturn(
+			new \WP_Error( 'db_update_error', 'Could not update post in the database.' )
+		);
+		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
+		Functions\expect( 'update_post_meta' )->never();
+
+		$result = $this->make_writer()->update( [ 'post_id' => 5, 'title' => 'New Title' ], 1 );
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertSame( 'Could not update post in the database.', $result['error'] );
+	}
 }

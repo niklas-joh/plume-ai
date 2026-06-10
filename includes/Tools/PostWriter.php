@@ -129,9 +129,9 @@ class PostWriter {
 				: 'draft';
 		}
 
-		$has_meta = ! empty( $this->sanitize_meta_fields( $args['meta_fields'] ?? [] ) );
+		$meta_fields = $this->sanitize_meta_fields( $args['meta_fields'] ?? [] );
 
-		if ( 1 === count( $update_data ) && ! $has_meta ) {
+		if ( 1 === count( $update_data ) && empty( $meta_fields ) ) {
 			return [ 'error' => 'No fields to update were provided.' ];
 		}
 
@@ -143,7 +143,7 @@ class PostWriter {
 			}
 		}
 
-		foreach ( $this->sanitize_meta_fields( $args['meta_fields'] ?? [] ) as $key => $value ) {
+		foreach ( $meta_fields as $key => $value ) {
 			\update_post_meta( $post_id, $key, $value );
 		}
 

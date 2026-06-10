@@ -44,55 +44,6 @@ class Schema {
 	}
 
 	/**
-	 * Rename wpaim_* tables to plume_* on first activation after the plugin is renamed.
-	 *
-	 * Skips tables that do not exist under the old name and never overwrites a new table
-	 * that already exists. Guarded by the plume_tables_migrated option so it only runs once.
-	 *
-	 * @since 2.0.0
-	 * @return void
-	 */
-	public static function maybe_migrate_tables(): void {
-		global $wpdb;
-
-		if ( get_option( 'plume_tables_migrated', false ) ) {
-			return;
-		}
-
-		foreach ( array_keys( self::TABLES ) as $name ) {
-			$old_table = $wpdb->prefix . 'wpaim_' . self::TABLES[ $name ];
-			$new_table = self::table( $name );
-
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-			$old_exists = (bool) $wpdb->get_var(
-				$wpdb->prepare(
-					'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s',
-					$old_table
-				)
-			);
-			if ( ! $old_exists ) {
-				continue;
-			}
-
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-			$new_exists = (bool) $wpdb->get_var(
-				$wpdb->prepare(
-					'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s',
-					$new_table
-				)
-			);
-			if ( $new_exists ) {
-				continue;
-			}
-
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.SchemaChange
-			$wpdb->query( "RENAME TABLE `{$old_table}` TO `{$new_table}`" );
-		}
-
-		update_option( 'plume_tables_migrated', true, false );
-	}
-
-	/**
 	 * Run on plugin activation via dbDelta().
 	 *
 	 * @since 1.0.0

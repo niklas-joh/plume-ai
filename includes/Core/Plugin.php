@@ -177,7 +177,6 @@ class Plugin {
 	 * @return void
 	 */
 	public static function activate(): void {
-		Schema::maybe_migrate_tables();
 		Schema::create_tables();
 		self::maybe_migrate_from_wp_ai_mind();
 		update_option( 'plume_just_activated', true );
@@ -189,12 +188,12 @@ class Plugin {
 	}
 
 	/**
-	 * One-time migration of wp_ai_mind_* and stilus_* options to plume_* equivalents.
+	 * One-time migration of wp_ai_mind_* options to plume_* equivalents.
 	 *
-	 * Runs on the first activate() call after the plugin is renamed to Plume. Covers both
-	 * rename hops: WP AI Mind → Stilus → Plume. Skipped on fresh installs and on repeat
-	 * activations via the plume_options_migrated flag. Each option is only copied when the
-	 * new key does not yet exist — existing plume_* values are never overwritten.
+	 * Runs on the first activate() call after the plugin is renamed from WP AI Mind
+	 * to Plume. Skipped on fresh installs and on repeat activations via the
+	 * plume_options_migrated flag. Each option is only copied when the new key does
+	 * not yet exist — existing plume_* values are never overwritten.
 	 *
 	 * @since 2.0.0
 	 * @return void
@@ -204,12 +203,10 @@ class Plugin {
 			return;
 		}
 
-		// Remove orphaned cron tasks left behind by both former plugin names.
+		// Remove orphaned cron task left behind by the old plugin name.
 		wp_clear_scheduled_hook( 'wp_ai_mind_trial_check' );
-		wp_clear_scheduled_hook( 'stilus_trial_check' );
 
 		// Pairs: [ old_key, new_key ]. Copied only when new key is absent.
-		// wp_ai_mind_* pairs run first; stilus_* pairs are skipped if new key was already set.
 		$pairs = [
 			[ 'wp_ai_mind_provider_keys', 'plume_provider_keys' ],
 			[ 'wp_ai_mind_default_provider', 'plume_default_provider' ],
@@ -220,17 +217,6 @@ class Plugin {
 			[ 'wp_ai_mind_allowed_post_types', 'plume_allowed_post_types' ],
 			[ 'wp_ai_mind_enable_write_tools', 'plume_enable_write_tools' ],
 			[ 'wp_ai_mind_backfill_done', 'plume_backfill_done' ],
-			// Sites that previously ran the WP AI Mind → Stilus rename will have these keys
-			// as the live values; wp_ai_mind_* keys will be absent on those installs.
-			[ 'stilus_provider_keys', 'plume_provider_keys' ],
-			[ 'stilus_default_provider', 'plume_default_provider' ],
-			[ 'stilus_image_provider', 'plume_image_provider' ],
-			[ 'stilus_site_voice', 'plume_site_voice' ],
-			[ 'stilus_modules', 'plume_modules' ],
-			[ 'stilus_ollama_url', 'plume_ollama_url' ],
-			[ 'stilus_allowed_post_types', 'plume_allowed_post_types' ],
-			[ 'stilus_enable_write_tools', 'plume_enable_write_tools' ],
-			[ 'stilus_backfill_done', 'plume_backfill_done' ],
 		];
 
 		foreach ( $pairs as [ $old, $new ] ) {
@@ -298,9 +284,8 @@ class Plugin {
 	 */
 	public static function deactivate(): void {
 		wp_clear_scheduled_hook( 'plume_trial_check' );
-		// Also clear legacy hook names that may still be in the cron table on upgraded sites.
+		// Also clear the legacy hook name that may still be in the cron table on upgraded sites.
 		wp_clear_scheduled_hook( 'wp_ai_mind_trial_check' );
-		wp_clear_scheduled_hook( 'stilus_trial_check' );
 		flush_rewrite_rules();
 	}
 

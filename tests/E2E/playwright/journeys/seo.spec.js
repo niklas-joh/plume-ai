@@ -19,7 +19,11 @@ test.describe( 'SEO journey', () => {
 		// This test is conditional: if the site is free-tier, the gate renders instead.
 		// We check for one of the two valid states rather than assuming Pro.
 		await page.goto( '/wp-admin/admin.php?page=plume-seo' );
-		await page.waitForSelector( '#plume-seo', { timeout: 10000 } );
+		// Wait for React to mount — either the gate or the Pro page must exist before
+		// checking isProGate. Without this, the cold-asset load on the first SEO-page
+		// navigation races the point-in-time isVisible() check and the wrong branch
+		// is taken (isProGate = false before React has rendered anything).
+		await page.waitForSelector( '.plume-pro-gate, .plume-page', { timeout: 10000 } );
 
 		const isProGate = await page.locator( '.plume-pro-gate' ).isVisible();
 		if ( isProGate ) {

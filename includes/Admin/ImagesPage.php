@@ -27,6 +27,6 @@ class ImagesPage {
 	 * @return void
 	 */
 	public static function render(): void {
-		echo '<div id="plume-images" class="plume-page"></div>';
+		echo '<div id="plume-images"></div>';
 	}
 }

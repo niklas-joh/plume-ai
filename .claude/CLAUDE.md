@@ -135,3 +135,18 @@ without explicit user instruction.
 
 - All work (features, fixes, chores): PR targets `main`
 - There is no `develop` branch
+
+---
+
+## Code Documentation — @since Tags
+
+The `@since` PHPDoc tag marks the version in which a method or class was introduced.
+**The next release version is unknown until `semantic-release` runs**, so agents must
+never guess it. Use the following rules without exception:
+
+- **New or unreleased code**: always write `@since NEXT_VERSION` (the exact literal string).
+  `semantic-release` runs `bin/stamp-since-tags.sh` during the release pipeline, which
+  replaces every `@since NEXT_VERSION` with the real version (e.g., `@since 1.9.0`)
+  before the release commit is created.
+- **Already-released code**: leave the existing `@since x.y.z` unchanged. Never alter it.
+- **Never write `@since 1.0.0`** (or any other guessed version) for new code.

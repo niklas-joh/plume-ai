@@ -43,7 +43,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "sed -i 's/ \\* Version:.*/ * Version:           ${nextRelease.version}/' plume.php && sed -i \"s/define( 'PLUME_VERSION', '[^']*' )/define( 'PLUME_VERSION', '${nextRelease.version}' )/\" plume.php && sed -i 's/^Stable tag:.*/Stable tag: ${nextRelease.version}/' readme.txt && ./bin/build-wporg.sh --version ${nextRelease.version} --skip-build"
+        "prepareCmd": "sed -i 's/ \\* Version:.*/ * Version:           ${nextRelease.version}/' plume.php && sed -i \"s/define( 'PLUME_VERSION', '[^']*' )/define( 'PLUME_VERSION', '${nextRelease.version}' )/\" plume.php && sed -i 's/^Stable tag:.*/Stable tag: ${nextRelease.version}/' readme.txt && ./bin/stamp-since-tags.sh ${nextRelease.version} && ./bin/build-wporg.sh --version ${nextRelease.version} --skip-build"
       }
     ],
     [
@@ -60,7 +60,8 @@
           "package.json",
           "package-lock.json",
           "plume.php",
-          "readme.txt"
+          "readme.txt",
+          "includes/**/*.php"
         ],
         "message": "chore(release): ${nextRelease.version} [skip ci]"
       }

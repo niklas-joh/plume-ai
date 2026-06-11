@@ -147,8 +147,8 @@ class GeneratorModule {
 			. ( $keywords ? "Keywords to include: {$keywords}\n" : '' )
 			. "Tone: {$tone}\n"
 			. "Length: approximately {$word_count} words\n\n"
-			. 'Format the post with proper headings (H2, H3) and paragraphs. '
-			. 'Return only the post body — no title, no preamble.';
+			. 'Write the post in Markdown. Use ## for main section headings and ### for sub-headings. '
+			. 'Return only the post body — no title, no preamble, no code fence around the post.';
 
 		try {
 			$factory  = new ProviderFactory( new ProviderSettings() );
@@ -174,7 +174,7 @@ class GeneratorModule {
 
 			$response = $provider->complete( $req );
 			// Usage logged by the provider layer: proxy for trial/pro_managed, AbstractProvider::maybe_log() for pro_byok.
-			$content = $response->content;
+			$content = ( new \Plume\Content\ContentNormaliser() )->normalise( $response->content );
 
 			// Create a draft post.
 			$post_id = \wp_insert_post(

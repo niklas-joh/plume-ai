@@ -27,6 +27,6 @@ class SeoPage {
 	 * @return void
 	 */
 	public static function render(): void {
-		echo '<div id="plume-seo" class="plume-page"></div>';
+		echo '<div id="plume-seo"></div>';
 	}
 }

@@ -252,4 +252,70 @@ class PostWriterTest extends TestCase {
 		$this->assertArrayHasKey( 'error', $result );
 		$this->assertSame( 'Could not update post in the database.', $result['error'] );
 	}
+
+	// -------------------------------------------------------------------------
+	// Markdown normalisation
+	// -------------------------------------------------------------------------
+
+	public function test_create_normalises_markdown_content(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
+			'plume_enable_write_tools' === $key ? true : $default
+		);
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
+		Functions\when( 'has_blocks' )->alias( static fn( $c ) => str_contains( (string) $c, '<!-- wp:' ) );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'get_edit_post_link' )->justReturn( 'http://example.test/edit' );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		$captured = null;
+		Functions\when( 'wp_insert_post' )->alias(
+			static function ( array $data ) use ( &$captured ) {
+				$captured = $data;
+				return 123;
+			}
+		);
+
+		$result = $this->make_writer()->create(
+			[
+				'title'   => 'T',
+				'content' => "## Heading\n\nBody text.",
+			],
+			1
+		);
+
+		$this->assertSame( 123, $result['post_id'] );
+		$this->assertNotNull( $captured );
+		$this->assertStringContainsString( '<!-- wp:heading -->', $captured['post_content'] );
+		$this->assertStringContainsString( '<!-- wp:paragraph -->', $captured['post_content'] );
+	}
+
+	public function test_update_normalises_markdown_content(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) =>
+			'plume_enable_write_tools' === $key ? true : $default
+		);
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
+		Functions\when( 'has_blocks' )->alias( static fn( $c ) => str_contains( (string) $c, '<!-- wp:' ) );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		$captured = null;
+		Functions\when( 'wp_update_post' )->alias(
+			static function ( array $data ) use ( &$captured ) {
+				$captured = $data;
+				return 42;
+			}
+		);
+
+		$result = $this->make_writer()->update( [ 'post_id' => 42, 'content' => '*emphasis* text' ], 1 );
+
+		$this->assertTrue( $result['updated'] );
+		$this->assertNotNull( $captured );
+		$this->assertStringContainsString( '<!-- wp:paragraph -->', $captured['post_content'] );
+		$this->assertStringContainsString( '<em>emphasis</em>', $captured['post_content'] );
+	}
 }

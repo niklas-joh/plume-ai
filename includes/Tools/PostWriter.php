@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Content\ContentNormaliser;
+
 /**
  * Performs direct post create/update operations on behalf of approved plans.
  *
@@ -28,9 +30,13 @@ class PostWriter {
 	 * Inject the tool registry needed to validate allowed post types.
 	 *
 	 * @since 1.9.0
-	 * @param ToolRegistry $registry Used for post-type validation.
+	 * @param ToolRegistry      $registry   Used for post-type validation.
+	 * @param ContentNormaliser $normaliser Converts AI markdown to block markup before save.
 	 */
-	public function __construct( private ToolRegistry $registry ) {}
+	public function __construct(
+		private ToolRegistry $registry,
+		private ContentNormaliser $normaliser = new ContentNormaliser(),
+	) {}
 
 	/**
 	 * Create a new post or page.
@@ -59,7 +65,7 @@ class PostWriter {
 			return [ 'error' => 'A post title is required.' ];
 		}
 
-		$content = \wp_kses_post( $args['content'] ?? '' );
+		$content = \wp_kses_post( $this->normaliser->normalise( (string) ( $args['content'] ?? '' ) ) );
 		$status  = \in_array( $args['status'] ?? 'draft', [ 'draft', 'publish', 'pending' ], true )
 			? ( $args['status'] ?? 'draft' )
 			: 'draft';
@@ -120,7 +126,7 @@ class PostWriter {
 		}
 
 		if ( isset( $args['content'] ) ) {
-			$update_data['post_content'] = \wp_kses_post( $args['content'] );
+			$update_data['post_content'] = \wp_kses_post( $this->normaliser->normalise( (string) $args['content'] ) );
 		}
 
 		if ( isset( $args['status'] ) ) {

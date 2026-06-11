@@ -191,7 +191,7 @@ class ToolRegistry {
 					],
 					'content'     => [
 						'type'        => 'string',
-						'description' => 'The complete post body to publish when the user approves. Must be the full content, not an outline or summary.',
+						'description' => 'The complete post body to publish when the user approves. Must be the full content, not an outline or summary. Write it in Markdown; it is converted to WordPress blocks automatically when applied.',
 					],
 					'post_type'   => [
 						'type'        => 'string',
@@ -225,7 +225,7 @@ class ToolRegistry {
 					],
 					'new_content' => [
 						'type'        => 'string',
-						'description' => 'The complete updated post content to apply if the user approves. Must be the full post body, not a diff or partial snippet.',
+						'description' => 'The complete updated post content to apply if the user approves. Must be the full post body, not a diff or partial snippet. Write it in Markdown; it is converted to WordPress blocks automatically when applied.',
 					],
 					'new_title'   => [
 						'type'        => 'string',

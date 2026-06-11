@@ -32,10 +32,10 @@ if [[ -z "$MATCHED_FILES" ]]; then
 fi
 
 FILE_COUNT=$(echo "$MATCHED_FILES" | wc -l | tr -d ' ')
-
-# -d '\n' splits on newlines only — safe for filenames containing spaces.
-# GNU sed: -i without a suffix argument; CI runner is ubuntu-latest (GNU sed only).
-echo "$MATCHED_FILES" | xargs -d '\n' sed -i "s/@since NEXT_VERSION/@since ${VERSION}/g"
+grep -rl0 --include="*.php" \
+  --exclude-dir=vendor --exclude-dir=assets --exclude-dir=dist \
+  "@since NEXT_VERSION" "${REPO_ROOT}" \
+  | xargs -0 sed -i "s/@since NEXT_VERSION/@since ${VERSION}/g"
 
 echo "stamp-since-tags: updated files:"
 echo "$MATCHED_FILES" | sed "s|${REPO_ROOT}/||"

@@ -279,5 +279,4 @@ class ToolExecutorTest extends TestCase {
 		$this->assertSame( 'Improved Title', $result['new_title'] );
 		$this->assertSame( 'pending_approval', $result['status'] );
 	}
-
 }

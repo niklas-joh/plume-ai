@@ -31,12 +31,12 @@ if [[ -z "$MATCHED_FILES" ]]; then
   exit 0
 fi
 
-FILE_COUNT=$(echo "$MATCHED_FILES" | wc -l | tr -d ' ')
 grep -rl0 --include="*.php" \
   --exclude-dir=vendor --exclude-dir=assets --exclude-dir=dist \
   "@since NEXT_VERSION" "${REPO_ROOT}" \
-  | xargs -0 sed -i "s/@since NEXT_VERSION/@since ${VERSION}/g"
+  | xargs -0 sed -i '' "s/@since NEXT_VERSION/@since ${VERSION}/g"
 
+FILE_COUNT=$(echo "$MATCHED_FILES" | wc -l | tr -d ' ')
 echo "stamp-since-tags: updated files:"
 echo "$MATCHED_FILES" | sed "s|${REPO_ROOT}/||"
-echo "stamp-since-tags: stamped @since NEXT_VERSION → @since ${VERSION} in ${FILE_COUNT} file(s)."
+echo "stamp-since-tags: stamped @since NEXT_VERSION → @since ${VERSION} in the ${FILE_COUNT} file(s) above."

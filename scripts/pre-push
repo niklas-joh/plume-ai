@@ -1,5 +1,8 @@
 #!/bin/sh
 # Full PHPCS + PHPStan gate before pushing.
+# Skip in CI — dev deps (phpcs/phpstan) are absent in the release workflow's --no-dev install.
+[ "${CI}" = "true" ] && exit 0
+
 echo "Running pre-push checks..."
 
 ./vendor/bin/phpcs --standard=phpcs.xml.dist --warning-severity=0 || {

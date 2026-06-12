@@ -34,6 +34,13 @@ class TierConfig {
 	const TIERS = [ 'free', 'trial', 'pro_managed', 'pro_byok' ];
 
 	/**
+	 * Production proxy URL used when PLUME_PROXY_URL is not defined.
+	 *
+	 * @since 1.8.1
+	 */
+	const DEFAULT_PROXY_URL = 'https://plume-proxy.plumewp.workers.dev';
+
+	/**
 	 * Authoritative feature matrix for local enforcement. Changing this file
 	 * requires direct file-system access (SSH/SFTP); the Cloudflare Worker proxy
 	 * is the server-side source of truth for rate limits and paid entitlements.
@@ -101,7 +108,7 @@ class TierConfig {
 		if ( '' !== $option ) {
 			return rtrim( $option, '/' );
 		}
-		return 'https://plume-proxy.plumewp.workers.dev';
+		return self::DEFAULT_PROXY_URL;
 	}
 
 	/**

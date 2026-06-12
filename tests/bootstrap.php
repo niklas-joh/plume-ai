@@ -11,12 +11,14 @@ if ( ! defined( 'PLUME_BASENAME' ) ) {
 if ( ! defined( 'PLUME_HTTP_TIMEOUT' ) ) {
 	define( 'PLUME_HTTP_TIMEOUT', 60 );
 }
-// Prevent get_proxy_url() from calling get_option() in unit tests.
-if ( ! defined( 'PLUME_PROXY_URL' ) ) {
-	define( 'PLUME_PROXY_URL', 'https://plume-proxy.plumewp.workers.dev' );
-}
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
+
+// Prevent get_proxy_url() from calling get_option() in unit tests.
+// Must be after autoload so TierConfig::DEFAULT_PROXY_URL can be resolved.
+if ( ! defined( 'PLUME_PROXY_URL' ) ) {
+	define( 'PLUME_PROXY_URL', \Plume\Tiers\TierConfig::DEFAULT_PROXY_URL );
+}
 
 // WordPress query-result format constants (not provided by Brain Monkey).
 if ( ! defined( 'OBJECT' ) )          { define( 'OBJECT',          'OBJECT' ); }

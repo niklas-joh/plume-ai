@@ -107,18 +107,17 @@ When you open a PR against `main`, two workflows run:
 - Semgrep — security scan (PHP, OWASP Top 10); SARIF uploaded to Security tab
 - WP Plugin Check — WordPress.org's plugin auditor (general/security/performance/accessibility)
 - Lighthouse — front-end performance budget against a wp-env site
-- E2E Playwright tests (runs on the maintainer's Mac via Tailscale SSH)
+- E2E Playwright tests (runs on `ubuntu-latest` via wp-env)
 
 ## Required GitHub Secrets
 
-For the Tailscale SSH E2E job to work, these must be set in the repo settings:
+For the real-integration job in `pr-checks.yml` to run live API calls, these must be set in the repo settings:
 
 | Secret | Description |
 |---|---|
-| `TAILSCALE_AUTHKEY` | Tailscale ephemeral auth key |
-| `MAC_SSH_HOST` | Tailscale hostname of the Mac runner |
-| `MAC_SSH_USER` | SSH username on the Mac |
-| `MAC_SSH_PRIVATE_KEY` | Private SSH key (public key in `~/.ssh/authorized_keys` on Mac) |
+| `CLAUDE_API_KEY` | Anthropic API key for live API calls in the `real-integration` job |
+| `PLUME_CI_SITE_TOKEN` | Site token for proxy authentication in the `real-integration` job |
+| `PLUME_PROXY_URL` | Proxy endpoint URL used by the `real-integration` job |
 
 ## Release Process
 

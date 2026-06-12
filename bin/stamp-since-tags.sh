@@ -6,7 +6,8 @@ set -euo pipefail
 VERSION="${1:?Usage: stamp-since-tags.sh <version>}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# STAMP_REPO_ROOT can be overridden in tests to point at a temp directory.
+REPO_ROOT="${STAMP_REPO_ROOT:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
 
 # Distinguish no-match (exit 1, expected) from a real grep error (exit 2, abort).
 set +e
@@ -31,10 +32,8 @@ if [[ -z "$MATCHED_FILES" ]]; then
   exit 0
 fi
 
-grep -rl0 --include="*.php" \
-  --exclude-dir=vendor --exclude-dir=assets --exclude-dir=dist \
-  "@since NEXT_VERSION" "${REPO_ROOT}" \
-  | xargs -0 sed -i '' "s/@since NEXT_VERSION/@since ${VERSION}/g"
+mapfile -t _since_files <<< "$MATCHED_FILES"
+perl -pi -e "s|\@since NEXT_VERSION|\@since ${VERSION}|g" "${_since_files[@]}"  # \@ prevents Perl array interpolation
 
 FILE_COUNT=$(echo "$MATCHED_FILES" | wc -l | tr -d ' ')
 echo "stamp-since-tags: updated files:"

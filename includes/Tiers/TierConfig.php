@@ -36,7 +36,7 @@ class TierConfig {
 	/**
 	 * Production proxy URL used when PLUME_PROXY_URL is not defined.
 	 *
-	 * @since 1.9.0
+	 * @since 1.8.1
 	 */
 	const DEFAULT_PROXY_URL = 'https://plume-proxy.plumewp.workers.dev';
 

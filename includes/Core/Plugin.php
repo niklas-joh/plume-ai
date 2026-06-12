@@ -195,7 +195,7 @@ class Plugin {
 	 * plume_options_migrated flag. Each option is only copied when the new key does
 	 * not yet exist — existing plume_* values are never overwritten.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.9.0
 	 * @return void
 	 */
 	private static function maybe_migrate_from_wp_ai_mind(): void {

@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Code Refactors
+
+* **brand:** rename plugin from Stilus to Plume — all namespaces, slugs, and assets updated ([#736](https://github.com/niklas-joh/wp-ai-mind/issues/736)) ([7e69a78](https://github.com/niklas-joh/wp-ai-mind/commit/7e69a78))
+
 ## [1.8.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.7.1...v1.8.0) (2026-05-08)
 
 ### New Features

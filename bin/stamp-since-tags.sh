@@ -6,7 +6,8 @@ set -euo pipefail
 VERSION="${1:?Usage: stamp-since-tags.sh <version>}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# STAMP_REPO_ROOT can be overridden in tests to point at a temp directory.
+REPO_ROOT="${STAMP_REPO_ROOT:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
 
 # Distinguish no-match (exit 1, expected) from a real grep error (exit 2, abort).
 set +e

@@ -1,3 +1,9 @@
+## [1.9.1](https://github.com/niklas-joh/wp-ai-mind/compare/v1.9.0...v1.9.1) (2026-06-13)
+
+### Bug Fixes
+
+* **tools:** enable write tools by default on fresh install, remove dead migration code ([#768](https://github.com/niklas-joh/wp-ai-mind/issues/768)) ([4333b98](https://github.com/niklas-joh/wp-ai-mind/commit/4333b985bcf13a5e93f51110e6d3a899a0158b4f))
+
 ## [1.9.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.8.0...v1.9.0) (2026-06-12)
 
 ### New Features

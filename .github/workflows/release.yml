@@ -39,6 +39,13 @@ jobs:
           php-version: '8.1'
           tools: composer:v2
 
+      - name: Cache Composer deps (no-dev)
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-nodev-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-nodev-
+
       - name: Install JS dependencies
         run: npm ci
 

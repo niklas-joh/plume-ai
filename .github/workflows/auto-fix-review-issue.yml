@@ -97,6 +97,28 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
 
+      - name: Cache Composer deps
+        if: |
+          steps.guard.outputs.skip != 'true' &&
+          steps.parse.outputs.pr_number != '' &&
+          steps.pr_state.outcome == 'success'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Cache npm deps
+        if: |
+          steps.guard.outputs.skip != 'true' &&
+          steps.parse.outputs.pr_number != '' &&
+          steps.pr_state.outcome == 'success'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
+
       # Pre-flight: checkout the target branch and install all dependencies so
       # Claude's turn budget is spent on the actual fix, not infrastructure.
       # For OPEN PRs we switch to the PR's head branch so Claude can commit

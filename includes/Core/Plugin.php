@@ -96,7 +96,6 @@ class Plugin {
 	 * @return void
 	 */
 	private function init_hooks(): void {
-		add_action( 'init', [ $this, 'load_textdomain' ] );
 		add_action( 'admin_init', [ SiteRegistration::class, 'maybe_register' ] );
 		add_action( 'admin_menu', [ $this, 'register_admin_menu' ] );
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
@@ -131,20 +130,6 @@ class Plugin {
 		// the Pro gate is enforced inside each React app.
 		\Plume\Modules\Seo\SeoModule::register();
 		\Plume\Modules\Images\ImagesModule::register();
-	}
-
-	/**
-	 * Load the plugin text domain for translations.
-	 *
-	 * @since 1.0.0
-	 * @return void
-	 */
-	public function load_textdomain(): void {
-		load_plugin_textdomain(
-			'plume',
-			false,
-			dirname( PLUME_BASENAME ) . '/languages'
-		);
 	}
 
 	/**
@@ -214,7 +199,9 @@ class Plugin {
 			return;
 		}
 
-		$users = get_users(
+		// One-time migration: 'number' => 1 caps the scan to a single row; the plume_backfill_done
+		// option guard above ensures this never runs again after the first activation.
+		$users = get_users( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 			[
 				'meta_key'   => TierManager::META_KEY,
 				'meta_value' => [ 'pro_managed', 'pro_byok' ],

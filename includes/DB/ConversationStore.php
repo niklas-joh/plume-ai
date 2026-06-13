@@ -30,7 +30,8 @@ class ConversationStore {
 	 */
 	public function create( string $title = '', ?int $post_id = null ): int {
 		global $wpdb;
-		$wpdb->insert(
+		// $wpdb->insert handles its own preparation via format specifiers; no direct SQL involved.
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			Schema::table( 'conversations' ),
 			[
 				'user_id' => get_current_user_id(),
@@ -57,7 +58,8 @@ class ConversationStore {
 	 */
 	public function add_message( int $conversation_id, string $role, string $content, string $model = '', int $tokens = 0 ): int {
 		global $wpdb;
-		$wpdb->insert(
+		// $wpdb->insert handles its own preparation via format specifiers; no direct SQL involved.
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			Schema::table( 'messages' ),
 			[
 				'conversation_id' => $conversation_id,
@@ -80,9 +82,10 @@ class ConversationStore {
 	 */
 	public function get_messages( int $conversation_id ): array {
 		global $wpdb;
+		// $table is from Schema::table() — a closed internal whitelist, not user input.
 		$table   = Schema::table( 'messages' );
-		$results = $wpdb->get_results(
-			$wpdb->prepare( "SELECT * FROM {$table} WHERE conversation_id = %d ORDER BY id ASC", $conversation_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$results = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare( "SELECT * FROM {$table} WHERE conversation_id = %d ORDER BY id ASC", $conversation_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 			ARRAY_A
 		);
 		return ! empty( $results ) ? $results : [];
@@ -98,10 +101,11 @@ class ConversationStore {
 	 */
 	public function list_for_user( int $user_id, int $limit = 50 ): array {
 		global $wpdb;
+		// $table is from Schema::table() — a closed internal whitelist, not user input.
 		$table   = Schema::table( 'conversations' );
-		$results = $wpdb->get_results(
+		$results = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE user_id = %d ORDER BY updated_at DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT * FROM {$table} WHERE user_id = %d ORDER BY updated_at DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 				$user_id,
 				$limit
 			),
@@ -119,9 +123,10 @@ class ConversationStore {
 	 */
 	public function get_conversation( int $conversation_id ): ?array {
 		global $wpdb;
+		// $table is from Schema::table() — a closed internal whitelist, not user input.
 		$table = Schema::table( 'conversations' );
-		$row   = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $conversation_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$row   = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $conversation_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 			ARRAY_A
 		);
 		return ! empty( $row ) ? $row : null;
@@ -139,8 +144,9 @@ class ConversationStore {
 	 */
 	public function delete( int $conversation_id ): void {
 		global $wpdb;
-		$wpdb->delete( Schema::table( 'messages' ), [ 'conversation_id' => $conversation_id ], [ '%d' ] );
-		$wpdb->delete( Schema::table( 'conversations' ), [ 'id' => $conversation_id ], [ '%d' ] );
+		// $wpdb->delete handles its own preparation; no direct SQL string involved.
+		$wpdb->delete( Schema::table( 'messages' ), [ 'conversation_id' => $conversation_id ], [ '%d' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->delete( Schema::table( 'conversations' ), [ 'id' => $conversation_id ], [ '%d' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	}
 
 	/**
@@ -153,7 +159,8 @@ class ConversationStore {
 	 */
 	public function update_title( int $conversation_id, string $title ): bool {
 		global $wpdb;
-		$result = $wpdb->update(
+		// $wpdb->update handles its own preparation via format specifiers.
+		$result = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			Schema::table( 'conversations' ),
 			[ 'title' => sanitize_text_field( $title ) ],
 			[ 'id' => $conversation_id ],

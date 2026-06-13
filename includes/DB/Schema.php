@@ -96,8 +96,8 @@ class Schema {
 		global $wpdb;
 		foreach ( array_keys( self::TABLES ) as $name ) {
 			$table = self::table( $name );
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
+			// Table identifiers cannot be bound via prepare(); $table is from the TABLES whitelist above.
+			$wpdb->query( "DROP TABLE IF EXISTS {$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		}
 	}
 }

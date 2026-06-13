@@ -82,9 +82,10 @@ class UsageTracker {
 		global $wpdb;
 		$user_id = $user_id ?? get_current_user_id();
 		$key     = self::get_current_month_key();
-		// Atomic increment avoids the read-modify-write race condition that occurs
-		// when two concurrent requests read the same value and each overwrites it.
-		$wpdb->query(
+		// Atomic increment avoids the read-modify-write race condition that occurs when two
+		// concurrent requests read the same value and each overwrites it. $wpdb->update()
+		// cannot express SET meta_value = meta_value + %d, so a direct query is required.
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prepare(
 				"UPDATE {$wpdb->usermeta} SET meta_value = meta_value + %d WHERE user_id = %d AND meta_key = %s",
 				$tokens,

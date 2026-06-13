@@ -1,0 +1,40 @@
+# Dev tooling directories
+.agents/
+.artifacts/
+.claude/
+.github/
+bin/
+docs/
+node_modules/
+plume-proxy/
+scripts/
+src/
+tests/
+wp-admin/
+wp-org-assets/
+
+# Build and CI config
+.commitlintrc.json
+.eslintrc.js
+.gitattributes
+.gitignore
+.releaserc.json
+.wp-env.json
+jest.config.js
+lighthouserc.json
+package.json
+package-lock.json
+phpcs.xml.dist
+phpstan-baseline.neon
+phpstan.neon
+phpunit.xml
+phpunit-integration.xml.dist
+phpunit-real-integration.xml.dist
+playwright.config.js
+webpack.config.js
+
+# Agent instruction / contributor docs not needed at runtime
+CLAUDE.md
+CONTRIBUTING.md
+GEMINI.md
+RELEASING.md

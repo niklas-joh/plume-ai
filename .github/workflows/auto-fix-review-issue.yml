@@ -97,6 +97,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
 
+      # Cache keys are hashed from the default-branch (main) lockfiles because
+      # the workspace is still on main at this point. The Prepare workspace step
+      # below switches to the target branch; npm ci / composer install then
+      # corrects any lockfile drift automatically.
       - name: Cache Composer deps
         if: |
           steps.guard.outputs.skip != 'true' &&

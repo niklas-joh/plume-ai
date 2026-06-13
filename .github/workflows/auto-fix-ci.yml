@@ -40,6 +40,9 @@ jobs:
           # No ref — checks out the default branch (main). Claude fetches
           # and switches to the failing branch in the prompt steps below.
 
+      # Cache keys are hashed from the default-branch (main) lockfiles because
+      # the workspace is still on main at this point. Claude switches to the
+      # failing branch below; composer install / npm ci then corrects any drift.
       - name: Cache Composer deps
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:

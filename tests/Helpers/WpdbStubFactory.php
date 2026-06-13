@@ -22,9 +22,11 @@ final class WpdbStubFactory {
 	public static function create(): object {
 		return new class() {
 			public string $usermeta      = 'wp_usermeta';
+			public string $prefix        = 'wp_';
 			public int    $rows_affected = 1;
 			public function prepare( string $sql, ...$args ): string { return $sql; }
 			public function query( string $sql ): int { return 1; }
+			public function get_charset_collate(): string { return ''; }
 		};
 	}
 }

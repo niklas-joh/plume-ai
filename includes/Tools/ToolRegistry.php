@@ -47,7 +47,7 @@ class ToolRegistry {
 	 * @return array
 	 */
 	public function get_for_provider( string $provider_slug ): array {
-		$write_enabled = (bool) \get_option( 'plume_enable_write_tools', false );
+		$write_enabled = (bool) \get_option( 'plume_enable_write_tools', true );
 
 		$tools = array_filter(
 			$this->tools,

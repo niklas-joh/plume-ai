@@ -47,7 +47,7 @@ class PostWriter {
 	 * @return array Post data on success; ['error' => string] on failure.
 	 */
 	public function create( array $args, int $user_id ): array {
-		if ( ! (bool) \get_option( 'plume_enable_write_tools', false ) ) {
+		if ( ! (bool) \get_option( 'plume_enable_write_tools', true ) ) {
 			return [ 'error' => 'Write tools are disabled.' ];
 		}
 
@@ -106,7 +106,7 @@ class PostWriter {
 	 * @return array ['post_id', 'updated' => true] on success; ['error' => string] on failure.
 	 */
 	public function update( array $args, int $user_id ): array {
-		if ( ! (bool) \get_option( 'plume_enable_write_tools', false ) ) {
+		if ( ! (bool) \get_option( 'plume_enable_write_tools', true ) ) {
 			return [ 'error' => 'Write tools are disabled.' ];
 		}
 

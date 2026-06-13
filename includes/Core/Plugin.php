@@ -171,66 +171,22 @@ class Plugin {
 	// ── Activation / deactivation ─────────────────────────────────────────────
 
 	/**
-	 * Run on plugin activation: create DB tables and schedule cron events.
+	 * Run on plugin activation: create DB tables, seed default options, and schedule cron events.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
 	public static function activate(): void {
 		Schema::create_tables();
-		self::maybe_migrate_from_wp_ai_mind();
 		update_option( 'plume_just_activated', true );
+		// add_option() is a no-op when the option already exists, so an admin who
+		// has explicitly disabled write tools will not have their preference reset.
+		add_option( 'plume_enable_write_tools', true );
 		if ( ! wp_next_scheduled( 'plume_trial_check' ) ) {
 			wp_schedule_event( time(), 'daily', 'plume_trial_check' );
 		}
 		self::backfill_site_tier_option();
 		flush_rewrite_rules();
-	}
-
-	/**
-	 * One-time migration of wp_ai_mind_* options to plume_* equivalents.
-	 *
-	 * Runs on the first activate() call after the plugin is renamed from WP AI Mind
-	 * to Plume. Skipped on fresh installs and on repeat activations via the
-	 * plume_options_migrated flag. Each option is only copied when the new key does
-	 * not yet exist — existing plume_* values are never overwritten.
-	 *
-	 * @since 1.9.0
-	 * @return void
-	 */
-	private static function maybe_migrate_from_wp_ai_mind(): void {
-		if ( get_option( 'plume_options_migrated', false ) ) {
-			return;
-		}
-
-		// Remove orphaned cron task left behind by the old plugin name.
-		wp_clear_scheduled_hook( 'wp_ai_mind_trial_check' );
-
-		// Pairs: [ old_key, new_key ]. Copied only when new key is absent.
-		$pairs = [
-			[ 'wp_ai_mind_provider_keys', 'plume_provider_keys' ],
-			[ 'wp_ai_mind_default_provider', 'plume_default_provider' ],
-			[ 'wp_ai_mind_image_provider', 'plume_image_provider' ],
-			[ 'wp_ai_mind_site_voice', 'plume_site_voice' ],
-			[ 'wp_ai_mind_modules', 'plume_modules' ],
-			[ 'wp_ai_mind_ollama_url', 'plume_ollama_url' ],
-			[ 'wp_ai_mind_allowed_post_types', 'plume_allowed_post_types' ],
-			[ 'wp_ai_mind_enable_write_tools', 'plume_enable_write_tools' ],
-			[ 'wp_ai_mind_backfill_done', 'plume_backfill_done' ],
-		];
-
-		foreach ( $pairs as [ $old, $new ] ) {
-			// Skip if the new option already exists — do not overwrite user changes.
-			if ( false !== get_option( $new, false ) ) {
-				continue;
-			}
-			$value = get_option( $old, false );
-			if ( false !== $value ) {
-				update_option( $new, $value, false );
-			}
-		}
-
-		update_option( 'plume_options_migrated', true, false );
 	}
 
 	/**
@@ -284,8 +240,6 @@ class Plugin {
 	 */
 	public static function deactivate(): void {
 		wp_clear_scheduled_hook( 'plume_trial_check' );
-		// Also clear the legacy hook name that may still be in the cron table on upgraded sites.
-		wp_clear_scheduled_hook( 'wp_ai_mind_trial_check' );
 		flush_rewrite_rules();
 	}
 

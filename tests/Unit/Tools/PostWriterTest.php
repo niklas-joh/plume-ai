@@ -37,7 +37,9 @@ class PostWriterTest extends TestCase {
 	// -------------------------------------------------------------------------
 
 	public function test_create_returns_error_when_write_tools_disabled(): void {
-		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = null ) =>
+			'plume_enable_write_tools' === $key ? false : $default
+		);
 
 		$result = $this->make_writer()->create( [ 'title' => 'Test' ], 1 );
 
@@ -138,7 +140,9 @@ class PostWriterTest extends TestCase {
 	// -------------------------------------------------------------------------
 
 	public function test_update_returns_error_when_write_tools_disabled(): void {
-		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = null ) =>
+			'plume_enable_write_tools' === $key ? false : $default
+		);
 
 		$result = $this->make_writer()->update( [ 'post_id' => 5, 'title' => 'New' ], 1 );
 

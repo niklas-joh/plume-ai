@@ -30,4 +30,23 @@ class PluginTest extends TestCase {
         $b = Plugin::instance();
         $this->assertSame( $a, $b );
     }
+
+    public function test_activate_seeds_write_tools_via_add_option(): void {
+        // activate() must use add_option() — not update_option() — so that an admin
+        // who has explicitly disabled write tools will not have their preference reset
+        // on subsequent plugin reactivations (add_option is a WP no-op when the key exists).
+        Functions\expect( 'add_option' )
+            ->once()
+            ->with( 'plume_enable_write_tools', true );
+        $this->addToAssertionCount( 1 );
+
+        Functions\when( 'get_option' )->justReturn( false );
+        Functions\when( 'update_option' )->justReturn( true );
+        Functions\when( 'wp_next_scheduled' )->justReturn( false );
+        Functions\when( 'wp_schedule_event' )->justReturn( true );
+        Functions\when( 'flush_rewrite_rules' )->justReturn( null );
+        Functions\when( 'get_users' )->justReturn( [] );
+
+        Plugin::activate();
+    }
 }

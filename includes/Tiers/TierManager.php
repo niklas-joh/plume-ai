@@ -297,7 +297,6 @@ class TierManager {
 	 */
 	public static function maybe_demote_expired_trials(): void {
 		$batch_size = 200;
-		$demoted    = 0;
 
 		do {
 			$users = get_users( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- indexed meta_key; meta_value narrows to trial users only, avoiding a per-row PHP filter.
@@ -310,14 +309,16 @@ class TierManager {
 					// query naturally fetches the next unprocessed batch.
 				]
 			);
+			$found   = count( $users );
 			$demoted = 0;
 
 			foreach ( $users as $user_id ) {
 				if ( ! self::is_trial_active( (int) $user_id ) ) {
-					delete_user_meta( (int) $user_id, self::META_KEY );
-					++$demoted;
+					if ( delete_user_meta( (int) $user_id, self::META_KEY ) ) {
+						++$demoted;
+					}
 				}
 			}
-		} while ( $demoted > 0 );
+		} while ( $found === $batch_size && $demoted > 0 );
 	}
 }

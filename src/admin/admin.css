@@ -311,6 +311,15 @@
 	white-space: nowrap;
 }
 
+.plume-composer__attachment-link {
+	color: inherit;
+	text-decoration: none;
+}
+
+.plume-composer__attachment-link:hover {
+	text-decoration: underline;
+}
+
 .plume-composer__attachment-dismiss {
 	background: none;
 	border: none;

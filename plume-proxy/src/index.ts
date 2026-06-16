@@ -48,7 +48,7 @@ const DEFAULT_TIER_MODELS: Record< Provider, Record< ProxyTier, string[] > > = {
 const DEFAULT_MODEL_TOKEN_WEIGHT: Record< string, number > = {
 	'claude-haiku-4-5-20251001': 1,
 	'claude-sonnet-4-6': 3,
-	'claude-opus-4-6': 15,
+	'claude-opus-4-6': 5,
 	'gpt-4o-mini': 1,
 	'gpt-4o': 10,
 	'gemini-2.5-flash': 1,

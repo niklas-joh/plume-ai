@@ -180,6 +180,56 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertNull( $response->tool_call );
 	}
 
+	public function test_haiku_pricing_is_correct(): void {
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content' => [ [ 'type' => 'text', 'text' => 'ok' ] ],
+				'model'   => 'claude-haiku-4-5-20251001',
+				'usage'   => [ 'input_tokens' => 1_000_000, 'output_tokens' => 0 ],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		$this->mock_wpdb();
+
+		$provider = new ClaudeProvider( 'sk-ant-test' );
+		$request  = new CompletionRequest(
+			messages: [ [ 'role' => 'user', 'content' => 'hi' ] ],
+			model: 'claude-haiku-4-5-20251001'
+		);
+		$response = $provider->complete( $request );
+
+		$this->assertEqualsWithDelta( 1.0, $response->cost_usd, 0.0001 );
+	}
+
+	public function test_opus_pricing_is_correct(): void {
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content' => [ [ 'type' => 'text', 'text' => 'ok' ] ],
+				'model'   => 'claude-opus-4-6',
+				'usage'   => [ 'input_tokens' => 1_000_000, 'output_tokens' => 0 ],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		$this->mock_wpdb();
+
+		$provider = new ClaudeProvider( 'sk-ant-test' );
+		$request  = new CompletionRequest(
+			messages: [ [ 'role' => 'user', 'content' => 'hi' ] ],
+			model: 'claude-opus-4-6'
+		);
+		$response = $provider->complete( $request );
+
+		$this->assertEqualsWithDelta( 5.0, $response->cost_usd, 0.0001 );
+	}
+
 	public function test_complete_routes_free_tier_to_proxy_returns_error_when_not_registered(): void {
 		// Mock get_current_user_id — called by TierManager::get_user_tier() and ProxyClient::chat().
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );

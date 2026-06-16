@@ -180,13 +180,13 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertNull( $response->tool_call );
 	}
 
-	public function test_haiku_pricing_is_correct(): void {
+	private function mock_successful_completion( string $model, array $usage ): void {
 		Functions\when( 'wp_remote_post' )->justReturn( [
 			'response' => [ 'code' => 200 ],
 			'body'     => json_encode( [
 				'content' => [ [ 'type' => 'text', 'text' => 'ok' ] ],
-				'model'   => 'claude-haiku-4-5-20251001',
-				'usage'   => [ 'input_tokens' => 1_000_000, 'output_tokens' => 0 ],
+				'model'   => $model,
+				'usage'   => $usage,
 			] ),
 		] );
 		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
@@ -194,7 +194,13 @@ class ClaudeProviderTest extends TestCase {
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		$this->mock_wpdb();
+	}
 
+	public function test_haiku_pricing_is_correct(): void {
+		$this->mock_successful_completion(
+			'claude-haiku-4-5-20251001',
+			[ 'input_tokens' => 1_000_000, 'output_tokens' => 0 ]
+		);
 		$provider = new ClaudeProvider( 'sk-ant-test' );
 		$request  = new CompletionRequest(
 			messages: [ [ 'role' => 'user', 'content' => 'hi' ] ],
@@ -206,20 +212,10 @@ class ClaudeProviderTest extends TestCase {
 	}
 
 	public function test_opus_pricing_is_correct(): void {
-		Functions\when( 'wp_remote_post' )->justReturn( [
-			'response' => [ 'code' => 200 ],
-			'body'     => json_encode( [
-				'content' => [ [ 'type' => 'text', 'text' => 'ok' ] ],
-				'model'   => 'claude-opus-4-6',
-				'usage'   => [ 'input_tokens' => 1_000_000, 'output_tokens' => 0 ],
-			] ),
-		] );
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
-		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
-		$this->mock_wpdb();
-
+		$this->mock_successful_completion(
+			'claude-opus-4-6',
+			[ 'input_tokens' => 1_000_000, 'output_tokens' => 0 ]
+		);
 		$provider = new ClaudeProvider( 'sk-ant-test' );
 		$request  = new CompletionRequest(
 			messages: [ [ 'role' => 'user', 'content' => 'hi' ] ],
@@ -231,20 +227,10 @@ class ClaudeProviderTest extends TestCase {
 	}
 
 	public function test_haiku_output_pricing_is_correct(): void {
-		Functions\when( 'wp_remote_post' )->justReturn( [
-			'response' => [ 'code' => 200 ],
-			'body'     => json_encode( [
-				'content' => [ [ 'type' => 'text', 'text' => 'ok' ] ],
-				'model'   => 'claude-haiku-4-5-20251001',
-				'usage'   => [ 'input_tokens' => 0, 'output_tokens' => 1_000_000 ],
-			] ),
-		] );
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
-		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
-		$this->mock_wpdb();
-
+		$this->mock_successful_completion(
+			'claude-haiku-4-5-20251001',
+			[ 'input_tokens' => 0, 'output_tokens' => 1_000_000 ]
+		);
 		$provider = new ClaudeProvider( 'sk-ant-test' );
 		$request  = new CompletionRequest(
 			messages: [ [ 'role' => 'user', 'content' => 'hi' ] ],
@@ -256,20 +242,10 @@ class ClaudeProviderTest extends TestCase {
 	}
 
 	public function test_opus_output_pricing_is_correct(): void {
-		Functions\when( 'wp_remote_post' )->justReturn( [
-			'response' => [ 'code' => 200 ],
-			'body'     => json_encode( [
-				'content' => [ [ 'type' => 'text', 'text' => 'ok' ] ],
-				'model'   => 'claude-opus-4-6',
-				'usage'   => [ 'input_tokens' => 0, 'output_tokens' => 1_000_000 ],
-			] ),
-		] );
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
-		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
-		$this->mock_wpdb();
-
+		$this->mock_successful_completion(
+			'claude-opus-4-6',
+			[ 'input_tokens' => 0, 'output_tokens' => 1_000_000 ]
+		);
 		$provider = new ClaudeProvider( 'sk-ant-test' );
 		$request  = new CompletionRequest(
 			messages: [ [ 'role' => 'user', 'content' => 'hi' ] ],

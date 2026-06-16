@@ -35,6 +35,9 @@ jobs:
     if: "github.event_name == 'workflow_dispatch' || !github.event.release.prerelease"
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Resolve tag and version
         id: vars
         # All ${{...}} values are passed via env to avoid shell-injection paths.
@@ -87,5 +90,6 @@ jobs:
         with:
           plugin-slug: plume
           build-dir: ./plume
+          assets-dir: ./wp-org-assets
           wordpress-username: ${{ secrets.WPORG_USERNAME }}
           wordpress-password: ${{ secrets.WPORG_PASSWORD }}

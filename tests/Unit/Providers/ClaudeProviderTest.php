@@ -434,7 +434,7 @@ class ClaudeProviderTest extends TestCase {
 	public function test_system_payload_returns_cache_block_for_long_system(): void {
 		$provider     = new ClaudeProvider( 'sk-ant-test' );
 		$method       = new \ReflectionMethod( $provider, 'system_payload' );
-		$long_system  = str_repeat( 'a', 2049 );
+		$long_system  = str_repeat( 'a', 8193 );
 		$result       = $method->invoke( $provider, $long_system );
 		$this->assertIsArray( $result );
 		$this->assertCount( 1, $result );
@@ -446,7 +446,7 @@ class ClaudeProviderTest extends TestCase {
 	public function test_system_payload_boundary_at_2048_chars_stays_plain_string(): void {
 		$provider    = new ClaudeProvider( 'sk-ant-test' );
 		$method      = new \ReflectionMethod( $provider, 'system_payload' );
-		$edge_system = str_repeat( 'b', 2048 );
+		$edge_system = str_repeat( 'b', 8192 );
 		$result      = $method->invoke( $provider, $edge_system );
 		$this->assertIsString( $result );
 	}

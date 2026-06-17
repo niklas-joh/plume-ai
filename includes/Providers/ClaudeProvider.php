@@ -29,8 +29,8 @@ class ClaudeProvider extends AbstractProvider {
 	private const API_BASE      = 'https://api.anthropic.com/v1';
 	private const API_VERSION   = '2023-06-01';
 	private const DEFAULT_MODEL = 'claude-sonnet-4-6';
-	// Minimum character count for a system prompt to receive a cache_control block (~2,048 tokens).
-	private const CACHE_CONTROL_MIN_CHARS = 8192;
+	// English text averages ~4 chars/token; Anthropic's minimum cacheable prompt is 2,048 tokens.
+	private const CACHE_MIN_CHARS = 8_192;
 
 	// Mirrors TIER_MODELS in plume-proxy/src/index.ts — update both when adding models.
 	private const MODELS = [
@@ -178,7 +178,7 @@ class ClaudeProvider extends AbstractProvider {
 		$raw_options = [
 			'model'      => ! empty( $request->model ) ? $request->model : null,
 			'max_tokens' => $request->max_tokens,
-			'system'     => '' !== $request->system ? $this->format_system_prompt( $request->system ) : null,
+			'system'     => '' !== $request->system ? $this->build_system_field( $request->system ) : null,
 		];
 		$options     = array_filter( $raw_options, fn( $v ) => null !== $v );
 		if ( ! empty( $request->tools ) ) {
@@ -264,15 +264,16 @@ class ClaudeProvider extends AbstractProvider {
 
 	/**
 	 * Format the system prompt for Claude's API, adding a cache_control block when
-	 * the prompt exceeds CACHE_CONTROL_MIN_CHARS characters (~2,048 tokens at 4 chars/token).
-	 * Short prompts are passed through unchanged.
+	 * the prompt exceeds CACHE_MIN_CHARS. Anthropic requires at least 2,048 tokens to
+	 * activate prompt caching; at ~4 chars/token that is roughly 8,192 characters.
+	 * Short prompts are passed through unchanged to avoid the 1.25× cache-write surcharge.
 	 *
 	 * @since NEXT_VERSION
 	 * @param string $system Raw system prompt text.
 	 * @return string|array Plain string for short prompts; cache-control block array for long ones.
 	 */
-	protected function format_system_prompt( string $system ): string|array {
-		if ( mb_strlen( $system ) <= self::CACHE_CONTROL_MIN_CHARS ) {
+	protected function build_system_field( string $system ): string|array {
+		if ( mb_strlen( $system ) <= self::CACHE_MIN_CHARS ) {
 			return $system;
 		}
 		return [
@@ -328,7 +329,7 @@ class ClaudeProvider extends AbstractProvider {
 			'messages'   => $request->messages,
 		];
 		if ( '' !== $request->system ) {
-			$body['system'] = $this->format_system_prompt( $request->system );
+			$body['system'] = $this->build_system_field( $request->system );
 		}
 		if ( ! empty( $request->tools ) ) {
 			$body['tools'] = $request->tools; // Already in Claude wire format from ToolRegistry.

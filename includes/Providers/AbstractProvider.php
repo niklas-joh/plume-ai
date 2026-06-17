@@ -78,7 +78,7 @@ abstract class AbstractProvider implements ProviderInterface {
 	 * @param string $system Raw system prompt text.
 	 * @return string|array Plain string for most providers; structured block array for Claude.
 	 */
-	protected function system_payload( string $system ): string|array {
+	protected function build_system_field( string $system ): string|array {
 		return $system;
 	}
 

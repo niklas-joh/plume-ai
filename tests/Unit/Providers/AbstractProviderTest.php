@@ -57,9 +57,9 @@ class AbstractProviderTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
 	}
 
-	public function test_system_payload_returns_plain_string_by_default(): void {
+	public function test_build_system_field_returns_plain_string_by_default(): void {
 		$provider = $this->make_provider( 0 );
-		$result   = ( new \ReflectionMethod( $provider, 'system_payload' ) )
+		$result   = ( new \ReflectionMethod( $provider, 'build_system_field' ) )
 			->invoke( $provider, 'You are a helpful assistant.' );
 		$this->assertSame( 'You are a helpful assistant.', $result );
 	}

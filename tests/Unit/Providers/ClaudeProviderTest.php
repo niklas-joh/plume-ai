@@ -347,19 +347,19 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertSame( "I'll fetch that post for you.", $response->content );
 	}
 
-	public function test_system_payload_returns_plain_string_for_short_system(): void {
+	public function test_build_system_field_returns_plain_string_for_short_system(): void {
 		$provider = new ClaudeProvider( 'sk-ant-test' );
-		$method   = new \ReflectionMethod( $provider, 'format_system_prompt' );
+		$method   = new \ReflectionMethod( $provider, 'build_system_field' );
 		$result   = $method->invoke( $provider, 'Short prompt.' );
 		$this->assertIsString( $result );
 		$this->assertSame( 'Short prompt.', $result );
 	}
 
-	public function test_system_payload_returns_cache_block_for_long_system(): void {
-		$provider     = new ClaudeProvider( 'sk-ant-test' );
-		$method       = new \ReflectionMethod( $provider, 'format_system_prompt' );
-		$long_system  = str_repeat( 'a', 8193 );
-		$result       = $method->invoke( $provider, $long_system );
+	public function test_build_system_field_returns_cache_block_for_long_system(): void {
+		$provider    = new ClaudeProvider( 'sk-ant-test' );
+		$method      = new \ReflectionMethod( $provider, 'build_system_field' );
+		$long_system = str_repeat( 'a', 8193 );
+		$result      = $method->invoke( $provider, $long_system );
 		$this->assertIsArray( $result );
 		$this->assertCount( 1, $result );
 		$this->assertSame( 'text', $result[0]['type'] );
@@ -367,9 +367,9 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertSame( [ 'type' => 'ephemeral' ], $result[0]['cache_control'] );
 	}
 
-	public function test_system_payload_boundary_at_2048_chars_stays_plain_string(): void {
+	public function test_build_system_field_boundary_at_8192_chars_stays_plain_string(): void {
 		$provider    = new ClaudeProvider( 'sk-ant-test' );
-		$method      = new \ReflectionMethod( $provider, 'format_system_prompt' );
+		$method      = new \ReflectionMethod( $provider, 'build_system_field' );
 		$edge_system = str_repeat( 'b', 8192 );
 		$result      = $method->invoke( $provider, $edge_system );
 		$this->assertIsString( $result );

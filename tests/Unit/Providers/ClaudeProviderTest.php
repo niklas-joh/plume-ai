@@ -347,6 +347,63 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertSame( "I'll fetch that post for you.", $response->content );
 	}
 
+	public function test_system_payload_returns_plain_string_for_short_system(): void {
+		$provider = new ClaudeProvider( 'sk-ant-test' );
+		$method   = new \ReflectionMethod( $provider, 'system_payload' );
+		$result   = $method->invoke( $provider, 'Short prompt.' );
+		$this->assertIsString( $result );
+		$this->assertSame( 'Short prompt.', $result );
+	}
+
+	public function test_system_payload_returns_cache_block_for_long_system(): void {
+		$provider     = new ClaudeProvider( 'sk-ant-test' );
+		$method       = new \ReflectionMethod( $provider, 'system_payload' );
+		$long_system  = str_repeat( 'a', 2049 );
+		$result       = $method->invoke( $provider, $long_system );
+		$this->assertIsArray( $result );
+		$this->assertCount( 1, $result );
+		$this->assertSame( 'text', $result[0]['type'] );
+		$this->assertSame( $long_system, $result[0]['text'] );
+		$this->assertSame( [ 'type' => 'ephemeral' ], $result[0]['cache_control'] );
+	}
+
+	public function test_system_payload_boundary_at_2048_chars_stays_plain_string(): void {
+		$provider    = new ClaudeProvider( 'sk-ant-test' );
+		$method      = new \ReflectionMethod( $provider, 'system_payload' );
+		$edge_system = str_repeat( 'b', 2048 );
+		$result      = $method->invoke( $provider, $edge_system );
+		$this->assertIsString( $result );
+	}
+
+	public function test_complete_parses_cache_tokens_in_response(): void {
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content' => [ [ 'type' => 'text', 'text' => 'Cached reply' ] ],
+				'model'   => 'claude-sonnet-4-6',
+				'usage'   => [
+					'input_tokens'                  => 100,
+					'output_tokens'                 => 20,
+					'cache_read_input_tokens'       => 800,
+					'cache_creation_input_tokens'   => 200,
+				],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		$this->mock_wpdb();
+
+		$provider = new ClaudeProvider( 'sk-ant-test' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+		$response = $provider->complete( $request );
+
+		$this->assertSame( 800, $response->cache_read_tokens );
+		$this->assertSame( 200, $response->cache_write_tokens );
+		$this->assertSame( 'Cached reply', $response->content );
+	}
+
 	public function test_tools_injected_in_request_body(): void {
 		$captured_body = null;
 		Functions\when( 'wp_remote_post' )->alias( function( $url, $args ) use ( &$captured_body ) {

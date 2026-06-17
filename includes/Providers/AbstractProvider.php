@@ -67,6 +67,22 @@ abstract class AbstractProvider implements ProviderInterface {
 	}
 
 	/**
+	 * Format the system prompt for transmission to the provider API.
+	 *
+	 * The default returns the plain string, which is correct for OpenAI, Gemini,
+	 * and Ollama (their caching is either automatic or not applicable). Providers
+	 * that support explicit cache-control blocks (e.g. Claude) override this method
+	 * to return a structured array when the prompt exceeds the minimum cacheable length.
+	 *
+	 * @since NEXT_VERSION
+	 * @param string $system Raw system prompt text.
+	 * @return string|array Plain string for most providers; structured block array for Claude.
+	 */
+	protected function system_payload( string $system ): string|array {
+		return $system;
+	}
+
+	/**
 	 * Perform the actual completion API call (no retry wrapper).
 	 *
 	 * @since 1.0.0

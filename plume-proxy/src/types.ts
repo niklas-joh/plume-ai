@@ -59,11 +59,18 @@ export interface NormalizedResponse {
 	};
 }
 
+export interface SystemBlock {
+	type: 'text';
+	text: string;
+	cache_control?: { type: 'ephemeral' };
+}
+
 export interface ProxyRequest {
 	messages: MessageParam[];
 	model?: string;
 	max_tokens?: number;
-	system?: string;
+	/** Plain string for OpenAI/Gemini; SystemBlock[] for Claude with prompt caching. */
+	system?: string | SystemBlock[];
 	tools?: ToolParam[];
 	provider?: 'claude' | 'openai' | 'gemini';
 }

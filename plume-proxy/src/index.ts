@@ -214,8 +214,12 @@ async function callOpenAI(
 	clampedMaxTokens: number,
 	env: Env
 ): Promise< NormalizedResponse > {
-	const messages = body.system
-		? [ { role: 'system', content: body.system }, ...body.messages ]
+	const sysText =
+		typeof body.system === 'string'
+			? body.system
+			: ( body.system?.[ 0 ]?.text ?? '' );
+	const messages = sysText
+		? [ { role: 'system', content: sysText }, ...body.messages ]
 		: body.messages;
 	const openaiBody: Record< string, unknown > = {
 		model: resolvedModel,
@@ -304,7 +308,13 @@ async function callGemini(
 		generationConfig: { maxOutputTokens: clampedMaxTokens },
 	};
 	if ( body.system ) {
-		geminiBody.systemInstruction = { parts: [ { text: body.system } ] };
+		const sysText =
+			typeof body.system === 'string'
+				? body.system
+				: ( body.system?.[ 0 ]?.text ?? '' );
+		if ( sysText ) {
+			geminiBody.systemInstruction = { parts: [ { text: sysText } ] };
+		}
 	}
 	if ( body.tools && body.tools.length > 0 ) {
 		geminiBody.tools = toGeminiTools( body.tools );

@@ -1082,6 +1082,76 @@ class ChatRestControllerTest extends TestCase {
         };
     }
 
+    // ── Tool stripping on continuation calls ──────────────────────────────────
+
+    public function test_send_message_strips_tools_on_continuation_call(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [
+            [ 'role' => 'user', 'content' => 'Hello' ],
+        ] );
+        $store_mock->method( 'add_message' )->willReturn( 1 );
+
+        $tool_response = new CompletionResponse(
+            content:           '',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     10,
+            completion_tokens: 5,
+            cost_usd:          0.0,
+            raw:               [ 'content' => [] ],
+            tool_call:         [ 'id' => 'tc_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+        );
+        $final_response = new CompletionResponse(
+            content:           'Done',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     20,
+            completion_tokens: 15,
+            cost_usd:          0.001,
+            raw:               [],
+            tool_call:         null,
+        );
+
+        $non_empty_tools = [ [ 'name' => 'get_recent_posts', 'description' => 'Fetch posts.' ] ];
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( $non_empty_tools );
+        $this->tool_executor->method( 'execute' )->willReturn( [ 'posts' => [] ] );
+
+        $captured_requests = [];
+        $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( true );
+        $provider_mock->method( 'complete' )->willReturnCallback(
+            function ( $req ) use ( &$captured_requests, $tool_response, $final_response ) {
+                $captured_requests[] = $req;
+                return 1 === count( $captured_requests ) ? $tool_response : $final_response;
+            }
+        );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '42' ] );
+        $request->set_body_params( [ 'content' => 'Hello', 'provider' => 'claude', 'model' => '' ] );
+
+        $controller->send_message( $request );
+
+        $this->assertCount( 2, $captured_requests, 'Provider must be called exactly twice' );
+        $this->assertNotEmpty( $captured_requests[0]->tools, 'First call must include tools' );
+        $this->assertTrue( $captured_requests[0]->force_tool_use, 'First call must have force_tool_use=true' );
+        $this->assertEmpty( $captured_requests[1]->tools, 'Continuation call must have empty tools' );
+        $this->assertFalse( $captured_requests[1]->force_tool_use, 'Continuation call must have force_tool_use=false' );
+    }
+
     // ── append_tool_exchange: Gemini multi-tool ───────────────────────────────
 
     /**

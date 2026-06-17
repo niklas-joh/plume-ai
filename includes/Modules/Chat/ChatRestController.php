@@ -339,11 +339,12 @@ class ChatRestController {
 				? $this->tool_registry->get_for_provider( $provider_slug )
 				: [];
 
-			$max_iterations = self::MAX_TOOL_ITERATIONS;
-			$iteration      = 0;
-			$final_response = null;
-			$pending_plan   = null;
-			$tools_called   = [];
+			$max_iterations    = self::MAX_TOOL_ITERATIONS;
+			$iteration         = 0;
+			$final_response    = null;
+			$pending_plan      = null;
+			$tools_called      = [];
+			$had_tool_exchange = false;
 
 			while ( $iteration < $max_iterations ) {
 				++$iteration;
@@ -356,8 +357,8 @@ class ChatRestController {
 						'feature' => 'chat',
 						'post_id' => null,
 					],
-					tools:          $tools,
-					force_tool_use: ! empty( $tools ),
+					tools:          $had_tool_exchange ? [] : $tools,
+					force_tool_use: ! $had_tool_exchange && ! empty( $tools ),
 				);
 
 				$response = $provider->complete( $req );
@@ -409,7 +410,8 @@ class ChatRestController {
 					break;
 				}
 
-				$messages = $this->append_tool_exchange( $messages, $provider_slug, $response, $tool_results );
+				$messages          = $this->append_tool_exchange( $messages, $provider_slug, $response, $tool_results );
+				$had_tool_exchange = true;
 			}
 
 			if ( null === $final_response ) {

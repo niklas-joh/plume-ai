@@ -45,7 +45,9 @@ use Plume\Tiers\UsageTracker;
  */
 class ChatRestController {
 
-	private const MAX_TOOL_ITERATIONS = 5;
+	// Single tool exchange (call + result) followed by one text-response turn.
+	// Raising this would silently break: iterations ≥ 3 have tools stripped and can never produce a tool call.
+	private const MAX_TOOL_ITERATIONS = 2;
 
 	/**
 	 * Inject the tool registry and executor used during AI tool-call loops.
@@ -250,7 +252,9 @@ class ChatRestController {
 	/**
 	 * Append a user message and run an AI completion turn, including tool-call loops.
 	 *
-	 * Handles multi-step tool-call agentic loops up to 5 iterations.
+	 * Supports one tool exchange (call + result) then one text-response turn (2 iterations max).
+	 * Tools are stripped on the continuation call to reduce token overhead; the model must
+	 * respond in plain text on its second turn.
 	 * Provider 401/403 errors are mapped to 502 so the client cannot distinguish
 	 * a plugin auth failure from a provider auth failure.
 	 *

@@ -307,8 +307,8 @@ class ClaudeProvider extends AbstractProvider {
 		$pricing    = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
 		$normal_cost = $in_tokens / 1_000_000 * $pricing['in'];
 		$out_cost    = $out_tokens / 1_000_000 * $pricing['out'];
-		$read_cost   = $cache_read_tokens / 1_000_000 * ( $pricing['cache_read_in'] ?? $pricing['in'] );
-		$write_cost  = $cache_write_tokens / 1_000_000 * ( $pricing['cache_in'] ?? $pricing['in'] );
+		$read_cost  = $cache_read_tokens / 1_000_000 * $pricing['cache_read_in'];
+		$write_cost = $cache_write_tokens / 1_000_000 * $pricing['cache_in'];
 		return $normal_cost + $out_cost + $read_cost + $write_cost;
 	}
 

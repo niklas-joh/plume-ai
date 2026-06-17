@@ -43,13 +43,13 @@ final class CompletionResponse {
 	public function __construct(
 		public readonly string $content,
 		public readonly string $model,
-		public readonly int    $prompt_tokens,
-		public readonly int    $completion_tokens,
-		public readonly float  $cost_usd           = 0.0,
-		public readonly mixed  $raw                = [],
-		public readonly ?array $tool_call          = null,
-		public readonly int    $cache_read_tokens  = 0,
-		public readonly int    $cache_write_tokens = 0,
+		public readonly int $prompt_tokens,
+		public readonly int $completion_tokens,
+		public readonly float $cost_usd = 0.0,
+		public readonly mixed $raw = [],
+		public readonly ?array $tool_call = null,
+		public readonly int $cache_read_tokens = 0,
+		public readonly int $cache_write_tokens = 0,
 	) {
 		$this->total_tokens = $prompt_tokens + $completion_tokens;
 	}

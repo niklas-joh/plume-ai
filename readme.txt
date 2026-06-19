@@ -43,7 +43,7 @@ chosen provider. Review each provider's privacy policy and terms of service befo
 * **Plume - Write and Design** (`https://plume-proxy.plume.workers.dev`): Free and managed-pro
   tiers route chat requests through this service. The service receives your
   site URL (for registration) and the chat messages you send. No messages are stored
-  beyond the in-flight API call. See: https://plumeind.com/privacy-policy (legacy domain — to be updated)
+  beyond the in-flight API call. See: https://wpaimind.com/privacy-policy (legacy domain — to be updated)
 
 == Installation ==
 

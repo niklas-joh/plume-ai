@@ -130,13 +130,13 @@ class DashboardPage {
 				'usage'     => admin_url( 'admin.php?page=plume-usage' ),
 				'settings'  => admin_url( 'admin.php?page=plume-settings' ),
 				'posts'     => admin_url( 'edit.php' ),
-				'upgrade'   => 'https://plumeind.com/pricing', // TODO: update to canonical Plume domain once finalised.
+				'upgrade'   => 'https://wpaimind.com/pricing', // TODO: update to canonical Plume domain once finalised.
 			],
 			'resourceUrls'   => [
-				'gettingStarted' => 'https://plumeind.com/docs/getting-started', // TODO: update to canonical Plume domain once finalised.
-				'promptTips'     => 'https://plumeind.com/docs/prompt-tips', // TODO: update to canonical Plume domain once finalised.
-				'apiKeySetup'    => 'https://plumeind.com/docs/api-key-setup', // TODO: update to canonical Plume domain once finalised.
-				'changelog'      => 'https://plumeind.com/changelog', // TODO: update to canonical Plume domain once finalised.
+				'gettingStarted' => 'https://wpaimind.com/docs/getting-started', // TODO: update to canonical Plume domain once finalised.
+				'promptTips'     => 'https://wpaimind.com/docs/prompt-tips', // TODO: update to canonical Plume domain once finalised.
+				'apiKeySetup'    => 'https://wpaimind.com/docs/api-key-setup', // TODO: update to canonical Plume domain once finalised.
+				'changelog'      => 'https://wpaimind.com/changelog', // TODO: update to canonical Plume domain once finalised.
 			],
 		];
 	}

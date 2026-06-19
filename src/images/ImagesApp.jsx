@@ -43,7 +43,7 @@ export default function ImagesApp() {
 					set them directly on any post or page.
 				</p>
 				<a
-					href="https://plumeind.com/pricing"
+					href="https://wpaimind.com/pricing"
 					className="button button-primary button-large"
 				>
 					Upgrade to Pro →

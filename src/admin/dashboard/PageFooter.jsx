@@ -18,7 +18,7 @@ export default function PageFooter( { urls, runSetupUrl } ) {
 			</a>
 			<div className="plume-dash-footer__sep" />
 			<a
-				href="https://plumeind.com/docs"
+				href="https://wpaimind.com/docs"
 				className="plume-dash-footer__link"
 				target="_blank"
 				rel="nofollow noreferrer"
@@ -27,7 +27,7 @@ export default function PageFooter( { urls, runSetupUrl } ) {
 			</a>
 			<div className="plume-dash-footer__sep" />
 			<a
-				href="https://plumeind.com/support"
+				href="https://wpaimind.com/support"
 				className="plume-dash-footer__link"
 				target="_blank"
 				rel="nofollow noreferrer"

@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ActivationNotice {
 
 	private const OPTION         = 'plume_just_activated';
-	private const LEARN_MORE_URL = 'https://plumeind.com/privacy-policy'; // TODO: update to canonical Plume domain once finalised.
+	private const LEARN_MORE_URL = 'https://wpaimind.com/privacy-policy'; // TODO: update to canonical Plume domain once finalised.
 
 	/**
 	 * Register the admin_notices hook.

@@ -52,7 +52,7 @@ export default function SeoApp() {
 					excerpts, and image alt text for every post — in one click.
 				</p>
 				<a
-					href="https://plumeind.com/pricing"
+					href="https://wpaimind.com/pricing"
 					className="button button-primary button-large"
 				>
 					Upgrade to Pro →

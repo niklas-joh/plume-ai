@@ -3,7 +3,7 @@ import PostListTable from '../shared/PostListTable';
 import ImagesBadge from './ImagesBadge';
 import ImagesWorkArea from './ImagesWorkArea';
 
-const { isPro } = window.plumeData ?? {};
+const { isPro, websiteUrl = 'https://wpaimind.com' } = window.plumeData ?? {};
 
 const IMAGES_TABS = [
 	{ id: 'all', label: 'All', filter: () => true },
@@ -43,7 +43,7 @@ export default function ImagesApp() {
 					set them directly on any post or page.
 				</p>
 				<a
-					href="https://wpaimind.com/pricing"
+					href={ `${ websiteUrl }/pricing` }
 					className="button button-primary button-large"
 				>
 					Upgrade to Pro →

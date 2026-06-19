@@ -30,6 +30,7 @@ define( 'PLUME_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PLUME_URL', plugin_dir_url( __FILE__ ) );
 define( 'PLUME_BASENAME', plugin_basename( __FILE__ ) );
 define( 'PLUME_HTTP_TIMEOUT', 60 ); // Seconds — LLM calls can be slow.
+define( 'PLUME_WEBSITE_URL', 'https://wpaimind.com' );
 
 // Custom PSR-4 autoloader — retained as a safety net for environments where
 // the Composer vendor directory is absent (e.g. a manual plugin upload without

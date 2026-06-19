@@ -26,8 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ActivationNotice {
 
-	private const OPTION         = 'plume_just_activated';
-	private const LEARN_MORE_URL = 'https://wpaimind.com/privacy-policy'; // TODO: update to canonical Plume domain once finalised.
+	private const OPTION = 'plume_just_activated';
 
 	/**
 	 * Register the admin_notices hook.
@@ -72,7 +71,7 @@ class ActivationNotice {
 				echo wp_kses(
 					sprintf(
 						' <a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
-						\esc_url( self::LEARN_MORE_URL ),
+						\esc_url( PLUME_WEBSITE_URL . '/privacy-policy' ),
 						\esc_html__( 'Learn more', 'plume' )
 					),
 					[

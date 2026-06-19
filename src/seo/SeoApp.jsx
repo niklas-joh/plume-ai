@@ -3,7 +3,7 @@ import PostListTable from '../shared/PostListTable';
 import SeoBadge, { getSeoStatus } from './SeoBadge';
 import SeoWorkArea from './SeoWorkArea';
 
-const { isPro } = window.plumeData ?? {};
+const { isPro, websiteUrl = 'https://wpaimind.com' } = window.plumeData ?? {};
 
 const SEO_TABS = [
 	{ id: 'all', label: 'All', filter: () => true },
@@ -52,7 +52,7 @@ export default function SeoApp() {
 					excerpts, and image alt text for every post — in one click.
 				</p>
 				<a
-					href="https://wpaimind.com/pricing"
+					href={ `${ websiteUrl }/pricing` }
 					className="button button-primary button-large"
 				>
 					Upgrade to Pro →

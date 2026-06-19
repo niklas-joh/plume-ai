@@ -1482,16 +1482,6 @@ class ChatRestControllerTest extends TestCase {
             tool_call:         [ 'id' => 'tu_1', 'name' => 'plan_post', 'arguments' => [ 'title' => 'Widgets', 'content' => 'Full body.' ] ],
         );
 
-        $final_response = new CompletionResponse(
-            content:           'I have proposed a post for your approval.',
-            model:             'claude-3-5-sonnet',
-            prompt_tokens:     20,
-            completion_tokens: 15,
-            cost_usd:          0.0,
-            raw:               [],
-            tool_call:         null,
-        );
-
         $pending = [
             'id'          => 'abc12345',
             'status'      => 'pending_approval',
@@ -1510,7 +1500,7 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
         $provider_mock->method( 'is_available' )->willReturn( true );
         $provider_mock->method( 'supports_tools' )->willReturn( true );
-        $provider_mock->method( 'complete' )->willReturnOnConsecutiveCalls( $plan_response, $final_response );
+        $provider_mock->method( 'complete' )->willReturn( $plan_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
@@ -1527,6 +1517,7 @@ class ChatRestControllerTest extends TestCase {
         $response = $controller->send_message( $request );
 
         $this->assertSame( 200, $response->get_status() );
+        $this->assertSame( "I've prepared the changes for your review.", $response->data['content'] );
         $this->assertSame( $pending, $response->data['pending_plan'], 'pending_plan must be surfaced in the REST response' );
         $this->assertContains( 'plan_post', $response->data['tools_called'] );
     }

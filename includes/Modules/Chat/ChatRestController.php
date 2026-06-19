@@ -409,10 +409,7 @@ class ChatRestController {
 					break;
 				}
 
-				// Safety net: a plan was created but the AI didn't follow up with chat_response.
-				// Break immediately — the pending plan card is the user-facing result.
-				// Prevents plan_update/plan_post retry loops when tool description guidance
-				// is not sufficient for the model in use.
+				// Safety net for models that ignore the "call chat_response after plan_update/plan_post" instruction.
 				if ( null !== $pending_plan ) {
 					$final_response = $response->with_text(
 						__( "I've prepared the changes for your review.", 'plume' )

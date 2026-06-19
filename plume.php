@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Plume
- * Plugin URI:        https://njohansson.eu/plume/
+ * Plugin URI:        https://wpaimind.com
  * Description:       AI-powered writing, image generation, and content design tools for WordPress.
  * Version:           1.10.0
  * Requires at least: 6.4

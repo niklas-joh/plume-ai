@@ -46,7 +46,7 @@ class ProxyClient {
 			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'not_registered', __( 'Site not connected to Plume - Write and Design. Please reload the page.', 'plume' ) );
+			return new WP_Error( 'not_registered', __( 'Site not connected to Plume AI - Write and Design. Please reload the page.', 'plume' ) );
 		}
 
 		$user_id = get_current_user_id();
@@ -110,12 +110,12 @@ class ProxyClient {
 			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'auth_failed', __( 'Connection to Plume - Write and Design failed. Please reload the page and try again.', 'plume' ) );
+			return new WP_Error( 'auth_failed', __( 'Connection to Plume AI - Write and Design failed. Please reload the page and try again.', 'plume' ) );
 		}
 
 		if ( $code < 200 || $code >= 300 ) {
 			// translators: %d is the HTTP status code returned by the service.
-			return new WP_Error( 'service_error', $body['error'] ?? sprintf( __( 'Plume - Write and Design returned HTTP %d', 'plume' ), $code ) );
+			return new WP_Error( 'service_error', $body['error'] ?? sprintf( __( 'Plume AI - Write and Design returned HTTP %d', 'plume' ), $code ) );
 		}
 
 		// Mirror usage locally for dashboard display only — KV is authoritative for quota enforcement.

@@ -120,12 +120,12 @@ class TierSyncBackfillNotice {
 		?>
 		<div class="notice notice-warning is-dismissible">
 			<p>
-			<strong><?php \esc_html_e( 'Plume - Write and Design — Plan sync setup required', 'plume' ); ?></strong>
+			<strong><?php \esc_html_e( 'Plume AI - Write and Design — Plan sync setup required', 'plume' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				\esc_html_e(
-					'Your site is connected to Plume - Write and Design, but the connection has not been fully set up yet. Without this step, plan upgrades and cancellations will not take effect automatically. Click the button below to complete the one-time setup.',
+					'Your site is connected to Plume AI - Write and Design, but the connection has not been fully set up yet. Without this step, plan upgrades and cancellations will not take effect automatically. Click the button below to complete the one-time setup.',
 					'plume'
 				);
 				?>
@@ -171,12 +171,12 @@ class TierSyncBackfillNotice {
 		?>
 		<div class="notice notice-warning is-dismissible">
 			<p>
-			<strong><?php \esc_html_e( 'Plume - Write and Design — Plan verification required', 'plume' ); ?></strong>
+			<strong><?php \esc_html_e( 'Plume AI - Write and Design — Plan verification required', 'plume' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				\esc_html_e(
-					'Your site shows a paid plan in the database, but the plan integrity signature is missing or does not match. This can happen after a direct database edit or a migration. Until re-verified, the plugin will treat your site as free. Click below to re-sync your plan with Plume - Write and Design.',
+					'Your site shows a paid plan in the database, but the plan integrity signature is missing or does not match. This can happen after a direct database edit or a migration. Until re-verified, the plugin will treat your site as free. Click below to re-sync your plan with Plume AI - Write and Design.',
 					'plume'
 				);
 				?>
@@ -219,7 +219,7 @@ class TierSyncBackfillNotice {
 			?>
 			<div class="notice notice-success is-dismissible">
 				<p>
-				<?php \esc_html_e( 'Plume - Write and Design — Plan sync is now active. Your site will automatically receive plan updates.', 'plume' ); ?>
+				<?php \esc_html_e( 'Plume AI - Write and Design — Plan sync is now active. Your site will automatically receive plan updates.', 'plume' ); ?>
 				</p>
 			</div>
 			<?php
@@ -235,7 +235,7 @@ class TierSyncBackfillNotice {
 		?>
 		<div class="notice notice-error is-dismissible">
 			<p>
-			<?php \esc_html_e( 'Plume - Write and Design — Setup failed.', 'plume' ); ?>
+			<?php \esc_html_e( 'Plume AI - Write and Design — Setup failed.', 'plume' ); ?>
 				<?php if ( '' !== $detail ) : ?>
 					<br />
 					<code><?php echo \esc_html( $detail ); ?></code>

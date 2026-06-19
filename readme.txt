@@ -1,6 +1,6 @@
 === Plume AI - Write and Design ===
 Contributors: njohansson
-Tags: ai, chatbot, openai, claude, content
+Tags: ai, writing, content, images, chatbot
 Requires at least: 6.4
 Tested up to: 7.0
 Stable tag: 1.10.0
@@ -8,7 +8,7 @@ Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-AI-powered content co-pilot for WordPress.
+AI-powered writing, image generation, and content design tools for WordPress.
 
 == Description ==
 

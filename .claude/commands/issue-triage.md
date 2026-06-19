@@ -126,6 +126,8 @@ Post a new DEFER comment only when **at least one** of these is true:
 
 When posting is warranted:
 
+> **Sentinel:** The opening line `**Nightly triage` is the string both Phase 1c and Phase 2 use to identify previously-posted triage comments. If you change the header below, update both detection checks to match.
+
 ```bash
 gh issue comment <n> --body "**Nightly triage — decision needed**
 

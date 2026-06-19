@@ -423,6 +423,98 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertSame( "I'll fetch that post for you.", $response->content );
 	}
 
+	public function test_build_system_field_returns_plain_string_for_short_system(): void {
+		$provider = new ClaudeProvider( 'sk-ant-test' );
+		$method   = new \ReflectionMethod( $provider, 'build_system_field' );
+		$result   = $method->invoke( $provider, 'Short prompt.' );
+		$this->assertIsString( $result );
+		$this->assertSame( 'Short prompt.', $result );
+	}
+
+	public function test_build_system_field_returns_cache_block_for_long_system(): void {
+		$provider    = new ClaudeProvider( 'sk-ant-test' );
+		$method      = new \ReflectionMethod( $provider, 'build_system_field' );
+		$long_system = str_repeat( 'a', 8193 );
+		$result      = $method->invoke( $provider, $long_system );
+		$this->assertIsArray( $result );
+		$this->assertCount( 1, $result );
+		$this->assertSame( 'text', $result[0]['type'] );
+		$this->assertSame( $long_system, $result[0]['text'] );
+		$this->assertSame( [ 'type' => 'ephemeral' ], $result[0]['cache_control'] );
+	}
+
+	public function test_build_system_field_boundary_at_8192_chars_stays_plain_string(): void {
+		$provider    = new ClaudeProvider( 'sk-ant-test' );
+		$method      = new \ReflectionMethod( $provider, 'build_system_field' );
+		$edge_system = str_repeat( 'b', 8192 );
+		$result      = $method->invoke( $provider, $edge_system );
+		$this->assertIsString( $result );
+	}
+
+	public function test_complete_parses_cache_tokens_in_response(): void {
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content' => [ [ 'type' => 'text', 'text' => 'Cached reply' ] ],
+				'model'   => 'claude-sonnet-4-6',
+				'usage'   => [
+					'input_tokens'                  => 100,
+					'output_tokens'                 => 20,
+					'cache_read_input_tokens'       => 800,
+					'cache_creation_input_tokens'   => 200,
+				],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		$this->mock_wpdb();
+
+		$provider = new ClaudeProvider( 'sk-ant-test' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+		$response = $provider->complete( $request );
+
+		$this->assertSame( 800, $response->cache_read_tokens );
+		$this->assertSame( 200, $response->cache_write_tokens );
+		$this->assertSame( 'Cached reply', $response->content );
+		// For claude-sonnet-4-6: 100 in × $3/M + 20 out × $15/M + 800 cache-read × $0.30/M + 200 cache-write × $3.75/M.
+		$expected_cost = ( 100 / 1_000_000 * 3.0 ) + ( 20 / 1_000_000 * 15.0 ) + ( 800 / 1_000_000 * 0.30 ) + ( 200 / 1_000_000 * 3.75 );
+		$this->assertEqualsWithDelta( $expected_cost, $response->cost_usd, 1.0e-10 );
+	}
+
+	public function test_calculate_cost_falls_back_to_default_model_for_unknown_slug(): void {
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content' => [ [ 'type' => 'text', 'text' => 'ok' ] ],
+				'model'   => 'claude-unknown-model',
+				'usage'   => [
+					'input_tokens'                => 50,
+					'output_tokens'               => 10,
+					'cache_read_input_tokens'     => 400,
+					'cache_creation_input_tokens' => 100,
+				],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		$this->mock_wpdb();
+
+		$provider = new ClaudeProvider( 'sk-ant-test' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+		$response = $provider->complete( $request );
+
+		// Unknown model falls back to claude-sonnet-4-6 pricing.
+		// 50 in × $3/M + 10 out × $15/M + 400 cache-read × $0.30/M + 100 cache-write × $3.75/M.
+		$expected_cost = ( 50 / 1_000_000 * 3.0 ) + ( 10 / 1_000_000 * 15.0 ) + ( 400 / 1_000_000 * 0.30 ) + ( 100 / 1_000_000 * 3.75 );
+		$this->assertEqualsWithDelta( $expected_cost, $response->cost_usd, 1.0e-10 );
+		$this->assertSame( 400, $response->cache_read_tokens );
+		$this->assertSame( 100, $response->cache_write_tokens );
+	}
+
 	public function test_tools_injected_in_request_body(): void {
 		$captured_body = null;
 		Functions\when( 'wp_remote_post' )->alias( function( $url, $args ) use ( &$captured_body ) {

@@ -188,7 +188,7 @@ class GeminiProvider extends AbstractProvider {
 		$raw_options = [
 			'model'      => $model,
 			'max_tokens' => $request->max_tokens,
-			'system'     => '' !== $request->system ? $request->system : null,
+			'system'     => '' !== $request->system ? $this->build_system_field( $request->system ) : null,
 		];
 		$options     = array_filter( $raw_options, fn( $v ) => null !== $v );
 		if ( ! empty( $request->tools ) ) {

@@ -208,14 +208,29 @@ async function callClaude(
 	};
 }
 
+/**
+ * Extract a plain text string from a system field that may be a string or a SystemBlock array.
+ * Claude passes the block array through as-is; OpenAI and Gemini need a plain string.
+ *
+ * @param {ProxyRequest['system']} system - System field from the proxy request.
+ * @return {string} Plain text content.
+ */
+function resolveSystemText( system: ProxyRequest[ 'system' ] ): string {
+	if ( ! system ) {
+		return '';
+	}
+	return typeof system === 'string' ? system : ( system[ 0 ]?.text ?? '' );
+}
+
 async function callOpenAI(
 	body: ProxyRequest,
 	resolvedModel: string,
 	clampedMaxTokens: number,
 	env: Env
 ): Promise< NormalizedResponse > {
-	const messages = body.system
-		? [ { role: 'system', content: body.system }, ...body.messages ]
+	const sysText = resolveSystemText( body.system );
+	const messages = sysText
+		? [ { role: 'system', content: sysText }, ...body.messages ]
 		: body.messages;
 	const openaiBody: Record< string, unknown > = {
 		model: resolvedModel,
@@ -303,8 +318,9 @@ async function callGemini(
 		contents,
 		generationConfig: { maxOutputTokens: clampedMaxTokens },
 	};
-	if ( body.system ) {
-		geminiBody.systemInstruction = { parts: [ { text: body.system } ] };
+	const sysText = resolveSystemText( body.system );
+	if ( sysText ) {
+		geminiBody.systemInstruction = { parts: [ { text: sysText } ] };
 	}
 	if ( body.tools && body.tools.length > 0 ) {
 		geminiBody.tools = toGeminiTools( body.tools );

@@ -29,6 +29,8 @@ class ClaudeProvider extends AbstractProvider {
 	private const API_BASE      = 'https://api.anthropic.com/v1';
 	private const API_VERSION   = '2023-06-01';
 	private const DEFAULT_MODEL = 'claude-sonnet-4-6';
+	// English text averages ~4 chars/token; Anthropic's minimum cacheable prompt is 2,048 tokens.
+	private const CACHE_MIN_CHARS = 8_192;
 
 	// Mirrors TIER_MODELS in plume-proxy/src/index.ts — update both when adding models.
 	private const MODELS = [
@@ -37,19 +39,27 @@ class ClaudeProvider extends AbstractProvider {
 		'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5',
 	];
 
-	// Cost per 1M tokens (input/output) in USD — verify against https://www.anthropic.com/pricing.
+	// Cost per 1M tokens (input/output/cache) in USD.
+	// cache_write_in: cache-write surcharge (1.25× normal input).
+	// cache_read_in: cache-read rate (0.10× normal input).
 	private const PRICING = [
 		'claude-opus-4-6'           => [
-			'in'  => 5.0,
-			'out' => 25.0,
+			'in'             => 5.0,
+			'out'            => 25.0,
+			'cache_write_in' => 6.25,
+			'cache_read_in'  => 0.50,
 		],
 		'claude-sonnet-4-6'         => [
-			'in'  => 3.0,
-			'out' => 15.0,
+			'in'             => 3.0,
+			'out'            => 15.0,
+			'cache_write_in' => 3.75,
+			'cache_read_in'  => 0.30,
 		],
 		'claude-haiku-4-5-20251001' => [
-			'in'  => 1.0,
-			'out' => 5.0,
+			'in'             => 1.0,
+			'out'            => 5.0,
+			'cache_write_in' => 1.25,
+			'cache_read_in'  => 0.10,
 		],
 	];
 
@@ -168,7 +178,7 @@ class ClaudeProvider extends AbstractProvider {
 		$raw_options = [
 			'model'      => ! empty( $request->model ) ? $request->model : null,
 			'max_tokens' => $request->max_tokens,
-			'system'     => '' !== $request->system ? $request->system : null,
+			'system'     => '' !== $request->system ? $this->build_system_field( $request->system ) : null,
 		];
 		$options     = array_filter( $raw_options, fn( $v ) => null !== $v );
 		if ( ! empty( $request->tools ) ) {
@@ -253,19 +263,56 @@ class ClaudeProvider extends AbstractProvider {
 	// ── Private helpers ───────────────────────────────────────────────────────
 
 	/**
+	 * Format the system prompt for Claude's API, adding a cache_control block when
+	 * the prompt exceeds CACHE_MIN_CHARS. Anthropic requires at least 2,048 tokens to
+	 * activate prompt caching; at ~4 chars/token that is roughly 8,192 characters.
+	 * Short prompts are passed through unchanged to avoid the 1.25× cache-write surcharge.
+	 *
+	 * @since NEXT_VERSION
+	 * @param string $system Raw system prompt text.
+	 * @return string|array Plain string for short prompts; cache-control block array for long ones.
+	 */
+	protected function build_system_field( string $system ): string|array {
+		if ( mb_strlen( $system ) <= self::CACHE_MIN_CHARS ) {
+			return $system;
+		}
+		return [
+			[
+				'type'          => 'text',
+				'text'          => $system,
+				'cache_control' => [ 'type' => 'ephemeral' ],
+			],
+		];
+	}
+
+	/**
 	 * Calculate the USD cost for a completion based on token usage.
 	 *
 	 * Centralises pricing so future rate changes require a single edit.
+	 * Cache read tokens are billed at cache_read_in (0.10× normal input).
+	 * Cache write tokens are billed at cache_write_in (1.25× normal input).
 	 *
 	 * @since 1.0.0
-	 * @param string $model      Model slug used for the completion.
-	 * @param int    $in_tokens  Input token count.
-	 * @param int    $out_tokens Output token count.
+	 * @param string $model              Model slug used for the completion.
+	 * @param int    $in_tokens          Normal input token count.
+	 * @param int    $out_tokens         Output token count.
+	 * @param int    $cache_read_tokens  Tokens read from cache (billed at cache_read_in rate).
+	 * @param int    $cache_write_tokens Tokens written to cache (billed at cache_write_in rate).
 	 * @return float Cost in USD.
 	 */
-	private function calculate_cost( string $model, int $in_tokens, int $out_tokens ): float {
-		$pricing = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
-		return ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
+	private function calculate_cost(
+		string $model,
+		int $in_tokens,
+		int $out_tokens,
+		int $cache_read_tokens = 0,
+		int $cache_write_tokens = 0
+	): float {
+		$pricing     = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
+		$normal_cost = $in_tokens / 1_000_000 * $pricing['in'];
+		$out_cost    = $out_tokens / 1_000_000 * $pricing['out'];
+		$read_cost   = $cache_read_tokens / 1_000_000 * $pricing['cache_read_in'];
+		$write_cost  = $cache_write_tokens / 1_000_000 * $pricing['cache_write_in'];
+		return $normal_cost + $out_cost + $read_cost + $write_cost;
 	}
 
 	/**
@@ -282,7 +329,7 @@ class ClaudeProvider extends AbstractProvider {
 			'messages'   => $request->messages,
 		];
 		if ( '' !== $request->system ) {
-			$body['system'] = $request->system;
+			$body['system'] = $this->build_system_field( $request->system );
 		}
 		if ( ! empty( $request->tools ) ) {
 			$body['tools'] = $request->tools; // Already in Claude wire format from ToolRegistry.
@@ -343,10 +390,12 @@ class ClaudeProvider extends AbstractProvider {
 	 * @return CompletionResponse
 	 */
 	protected function parse_response( array $data, CompletionRequest $request ): CompletionResponse {
-		$model      = $data['model'] ?? ( ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL );
-		$in_tokens  = (int) ( $data['usage']['input_tokens'] ?? 0 );
-		$out_tokens = (int) ( $data['usage']['output_tokens'] ?? 0 );
-		$cost       = $this->calculate_cost( $model, $in_tokens, $out_tokens );
+		$model       = $data['model'] ?? ( ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL );
+		$in_tokens   = (int) ( $data['usage']['input_tokens'] ?? 0 );
+		$out_tokens  = (int) ( $data['usage']['output_tokens'] ?? 0 );
+		$cache_read  = (int) ( $data['usage']['cache_read_input_tokens'] ?? 0 );
+		$cache_write = (int) ( $data['usage']['cache_creation_input_tokens'] ?? 0 );
+		$cost        = $this->calculate_cost( $model, $in_tokens, $out_tokens, $cache_read, $cache_write );
 
 		// Check for a tool_use block in the response content.
 		$content_blocks = $data['content'] ?? [];
@@ -360,17 +409,19 @@ class ClaudeProvider extends AbstractProvider {
 
 		if ( null !== $tool_use_block ) {
 			return new CompletionResponse(
-				content: '',
-				model: $model,
-				prompt_tokens: $in_tokens,
-				completion_tokens: $out_tokens,
-				cost_usd: $cost,
-				raw: $data,
-				tool_call: [
+				content:            '',
+				model:              $model,
+				prompt_tokens:      $in_tokens,
+				completion_tokens:  $out_tokens,
+				cost_usd:           $cost,
+				raw:                $data,
+				tool_call:          [
 					'id'        => $tool_use_block['id'],
 					'name'      => $tool_use_block['name'],
 					'arguments' => $tool_use_block['input'] ?? [],
 				],
+				cache_read_tokens:  $cache_read,
+				cache_write_tokens: $cache_write,
 			);
 		}
 
@@ -383,6 +434,15 @@ class ClaudeProvider extends AbstractProvider {
 			}
 		}
 
-		return new CompletionResponse( $text_content, $model, $in_tokens, $out_tokens, $cost, $data );
+		return new CompletionResponse(
+			content:            $text_content,
+			model:              $model,
+			prompt_tokens:      $in_tokens,
+			completion_tokens:  $out_tokens,
+			cost_usd:           $cost,
+			raw:                $data,
+			cache_read_tokens:  $cache_read,
+			cache_write_tokens: $cache_write,
+		);
 	}
 }

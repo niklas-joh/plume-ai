@@ -1,4 +1,4 @@
-=== Plume ===
+=== Plume AI - Write and Design ===
 Contributors: njohansson
 Tags: ai, writing, content, images, chatbot
 Requires at least: 6.4
@@ -12,7 +12,7 @@ AI-powered writing, image generation, and content design tools for WordPress.
 
 == Description ==
 
-Plume integrates Claude (Anthropic), OpenAI, Google Gemini, and Ollama directly
+Plume AI - Write and Design integrates Claude (Anthropic), OpenAI, Google Gemini, and Ollama directly
 into your WordPress dashboard, giving you AI assistance without leaving the editor.
 
 **Features:**

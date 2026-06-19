@@ -1,6 +1,6 @@
 {
   "name": "plume",
-  "version": "1.9.2",
+  "version": "1.10.0",
   "private": true,
   "scripts": {
     "prepare": "GIT_DIR=$(git rev-parse --git-dir 2>/dev/null) && mkdir -p \"$GIT_DIR/hooks\" && cp scripts/pre-commit \"$GIT_DIR/hooks/pre-commit\" && chmod +x \"$GIT_DIR/hooks/pre-commit\" && cp scripts/pre-push \"$GIT_DIR/hooks/pre-push\" && chmod +x \"$GIT_DIR/hooks/pre-push\"",

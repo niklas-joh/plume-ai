@@ -576,7 +576,7 @@ class ChatRestController {
 	 * Extracted to allow unit tests to stub query results without instantiating
 	 * WP_Query, which requires a full WordPress bootstrap.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.10.0
 	 * @param array $args WP_Query argument array.
 	 * @return object[] Array of WP_Post objects (or compatible stubs in tests).
 	 */

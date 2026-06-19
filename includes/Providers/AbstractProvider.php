@@ -74,7 +74,7 @@ abstract class AbstractProvider implements ProviderInterface {
 	 * that support explicit cache-control blocks (e.g. Claude) override this method
 	 * to return a structured array when the prompt exceeds the minimum cacheable length.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.10.0
 	 * @param string $system Raw system prompt text.
 	 * @return string|array Plain string for most providers; structured block array for Claude.
 	 */

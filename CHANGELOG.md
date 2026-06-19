@@ -1,3 +1,18 @@
+## [1.10.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.9.2...v1.10.0) (2026-06-19)
+
+### New Features
+
+* **chat:** make attached-post title clickable in composer pill ([#782](https://github.com/niklas-joh/wp-ai-mind/issues/782)) ([f81cc83](https://github.com/niklas-joh/wp-ai-mind/commit/f81cc8311b5bc35af8c1112df0562544e60172c6)), closes [#764](https://github.com/niklas-joh/wp-ai-mind/issues/764)
+* **core:** prompt caching + cache token tracking (without tool stripping) ([#803](https://github.com/niklas-joh/wp-ai-mind/issues/803)) ([a6a8085](https://github.com/niklas-joh/wp-ai-mind/commit/a6a80854e3e2d9ef3f10166eba65af167fafde1d)), closes [#792](https://github.com/niklas-joh/wp-ai-mind/issues/792) [#792](https://github.com/niklas-joh/wp-ai-mind/issues/792)
+
+### Bug Fixes
+
+* **admin:** rename menu to Plume AI with feather icon, wire WP.org assets to deploy ([#777](https://github.com/niklas-joh/wp-ai-mind/issues/777)) ([8b7b906](https://github.com/niklas-joh/wp-ai-mind/commit/8b7b906d20455065341b507504d6e349a10a7eb5))
+* **chat:** prevent plan_update retry loop when AI omits chat_response ([#800](https://github.com/niklas-joh/wp-ai-mind/issues/800)) ([0bbff3b](https://github.com/niklas-joh/wp-ai-mind/commit/0bbff3ba915f4d09f7066c654f45436e0b15bba8))
+* **cost:** correct stale pricing constants and Opus token weight ([#781](https://github.com/niklas-joh/wp-ai-mind/issues/781)) ([4393e5b](https://github.com/niklas-joh/wp-ai-mind/commit/4393e5b9e2f19b1164a388c7b1d8bece3c87e377)), closes [#743](https://github.com/niklas-joh/wp-ai-mind/issues/743)
+* **triage:** use GitHub comments as authoritative deferred-state source ([#807](https://github.com/niklas-joh/wp-ai-mind/issues/807)) ([f1e8bc3](https://github.com/niklas-joh/wp-ai-mind/commit/f1e8bc3d54192c062353efbcb7f569d1bd09aea5)), closes [#746](https://github.com/niklas-joh/wp-ai-mind/issues/746) [#746](https://github.com/niklas-joh/wp-ai-mind/issues/746) [#746](https://github.com/niklas-joh/wp-ai-mind/issues/746) [#746](https://github.com/niklas-joh/wp-ai-mind/issues/746)
+* **urls:** revert erroneous plumeind.com domain back to wpaimind.com ([#812](https://github.com/niklas-joh/wp-ai-mind/issues/812)) ([08e80ab](https://github.com/niklas-joh/wp-ai-mind/commit/08e80ab5e47bc655f01aea09957eb99b8f584e35)), closes [#736](https://github.com/niklas-joh/wp-ai-mind/issues/736) [#813](https://github.com/niklas-joh/wp-ai-mind/issues/813) [#814](https://github.com/niklas-joh/wp-ai-mind/issues/814)
+
 ## [1.9.2](https://github.com/niklas-joh/wp-ai-mind/compare/v1.9.1...v1.9.2) (2026-06-14)
 
 ### Bug Fixes

@@ -268,7 +268,7 @@ class ClaudeProvider extends AbstractProvider {
 	 * activate prompt caching; at ~4 chars/token that is roughly 8,192 characters.
 	 * Short prompts are passed through unchanged to avoid the 1.25× cache-write surcharge.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.10.0
 	 * @param string $system Raw system prompt text.
 	 * @return string|array Plain string for short prompts; cache-control block array for long ones.
 	 */

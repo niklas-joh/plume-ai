@@ -138,6 +138,8 @@ This issue was reviewed in the automated nightly triage run but cannot be resolv
 Reply to this comment with your decision and the next nightly run will pick it up automatically."
 ```
 
+> _Detection sentinel: comments starting with `**Nightly triage` are treated as triage comments. Update both Phase 1c and Phase 2 if this prefix ever changes._
+
 A follow-up comment (not a duplicate) is only posted when Phase 1c re-evaluation finds new information that narrows but does not fully resolve the question.
 
 Output the prioritisation matrix:

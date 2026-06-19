@@ -46,3 +46,17 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"nothing to stamp"* ]]
 }
+
+@test "does not stamp files inside vendor/" {
+  mkdir -p "$TEST_ROOT/vendor/some-lib"
+  printf '<?php\n/** @since NEXT_VERSION */\nfunction bar() {}\n' > "$TEST_ROOT/vendor/some-lib/bar.php"
+  # Non-vendor placeholder so the script does not exit early with "nothing to stamp".
+  printf '<?php\n/** @since NEXT_VERSION */\n' > "$TEST_ROOT/needs-stamp.php"
+
+  run "$SCRIPT" "1.9.0"
+
+  [ "$status" -eq 0 ]
+  grep -q "@since NEXT_VERSION" "$TEST_ROOT/vendor/some-lib/bar.php"
+  ! grep -q "@since 1.9.0" "$TEST_ROOT/vendor/some-lib/bar.php"
+  grep -q "@since 1.9.0" "$TEST_ROOT/needs-stamp.php"
+}

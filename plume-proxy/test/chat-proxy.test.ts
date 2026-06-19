@@ -616,7 +616,7 @@ describe( 'handleChatProxy', () => {
 		const stored = await env.USAGE_KV.get(
 			`usage:${ TEST_TOKEN }:${ month }`
 		);
-		// raw = 150, weight = 15, effective = 2250
-		expect( Number( stored ) ).toBe( 2250 );
+		// raw = 150, weight = 5, effective = 750
+		expect( Number( stored ) ).toBe( 750 );
 	} );
 } );

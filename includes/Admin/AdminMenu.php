@@ -28,8 +28,8 @@ class AdminMenu {
 	 */
 	public static function register(): void {
 		add_menu_page(
-			__( 'Plume - Write and Design', 'plume' ),
-			__( 'Plume', 'plume' ),
+			__( 'Plume AI — Write and Design', 'plume' ),
+			__( 'Plume AI', 'plume' ),
 			'edit_posts',
 			'plume',
 			[ DashboardPage::class, 'render' ],
@@ -62,14 +62,14 @@ class AdminMenu {
 	/**
 	 * Build the base64-encoded SVG data URI used as the menu icon.
 	 *
-	 * Inline SVG — Lucide `sparkles` icon, zinc-400 (#a1a1aa).
+	 * Inline SVG — Lucide `feather` icon, zinc-400 (#a1a1aa).
 	 *
 	 * @since 1.0.0
 	 * @return string Data URI string suitable for the $icon_url parameter of add_menu_page().
 	 */
 	private static function get_menu_icon(): string {
 		return 'data:image/svg+xml;base64,' . base64_encode( // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Encoding SVG menu icon for WordPress admin, not obfuscation.
-			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>'
+			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><path d="M16 8L2 22"/><path d="M17.5 15H9"/></svg>'
 		);
 	}
 }

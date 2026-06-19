@@ -37,19 +37,19 @@ class ClaudeProvider extends AbstractProvider {
 		'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5',
 	];
 
-	// Cost per 1M tokens (input/output) in USD.
+	// Cost per 1M tokens (input/output) in USD — verify against https://www.anthropic.com/pricing.
 	private const PRICING = [
 		'claude-opus-4-6'           => [
-			'in'  => 15.0,
-			'out' => 75.0,
+			'in'  => 5.0,
+			'out' => 25.0,
 		],
 		'claude-sonnet-4-6'         => [
 			'in'  => 3.0,
 			'out' => 15.0,
 		],
 		'claude-haiku-4-5-20251001' => [
-			'in'  => 0.25,
-			'out' => 1.25,
+			'in'  => 1.0,
+			'out' => 5.0,
 		],
 	];
 

@@ -61,3 +61,23 @@ curl -s http://localhost:8787/v1/chat | jq .
 | trial | 300,000 | Haiku only |
 | pro_managed | 2,000,000 | Haiku, Sonnet, Opus |
 | pro_byok | — | bypasses proxy entirely |
+
+## KV hotfix procedure (model weights)
+
+Model token weights can be overridden via KV without a code deployment.
+This allows emergency pricing corrections without a wrangler deploy cycle.
+
+```bash
+# Override a single model's weight (binding is USAGE_KV; shape: model_token_weight key)
+wrangler kv key put --binding=USAGE_KV "config:models" '{"model_token_weight":{"claude-opus-4-6":5}}'
+```
+
+`getModelConfig()` in `index.ts` reads `config:models` from `USAGE_KV` and deep-merges
+`parsed.model_token_weight` into `DEFAULT_MODEL_TOKEN_WEIGHT`, so a partial override
+(only the Opus entry) does not discard other model weights.
+
+Remove the key to revert to the code default:
+
+```bash
+wrangler kv key delete --binding=USAGE_KV "config:models"
+```

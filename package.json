@@ -21,7 +21,7 @@
     "test:unit-js": "wp-scripts test-unit-js"
   },
   "dependencies": {
-    "dompurify": "^3.4.9",
+    "dompurify": "^3.4.11",
     "lucide-react": "^0.474.0",
     "marked": "^17.0.4"
   },

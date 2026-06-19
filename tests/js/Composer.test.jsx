@@ -60,7 +60,9 @@ describe( 'Composer — attachment pill', () => {
 		expect( link ).not.toBeNull();
 		expect( link.tagName.toLowerCase() ).toBe( 'a' );
 		expect( link.getAttribute( 'href' ) ).toBe( attachedPost.edit_link );
-		expect( link.textContent ).toBe( 'Hello World' );
+		// Title is rendered as pill text; the <a> is an empty cover element.
+		const pill = container.querySelector( '.plume-composer__attachment-pill' );
+		expect( pill.textContent ).toContain( 'Hello World' );
 	} );
 
 	it( 'renders plain text when attachedPost.edit_link is empty', async () => {

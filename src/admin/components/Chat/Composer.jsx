@@ -79,20 +79,17 @@ export default function Composer( {
 			{ attachedPost && (
 				<div className="plume-composer__attachment">
 					<span className="plume-composer__attachment-pill">
-						<FileText size={ 11 } strokeWidth={ 1.5 } />
-						{ attachedPost.edit_link ? (
+						{ attachedPost.edit_link && (
 							<a
 								href={ attachedPost.edit_link }
 								target="_blank"
 								rel="noopener noreferrer"
 								className="plume-composer__attachment-link"
 								aria-label={ `Edit "${ attachedPost.title }" (opens in new tab)` }
-							>
-								{ attachedPost.title }
-							</a>
-						) : (
-							attachedPost.title
+							/>
 						) }
+						<FileText size={ 11 } strokeWidth={ 1.5 } />
+						{ attachedPost.title }
 						<button
 							className="plume-composer__attachment-dismiss"
 							onClick={ onDetach }

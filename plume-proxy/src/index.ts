@@ -127,20 +127,6 @@ function toGeminiTools( tools: ToolParam[] ) {
 	];
 }
 
-/**
- * Extract a plain text string from a system field that may be a string or a SystemBlock array.
- * Claude passes the block array through as-is; OpenAI and Gemini need a plain string.
- *
- * @param {ProxyRequest['system']} system - System field from the proxy request.
- * @return {string} Plain text content.
- */
-function resolveSystemText( system: ProxyRequest[ 'system' ] ): string {
-	if ( ! system ) {
-		return '';
-	}
-	return typeof system === 'string' ? system : ( system[ 0 ]?.text ?? '' );
-}
-
 async function callClaude(
 	body: ProxyRequest,
 	resolvedModel: string,
@@ -220,6 +206,20 @@ async function callClaude(
 			output_tokens: usage.output_tokens,
 		},
 	};
+}
+
+/**
+ * Extract a plain text string from a system field that may be a string or a SystemBlock array.
+ * Claude passes the block array through as-is; OpenAI and Gemini need a plain string.
+ *
+ * @param {ProxyRequest['system']} system - System field from the proxy request.
+ * @return {string} Plain text content.
+ */
+function resolveSystemText( system: ProxyRequest[ 'system' ] ): string {
+	if ( ! system ) {
+		return '';
+	}
+	return typeof system === 'string' ? system : ( system[ 0 ]?.text ?? '' );
 }
 
 async function callOpenAI(

@@ -172,7 +172,7 @@ class ToolRegistry {
 
 		$this->tools[] = new ToolDefinition(
 			name:                'plan_post',
-			description:         'Propose a new WordPress blog post or page for user approval. Call this tool whenever the user asks you to write, create, draft, or generate a post or page. Provide a title, a brief outline shown on the approval card, and the complete post content that will be published exactly as given when the user approves.',
+			description:         'Propose a new WordPress blog post or page for user approval. Call this tool whenever the user asks you to write, create, draft, or generate a post or page. Provide a title, a brief outline shown on the approval card, and the complete post content that will be published exactly as given when the user approves. After this tool returns, the post is queued for user approval — immediately call chat_response to tell the user it is ready. Do not call plan_post again.',
 			parameters:          [
 				'type'       => 'object',
 				'properties' => [
@@ -211,7 +211,7 @@ class ToolRegistry {
 
 		$this->tools[] = new ToolDefinition(
 			name:                'plan_update',
-			description:         'Propose an update to an existing WordPress post for user approval. Call this tool whenever the user asks you to edit, update, revise, improve, or change a post. First retrieve the post content with get_post_content, then provide a human-readable summary of changes AND the full updated content that will be applied when the user approves.',
+			description:         'Propose an update to an existing WordPress post for user approval. Call this tool whenever the user asks you to edit, update, revise, improve, or change a post. First retrieve the post content with get_post_content, then provide a human-readable summary of changes AND the full updated content that will be applied when the user approves. After this tool returns, the update is queued for user approval — immediately call chat_response to tell the user it is ready. Do not call plan_update again.',
 			parameters:          [
 				'type'       => 'object',
 				'properties' => [

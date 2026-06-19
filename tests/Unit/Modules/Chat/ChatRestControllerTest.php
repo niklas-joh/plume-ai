@@ -1460,6 +1460,7 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( 'claude' );
         Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        Functions\when( '__' )->alias( fn( $v ) => $v );
 
         $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );

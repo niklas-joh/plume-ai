@@ -1,6 +1,6 @@
 === Plume AI - Write and Design ===
 Contributors: njohansson
-Tags: ai, writing, content-generation, image-generation, chatbot
+Tags: ai, writing, content, images, chatbot
 Requires at least: 6.4
 Tested up to: 7.0
 Stable tag: 1.9.2

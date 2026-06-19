@@ -1529,4 +1529,80 @@ class ChatRestControllerTest extends TestCase {
         $this->assertSame( $pending, $response->data['pending_plan'], 'pending_plan must be surfaced in the REST response' );
         $this->assertContains( 'plan_post', $response->data['tools_called'] );
     }
+
+    // ── search_posts ──────────────────────────────────────────────────────────
+
+    /**
+     * Helper: build a controller subclass with a stub post list for search_posts.
+     *
+     * @param object[] $posts
+     * @return ChatRestController
+     */
+    private function make_searchable_controller( array $posts ): ChatRestController {
+        return new class( $this->tool_registry, $this->tool_executor, $posts ) extends ChatRestController {
+            private array $stub_posts;
+            public function __construct( ToolRegistry $tr, ToolExecutor $te, array $posts ) {
+                parent::__construct( $tr, $te );
+                $this->stub_posts = $posts;
+            }
+            protected function run_post_query( array $args ): array {
+                return $this->stub_posts;
+            }
+        };
+    }
+
+    public function test_search_posts_includes_edit_link_for_editor(): void {
+        $post            = new \stdClass();
+        $post->ID        = 42;
+        $post->post_type = 'post';
+
+        Functions\when( 'get_post_types' )->justReturn( [ 'post', 'page' ] );
+        Functions\when( 'get_post_type_object' )->justReturn(
+            (object) [ 'labels' => (object) [ 'singular_name' => 'Post' ] ]
+        );
+        Functions\when( 'get_the_title' )->justReturn( 'My Post' );
+        Functions\when( 'get_edit_post_link' )->justReturn( 'https://example.com/wp-admin/post.php?post=42&action=edit' );
+
+        $controller = $this->make_searchable_controller( [ $post ] );
+
+        $request = new \WP_REST_Request( 'GET' );
+        $request->set_param( 'q', 'my' );
+
+        $response = $controller->search_posts( $request );
+
+        $this->assertInstanceOf( \WP_REST_Response::class, $response );
+        $this->assertCount( 1, $response->data );
+        $item = $response->data[0];
+        $this->assertArrayHasKey( 'edit_link', $item );
+        $this->assertSame(
+            'https://example.com/wp-admin/post.php?post=42&action=edit',
+            $item['edit_link'],
+            'edit_link must contain the edit URL when the current user can edit the post.'
+        );
+    }
+
+    public function test_search_posts_edit_link_empty_for_subscriber(): void {
+        $post            = new \stdClass();
+        $post->ID        = 99;
+        $post->post_type = 'post';
+
+        Functions\when( 'get_post_types' )->justReturn( [ 'post', 'page' ] );
+        Functions\when( 'get_post_type_object' )->justReturn(
+            (object) [ 'labels' => (object) [ 'singular_name' => 'Post' ] ]
+        );
+        Functions\when( 'get_the_title' )->justReturn( 'Subscriber Post' );
+        // get_edit_post_link() returns null when the user has no edit permission.
+        Functions\when( 'get_edit_post_link' )->justReturn( null );
+
+        $controller = $this->make_searchable_controller( [ $post ] );
+
+        $request = new \WP_REST_Request( 'GET' );
+        $request->set_param( 'q', 'post' );
+
+        $response = $controller->search_posts( $request );
+
+        $item = $response->data[0];
+        $this->assertArrayHasKey( 'edit_link', $item );
+        $this->assertSame( '', $item['edit_link'], 'edit_link must fall back to empty string when the user cannot edit the post.' );
+    }
 }

@@ -302,13 +302,24 @@
 	background: rgba(var(--wp-admin-theme-color--rgb), 0.12);
 	border: 1px solid rgba(var(--wp-admin-theme-color--rgb), 0.3);
 	border-radius: var(--radius-sm);
-	padding: var(--space-0-5) var(--space-2);
+	padding: var(--space-1) var(--space-3);
 	font-size: var(--text-xs);
 	color: var(--color-text-secondary);
 	max-width: 100%;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	position: relative;
+}
+
+.plume-composer__attachment-link {
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+}
+
+.plume-composer__attachment-link:hover {
+	background: rgba(var(--wp-admin-theme-color--rgb), 0.08);
 }
 
 .plume-composer__attachment-dismiss {
@@ -320,6 +331,8 @@
 	line-height: 1;
 	display: flex;
 	align-items: center;
+	position: relative;
+	z-index: 1;
 }
 
 .plume-composer__attachment-dismiss:hover {

@@ -538,7 +538,7 @@ class ChatRestController {
 		);
 		$post_types[] = 'attachment';
 
-		$query = new \WP_Query(
+		$posts = $this->run_post_query(
 			[
 				'post_type'      => $post_types,
 				'post_status'    => 'publish',
@@ -548,7 +548,7 @@ class ChatRestController {
 			]
 		);
 		$data  = [];
-		foreach ( $query->posts as $post ) {
+		foreach ( $posts as $post ) {
 			$type_obj   = get_post_type_object( $post->post_type );
 			$type_label = $type_obj ? $type_obj->labels->singular_name : $post->post_type;
 			$data[]     = [
@@ -556,9 +556,24 @@ class ChatRestController {
 				'title'      => get_the_title( $post ),
 				'type'       => $post->post_type,
 				'type_label' => $type_label,
+				'edit_link'  => get_edit_post_link( $post->ID, 'raw' ) ?? '',
 			];
 		}
 		return rest_ensure_response( $data );
+	}
+
+	/**
+	 * Executes a WP_Query and returns the matching posts array.
+	 *
+	 * Extracted to allow unit tests to stub query results without instantiating
+	 * WP_Query, which requires a full WordPress bootstrap.
+	 *
+	 * @since NEXT_VERSION
+	 * @param array $args WP_Query argument array.
+	 * @return object[] Array of WP_Post objects (or compatible stubs in tests).
+	 */
+	protected function run_post_query( array $args ): array {
+		return ( new \WP_Query( $args ) )->posts;
 	}
 
 	/**

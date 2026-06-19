@@ -222,11 +222,6 @@ async function callClaude(
 	};
 }
 
-function resolveSystemText( system: string | SystemBlock[] | undefined ): string {
-	if ( ! system ) return '';
-	return typeof system === 'string' ? system : ( system[ 0 ]?.text ?? '' );
-}
-
 async function callOpenAI(
 	body: ProxyRequest,
 	resolvedModel: string,

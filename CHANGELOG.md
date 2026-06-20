@@ -1,3 +1,9 @@
+## [1.10.1](https://github.com/niklas-joh/plume-ai/compare/v1.10.0...v1.10.1) (2026-06-20)
+
+### Bug Fixes
+
+* **plugin:** update Plugin URI to wpaimind.com and align branding to Plume AI - Write and Design ([#818](https://github.com/niklas-joh/plume-ai/issues/818)) ([f59851b](https://github.com/niklas-joh/plume-ai/commit/f59851b2edf8bba12f2cce44a28e39e40f0c89a4))
+
 ## [1.10.0](https://github.com/niklas-joh/wp-ai-mind/compare/v1.9.2...v1.10.0) (2026-06-19)
 
 ### New Features

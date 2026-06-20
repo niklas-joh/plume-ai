@@ -2,8 +2,8 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: WP AI Mind 0.2.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/plume\n"
+"Project-Id-Version: Plume NEXT_VERSION\n"
+"Report-Msgid-Bugs-To: https://github.com/niklas-joh/plume-ai/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -16,18 +16,17 @@ msgstr ""
 
 #. Plugin Name of the plugin
 #: plume.php
-#: includes/Admin/AdminMenu.php:9
-msgid "WP AI Mind"
+msgid "Plume AI - Write and Design"
 msgstr ""
 
 #. Plugin URI of the plugin
 #: plume.php
-msgid "https://njohansson.eu/wp-ai-mind/"
+msgid "https://wpaimind.com"
 msgstr ""
 
 #. Description of the plugin
 #: plume.php
-msgid "AI-powered content co-pilot for WordPress."
+msgid "AI-powered writing, image generation, and content design tools for WordPress."
 msgstr ""
 
 #. Author of the plugin
@@ -37,47 +36,59 @@ msgstr ""
 
 #. Author URI of the plugin
 #: plume.php
-msgid "https://njohansson.eu"
+msgid "https://github.com/niklas-joh"
 msgstr ""
 
-#: includes/Admin/ActivationNotice.php:47
-msgid "WP AI Mind — External Services Notice"
+#: includes/Admin/ActivationNotice.php:61
+msgid "Plume AI - Write and Design — External Services & Privacy Notice"
 msgstr ""
 
-#: includes/Admin/ActivationNotice.php:51
-msgid "WP AI Mind sends the content you submit to third-party AI providers (OpenAI, Anthropic Claude, Google Gemini, Ollama). Your data is governed by each provider's privacy policy. Configure your active provider under WP AI Mind → Settings."
+#: includes/Admin/ActivationNotice.php:65
+msgid "This plugin connects to Plume AI - Write and Design and to third-party AI providers (Anthropic Claude, OpenAI, Google Gemini). Only your site address is shared during setup — no content leaves your site until you start a conversation. Your messages are then forwarded to the AI provider on your behalf."
 msgstr ""
 
-#: includes/Admin/AdminMenu.php:10
-msgid "AI Mind"
+#: includes/Admin/ActivationNotice.php:75
+msgid "Learn more"
 msgstr ""
 
-#: includes/Admin/AdminMenu.php:18
+#: includes/Admin/AdminMenu.php:31
+msgid "Plume AI — Write and Design"
+msgstr ""
+
+#: includes/Admin/AdminMenu.php:32
+msgid "Plume AI"
+msgstr ""
+
+#: includes/Admin/AdminMenu.php:42
+msgid "Dashboard"
+msgstr ""
+
+#: includes/Admin/AdminMenu.php:43
 msgid "Chat"
 msgstr ""
 
-#: includes/Admin/AdminMenu.php:19
+#: includes/Admin/AdminMenu.php:44
 msgid "Generator"
 msgstr ""
 
-#: includes/Admin/AdminMenu.php:20
+#: includes/Admin/AdminMenu.php:45
 msgid "SEO"
 msgstr ""
 
-#: includes/Admin/AdminMenu.php:21
+#: includes/Admin/AdminMenu.php:46
 msgid "Images"
 msgstr ""
 
-#: includes/Admin/AdminMenu.php:22
-msgid "Usage"
-msgstr ""
-
-#: includes/Admin/AdminMenu.php:22
-msgid "Usage &amp; Cost"
-msgstr ""
-
-#: includes/Admin/AdminMenu.php:23
+#: includes/Admin/AdminMenu.php:47
 msgid "Settings"
+msgstr ""
+
+#: includes/Admin/AdminMenu.php:53
+msgid "Upgrade"
+msgstr ""
+
+#: includes/Admin/AdminMenu.php:54
+msgid "Upgrade ✦"
 msgstr ""
 
 #: includes/Modules/Chat/ChatRestController.php:282

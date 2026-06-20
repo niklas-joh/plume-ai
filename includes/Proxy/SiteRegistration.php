@@ -202,7 +202,7 @@ class SiteRegistration {
 	public static function rotate_secret(): string|WP_Error {
 		$token = self::get_site_token();
 		if ( '' === $token ) {
-			return new WP_Error( 'not_registered', __( 'This site is not registered with Plume - Write and Design.', 'plume' ) );
+			return new WP_Error( 'not_registered', __( 'This site is not registered with Plume AI - Write and Design.', 'plume' ) );
 		}
 
 		$response = wp_remote_post(

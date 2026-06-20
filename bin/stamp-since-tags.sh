@@ -39,3 +39,11 @@ FILE_COUNT=$(echo "$MATCHED_FILES" | wc -l | tr -d ' ')
 echo "stamp-since-tags: updated files:"
 echo "$MATCHED_FILES" | sed "s|${REPO_ROOT}/||"
 echo "stamp-since-tags: stamped @since NEXT_VERSION → @since ${VERSION} in the ${FILE_COUNT} file(s) above."
+
+# Stamp the POT file header separately — it uses bare NEXT_VERSION (no @since prefix)
+# and is not a PHP file, so it is excluded from the grep above.
+POT_FILE="${REPO_ROOT}/languages/plume.pot"
+if [[ -f "$POT_FILE" ]]; then
+  perl -pi -e "s|NEXT_VERSION|${VERSION}|g" "$POT_FILE"
+  echo "stamp-since-tags: stamped NEXT_VERSION → ${VERSION} in languages/plume.pot"
+fi

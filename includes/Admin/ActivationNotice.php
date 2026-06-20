@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Displays a one-time admin notice after plugin activation disclosing
- * that the plugin connects to Plume - Write and Design and to
+ * that the plugin connects to Plume AI - Write and Design and to
  * third-party AI providers.
  *
  * Uses the plume_just_activated option as a single-use flag.
@@ -58,12 +58,12 @@ class ActivationNotice {
 		?>
 		<div class="notice notice-info is-dismissible">
 			<p>
-			<strong><?php \esc_html_e( 'Plume - Write and Design — External Services & Privacy Notice', 'plume' ); ?></strong>
+			<strong><?php \esc_html_e( 'Plume AI - Write and Design — External Services & Privacy Notice', 'plume' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				\esc_html_e(
-					'This plugin connects to Plume - Write and Design and to third-party AI providers (Anthropic Claude, OpenAI, Google Gemini). Only your site address is shared during setup — no content leaves your site until you start a conversation. Your messages are then forwarded to the AI provider on your behalf.',
+					'This plugin connects to Plume AI - Write and Design and to third-party AI providers (Anthropic Claude, OpenAI, Google Gemini). Only your site address is shared during setup — no content leaves your site until you start a conversation. Your messages are then forwarded to the AI provider on your behalf.',
 					'plume'
 				);
 				?>

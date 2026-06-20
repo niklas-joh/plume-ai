@@ -33,7 +33,7 @@ class TierStatusPageTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html_e' )->echoArg();
 		Functions\when( 'number_format_i18n' )->alias( fn( $n ) => (string) number_format( (int) $n ) );
-		Functions\when( 'get_admin_page_title' )->justReturn( 'Plume - Write and Design - Plan &amp; Usage' );
+		Functions\when( 'get_admin_page_title' )->justReturn( 'Plume AI - Write and Design - Plan &amp; Usage' );
 		Functions\when( 'admin_url' )->alias( fn( $path ) => 'http://example.com/wp-admin/' . ltrim( $path, '/' ) );
 	}
 

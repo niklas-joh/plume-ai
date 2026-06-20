@@ -53,7 +53,7 @@ Tier structure stays. **Pro BYOK becomes a monthly subscription** (e.g. €9.90/
 | 2.2 | Single clear UX path for BYOK key entry | 3 | High | S | Low | Yes | 2.1 |
 | 3.3 | Emit `GenerativeAiResult` from abstract provider | 4 | Medium | XS | Low | Yes | GA |
 | 5.2 | Voice/tone as WP-7.0 system instruction *(if API exists)* | 4 | Medium | S–M | Medium | Yes | GA |
-| — | Issue [#497](https://github.com/niklas-joh/wp-ai-mind/issues/497) — Tier-sync webhook | Out of plan | High | M+M | Medium | No | 1.3 (optional) |
+| — | Issue [#497](https://github.com/niklas-joh/plume-ai/issues/497) — Tier-sync webhook | Out of plan | High | M+M | Medium | No | 1.3 (optional) |
 
 **Dropped after dialogue (audit trail):**
 
@@ -93,7 +93,7 @@ Single function consolidating the four scattered gates (tier feature check, mont
 `NJ_Tier_Manager::get_user_tier()` reads `user_meta` on every call. Cache to `wp_cache_get/set` with a 1-hour TTL, invalidate on `set_user_tier()` and on a new `wp_ai_mind_tier_changed` action.
 
 - **Files:** `includes/Tiers/NJ_Tier_Manager.php:37-41` (get), `:53-59` (set)
-- **Required by:** 4.1 (permission_callback hot path), useful for Issue [#497](https://github.com/niklas-joh/wp-ai-mind/issues/497)
+- **Required by:** 4.1 (permission_callback hot path), useful for Issue [#497](https://github.com/niklas-joh/plume-ai/issues/497)
 
 ### Phase 1 acceptance
 
@@ -230,7 +230,7 @@ When `AbstractProvider::maybe_log()` (`includes/Providers/AbstractProvider.php:1
 
 ---
 
-## Out of plan — Issue [#497](https://github.com/niklas-joh/wp-ai-mind/issues/497)
+## Out of plan — Issue [#497](https://github.com/niklas-joh/plume-ai/issues/497)
 
 **Tier-sync webhook gap.** Today the Cloudflare Worker stores LemonSqueezy tier upgrades in KV but never pushes them back to WP user meta. Pro-tier features that gate on `NJ_Tier_Manager::user_can()` (SEO, Images, Generator, model selection in admin UI) stay locked even after a paid upgrade.
 
@@ -288,7 +288,7 @@ The decision to switch Pro BYOK from one-time fee → monthly subscription has i
 | `includes/Abilities/ToolToAbility.php` *(new)* | 4.1 | 3 |
 | `includes/Voice/VoiceInjector.php` | 5.2 | 4 |
 
-(Out-of-plan tier-sync items in [#497](https://github.com/niklas-joh/wp-ai-mind/issues/497) touch `includes/Payments/`, `includes/Settings/NJ_Site_Registration.php`, `stilus-proxy/src/webhook.ts`, `stilus-proxy/src/registration.ts`.)
+(Out-of-plan tier-sync items in [#497](https://github.com/niklas-joh/plume-ai/issues/497) touch `includes/Payments/`, `includes/Settings/NJ_Site_Registration.php`, `stilus-proxy/src/webhook.ts`, `stilus-proxy/src/registration.ts`.)
 
 ---
 
@@ -317,7 +317,7 @@ On a WP 7.0 staging site with stilus installed and an Anthropic key configured v
 ## References
 
 - [`docs/WP_AI_MIND_ARCHITECTURE.md`](./WP_AI_MIND_ARCHITECTURE.md) — current architecture spec
-- [Issue #497](https://github.com/niklas-joh/wp-ai-mind/issues/497) — Tier-sync webhook gap (out of plan)
+- [Issue #497](https://github.com/niklas-joh/plume-ai/issues/497) — Tier-sync webhook gap (out of plan)
 - WP 7.0 dev-notes:
   - AI Client SDK (2026-03-18)
   - Connectors API (2026-03-24)

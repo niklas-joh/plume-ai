@@ -647,7 +647,7 @@ jobs:
         # The script replaces the call with a safe empty-array no-op.
         run: |
           npx wp-env run tests-wordpress -- php \
-            /var/www/html/wp-content/plugins/wp-ai-mind/tests/phpunit10-compat.php
+            /var/www/html/wp-content/plugins/plume-ai/tests/phpunit10-compat.php
 
       - name: Run real integration tests
         # Secrets are expanded on the host by the GitHub Actions runner before
@@ -660,7 +660,7 @@ jobs:
           PLUME_PROXY_URL: ${{ secrets.PLUME_PROXY_URL }}
         run: |
           npx wp-env run tests-wordpress -- bash -c "
-            cd /var/www/html/wp-content/plugins/wp-ai-mind
+            cd /var/www/html/wp-content/plugins/plume-ai
             CLAUDE_API_KEY='${CLAUDE_API_KEY}' \
             PLUME_CI_SITE_TOKEN='${PLUME_CI_SITE_TOKEN}' \
             PLUME_PROXY_URL='${PLUME_PROXY_URL}' \
@@ -732,12 +732,12 @@ jobs:
         # The script replaces the call with a safe empty-array no-op.
         run: |
           npx wp-env run tests-wordpress -- php \
-            /var/www/html/wp-content/plugins/wp-ai-mind/tests/phpunit10-compat.php
+            /var/www/html/wp-content/plugins/plume-ai/tests/phpunit10-compat.php
 
       - name: Run integration tests
         run: |
           npx wp-env run tests-wordpress -- bash -c "
-            cd /var/www/html/wp-content/plugins/wp-ai-mind
+            cd /var/www/html/wp-content/plugins/plume-ai
             vendor/bin/phpunit \
               -c phpunit-integration.xml.dist \
               --colors=always

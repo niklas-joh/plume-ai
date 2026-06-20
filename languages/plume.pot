@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: WP AI Mind 0.2.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wp-ai-mind\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/plume\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -12,31 +12,31 @@ msgstr ""
 "POT-Creation-Date: 2026-03-25T12:43:36+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
-"X-Domain: wp-ai-mind\n"
+"X-Domain: plume\n"
 
 #. Plugin Name of the plugin
-#: wp-ai-mind.php
+#: plume.php
 #: includes/Admin/AdminMenu.php:9
 msgid "WP AI Mind"
 msgstr ""
 
 #. Plugin URI of the plugin
-#: wp-ai-mind.php
+#: plume.php
 msgid "https://njohansson.eu/wp-ai-mind/"
 msgstr ""
 
 #. Description of the plugin
-#: wp-ai-mind.php
+#: plume.php
 msgid "AI-powered content co-pilot for WordPress."
 msgstr ""
 
 #. Author of the plugin
-#: wp-ai-mind.php
+#: plume.php
 msgid "Niklas Johansson"
 msgstr ""
 
 #. Author URI of the plugin
-#: wp-ai-mind.php
+#: plume.php
 msgid "https://njohansson.eu"
 msgstr ""
 

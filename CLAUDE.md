@@ -414,13 +414,13 @@ See `.agents/profiles/wordpress/_shared/block-reference.md` for the full decisio
 
 ## Plume Plugin
 
-Active plugin. Maintained in a dedicated repository: **[niklas-joh/wp-ai-mind](https://github.com/niklas-joh/wp-ai-mind)** (to be renamed `niklas-joh/plume` once the GitHub repo is renamed)
+Active plugin. Maintained in a dedicated repository: **[niklas-joh/plume-ai](https://github.com/niklas-joh/plume-ai)**
 
 The plugin is referenced in this blog repo as a git submodule at `wp-content/plugins/plume/`.
 
 | Item | Value |
 |------|-------|
-| Plugin repo | `https://github.com/niklas-joh/wp-ai-mind` |
+| Plugin repo | `https://github.com/niklas-joh/plume-ai` |
 | Submodule path | `wp-content/plugins/plume/` |
 | Active branches | `main` (stable), `develop` (next release) |
 | Namespace | `Plume\` (not `nj_` prefix) |

@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Plume NEXT_VERSION\n"
-"Report-Msgid-Bugs-To: https://wpaimind.com/support\n"
+"Report-Msgid-Bugs-To: https://github.com/niklas-joh/wp-ai-mind/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"

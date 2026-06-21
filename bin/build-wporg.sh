@@ -46,6 +46,8 @@ rsync -a \
     --include='languages/***' \
     --include='vendor/***' \
     --include='assets/***' \
+    --include='composer.json' \
+    --include='composer.lock' \
     --include='plume.php' \
     --include='readme.txt' \
     --include='uninstall.php' \

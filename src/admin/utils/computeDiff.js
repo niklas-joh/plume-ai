@@ -83,6 +83,9 @@ function lcs( oldParas, newParas ) {
  * remove+add pair (either may be null for pure insertions/deletions).
  * A trailing run of equal ops becomes a final unchanged-only block.
  *
+ * The block counter is scoped per call so ids are stable within a single
+ * diff but never imply continuity across separate `computeDiff` invocations.
+ *
  * @param {Array<{type: string, text: string}>} ops
  * @return {Array<{id: string, unchanged: string[], removedText: string|null, addedText: string|null}>}
  */

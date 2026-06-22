@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import {
 	X,
 	GripVertical,
@@ -343,6 +343,49 @@ export default function ReviewDrawer( {
 		( savedCommentCount > 0 || generalNote.trim().length > 0 ) &&
 		unsavedBlockIds.size === 0;
 
+	const reviewingSubtitle = sprintf(
+		/* translators: %d: number of proposed changes */
+		_n(
+			'%d change — drag to select text and comment',
+			'%d changes — drag to select text and comment',
+			changeCount,
+			'plume'
+		),
+		changeCount
+	);
+
+	const commentingSubtitle = sprintf(
+		/* translators: %d: number of saved comments */
+		_n(
+			'%d comment — not yet submitted',
+			'%d comments — not yet submitted',
+			savedCommentCount,
+			'plume'
+		),
+		savedCommentCount
+	);
+
+	const revisedSubtitle = sprintf(
+		/* translators: 1: comment count phrase, 2: change count phrase */
+		__( 'AI addressed your %1$s — %2$s', 'plume' ),
+		sprintf(
+			/* translators: %d: number of comments */
+			_n( '%d comment', '%d comments', savedCommentCount, 'plume' ),
+			savedCommentCount
+		),
+		sprintf(
+			/* translators: %d: number of changes */
+			_n( '%d change', '%d changes', changeCount, 'plume' ),
+			changeCount
+		)
+	);
+
+	const footerCommentCount = sprintf(
+		/* translators: %d: number of saved comments */
+		_n( '%d comment', '%d comments', savedCommentCount, 'plume' ),
+		savedCommentCount
+	);
+
 	// -----------------------------------------------------------------------
 	// Render
 	// -----------------------------------------------------------------------
@@ -392,39 +435,17 @@ export default function ReviewDrawer( {
 					</p>
 					{ drawerState === 'reviewing' && (
 						<p className="plume-review-drawer__subtitle">
-							{ changeCount === 1
-								? __(
-										'1 change — drag to select text and comment',
-										'plume'
-								  )
-								: `${ changeCount } ${ __(
-										'changes — drag to select text and comment',
-										'plume'
-								  ) }` }
+							{ reviewingSubtitle }
 						</p>
 					) }
 					{ drawerState === 'commenting' && (
 						<p className="plume-review-drawer__subtitle plume-review-drawer__subtitle--warning">
-							{ savedCommentCount === 1
-								? __( '1 comment — not yet submitted', 'plume' )
-								: `${ savedCommentCount } ${ __(
-										'comments — not yet submitted',
-										'plume'
-								  ) }` }
+							{ commentingSubtitle }
 						</p>
 					) }
 					{ drawerState === 'revised' && (
 						<p className="plume-review-drawer__subtitle plume-review-drawer__subtitle--revised">
-							{ `${ __(
-								'AI addressed your',
-								'plume'
-							) } ${ savedCommentCount } ${ __(
-								'comment(s) —',
-								'plume'
-							) } ${ changeCount } ${ __(
-								'change(s)',
-								'plume'
-							) }` }
+							{ revisedSubtitle }
 						</p>
 					) }
 				</div>
@@ -583,12 +604,7 @@ export default function ReviewDrawer( {
 								</button>
 								{ drawerState === 'commenting' && (
 									<span className="plume-review-drawer__footer-count">
-										{ savedCommentCount === 1
-											? __( '1 comment', 'plume' )
-											: `${ savedCommentCount } ${ __(
-													'comments',
-													'plume'
-											  ) }` }
+										{ footerCommentCount }
 									</span>
 								) }
 							</>

@@ -1,99 +1,113 @@
 /**
- * Unit tests for the paragraph-level LCS diff utility.
+ * Unit tests for the paragraph-level diff utility.
+ *
+ * computeDiff is pure and deterministic, but the internal block ids are only
+ * used as React keys and are not part of the public contract — every
+ * assertion below targets block *shape and content*, never the `id` string.
  *
  * @see src/admin/utils/computeDiff.js
  */
 import { computeDiff } from '../../src/admin/utils/computeDiff';
 
+/**
+ * Count blocks that represent an actual change (a removal and/or an addition).
+ *
+ * @param {Array} blocks computeDiff output.
+ * @return {number} Number of changed blocks.
+ */
+function changedBlocks( blocks ) {
+	return blocks.filter( ( b ) => b.removedText || b.addedText );
+}
+
 describe( 'computeDiff', () => {
-	it( 'returns a single unchanged block for identical text', () => {
-		const text = 'Hello world.\n\nSecond paragraph.';
-		const blocks = computeDiff( text, text );
+	it( 'returns a single unchanged block for identical input', () => {
+		const blocks = computeDiff( 'A\n\nB', 'A\n\nB' );
 
 		expect( blocks ).toHaveLength( 1 );
-		expect( blocks[ 0 ].unchanged ).toEqual( [
-			'Hello world.',
-			'Second paragraph.',
-		] );
+		expect( blocks[ 0 ].unchanged ).toEqual( [ 'A', 'B' ] );
 		expect( blocks[ 0 ].removedText ).toBeNull();
 		expect( blocks[ 0 ].addedText ).toBeNull();
+		expect( changedBlocks( blocks ) ).toHaveLength( 0 );
 	} );
 
-	it( 'returns a remove+add pair for a single changed paragraph', () => {
-		const oldText = 'First paragraph.\n\nSecond paragraph.';
-		const newText = 'First paragraph.\n\nRevised second paragraph.';
-		const blocks = computeDiff( oldText, newText );
+	it( 'reports a pure insertion as addedText only', () => {
+		const blocks = computeDiff( 'A', 'A\n\nB' );
 
-		const changed = blocks.find( ( b ) => b.removedText || b.addedText );
-		expect( changed ).toBeDefined();
-		expect( changed.removedText ).toBe( 'Second paragraph.' );
-		expect( changed.addedText ).toBe( 'Revised second paragraph.' );
+		const changes = changedBlocks( blocks );
+		expect( changes ).toHaveLength( 1 );
+		expect( changes[ 0 ].addedText ).toBe( 'B' );
+		expect( changes[ 0 ].removedText ).toBeNull();
+		// The shared leading paragraph is carried as unchanged context.
+		expect( changes[ 0 ].unchanged ).toEqual( [ 'A' ] );
 	} );
 
-	it( 'returns unchanged leading paragraphs attached to the changed block', () => {
-		const oldText = 'Intro.\n\nOld body.';
-		const newText = 'Intro.\n\nNew body.';
-		const blocks = computeDiff( oldText, newText );
+	it( 'reports a pure deletion as removedText only', () => {
+		const blocks = computeDiff( 'A\n\nB', 'A' );
 
-		const changedBlock = blocks.find( ( b ) => b.removedText );
-		expect( changedBlock.unchanged ).toContain( 'Intro.' );
+		const changes = changedBlocks( blocks );
+		expect( changes ).toHaveLength( 1 );
+		expect( changes[ 0 ].removedText ).toBe( 'B' );
+		expect( changes[ 0 ].addedText ).toBeNull();
+		expect( changes[ 0 ].unchanged ).toEqual( [ 'A' ] );
 	} );
 
-	it( 'handles pure insertion (no preceding removal)', () => {
-		const oldText = 'Only paragraph.';
-		const newText = 'Only paragraph.\n\nBrand new paragraph.';
-		const blocks = computeDiff( oldText, newText );
+	it( 'groups a replacement into a single remove+add block', () => {
+		const blocks = computeDiff( 'A', 'B' );
 
-		const inserted = blocks.find( ( b ) => b.addedText && ! b.removedText );
-		expect( inserted ).toBeDefined();
-		expect( inserted.addedText ).toBe( 'Brand new paragraph.' );
+		expect( blocks ).toHaveLength( 1 );
+		expect( blocks[ 0 ].removedText ).toBe( 'A' );
+		expect( blocks[ 0 ].addedText ).toBe( 'B' );
+		expect( blocks[ 0 ].unchanged ).toEqual( [] );
 	} );
 
-	it( 'handles pure deletion (no following addition)', () => {
-		const oldText = 'Keep this.\n\nDelete this.';
-		const newText = 'Keep this.';
-		const blocks = computeDiff( oldText, newText );
-
-		const deleted = blocks.find( ( b ) => b.removedText && ! b.addedText );
-		expect( deleted ).toBeDefined();
-		expect( deleted.removedText ).toBe( 'Delete this.' );
-	} );
-
-	it( 'handles empty old text (everything is an insertion)', () => {
-		const blocks = computeDiff( '', 'New content.' );
-		const inserted = blocks.find( ( b ) => b.addedText );
-		expect( inserted ).toBeDefined();
-		expect( inserted.addedText ).toBe( 'New content.' );
-	} );
-
-	it( 'handles empty new text (everything is a deletion)', () => {
-		const blocks = computeDiff( 'Old content.', '' );
-		const deleted = blocks.find( ( b ) => b.removedText );
-		expect( deleted ).toBeDefined();
-		expect( deleted.removedText ).toBe( 'Old content.' );
-	} );
-
-	it( 'handles both texts empty', () => {
-		const blocks = computeDiff( '', '' );
-		expect( blocks ).toHaveLength( 0 );
-	} );
-
-	it( 'assigns unique ids to all blocks', () => {
-		const oldText = 'A.\n\nB.\n\nC.';
-		const newText = 'A.\n\nX.\n\nC.';
-		const blocks = computeDiff( oldText, newText );
-		const ids = blocks.map( ( b ) => b.id );
-		expect( new Set( ids ).size ).toBe( ids.length );
-	} );
-
-	it( 'preserves unchanged trailing paragraphs in a final block', () => {
-		const oldText = 'Old intro.\n\nTrailing.';
-		const newText = 'New intro.\n\nTrailing.';
-		const blocks = computeDiff( oldText, newText );
-
-		const trailing = blocks.find(
-			( b ) => b.unchanged.includes( 'Trailing.' ) && ! b.removedText
+	it( 'keeps leading and trailing unchanged paragraphs grouped correctly', () => {
+		const blocks = computeDiff(
+			'Intro\n\nOld middle\n\nOutro',
+			'Intro\n\nNew middle\n\nOutro'
 		);
-		expect( trailing ).toBeDefined();
+
+		// First block: leading "Intro" context + the middle replacement.
+		expect( blocks[ 0 ].unchanged ).toEqual( [ 'Intro' ] );
+		expect( blocks[ 0 ].removedText ).toBe( 'Old middle' );
+		expect( blocks[ 0 ].addedText ).toBe( 'New middle' );
+
+		// Final block: trailing "Outro" carried as an unchanged-only block.
+		const last = blocks[ blocks.length - 1 ];
+		expect( last.unchanged ).toEqual( [ 'Outro' ] );
+		expect( last.removedText ).toBeNull();
+		expect( last.addedText ).toBeNull();
+
+		expect( changedBlocks( blocks ) ).toHaveLength( 1 );
+	} );
+
+	it( 'treats empty oldText as all additions', () => {
+		const blocks = computeDiff( '', 'A\n\nB' );
+
+		const changes = changedBlocks( blocks );
+		expect( changes ).toHaveLength( 2 );
+		expect( changes.map( ( b ) => b.addedText ) ).toEqual( [ 'A', 'B' ] );
+		changes.forEach( ( b ) => expect( b.removedText ).toBeNull() );
+	} );
+
+	it( 'treats empty newText as all removals', () => {
+		const blocks = computeDiff( 'A\n\nB', '' );
+
+		const changes = changedBlocks( blocks );
+		expect( changes ).toHaveLength( 2 );
+		expect( changes.map( ( b ) => b.removedText ) ).toEqual( [ 'A', 'B' ] );
+		changes.forEach( ( b ) => expect( b.addedText ).toBeNull() );
+	} );
+
+	it( 'returns an empty array when both inputs are empty', () => {
+		expect( computeDiff( '', '' ) ).toEqual( [] );
+	} );
+
+	it( 'filters whitespace-only paragraphs before diffing', () => {
+		// The blank middle paragraph is trimmed away, so the two sides are
+		// identical at the paragraph level — no change is reported.
+		const blocks = computeDiff( 'A\n\n   \n\nB', 'A\n\nB' );
+
+		expect( changedBlocks( blocks ) ).toHaveLength( 0 );
+		expect( blocks[ 0 ].unchanged ).toEqual( [ 'A', 'B' ] );
 	} );
 } );

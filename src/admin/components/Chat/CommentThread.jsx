@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 
 /**
@@ -76,6 +76,17 @@ export default function CommentThread( {
 		return null;
 	}
 
+	const toggleLabel = sprintf(
+		/* translators: %d: number of comments */
+		_n(
+			'%d comment on this change',
+			'%d comments on this change',
+			comments.length,
+			'plume'
+		),
+		comments.length
+	);
+
 	return (
 		<div
 			className="plume-comment-thread"
@@ -90,14 +101,7 @@ export default function CommentThread( {
 					aria-expanded={ isExpanded }
 				>
 					<MessageSquare size={ 12 } />
-					<span>
-						{ comments.length === 1
-							? __( '1 comment on this change', 'plume' )
-							: `${ comments.length } ${ __(
-									'comments on this change',
-									'plume'
-							  ) }` }
-					</span>
+					<span>{ toggleLabel }</span>
 					{ isExpanded ? (
 						<ChevronUp size={ 12 } />
 					) : (

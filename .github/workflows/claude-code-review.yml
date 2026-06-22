@@ -9,6 +9,11 @@ on:
       - "yarn.lock"
       - "*.lock"
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
 
 jobs:
   claude-review:
@@ -25,12 +30,30 @@ jobs:
       pull-requests: write
       issues: write
       id-token: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 1
+
+      - name: Resolve PR context
+        id: pr_context
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # For pull_request events the number comes from the event payload.
+          # For workflow_dispatch it must be supplied via the pr_number input.
+          PR_NUMBER="${{ github.event.pull_request.number || inputs.pr_number }}"
+          if [[ -z "$PR_NUMBER" ]]; then
+            echo "::error::No PR number available. Supply pr_number when triggering manually."
+            exit 1
+          fi
+          PR_JSON=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}")
+          echo "pr_number=${PR_NUMBER}"                          >> "$GITHUB_OUTPUT"
+          echo "pr_url=$(echo "$PR_JSON"    | jq -r '.html_url')" >> "$GITHUB_OUTPUT"
+          echo "base_ref=$(echo "$PR_JSON"  | jq -r '.base.ref')" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$(echo "$PR_JSON"  | jq -r '.head.ref')" >> "$GITHUB_OUTPUT"
 
       - name: Guard — skip if this review workflow itself changed
         id: guard
@@ -39,7 +62,7 @@ jobs:
           # file claude-code-action integrity-checks against main. Changes to other
           # workflow files (pr-checks.yml, release.yml, etc.) do not affect this.
           count=$(gh api \
-            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            "repos/${{ github.repository }}/pulls/${{ steps.pr_context.outputs.pr_number }}/files" \
             --jq '[.[] | select(.filename == ".github/workflows/claude-code-review.yml")] | length')
           if [[ "$count" -gt 0 ]]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -63,9 +86,9 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
-            PR URL: ${{ github.event.pull_request.html_url }}
-            BASE BRANCH: ${{ github.event.pull_request.base.ref }}
+            PR NUMBER: ${{ steps.pr_context.outputs.pr_number }}
+            PR URL: ${{ steps.pr_context.outputs.pr_url }}
+            BASE BRANCH: ${{ steps.pr_context.outputs.base_ref }}
 
             Review this pull request against the repository's CLAUDE.md conventions. Be constructive and helpful.
 
@@ -127,7 +150,7 @@ jobs:
               # Use $'...' quoting so \n is interpreted as real newlines by bash (double quotes do not expand \n).
               ISSUE_URL=$(gh issue create \
                 --title "<concise title for the finding>" \
-                --body $'Found during review of PR #${{ github.event.pull_request.number }}\n\n**PR:** ${{ github.event.pull_request.html_url }}\n**Base branch:** ${{ github.event.pull_request.base.ref }}\n\n## Description\n\n<details>\n\n## Context\n\n**File:** `path/to/file.php`, lines N–M\n\n```php\n// paste the relevant ≤25 lines here so the auto-fix session\n// can locate and edit the code without an extra file-read turn\n```' \
+                --body $'Found during review of PR #${{ steps.pr_context.outputs.pr_number }}\n\n**PR:** ${{ steps.pr_context.outputs.pr_url }}\n**Base branch:** ${{ steps.pr_context.outputs.base_ref }}\n\n## Description\n\n<details>\n\n## Context\n\n**File:** `path/to/file.php`, lines N–M\n\n```php\n// paste the relevant ≤25 lines here so the auto-fix session\n// can locate and edit the code without an extra file-read turn\n```' \
                 --label "code-review,blocking" \
                 --repo ${{ github.repository }})
               ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
@@ -142,8 +165,8 @@ jobs:
             then create ONE consolidated issue with all of them at the end of Step 1:
 
               NITS_ISSUE=$(gh issue create \
-                --title "Review nits: style and minor improvements from PR #${{ github.event.pull_request.number }}" \
-                --body $'Found during review of PR #${{ github.event.pull_request.number }}\n\n**PR:** ${{ github.event.pull_request.html_url }}\n**Base branch:** ${{ github.event.pull_request.base.ref }}\n\n## Nits to address\n\n- [nit 1]\n- [nit 2]\n- [nit 3]' \
+                --title "Review nits: style and minor improvements from PR #${{ steps.pr_context.outputs.pr_number }}" \
+                --body $'Found during review of PR #${{ steps.pr_context.outputs.pr_number }}\n\n**PR:** ${{ steps.pr_context.outputs.pr_url }}\n**Base branch:** ${{ steps.pr_context.outputs.base_ref }}\n\n## Nits to address\n\n- [nit 1]\n- [nit 2]\n- [nit 3]' \
                 --label "code-review,nits" \
                 --repo ${{ github.repository }})
               NITS_NUMBER=$(echo "$NITS_ISSUE" | grep -oE '[0-9]+$')
@@ -165,7 +188,7 @@ jobs:
 
             Post a single comment on the PR:
 
-              gh pr comment ${{ github.event.pull_request.number }} \
+              gh pr comment ${{ steps.pr_context.outputs.pr_number }} \
                 --body "<your full review>" \
                 --repo ${{ github.repository }}
 
@@ -237,10 +260,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
           ISSUES_JSON: ${{ steps.collect.outputs.issues }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          BASE_REF: ${{ github.event.pull_request.base.ref }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ steps.pr_context.outputs.pr_number }}
+          PR_URL: ${{ steps.pr_context.outputs.pr_url }}
+          BASE_REF: ${{ steps.pr_context.outputs.base_ref }}
+          HEAD_REF: ${{ steps.pr_context.outputs.head_ref }}
           REPO: ${{ github.repository }}
         run: |
           # Build payload with jq so values are properly escaped as JSON.

@@ -89,7 +89,7 @@ Full source code including all React source files (src/) and build tooling is
 publicly available at: https://github.com/niklas-joh/plume-ai
 
 To regenerate compiled assets: install Node.js 18+ and npm, then run:
-  npm install && npm run build
+    npm install && npm run build
 
 == Changelog ==
 

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from '@wordpress/element';
+import { useState, useRef, useCallback, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { MessageSquare } from 'lucide-react';
 import CommentThread from './CommentThread';
@@ -18,7 +18,7 @@ import CommentThread from './CommentThread';
  * @param {Function} props.onDeleteComment   Forwarded to CommentThread.onDelete.
  * @param {Function} props.onUnsavedChange   Forwarded to CommentThread.onUnsavedChange.
  * @param {string}   props.drawerState       Current drawer state for legend rendering.
- * @returns {ReactElement}
+ * @return {ReactElement}
  */
 export default function DiffView( {
 	blocks,
@@ -33,6 +33,25 @@ export default function DiffView( {
 	const [ pendingAnchors, setPendingAnchors ] = useState( {} ); // diffBlockId -> selectedText
 	const bodyRef = useRef( null );
 
+	// Dismiss tooltip on mousedown outside it.
+	useEffect( () => {
+		if ( ! tooltip ) {
+			return;
+		}
+
+		function onDocMouseDown( e ) {
+			if ( ! e.target.closest( '.plume-add-comment-tooltip' ) ) {
+				bodyRef.current?.ownerDocument.defaultView
+					.getSelection()
+					?.removeAllRanges();
+				setTooltip( null );
+			}
+		}
+		document.addEventListener( 'mousedown', onDocMouseDown );
+		return () =>
+			document.removeEventListener( 'mousedown', onDocMouseDown );
+	}, [ tooltip ] );
+
 	const commentsForBlock = useCallback(
 		( blockId ) => comments.filter( ( c ) => c.diffBlockId === blockId ),
 		[ comments ]
@@ -41,14 +60,16 @@ export default function DiffView( {
 	function findAddedAncestor( node ) {
 		let el = node.nodeType === 3 ? node.parentElement : node;
 		while ( el && el !== bodyRef.current ) {
-			if ( el.classList?.contains( 'plume-diff-added' ) ) return el;
+			if ( el.classList?.contains( 'plume-diff-added' ) ) {
+				return el;
+			}
 			el = el.parentElement;
 		}
 		return null;
 	}
 
 	function handleMouseUp() {
-		const sel = window.getSelection();
+		const sel = bodyRef.current?.ownerDocument.defaultView.getSelection();
 		if ( ! sel || sel.isCollapsed || ! sel.toString().trim() ) {
 			setTooltip( null );
 			return;
@@ -79,32 +100,31 @@ export default function DiffView( {
 	}
 
 	function handleTooltipClick() {
-		if ( ! tooltip ) return;
-		const { diffBlockId, selectedText } = tooltip;
-		setPendingAnchors( ( prev ) => ( { ...prev, [ diffBlockId ]: selectedText } ) );
-		onAddComment( diffBlockId, selectedText );
-		window.getSelection()?.removeAllRanges();
-		setTooltip( null );
-	}
-
-	function handleBodyClick( e ) {
-		// Dismiss tooltip on click outside it.
-		if ( tooltip && ! e.target.closest( '.plume-add-comment-tooltip' ) ) {
-			window.getSelection()?.removeAllRanges();
-			setTooltip( null );
+		if ( ! tooltip ) {
+			return;
 		}
+		const { diffBlockId, selectedText } = tooltip;
+		setPendingAnchors( ( prev ) => ( {
+			...prev,
+			[ diffBlockId ]: selectedText,
+		} ) );
+		onAddComment( diffBlockId, selectedText );
+		bodyRef.current?.ownerDocument.defaultView
+			.getSelection()
+			?.removeAllRanges();
+		setTooltip( null );
 	}
 
 	const hasComments = comments.some( ( c ) => c.diffBlockId );
 
 	return (
 		<div className="plume-diff-view">
-			{ /* Scrollable diff body */ }
+			{ /* Scrollable diff body — onMouseUp detects text selections, not interactive clicks */ }
+			{ /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */ }
 			<div
 				ref={ bodyRef }
 				className="plume-diff-view__body"
 				onMouseUp={ handleMouseUp }
-				onClick={ handleBodyClick }
 				style={ { position: 'relative' } }
 			>
 				{ blocks.map( ( block ) => {
@@ -126,7 +146,10 @@ export default function DiffView( {
 							{ block.removedText && (
 								<p
 									className="plume-diff-block__removed"
-									aria-label={ `${ __( 'Removed text', 'plume' ) }: ${ block.removedText }` }
+									aria-label={ `${ __(
+										'Removed text',
+										'plume'
+									) }: ${ block.removedText }` }
 								>
 									{ block.removedText }
 								</p>
@@ -135,13 +158,23 @@ export default function DiffView( {
 							{ block.addedText && (
 								<div className="plume-diff-block__added-wrapper">
 									<p
-										className={ `plume-diff-added${ isAnnotated ? ' plume-diff-added--annotated' : '' }` }
+										className={ `plume-diff-added${
+											isAnnotated
+												? ' plume-diff-added--annotated'
+												: ''
+										}` }
 										data-block-id={ block.id }
-										aria-label={ `${ __( 'Proposed text', 'plume' ) }: ${ block.addedText }` }
+										aria-label={ `${ __(
+											'Proposed text',
+											'plume'
+										) }: ${ block.addedText }` }
 									>
 										{ block.addedText }
 										{ isAnnotated && (
-											<span className="plume-diff-badge" aria-hidden="true">
+											<span
+												className="plume-diff-badge"
+												aria-hidden="true"
+											>
 												<MessageSquare size={ 10 } />
 												{ blockComments.length }
 											</span>
@@ -153,7 +186,9 @@ export default function DiffView( {
 										onSave={ onSaveComment }
 										onDelete={ onDeleteComment }
 										onUnsavedChange={ onUnsavedChange }
-										pendingAnchor={ pendingAnchors[ block.id ] ?? null }
+										pendingAnchor={
+											pendingAnchors[ block.id ] ?? null
+										}
 										onAnchorConsumed={ () =>
 											setPendingAnchors( ( prev ) => {
 												const next = { ...prev };
@@ -172,15 +207,8 @@ export default function DiffView( {
 					<button
 						type="button"
 						className="plume-add-comment-tooltip"
-						role="button"
 						style={ { left: tooltip.x, top: tooltip.y } }
 						onClick={ handleTooltipClick }
-						onKeyDown={ ( e ) => {
-							if ( e.key === 'Enter' || e.key === ' ' ) {
-								e.preventDefault();
-								handleTooltipClick();
-							}
-						} }
 					>
 						{ __( 'Add comment', 'plume' ) }
 					</button>

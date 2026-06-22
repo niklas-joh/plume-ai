@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { X, GripVertical, Loader2, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+	X,
+	GripVertical,
+	Loader2,
+	MessageSquare,
+	ChevronDown,
+	ChevronUp,
+} from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 import { computeDiff } from '../../utils/computeDiff';
 import DiffView from './DiffView';
@@ -30,7 +37,7 @@ let commentIdCounter = 0;
  * @param {Function} props.onApply            Called after a successful plan execution.
  * @param {Function} props.onClose            Called when the drawer is dismissed.
  * @param {Function} props.onMessagesRefresh  Called after a revision round-trip so ChatApp reloads history.
- * @returns {ReactElement}
+ * @return {ReactElement}
  */
 export default function ReviewDrawer( {
 	plan,
@@ -50,8 +57,11 @@ export default function ReviewDrawer( {
 	const [ revision, setRevision ] = useState( 0 );
 	const [ error, setError ] = useState( null );
 	const [ aiResponseOpen, setAiResponseOpen ] = useState( true );
+	const [ confirmingClose, setConfirmingClose ] = useState( false );
 	const [ drawerWidth, setDrawerWidth ] = useState(
-		() => parseInt( localStorage.getItem( DRAWER_WIDTH_KEY ), 10 ) || DEFAULT_WIDTH
+		() =>
+			parseInt( window.localStorage.getItem( DRAWER_WIDTH_KEY ), 10 ) ||
+			DEFAULT_WIDTH
 	);
 
 	const closeButtonRef = useRef( null );
@@ -60,24 +70,28 @@ export default function ReviewDrawer( {
 	const resizeStartXRef = useRef( 0 );
 	const resizeStartWidthRef = useRef( 0 );
 
-	// Fetch current post content on mount.
+	// Fetch current post content on mount — post_id is stable for the drawer lifetime.
 	useEffect( () => {
 		apiFetch( {
 			path: `/wp/v2/posts/${ currentPlan.post_id }?context=edit`,
 		} )
 			.then( ( post ) => {
-				setPostContent( post.content.raw ?? post.content.rendered ?? '' );
+				setPostContent(
+					post.content.raw ?? post.content.rendered ?? ''
+				);
 			} )
 			.catch( () => {
 				// If the post fetch fails, diff against empty string — drawer still usable.
 				setPostContent( '' );
 			} );
-	}, [] );
+	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
 
 	// Recompute diff whenever source content or plan content changes.
 	useEffect( () => {
 		if ( postContent !== null ) {
-			setDiffBlocks( computeDiff( postContent, currentPlan.new_content ?? '' ) );
+			setDiffBlocks(
+				computeDiff( postContent, currentPlan.new_content ?? '' )
+			);
 		}
 	}, [ postContent, currentPlan ] );
 
@@ -87,8 +101,11 @@ export default function ReviewDrawer( {
 	}, [] );
 
 	// Transition state based on comments and feedback.
+	// drawerState is intentionally excluded — we only want to react to content changes.
 	useEffect( () => {
-		if ( drawerState === 'loading' || drawerState === 'revised' ) return;
+		if ( drawerState === 'loading' || drawerState === 'revised' ) {
+			return;
+		}
 		const hasSavedComments = comments.some( ( c ) => c.saved );
 		const hasFeedback = generalNote.trim().length > 0;
 		if ( hasSavedComments || hasFeedback ) {
@@ -96,7 +113,7 @@ export default function ReviewDrawer( {
 		} else {
 			setDrawerState( 'reviewing' );
 		}
-	}, [ comments, generalNote ] );
+	}, [ comments, generalNote ] ); // eslint-disable-line react-hooks/exhaustive-deps
 
 	// -----------------------------------------------------------------------
 	// Resize handle
@@ -109,9 +126,14 @@ export default function ReviewDrawer( {
 		resizeStartWidthRef.current = drawerWidth;
 
 		function onMouseMove( moveEvent ) {
-			if ( ! resizingRef.current ) return;
+			if ( ! resizingRef.current ) {
+				return;
+			}
 			const delta = resizeStartXRef.current - moveEvent.clientX;
-			const newWidth = Math.min( MAX_WIDTH, Math.max( MIN_WIDTH, resizeStartWidthRef.current + delta ) );
+			const newWidth = Math.min(
+				MAX_WIDTH,
+				Math.max( MIN_WIDTH, resizeStartWidthRef.current + delta )
+			);
 			setDrawerWidth( newWidth );
 		}
 
@@ -120,7 +142,7 @@ export default function ReviewDrawer( {
 			document.removeEventListener( 'mousemove', onMouseMove );
 			document.removeEventListener( 'mouseup', onMouseUp );
 			setDrawerWidth( ( w ) => {
-				localStorage.setItem( DRAWER_WIDTH_KEY, String( w ) );
+				window.localStorage.setItem( DRAWER_WIDTH_KEY, String( w ) );
 				return w;
 			} );
 		}
@@ -133,12 +155,12 @@ export default function ReviewDrawer( {
 		if ( e.key === 'ArrowLeft' ) {
 			const next = Math.min( MAX_WIDTH, drawerWidth + 20 );
 			setDrawerWidth( next );
-			localStorage.setItem( DRAWER_WIDTH_KEY, String( next ) );
+			window.localStorage.setItem( DRAWER_WIDTH_KEY, String( next ) );
 		}
 		if ( e.key === 'ArrowRight' ) {
 			const next = Math.max( MIN_WIDTH, drawerWidth - 20 );
 			setDrawerWidth( next );
-			localStorage.setItem( DRAWER_WIDTH_KEY, String( next ) );
+			window.localStorage.setItem( DRAWER_WIDTH_KEY, String( next ) );
 		}
 	}
 
@@ -146,24 +168,29 @@ export default function ReviewDrawer( {
 	// Comment management
 	// -----------------------------------------------------------------------
 
-	const handleAddComment = useCallback( ( diffBlockId ) => {
+	const handleAddComment = useCallback( () => {
 		// DiffView calls this after a selection — CommentThread handles the UI.
 		// Ensure the state transition happens so the footer updates.
-		setDrawerState( ( prev ) => ( prev === 'reviewing' ? 'commenting' : prev ) );
+		setDrawerState( ( prev ) =>
+			prev === 'reviewing' ? 'commenting' : prev
+		);
 	}, [] );
 
-	const handleSaveComment = useCallback( ( diffBlockId, selectedText, text ) => {
-		setComments( ( prev ) => [
-			...prev,
-			{
-				id: `c-${ ++commentIdCounter }`,
-				diffBlockId,
-				selectedText,
-				text,
-				saved: true,
-			},
-		] );
-	}, [] );
+	const handleSaveComment = useCallback(
+		( diffBlockId, selectedText, text ) => {
+			setComments( ( prev ) => [
+				...prev,
+				{
+					id: `c-${ ++commentIdCounter }`,
+					diffBlockId,
+					selectedText,
+					text,
+					saved: true,
+				},
+			] );
+		},
+		[]
+	);
 
 	const handleDeleteComment = useCallback( ( commentId ) => {
 		setComments( ( prev ) => prev.filter( ( c ) => c.id !== commentId ) );
@@ -188,18 +215,11 @@ export default function ReviewDrawer( {
 	function handleClose() {
 		const hasSavedComments = comments.some( ( c ) => c.saved );
 		const isDirty = hasSavedComments || generalNote.trim().length > 0;
-		if ( isDirty ) {
-			if (
-				! window.confirm(
-					__(
-						'Discard your comments and cancel?',
-						'plume'
-					)
-				)
-			) {
-				return;
-			}
+		if ( isDirty && ! confirmingClose ) {
+			setConfirmingClose( true );
+			return;
 		}
+		setConfirmingClose( false );
 		onClose();
 	}
 
@@ -235,7 +255,9 @@ export default function ReviewDrawer( {
 		}
 
 		const savedComments = comments.filter( ( c ) => c.saved );
-		if ( savedComments.length === 0 && ! generalNote.trim() ) return;
+		if ( savedComments.length === 0 && ! generalNote.trim() ) {
+			return;
+		}
 
 		setDrawerState( 'loading' );
 		setError( null );
@@ -255,7 +277,9 @@ export default function ReviewDrawer( {
 			parts.push( `Overall: ${ generalNote.trim() }` );
 		}
 
-		const message = `Please revise your proposed changes.\n\n${ parts.join( '\n\n' ) }`;
+		const message = `Please revise your proposed changes.\n\n${ parts.join(
+			'\n\n'
+		) }`;
 
 		try {
 			const res = await apiFetch( {
@@ -266,7 +290,10 @@ export default function ReviewDrawer( {
 
 			if ( ! res.pending_plan ) {
 				throw new Error(
-					__( 'No revised plan was returned. Please try again.', 'plume' )
+					__(
+						'No revised plan was returned. Please try again.',
+						'plume'
+					)
 				);
 			}
 
@@ -282,7 +309,10 @@ export default function ReviewDrawer( {
 		} catch ( err ) {
 			setError(
 				err?.message ??
-					__( 'Something went wrong. Your comments are saved — try again.', 'plume' )
+					__(
+						'Something went wrong. Your comments are saved — try again.',
+						'plume'
+					)
 			);
 			setDrawerState( 'commenting' );
 		}
@@ -312,7 +342,8 @@ export default function ReviewDrawer( {
 			role="complementary"
 			aria-label={ __( 'Review Update Drawer', 'plume' ) }
 		>
-			{ /* Resize handle */ }
+			{ /* Resize handle — interactive separator is valid per WAI-ARIA but jsx-a11y doesn't recognise it */ }
+			{ /* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */ }
 			<div
 				className="plume-review-drawer__resize"
 				onMouseDown={ handleResizeMouseDown }
@@ -348,11 +379,14 @@ export default function ReviewDrawer( {
 					{ drawerState === 'reviewing' && (
 						<p className="plume-review-drawer__subtitle">
 							{ changeCount === 1
-								? __( '1 change — drag to select text and comment', 'plume' )
+								? __(
+										'1 change — drag to select text and comment',
+										'plume'
+								  )
 								: `${ changeCount } ${ __(
 										'changes — drag to select text and comment',
 										'plume'
-									) }` }
+								  ) }` }
 						</p>
 					) }
 					{ drawerState === 'commenting' && (
@@ -362,7 +396,7 @@ export default function ReviewDrawer( {
 								: `${ savedCommentCount } ${ __(
 										'comments — not yet submitted',
 										'plume'
-									) }` }
+								  ) }` }
 						</p>
 					) }
 					{ drawerState === 'revised' && (
@@ -373,7 +407,10 @@ export default function ReviewDrawer( {
 							) } ${ savedCommentCount } ${ __(
 								'comment(s) —',
 								'plume'
-							) } ${ changeCount } ${ __( 'change(s)', 'plume' ) }` }
+							) } ${ changeCount } ${ __(
+								'change(s)',
+								'plume'
+							) }` }
 						</p>
 					) }
 				</div>
@@ -408,20 +445,15 @@ export default function ReviewDrawer( {
 			{ drawerState === 'revised' && aiSummary && (
 				<div
 					className={ `plume-review-drawer__ai-strip${
-						aiResponseOpen ? '' : ' plume-review-drawer__ai-strip--collapsed'
+						aiResponseOpen
+							? ''
+							: ' plume-review-drawer__ai-strip--collapsed'
 					}` }
 				>
-					<div
+					<button
+						type="button"
 						className="plume-review-drawer__ai-strip-header"
 						onClick={ () => setAiResponseOpen( ( v ) => ! v ) }
-						role="button"
-						tabIndex={ 0 }
-						onKeyDown={ ( e ) => {
-							if ( e.key === 'Enter' || e.key === ' ' ) {
-								e.preventDefault();
-								setAiResponseOpen( ( v ) => ! v );
-							}
-						} }
 						aria-expanded={ aiResponseOpen }
 					>
 						<MessageSquare size={ 12 } />
@@ -433,7 +465,7 @@ export default function ReviewDrawer( {
 						) : (
 							<ChevronDown size={ 12 } />
 						) }
-					</div>
+					</button>
 					{ aiResponseOpen && (
 						<div className="plume-review-drawer__ai-strip-body">
 							{ aiSummary }
@@ -500,70 +532,106 @@ export default function ReviewDrawer( {
 
 					{ /* Footer */ }
 					<div className="plume-review-drawer__footer">
-						{ ( drawerState === 'reviewing' ||
-							drawerState === 'commenting' ) && (
+						{ confirmingClose ? (
 							<>
-								{ drawerState === 'commenting' ? (
-									<button
-										type="button"
-										className="plume-btn plume-btn--primary"
-										onClick={ handleRequestRevision }
-										disabled={ ! canRevise }
-									>
-										{ __( 'Request revision', 'plume' ) }
-									</button>
-								) : (
-									<button
-										type="button"
-										className="plume-btn plume-btn--primary"
-										onClick={ handleApply }
-									>
-										{ __( 'Apply update', 'plume' ) }
-									</button>
-								) }
+								<span className="plume-review-drawer__footer-count">
+									{ __( 'Discard your comments?', 'plume' ) }
+								</span>
 								<button
 									type="button"
-									className="plume-btn plume-btn--ghost"
-									onClick={ handleClose }
+									className="plume-btn plume-btn--ghost plume-btn--xs plume-btn--danger"
+									onClick={ onClose }
 								>
-									{ __( 'Cancel', 'plume' ) }
+									{ __( 'Yes, discard', 'plume' ) }
 								</button>
-								{ drawerState === 'commenting' && (
-									<span className="plume-review-drawer__footer-count">
-										{ savedCommentCount === 1
-											? __( '1 comment', 'plume' )
-											: `${ savedCommentCount } ${ __(
-													'comments',
-													'plume'
-											  ) }` }
-									</span>
-								) }
+								<button
+									type="button"
+									className="plume-btn plume-btn--ghost plume-btn--xs"
+									onClick={ () =>
+										setConfirmingClose( false )
+									}
+								>
+									{ __( 'Keep editing', 'plume' ) }
+								</button>
 							</>
-						) }
-
-						{ drawerState === 'revised' && (
+						) : (
 							<>
-								<button
-									type="button"
-									className="plume-btn plume-btn--success"
-									onClick={ handleApply }
-								>
-									{ __( 'Apply update', 'plume' ) }
-								</button>
-								<button
-									type="button"
-									className="plume-btn plume-btn--ghost"
-									onClick={ () => setDrawerState( 'commenting' ) }
-								>
-									{ __( 'Comment again', 'plume' ) }
-								</button>
-								<button
-									type="button"
-									className="plume-btn plume-btn--ghost"
-									onClick={ handleClose }
-								>
-									{ __( 'Cancel', 'plume' ) }
-								</button>
+								{ ( drawerState === 'reviewing' ||
+									drawerState === 'commenting' ) && (
+									<>
+										{ drawerState === 'commenting' ? (
+											<button
+												type="button"
+												className="plume-btn plume-btn--primary"
+												onClick={
+													handleRequestRevision
+												}
+												disabled={ ! canRevise }
+											>
+												{ __(
+													'Request revision',
+													'plume'
+												) }
+											</button>
+										) : (
+											<button
+												type="button"
+												className="plume-btn plume-btn--primary"
+												onClick={ handleApply }
+											>
+												{ __(
+													'Apply update',
+													'plume'
+												) }
+											</button>
+										) }
+										<button
+											type="button"
+											className="plume-btn plume-btn--ghost"
+											onClick={ handleClose }
+										>
+											{ __( 'Cancel', 'plume' ) }
+										</button>
+										{ drawerState === 'commenting' && (
+											<span className="plume-review-drawer__footer-count">
+												{ savedCommentCount === 1
+													? __( '1 comment', 'plume' )
+													: `${ savedCommentCount } ${ __(
+															'comments',
+															'plume'
+													  ) }` }
+											</span>
+										) }
+									</>
+								) }
+
+								{ drawerState === 'revised' && (
+									<>
+										<button
+											type="button"
+											className="plume-btn plume-btn--success"
+											onClick={ handleApply }
+										>
+											{ __( 'Apply update', 'plume' ) }
+										</button>
+										<button
+											type="button"
+											className="plume-btn plume-btn--ghost"
+											onClick={ () =>
+												setDrawerState( 'commenting' )
+											}
+										>
+											{ __( 'Comment again', 'plume' ) }
+										</button>
+										<button
+											type="button"
+											className="plume-btn plume-btn--ghost"
+											onClick={ handleClose }
+										>
+											{ __( 'Cancel', 'plume' ) }
+										</button>
+									</>
+								) }
 							</>
 						) }
 					</div>

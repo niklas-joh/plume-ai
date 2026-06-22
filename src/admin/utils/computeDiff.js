@@ -7,7 +7,7 @@
  *
  * @param {string} oldText  Current post content (raw, may contain HTML).
  * @param {string} newText  Proposed post content from the AI plan.
- * @returns {Array<{id: string, unchanged: string[], removedText: string|null, addedText: string|null}>}
+ * @return {Array<{id: string, unchanged: string[], removedText: string|null, addedText: string|null}>}
  */
 export function computeDiff( oldText, newText ) {
 	const oldParas = splitParagraphs( oldText );
@@ -34,14 +34,16 @@ function splitParagraphs( text ) {
  *
  * @param {string[]} oldParas
  * @param {string[]} newParas
- * @returns {Array<{type: string, text: string}>}
+ * @return {Array<{type: string, text: string}>}
  */
 function lcs( oldParas, newParas ) {
 	const m = oldParas.length;
 	const n = newParas.length;
 
 	// Build LCS table.
-	const dp = Array.from( { length: m + 1 }, () => new Array( n + 1 ).fill( 0 ) );
+	const dp = Array.from( { length: m + 1 }, () =>
+		new Array( n + 1 ).fill( 0 )
+	);
 	for ( let i = 1; i <= m; i++ ) {
 		for ( let j = 1; j <= n; j++ ) {
 			dp[ i ][ j ] =
@@ -60,7 +62,10 @@ function lcs( oldParas, newParas ) {
 			ops.unshift( { type: 'equal', text: oldParas[ i - 1 ] } );
 			i--;
 			j--;
-		} else if ( j > 0 && ( i === 0 || dp[ i ][ j - 1 ] >= dp[ i - 1 ][ j ] ) ) {
+		} else if (
+			j > 0 &&
+			( i === 0 || dp[ i ][ j - 1 ] >= dp[ i - 1 ][ j ] )
+		) {
 			ops.unshift( { type: 'add', text: newParas[ j - 1 ] } );
 			j--;
 		} else {
@@ -81,7 +86,7 @@ let blockCounter = 0;
  * A trailing run of equal ops becomes a final unchanged-only block.
  *
  * @param {Array<{type: string, text: string}>} ops
- * @returns {Array<{id: string, unchanged: string[], removedText: string|null, addedText: string|null}>}
+ * @return {Array<{id: string, unchanged: string[], removedText: string|null, addedText: string|null}>}
  */
 function groupOps( ops ) {
 	const blocks = [];

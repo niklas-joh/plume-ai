@@ -413,6 +413,8 @@ export default function ChatApp() {
 				<ReviewDrawer
 					plan={ drawerPlan }
 					convId={ activeConvId }
+					provider={ selectedProvider }
+					model={ selectedModel }
 					onApply={ () => setDrawerPlan( null ) }
 					onClose={ () => setDrawerPlan( null ) }
 					onMessagesRefresh={ () => loadMessages( activeConvId ) }

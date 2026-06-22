@@ -76,8 +76,6 @@ function lcs( oldParas, newParas ) {
 	return ops;
 }
 
-let blockCounter = 0;
-
 /**
  * Group a flat ops list into DiffBlock objects.
  *
@@ -91,6 +89,7 @@ let blockCounter = 0;
 function groupOps( ops ) {
 	const blocks = [];
 	let pendingUnchanged = [];
+	let blockCounter = 0;
 
 	let idx = 0;
 	while ( idx < ops.length ) {

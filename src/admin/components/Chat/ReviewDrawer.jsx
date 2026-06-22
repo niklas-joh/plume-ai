@@ -18,8 +18,6 @@ const MIN_WIDTH = 280;
 const MAX_WIDTH = 560;
 const DEFAULT_WIDTH = 360;
 
-let commentIdCounter = 0;
-
 /**
  * Slide-in review drawer for AI-proposed post update plans.
  *
@@ -71,6 +69,7 @@ export default function ReviewDrawer( {
 	const resizingRef = useRef( false );
 	const resizeStartXRef = useRef( 0 );
 	const resizeStartWidthRef = useRef( 0 );
+	const commentIdRef = useRef( 0 );
 
 	// Fetch current post content on mount — post_id is stable for the drawer lifetime.
 	useEffect( () => {
@@ -183,7 +182,7 @@ export default function ReviewDrawer( {
 			setComments( ( prev ) => [
 				...prev,
 				{
-					id: `c-${ ++commentIdCounter }`,
+					id: `c-${ ++commentIdRef.current }`,
 					diffBlockId,
 					selectedText,
 					text,

@@ -76,8 +76,6 @@ function lcs( oldParas, newParas ) {
 	return ops;
 }
 
-let blockCounter = 0;
-
 /**
  * Group a flat ops list into DiffBlock objects.
  *
@@ -85,12 +83,16 @@ let blockCounter = 0;
  * remove+add pair (either may be null for pure insertions/deletions).
  * A trailing run of equal ops becomes a final unchanged-only block.
  *
+ * The block counter is scoped per call so ids are stable within a single
+ * diff but never imply continuity across separate `computeDiff` invocations.
+ *
  * @param {Array<{type: string, text: string}>} ops
  * @return {Array<{id: string, unchanged: string[], removedText: string|null, addedText: string|null}>}
  */
 function groupOps( ops ) {
 	const blocks = [];
 	let pendingUnchanged = [];
+	let blockCounter = 0;
 
 	let idx = 0;
 	while ( idx < ops.length ) {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import {
 	X,
 	GripVertical,
@@ -17,8 +17,6 @@ const DRAWER_WIDTH_KEY = 'plume_drawer_width';
 const MIN_WIDTH = 280;
 const MAX_WIDTH = 560;
 const DEFAULT_WIDTH = 360;
-
-let commentIdCounter = 0;
 
 /**
  * Slide-in review drawer for AI-proposed post update plans.
@@ -67,6 +65,7 @@ export default function ReviewDrawer( {
 	);
 
 	const closeButtonRef = useRef( null );
+	const commentIdRef = useRef( 0 );
 	const drawerRef = useRef( null );
 	const resizingRef = useRef( false );
 	const resizeStartXRef = useRef( 0 );
@@ -183,7 +182,7 @@ export default function ReviewDrawer( {
 			setComments( ( prev ) => [
 				...prev,
 				{
-					id: `c-${ ++commentIdCounter }`,
+					id: `c-${ ++commentIdRef.current }`,
 					diffBlockId,
 					selectedText,
 					text,
@@ -393,39 +392,57 @@ export default function ReviewDrawer( {
 					</p>
 					{ drawerState === 'reviewing' && (
 						<p className="plume-review-drawer__subtitle">
-							{ changeCount === 1
-								? __(
-										'1 change — drag to select text and comment',
-										'plume'
-								  )
-								: `${ changeCount } ${ __(
-										'changes — drag to select text and comment',
-										'plume'
-								  ) }` }
+							{ sprintf(
+								_n(
+									'%d change — drag to select text and comment',
+									'%d changes — drag to select text and comment',
+									changeCount,
+									'plume'
+								),
+								changeCount
+							) }
 						</p>
 					) }
 					{ drawerState === 'commenting' && (
 						<p className="plume-review-drawer__subtitle plume-review-drawer__subtitle--warning">
-							{ savedCommentCount === 1
-								? __( '1 comment — not yet submitted', 'plume' )
-								: `${ savedCommentCount } ${ __(
-										'comments — not yet submitted',
-										'plume'
-								  ) }` }
+							{ sprintf(
+								_n(
+									'%d comment — not yet submitted',
+									'%d comments — not yet submitted',
+									savedCommentCount,
+									'plume'
+								),
+								savedCommentCount
+							) }
 						</p>
 					) }
 					{ drawerState === 'revised' && (
 						<p className="plume-review-drawer__subtitle plume-review-drawer__subtitle--revised">
-							{ `${ __(
-								'AI addressed your',
-								'plume'
-							) } ${ savedCommentCount } ${ __(
-								'comment(s) —',
-								'plume'
-							) } ${ changeCount } ${ __(
-								'change(s)',
-								'plume'
-							) }` }
+							{ sprintf(
+								/* translators: 1: comment count phrase, 2: change count phrase */
+								__(
+									'AI addressed your %1$s — %2$s',
+									'plume'
+								),
+								sprintf(
+									_n(
+										'%d comment',
+										'%d comments',
+										savedCommentCount,
+										'plume'
+									),
+									savedCommentCount
+								),
+								sprintf(
+									_n(
+										'%d change',
+										'%d changes',
+										changeCount,
+										'plume'
+									),
+									changeCount
+								)
+							) }
 						</p>
 					) }
 				</div>
@@ -584,12 +601,15 @@ export default function ReviewDrawer( {
 								</button>
 								{ drawerState === 'commenting' && (
 									<span className="plume-review-drawer__footer-count">
-										{ savedCommentCount === 1
-											? __( '1 comment', 'plume' )
-											: `${ savedCommentCount } ${ __(
-													'comments',
-													'plume'
-											  ) }` }
+										{ sprintf(
+											_n(
+												'%d comment',
+												'%d comments',
+												savedCommentCount,
+												'plume'
+											),
+											savedCommentCount
+										) }
 									</span>
 								) }
 							</>

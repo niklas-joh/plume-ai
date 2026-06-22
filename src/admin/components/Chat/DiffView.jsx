@@ -130,7 +130,7 @@ export default function DiffView( {
 						<div key={ block.id } className="plume-diff-block">
 							{ block.unchanged.map( ( para, i ) => (
 								<p
-									key={ i }
+									key={ `${ block.id }-${ i }-${ para }` }
 									className="plume-diff-block__unchanged"
 									aria-label={ __( 'Unchanged', 'plume' ) }
 								>

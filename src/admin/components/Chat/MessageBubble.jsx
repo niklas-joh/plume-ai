@@ -67,7 +67,7 @@ export default function MessageBubble( { message } ) {
 					{ message.tokens && <span>{ message.tokens } tokens</span> }
 				</div>
 			) }
-			{ isAI && plan && (
+			{ isAI && plan && plan.plan_type !== 'update' && (
 				<PlanCard plan={ plan } onDismiss={ () => setPlan( null ) } />
 			) }
 		</div>

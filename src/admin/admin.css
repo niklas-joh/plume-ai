@@ -32,6 +32,9 @@
 	font-family: var(--font-sans);
 	font-size: var(--text-base);
 	overflow: hidden;
+
+	/* Anchor for the absolutely-positioned review drawer overlay. */
+	position: relative;
 	transition: grid-template-columns 0.15s ease;
 }
 
@@ -1163,11 +1166,6 @@
    Review & Comment Drawer
    ════════════════════════════════════════════════ */
 
-/* Enable absolute positioning for the drawer overlay */
-.plume-shell {
-	position: relative;
-}
-
 /* Scoped diff color tokens — kept here so they don't pollute the global sheet */
 .plume-review-drawer {
 	--diff-removed-bg: #fef2f2;
@@ -1181,10 +1179,6 @@
 	--diff-revised-bg: #f0f6fc;
 	--diff-revised-border: #c2d8ed;
 	--drawer-resize-bg: #ebe9e4;
-}
-
-/* Shell */
-.plume-review-drawer {
 	position: absolute;
 	top: 0;
 	bottom: 0;
@@ -1200,11 +1194,14 @@
 }
 
 @keyframes plume-drawer-in {
+
 	from { transform: translateX( 100% ); }
+
 	to   { transform: translateX( 0 ); }
 }
 
 @media ( prefers-reduced-motion: reduce ) {
+
 	.plume-review-drawer {
 		animation: none;
 	}
@@ -1592,6 +1589,7 @@
 }
 
 @media ( prefers-reduced-motion: reduce ) {
+
 	.plume-comment-thread__body {
 		transition: none;
 	}

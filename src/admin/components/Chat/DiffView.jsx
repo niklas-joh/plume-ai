@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from '@wordpress/element';
+import { useState, useRef, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { MessageSquare } from 'lucide-react';
 import CommentThread from './CommentThread';
@@ -33,25 +33,6 @@ export default function DiffView( {
 	const [ pendingAnchors, setPendingAnchors ] = useState( {} ); // diffBlockId -> selectedText
 	const bodyRef = useRef( null );
 
-	// Dismiss tooltip on mousedown outside it.
-	useEffect( () => {
-		if ( ! tooltip ) {
-			return;
-		}
-
-		function onDocMouseDown( e ) {
-			if ( ! e.target.closest( '.plume-add-comment-tooltip' ) ) {
-				bodyRef.current?.ownerDocument.defaultView
-					.getSelection()
-					?.removeAllRanges();
-				setTooltip( null );
-			}
-		}
-		document.addEventListener( 'mousedown', onDocMouseDown );
-		return () =>
-			document.removeEventListener( 'mousedown', onDocMouseDown );
-	}, [ tooltip ] );
-
 	const commentsForBlock = useCallback(
 		( blockId ) => comments.filter( ( c ) => c.diffBlockId === blockId ),
 		[ comments ]
@@ -69,7 +50,7 @@ export default function DiffView( {
 	}
 
 	function handleMouseUp() {
-		const sel = bodyRef.current?.ownerDocument.defaultView.getSelection();
+		const sel = bodyRef.current?.ownerDocument?.defaultView?.getSelection();
 		if ( ! sel || sel.isCollapsed || ! sel.toString().trim() ) {
 			setTooltip( null );
 			return;
@@ -109,22 +90,36 @@ export default function DiffView( {
 			[ diffBlockId ]: selectedText,
 		} ) );
 		onAddComment( diffBlockId, selectedText );
-		bodyRef.current?.ownerDocument.defaultView
-			.getSelection()
+		bodyRef.current?.ownerDocument?.defaultView
+			?.getSelection()
 			?.removeAllRanges();
 		setTooltip( null );
+	}
+
+	function handleBodyClick( e ) {
+		// Dismiss tooltip on click outside it.
+		if ( tooltip && ! e.target.closest( '.plume-add-comment-tooltip' ) ) {
+			bodyRef.current?.ownerDocument?.defaultView
+				?.getSelection()
+				?.removeAllRanges();
+			setTooltip( null );
+		}
 	}
 
 	const hasComments = comments.some( ( c ) => c.diffBlockId );
 
 	return (
 		<div className="plume-diff-view">
-			{ /* Scrollable diff body — onMouseUp detects text selections, not interactive clicks */ }
-			{ /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */ }
+			{ /* Scrollable diff body */ }
+			{ /* Text-selection surface: drag-select to comment has no keyboard
+			   analogue, and the click handler only dismisses the selection
+			   tooltip. */ }
+			{ /* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */ }
 			<div
 				ref={ bodyRef }
 				className="plume-diff-view__body"
 				onMouseUp={ handleMouseUp }
+				onClick={ handleBodyClick }
 				style={ { position: 'relative' } }
 			>
 				{ blocks.map( ( block ) => {
@@ -209,6 +204,12 @@ export default function DiffView( {
 						className="plume-add-comment-tooltip"
 						style={ { left: tooltip.x, top: tooltip.y } }
 						onClick={ handleTooltipClick }
+						onKeyDown={ ( e ) => {
+							if ( e.key === 'Enter' || e.key === ' ' ) {
+								e.preventDefault();
+								handleTooltipClick();
+							}
+						} }
 					>
 						{ __( 'Add comment', 'plume' ) }
 					</button>

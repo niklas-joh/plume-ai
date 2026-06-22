@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 import { computeDiff } from '../../utils/computeDiff';
+import { storageGet, storageSet } from '../../utils/storage';
 import DiffView from './DiffView';
 
 const DRAWER_WIDTH_KEY = 'plume_drawer_width';
@@ -57,11 +58,8 @@ export default function ReviewDrawer( {
 	const [ revision, setRevision ] = useState( 0 );
 	const [ error, setError ] = useState( null );
 	const [ aiResponseOpen, setAiResponseOpen ] = useState( true );
-	const [ confirmingClose, setConfirmingClose ] = useState( false );
 	const [ drawerWidth, setDrawerWidth ] = useState(
-		() =>
-			parseInt( window.localStorage.getItem( DRAWER_WIDTH_KEY ), 10 ) ||
-			DEFAULT_WIDTH
+		() => parseInt( storageGet( DRAWER_WIDTH_KEY ), 10 ) || DEFAULT_WIDTH
 	);
 
 	const closeButtonRef = useRef( null );
@@ -142,7 +140,7 @@ export default function ReviewDrawer( {
 			document.removeEventListener( 'mousemove', onMouseMove );
 			document.removeEventListener( 'mouseup', onMouseUp );
 			setDrawerWidth( ( w ) => {
-				window.localStorage.setItem( DRAWER_WIDTH_KEY, String( w ) );
+				storageSet( DRAWER_WIDTH_KEY, String( w ) );
 				return w;
 			} );
 		}
@@ -155,12 +153,12 @@ export default function ReviewDrawer( {
 		if ( e.key === 'ArrowLeft' ) {
 			const next = Math.min( MAX_WIDTH, drawerWidth + 20 );
 			setDrawerWidth( next );
-			window.localStorage.setItem( DRAWER_WIDTH_KEY, String( next ) );
+			storageSet( DRAWER_WIDTH_KEY, String( next ) );
 		}
 		if ( e.key === 'ArrowRight' ) {
 			const next = Math.max( MIN_WIDTH, drawerWidth - 20 );
 			setDrawerWidth( next );
-			window.localStorage.setItem( DRAWER_WIDTH_KEY, String( next ) );
+			storageSet( DRAWER_WIDTH_KEY, String( next ) );
 		}
 	}
 
@@ -215,11 +213,18 @@ export default function ReviewDrawer( {
 	function handleClose() {
 		const hasSavedComments = comments.some( ( c ) => c.saved );
 		const isDirty = hasSavedComments || generalNote.trim().length > 0;
-		if ( isDirty && ! confirmingClose ) {
-			setConfirmingClose( true );
-			return;
+		if ( isDirty ) {
+			// Native confirm is intentional for this destructive discard guard;
+			// the drawer has no modal layer of its own.
+			if (
+				// eslint-disable-next-line no-alert
+				! window.confirm(
+					__( 'Discard your comments and cancel?', 'plume' )
+				)
+			) {
+				return;
+			}
 		}
-		setConfirmingClose( false );
 		onClose();
 	}
 
@@ -342,7 +347,8 @@ export default function ReviewDrawer( {
 			role="complementary"
 			aria-label={ __( 'Review Update Drawer', 'plume' ) }
 		>
-			{ /* Resize handle — interactive separator is valid per WAI-ARIA but jsx-a11y doesn't recognise it */ }
+			{ /* Resize handle — focusable separator follows the WAI-ARIA window
+			   splitter pattern, which is keyboard-operable via onKeyDown. */ }
 			{ /* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */ }
 			<div
 				className="plume-review-drawer__resize"
@@ -450,10 +456,17 @@ export default function ReviewDrawer( {
 							: ' plume-review-drawer__ai-strip--collapsed'
 					}` }
 				>
-					<button
-						type="button"
+					<div
 						className="plume-review-drawer__ai-strip-header"
 						onClick={ () => setAiResponseOpen( ( v ) => ! v ) }
+						role="button"
+						tabIndex={ 0 }
+						onKeyDown={ ( e ) => {
+							if ( e.key === 'Enter' || e.key === ' ' ) {
+								e.preventDefault();
+								setAiResponseOpen( ( v ) => ! v );
+							}
+						} }
 						aria-expanded={ aiResponseOpen }
 					>
 						<MessageSquare size={ 12 } />
@@ -465,7 +478,7 @@ export default function ReviewDrawer( {
 						) : (
 							<ChevronDown size={ 12 } />
 						) }
-					</button>
+					</div>
 					{ aiResponseOpen && (
 						<div className="plume-review-drawer__ai-strip-body">
 							{ aiSummary }
@@ -532,106 +545,72 @@ export default function ReviewDrawer( {
 
 					{ /* Footer */ }
 					<div className="plume-review-drawer__footer">
-						{ confirmingClose ? (
+						{ ( drawerState === 'reviewing' ||
+							drawerState === 'commenting' ) && (
 							<>
-								<span className="plume-review-drawer__footer-count">
-									{ __( 'Discard your comments?', 'plume' ) }
-								</span>
+								{ drawerState === 'commenting' ? (
+									<button
+										type="button"
+										className="plume-btn plume-btn--primary"
+										onClick={ handleRequestRevision }
+										disabled={ ! canRevise }
+									>
+										{ __( 'Request revision', 'plume' ) }
+									</button>
+								) : (
+									<button
+										type="button"
+										className="plume-btn plume-btn--primary"
+										onClick={ handleApply }
+									>
+										{ __( 'Apply update', 'plume' ) }
+									</button>
+								) }
 								<button
 									type="button"
-									className="plume-btn plume-btn--ghost plume-btn--xs plume-btn--danger"
-									onClick={ onClose }
+									className="plume-btn plume-btn--ghost"
+									onClick={ handleClose }
 								>
-									{ __( 'Yes, discard', 'plume' ) }
+									{ __( 'Cancel', 'plume' ) }
+								</button>
+								{ drawerState === 'commenting' && (
+									<span className="plume-review-drawer__footer-count">
+										{ savedCommentCount === 1
+											? __( '1 comment', 'plume' )
+											: `${ savedCommentCount } ${ __(
+													'comments',
+													'plume'
+											  ) }` }
+									</span>
+								) }
+							</>
+						) }
+
+						{ drawerState === 'revised' && (
+							<>
+								<button
+									type="button"
+									className="plume-btn plume-btn--success"
+									onClick={ handleApply }
+								>
+									{ __( 'Apply update', 'plume' ) }
 								</button>
 								<button
 									type="button"
-									className="plume-btn plume-btn--ghost plume-btn--xs"
+									className="plume-btn plume-btn--ghost"
 									onClick={ () =>
-										setConfirmingClose( false )
+										setDrawerState( 'commenting' )
 									}
 								>
-									{ __( 'Keep editing', 'plume' ) }
+									{ __( 'Comment again', 'plume' ) }
 								</button>
-							</>
-						) : (
-							<>
-								{ ( drawerState === 'reviewing' ||
-									drawerState === 'commenting' ) && (
-									<>
-										{ drawerState === 'commenting' ? (
-											<button
-												type="button"
-												className="plume-btn plume-btn--primary"
-												onClick={
-													handleRequestRevision
-												}
-												disabled={ ! canRevise }
-											>
-												{ __(
-													'Request revision',
-													'plume'
-												) }
-											</button>
-										) : (
-											<button
-												type="button"
-												className="plume-btn plume-btn--primary"
-												onClick={ handleApply }
-											>
-												{ __(
-													'Apply update',
-													'plume'
-												) }
-											</button>
-										) }
-										<button
-											type="button"
-											className="plume-btn plume-btn--ghost"
-											onClick={ handleClose }
-										>
-											{ __( 'Cancel', 'plume' ) }
-										</button>
-										{ drawerState === 'commenting' && (
-											<span className="plume-review-drawer__footer-count">
-												{ savedCommentCount === 1
-													? __( '1 comment', 'plume' )
-													: `${ savedCommentCount } ${ __(
-															'comments',
-															'plume'
-													  ) }` }
-											</span>
-										) }
-									</>
-								) }
-
-								{ drawerState === 'revised' && (
-									<>
-										<button
-											type="button"
-											className="plume-btn plume-btn--success"
-											onClick={ handleApply }
-										>
-											{ __( 'Apply update', 'plume' ) }
-										</button>
-										<button
-											type="button"
-											className="plume-btn plume-btn--ghost"
-											onClick={ () =>
-												setDrawerState( 'commenting' )
-											}
-										>
-											{ __( 'Comment again', 'plume' ) }
-										</button>
-										<button
-											type="button"
-											className="plume-btn plume-btn--ghost"
-											onClick={ handleClose }
-										>
-											{ __( 'Cancel', 'plume' ) }
-										</button>
-									</>
-								) }
+								<button
+									type="button"
+									className="plume-btn plume-btn--ghost"
+									onClick={ handleClose }
+								>
+									{ __( 'Cancel', 'plume' ) }
+								</button>
 							</>
 						) }
 					</div>

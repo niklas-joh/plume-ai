@@ -1,5 +1,5 @@
 === Plume AI - Write and Design ===
-Contributors: njohansson
+Contributors: niklasjohansson
 Tags: ai, writing, content, images, chatbot
 Requires at least: 6.4
 Tested up to: 7.0
@@ -82,6 +82,15 @@ privacy documentation.
 
 Users with the `edit_posts` capability (Authors, Editors, Administrators) can use the
 content generation tools. Site settings require `manage_options` (Administrators only).
+
+== Development ==
+
+Full source code including all React source files (src/) and build tooling is
+publicly available at: https://github.com/niklas-joh/plume-ai
+
+To regenerate compiled assets: install Node.js 18+ and npm, then run:
+
+    npm install && npm run build
 
 == Changelog ==
 

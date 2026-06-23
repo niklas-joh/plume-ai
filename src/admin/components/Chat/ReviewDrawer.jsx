@@ -245,11 +245,12 @@ export default function ReviewDrawer( {
 				path: `/plume/v1/plans/${ currentPlan.id }/execute`,
 				method: 'POST',
 			} );
+			// onApply unmounts the drawer (ChatApp clears drawerPlan), so no
+			// explicit onClose() is needed here.
 			onApply( {
 				changes: currentPlan.changes,
 				editUrl: res.edit_url,
 			} );
-			onClose();
 		} catch ( err ) {
 			setError(
 				err?.message ??

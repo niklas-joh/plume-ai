@@ -1,5 +1,10 @@
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { htmlToText } from './htmlToText';
+
+// Match MarkdownContent's marked config so the plan summary and the diff parse
+// the same Markdown identically (line breaks, GFM tables).
+marked.setOptions( { breaks: true, gfm: true } );
 
 /**
  * Paragraph-level diff between two text strings.
@@ -39,6 +44,8 @@ export function computeDiff( oldText, newText ) {
  * @return {string}
  */
 function stripBlockMarkup( raw ) {
+	// `[^>]*?` stops at the first `>`, so a delimiter whose JSON attributes
+	// contain a literal `>` (rare for core blocks) would not be fully stripped.
 	return raw.replace( /<!--\s*\/?wp:[^>]*?-->/g, '' ).trim();
 }
 
@@ -94,24 +101,22 @@ function htmlToBlocks( html ) {
  */
 function normalizeForComparison( html ) {
 	if ( typeof document !== 'undefined' ) {
-		const div = document.createElement( 'div' );
-		div.innerHTML = html;
-		const el = div.firstElementChild;
-		if ( el ) {
-			const tag = el.tagName.toLowerCase();
-			const text = el.textContent
-				.replace( /\s+/g, ' ' )
-				.trim()
-				.toLowerCase();
-			// Paragraph elements are semantically equivalent to unwrapped plain
-			// text — omit the tag prefix so pre-HTML WP content matches marked's
-			// <p>-wrapped Markdown output.
-			if ( tag === 'p' ) {
-				return text;
-			}
-			return `${ tag }:${ text }`;
+		const text = htmlToText( html )
+			.replace( /\s+/g, ' ' )
+			.trim()
+			.toLowerCase();
+		// Tag-name extraction (not tag stripping) to keep the comparison
+		// element-aware; htmlToBlocks yields one block per call so the leading
+		// tag is the block's own element.
+		const tagMatch = html.match( /^\s*<([a-z0-9-]+)/i );
+		const tag = tagMatch ? tagMatch[ 1 ].toLowerCase() : '';
+		// Paragraph elements (and unwrapped plain text) are semantically
+		// equivalent — omit the tag prefix so pre-HTML WP content matches
+		// marked's <p>-wrapped Markdown output.
+		if ( ! tag || tag === 'p' ) {
+			return text;
 		}
-		return div.textContent.replace( /\s+/g, ' ' ).trim().toLowerCase();
+		return `${ tag }:${ text }`;
 	}
 	// SSR/test fallback: normalise whitespace only. Regex tag-stripping patterns
 	// (/<[^>]*>/g) are intentionally avoided — static analysis tools flag them as

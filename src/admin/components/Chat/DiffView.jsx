@@ -2,22 +2,7 @@ import { useState, useRef, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { MessageSquare } from 'lucide-react';
 import CommentThread from './CommentThread';
-
-/**
- * Strips HTML tags from a string — used to produce clean aria-label text.
- *
- * @param {string} html
- * @return {string}
- */
-function stripHtml( html ) {
-	if ( typeof document !== 'undefined' ) {
-		const div = document.createElement( 'div' );
-		div.innerHTML = html;
-		return div.textContent;
-	}
-	// DiffView only renders in the browser; this path is unreachable in production.
-	return '';
-}
+import { htmlToText } from '../../utils/htmlToText';
 
 /**
  * Scrollable diff body with text-selection tooltip and sticky legend bar.
@@ -165,7 +150,7 @@ export default function DiffView( {
 									aria-label={ `${ __(
 										'Removed text',
 										'plume'
-									) }: ${ stripHtml( block.removedText ) }` }
+									) }: ${ htmlToText( block.removedText ) }` }
 									dangerouslySetInnerHTML={ {
 										__html: block.removedText,
 									} }
@@ -185,7 +170,7 @@ export default function DiffView( {
 										aria-label={ `${ __(
 											'Proposed text',
 											'plume'
-										) }: ${ stripHtml(
+										) }: ${ htmlToText(
 											block.addedText
 										) }` }
 										dangerouslySetInnerHTML={ {

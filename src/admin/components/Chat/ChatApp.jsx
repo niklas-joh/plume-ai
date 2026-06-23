@@ -415,7 +415,17 @@ export default function ChatApp() {
 					convId={ activeConvId }
 					selectedProvider={ selectedProvider }
 					selectedModel={ selectedModel }
-					onApply={ () => setDrawerPlan( null ) }
+					onApply={ ( { changes, editUrl } ) => {
+						setDrawerPlan( null );
+						setMessages( ( prev ) => [
+							...prev,
+							{
+								role: 'assistant',
+								content: changes ?? '',
+								applyEditUrl: editUrl ?? null,
+							},
+						] );
+					} }
 					onClose={ () => setDrawerPlan( null ) }
 					onMessagesRefresh={ () => loadMessages( activeConvId ) }
 				/>

@@ -29,6 +29,7 @@ const TOOL_LABELS = {
  * @param {boolean}  [props.message.isError]      When true, applies the error modifier class.
  * @param {Object}   [props.message.pending_plan] Pending plan data; when present, renders a PlanCard.
  * @param {string[]} [props.message.tools_used]   Tool names called; shown as passive indicator chips.
+ * @param {string}   [props.message.applyEditUrl] When present, renders a "View post" link after applying an update.
  * @return {ReactElement}
  */
 export default function MessageBubble( { message } ) {
@@ -69,6 +70,18 @@ export default function MessageBubble( { message } ) {
 			) }
 			{ isAI && plan && plan.plan_type !== 'update' && (
 				<PlanCard plan={ plan } onDismiss={ () => setPlan( null ) } />
+			) }
+			{ isAI && message.applyEditUrl && (
+				<div className="plume-bubble__apply-success">
+					<a
+						href={ message.applyEditUrl }
+						className="button button-secondary button-small"
+						target="_blank"
+						rel="noreferrer"
+					>
+						{ __( 'View post', 'plume' ) }
+					</a>
+				</div>
 			) }
 		</div>
 	);

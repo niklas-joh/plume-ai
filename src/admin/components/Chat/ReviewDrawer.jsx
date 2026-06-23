@@ -7,11 +7,13 @@ import {
 	MessageSquare,
 	ChevronDown,
 	ChevronUp,
+	ArrowLeft,
 } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 import { computeDiff } from '../../utils/computeDiff';
 import { storageGet, storageSet } from '../../utils/storage';
 import DiffView from './DiffView';
+import MarkdownContent from '../../../shared/MarkdownContent';
 
 const DRAWER_WIDTH_KEY = 'plume_drawer_width';
 const MIN_WIDTH = 280;
@@ -25,17 +27,18 @@ const DEFAULT_WIDTH = 360;
  * content, lets the user annotate specific passages, and supports requesting
  * a revision round-trip through the existing chat messages endpoint.
  *
- * State machine: reviewing -> commenting -> loading -> revised
+ * State machine: plan -> reviewing -> commenting -> loading -> plan (revised)
  *
  * @param {Object}   props
  * @param {Object}   props.plan               Pending plan object (`plan_type === 'update'`).
  * @param {string}   props.plan.id            Plan ID used for the execute endpoint.
  * @param {number}   props.plan.post_id       Post being updated; content is fetched on mount.
+ * @param {string}   props.plan.changes       Human-readable summary of proposed changes.
  * @param {string}   props.plan.new_content   AI-proposed content string.
  * @param {number}   props.convId             Active conversation ID for the revision request.
  * @param {string}   props.selectedProvider   Provider slug the user selected in chat; forwarded so the revision uses the same model.
  * @param {string}   props.selectedModel      Model slug the user selected in chat; forwarded with the revision request.
- * @param {Function} props.onApply            Called after a successful plan execution.
+ * @param {Function} props.onApply            Called with `{ changes, editUrl }` after a successful plan execution.
  * @param {Function} props.onClose            Called when the drawer is dismissed.
  * @param {Function} props.onMessagesRefresh  Called after a revision round-trip so ChatApp reloads history.
  * @return {ReactElement}
@@ -49,7 +52,7 @@ export default function ReviewDrawer( {
 	onClose,
 	onMessagesRefresh,
 } ) {
-	const [ drawerState, setDrawerState ] = useState( 'reviewing' );
+	const [ drawerState, setDrawerState ] = useState( 'plan' );
 	const [ currentPlan, setCurrentPlan ] = useState( plan );
 	const [ postContent, setPostContent ] = useState( null );
 	const [ diffBlocks, setDiffBlocks ] = useState( [] );
@@ -104,7 +107,7 @@ export default function ReviewDrawer( {
 	// Transition state based on comments and feedback.
 	// drawerState is intentionally excluded — we only want to react to content changes.
 	useEffect( () => {
-		if ( drawerState === 'loading' || drawerState === 'revised' ) {
+		if ( drawerState === 'loading' || drawerState === 'plan' ) {
 			return;
 		}
 		const hasSavedComments = comments.some( ( c ) => c.saved );
@@ -238,11 +241,14 @@ export default function ReviewDrawer( {
 	async function handleApply() {
 		setError( null );
 		try {
-			await apiFetch( {
+			const res = await apiFetch( {
 				path: `/plume/v1/plans/${ currentPlan.id }/execute`,
 				method: 'POST',
 			} );
-			onApply();
+			onApply( {
+				changes: currentPlan.changes,
+				editUrl: res.edit_url,
+			} );
 			onClose();
 		} catch ( err ) {
 			setError(
@@ -317,7 +323,8 @@ export default function ReviewDrawer( {
 			setAiSummary( res.content ?? '' );
 			setRevision( ( r ) => r + 1 );
 			setAiResponseOpen( true );
-			setDrawerState( 'revised' );
+			setDrawerState( 'plan' );
+			// setDrawerState already called above to go back to 'plan'
 			onMessagesRefresh();
 		} catch ( err ) {
 			setError(
@@ -343,6 +350,17 @@ export default function ReviewDrawer( {
 		( savedCommentCount > 0 || generalNote.trim().length > 0 ) &&
 		unsavedBlockIds.size === 0;
 
+	const planSubtitle =
+		revision > 0
+			? __(
+					'Plan updated — review the changes below, then proceed.',
+					'plume'
+			  )
+			: __(
+					'Review the plan below, then proceed to see the diff.',
+					'plume'
+			  );
+
 	const reviewingSubtitle = sprintf(
 		/* translators: %d: number of proposed changes */
 		_n(
@@ -365,20 +383,14 @@ export default function ReviewDrawer( {
 		savedCommentCount
 	);
 
-	const revisedSubtitle = sprintf(
-		/* translators: 1: comment count phrase, 2: change count phrase */
-		__( 'AI addressed your %1$s — %2$s', 'plume' ),
-		sprintf(
-			/* translators: %d: number of comments */
-			_n( '%d comment', '%d comments', savedCommentCount, 'plume' ),
-			savedCommentCount
-		),
-		sprintf(
-			/* translators: %d: number of changes */
-			_n( '%d change', '%d changes', changeCount, 'plume' ),
-			changeCount
-		)
-	);
+	function getDrawerTitle() {
+		if ( drawerState !== 'plan' ) {
+			return __( 'Review Update', 'plume' );
+		}
+		return revision > 0
+			? __( 'Updated plan', 'plume' )
+			: __( 'Review plan', 'plume' );
+	}
 
 	const footerCommentCount = sprintf(
 		/* translators: %d: number of saved comments */
@@ -419,20 +431,25 @@ export default function ReviewDrawer( {
 			{ /* Header */ }
 			<div
 				className={ `plume-review-drawer__header${
-					drawerState === 'revised'
+					revision > 0 && drawerState === 'plan'
 						? ' plume-review-drawer__header--revised'
 						: ''
 				}` }
 			>
 				<div className="plume-review-drawer__header-text">
 					<p className="plume-review-drawer__title">
-						{ __( 'Review Update', 'plume' ) }
-						{ drawerState === 'revised' && (
+						{ getDrawerTitle() }
+						{ drawerState === 'plan' && revision > 0 && (
 							<span className="plume-review-drawer__revised-badge">
 								{ __( 'Revised', 'plume' ) }
 							</span>
 						) }
 					</p>
+					{ drawerState === 'plan' && (
+						<p className="plume-review-drawer__subtitle">
+							{ planSubtitle }
+						</p>
+					) }
 					{ drawerState === 'reviewing' && (
 						<p className="plume-review-drawer__subtitle">
 							{ reviewingSubtitle }
@@ -441,11 +458,6 @@ export default function ReviewDrawer( {
 					{ drawerState === 'commenting' && (
 						<p className="plume-review-drawer__subtitle plume-review-drawer__subtitle--warning">
 							{ commentingSubtitle }
-						</p>
-					) }
-					{ drawerState === 'revised' && (
-						<p className="plume-review-drawer__subtitle plume-review-drawer__subtitle--revised">
-							{ revisedSubtitle }
 						</p>
 					) }
 				</div>
@@ -476,8 +488,8 @@ export default function ReviewDrawer( {
 				</div>
 			) }
 
-			{ /* AI response strip (State 3) */ }
-			{ drawerState === 'revised' && aiSummary && (
+			{ /* AI response strip — shown in plan state after a revision round-trip */ }
+			{ drawerState === 'plan' && aiSummary && (
 				<div
 					className={ `plume-review-drawer__ai-strip${
 						aiResponseOpen
@@ -517,7 +529,7 @@ export default function ReviewDrawer( {
 			) }
 
 			{ /* Loading interstitial */ }
-			{ drawerState === 'loading' ? (
+			{ drawerState === 'loading' && (
 				<div
 					className="plume-review-drawer__loading"
 					role="status"
@@ -526,8 +538,84 @@ export default function ReviewDrawer( {
 					<Loader2 size={ 24 } className="plume-spin" />
 					<span>{ __( 'AI is revising…', 'plume' ) }</span>
 				</div>
-			) : (
+			) }
+
+			{ /* Plan view */ }
+			{ drawerState === 'plan' && (
 				<>
+					{ /* Plan summary body */ }
+					<div className="plume-review-drawer__body">
+						<MarkdownContent
+							content={ currentPlan.changes ?? '' }
+							className="plume-plan-summary"
+						/>
+						<div className="plume-review-drawer__feedback">
+							<label htmlFor={ `plume-plan-note-${ revision }` }>
+								{ __( 'Feedback (optional)', 'plume' ) }
+							</label>
+							<textarea
+								id={ `plume-plan-note-${ revision }` }
+								value={ generalNote }
+								onChange={ ( e ) =>
+									setGeneralNote( e.target.value )
+								}
+								placeholder={ __(
+									'Any notes for the AI…',
+									'plume'
+								) }
+							/>
+						</div>
+					</div>
+
+					{ /* Plan footer */ }
+					<div className="plume-review-drawer__footer">
+						<button
+							type="button"
+							className="plume-btn plume-btn--primary"
+							onClick={ () => {
+								setGeneralNote( '' );
+								setDrawerState( 'reviewing' );
+							} }
+						>
+							{ __( 'Review changes', 'plume' ) }
+						</button>
+						<button
+							type="button"
+							className="plume-btn plume-btn--ghost"
+							onClick={ handleRequestRevision }
+							disabled={ ! canRevise }
+						>
+							{ __( 'Request revision', 'plume' ) }
+						</button>
+						<button
+							type="button"
+							className="plume-btn plume-btn--ghost"
+							onClick={ handleClose }
+						>
+							{ __( 'Cancel', 'plume' ) }
+						</button>
+					</div>
+				</>
+			) }
+
+			{ /* Diff view — shown in reviewing / commenting states */ }
+			{ drawerState !== 'plan' && drawerState !== 'loading' && (
+				<>
+					{ /* Back-to-plan link in diff states */ }
+					{ ( drawerState === 'reviewing' ||
+						drawerState === 'commenting' ) && (
+						<div className="plume-review-drawer__back">
+							<button
+								type="button"
+								className="plume-btn plume-btn--ghost plume-btn--xs"
+								onClick={ () => setDrawerState( 'plan' ) }
+							>
+								<ArrowLeft size={ 12 } />
+								{ __( 'Back to plan', 'plume' ) }
+							</button>
+						</div>
+					) }
+
 					{ /* Scrollable diff body */ }
 					<div className="plume-review-drawer__body">
 						{ postContent === null ? (
@@ -552,8 +640,7 @@ export default function ReviewDrawer( {
 					</div>
 
 					{ /* General feedback */ }
-					{ ( drawerState === 'commenting' ||
-						drawerState === 'revised' ) && (
+					{ drawerState === 'commenting' && (
 						<div className="plume-review-drawer__feedback">
 							<label htmlFor={ `plume-feedback-${ revision }` }>
 								{ __( 'Overall feedback', 'plume' ) }
@@ -574,47 +661,11 @@ export default function ReviewDrawer( {
 
 					{ /* Footer */ }
 					<div className="plume-review-drawer__footer">
-						{ ( drawerState === 'reviewing' ||
-							drawerState === 'commenting' ) && (
-							<>
-								{ drawerState === 'commenting' ? (
-									<button
-										type="button"
-										className="plume-btn plume-btn--primary"
-										onClick={ handleRequestRevision }
-										disabled={ ! canRevise }
-									>
-										{ __( 'Request revision', 'plume' ) }
-									</button>
-								) : (
-									<button
-										type="button"
-										className="plume-btn plume-btn--primary"
-										onClick={ handleApply }
-									>
-										{ __( 'Apply update', 'plume' ) }
-									</button>
-								) }
-								<button
-									type="button"
-									className="plume-btn plume-btn--ghost"
-									onClick={ handleClose }
-								>
-									{ __( 'Cancel', 'plume' ) }
-								</button>
-								{ drawerState === 'commenting' && (
-									<span className="plume-review-drawer__footer-count">
-										{ footerCommentCount }
-									</span>
-								) }
-							</>
-						) }
-
-						{ drawerState === 'revised' && (
+						{ drawerState === 'reviewing' && (
 							<>
 								<button
 									type="button"
-									className="plume-btn plume-btn--success"
+									className="plume-btn plume-btn--primary"
 									onClick={ handleApply }
 								>
 									{ __( 'Apply update', 'plume' ) }
@@ -622,11 +673,22 @@ export default function ReviewDrawer( {
 								<button
 									type="button"
 									className="plume-btn plume-btn--ghost"
-									onClick={ () =>
-										setDrawerState( 'commenting' )
-									}
+									onClick={ handleClose }
 								>
-									{ __( 'Comment again', 'plume' ) }
+									{ __( 'Cancel', 'plume' ) }
+								</button>
+							</>
+						) }
+
+						{ drawerState === 'commenting' && (
+							<>
+								<button
+									type="button"
+									className="plume-btn plume-btn--primary"
+									onClick={ handleRequestRevision }
+									disabled={ ! canRevise }
+								>
+									{ __( 'Request revision', 'plume' ) }
 								</button>
 								<button
 									type="button"
@@ -635,6 +697,9 @@ export default function ReviewDrawer( {
 								>
 									{ __( 'Cancel', 'plume' ) }
 								</button>
+								<span className="plume-review-drawer__footer-count">
+									{ footerCommentCount }
+								</span>
 							</>
 						) }
 					</div>

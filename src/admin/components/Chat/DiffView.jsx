@@ -4,11 +4,30 @@ import { MessageSquare } from 'lucide-react';
 import CommentThread from './CommentThread';
 
 /**
+ * Strips HTML tags from a string — used to produce clean aria-label text.
+ *
+ * @param {string} html
+ * @return {string}
+ */
+function stripHtml( html ) {
+	if ( typeof document !== 'undefined' ) {
+		const div = document.createElement( 'div' );
+		div.innerHTML = html;
+		return div.textContent;
+	}
+	return html.replace( /<[^>]*>/g, '' );
+}
+
+/**
  * Scrollable diff body with text-selection tooltip and sticky legend bar.
  *
  * Renders each DiffBlock as unchanged (dimmed), removed (strikethrough red),
- * and added (green, selectable) paragraphs. Users can drag-select text inside
- * an Added block to trigger a comment via a floating tooltip.
+ * and added (green, selectable) paragraphs using `dangerouslySetInnerHTML`
+ * so that headings, lists, and other block-level elements are rendered
+ * semantically rather than as flat text.
+ *
+ * Users can drag-select text inside any annotatable block (removed or added)
+ * to trigger a comment via a floating tooltip.
  *
  * @param {Object}   props
  * @param {Array}    props.blocks            DiffBlock[] from computeDiff.
@@ -38,10 +57,17 @@ export default function DiffView( {
 		[ comments ]
 	);
 
-	function findAddedAncestor( node ) {
+	/**
+	 * Walks up from a node looking for any element with a `data-block-id`
+	 * attribute (set on both removed and added wrappers).
+	 *
+	 * @param {Node} node
+	 * @return {Element|null}
+	 */
+	function findBlockAncestor( node ) {
 		let el = node.nodeType === 3 ? node.parentElement : node;
 		while ( el && el !== bodyRef.current ) {
-			if ( el.classList?.contains( 'plume-diff-added' ) ) {
+			if ( el.dataset?.blockId ) {
 				return el;
 			}
 			el = el.parentElement;
@@ -56,17 +82,14 @@ export default function DiffView( {
 			return;
 		}
 
-		const anchorEl = findAddedAncestor( sel.anchorNode );
-		const focusEl = findAddedAncestor( sel.focusNode );
-
-		// Both endpoints must be inside the same Added element.
-		if ( ! anchorEl || anchorEl !== focusEl ) {
-			sel.removeAllRanges();
+		const blockEl = findBlockAncestor( sel.anchorNode );
+		if ( ! blockEl ) {
+			// Selection not in a commentable block — dismiss tooltip without clearing selection.
 			setTooltip( null );
 			return;
 		}
 
-		const diffBlockId = anchorEl.dataset.blockId;
+		const diffBlockId = blockEl.dataset.blockId;
 		const selectedText = sel.toString().trim();
 		const range = sel.getRangeAt( 0 );
 		const rect = range.getBoundingClientRect();
@@ -90,18 +113,13 @@ export default function DiffView( {
 			[ diffBlockId ]: selectedText,
 		} ) );
 		onAddComment( diffBlockId, selectedText );
-		bodyRef.current?.ownerDocument?.defaultView
-			?.getSelection()
-			?.removeAllRanges();
+		// Don't clear selection here — it clears naturally when the textarea receives focus.
 		setTooltip( null );
 	}
 
 	function handleBodyClick( e ) {
-		// Dismiss tooltip on click outside it.
+		// Dismiss tooltip on click outside it — no selection clearing so the user can re-select.
 		if ( tooltip && ! e.target.closest( '.plume-add-comment-tooltip' ) ) {
-			bodyRef.current?.ownerDocument?.defaultView
-				?.getSelection()
-				?.removeAllRanges();
 			setTooltip( null );
 		}
 	}
@@ -128,31 +146,35 @@ export default function DiffView( {
 
 					return (
 						<div key={ block.id } className="plume-diff-block">
-							{ block.unchanged.map( ( para ) => (
-								<p
-									key={ para }
+							{ block.unchanged.map( ( para, idx ) => (
+								// eslint-disable-next-line react/no-danger
+								<div
+									key={ idx }
 									className="plume-diff-block__unchanged"
 									aria-label={ __( 'Unchanged', 'plume' ) }
-								>
-									{ para }
-								</p>
+									dangerouslySetInnerHTML={ { __html: para } }
+								/>
 							) ) }
 
 							{ block.removedText && (
-								<p
+								// eslint-disable-next-line react/no-danger
+								<div
 									className="plume-diff-block__removed"
+									data-block-id={ block.id }
 									aria-label={ `${ __(
 										'Removed text',
 										'plume'
-									) }: ${ block.removedText }` }
-								>
-									{ block.removedText }
-								</p>
+									) }: ${ stripHtml( block.removedText ) }` }
+									dangerouslySetInnerHTML={ {
+										__html: block.removedText,
+									} }
+								/>
 							) }
 
 							{ block.addedText && (
 								<div className="plume-diff-block__added-wrapper">
-									<p
+									{ /* eslint-disable-next-line react/no-danger */ }
+									<div
 										className={ `plume-diff-added${
 											isAnnotated
 												? ' plume-diff-added--annotated'
@@ -162,19 +184,22 @@ export default function DiffView( {
 										aria-label={ `${ __(
 											'Proposed text',
 											'plume'
-										) }: ${ block.addedText }` }
-									>
-										{ block.addedText }
-										{ isAnnotated && (
-											<span
-												className="plume-diff-badge"
-												aria-hidden="true"
-											>
-												<MessageSquare size={ 10 } />
-												{ blockComments.length }
-											</span>
-										) }
-									</p>
+										) }: ${ stripHtml(
+											block.addedText
+										) }` }
+										dangerouslySetInnerHTML={ {
+											__html: block.addedText,
+										} }
+									/>
+									{ isAnnotated && (
+										<span
+											className="plume-diff-badge"
+											aria-hidden="true"
+										>
+											<MessageSquare size={ 10 } />
+											{ blockComments.length }
+										</span>
+									) }
 									<CommentThread
 										diffBlockId={ block.id }
 										comments={ blockComments }

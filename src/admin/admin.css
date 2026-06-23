@@ -1176,9 +1176,9 @@
 	--diff-added-text: #166534;
 	--diff-annotated-bg: #fef9c3;
 	--diff-annotated-border: var(--color-warning);
-	--diff-revised-bg: #f0f6fc;
-	--diff-revised-border: #c2d8ed;
-	--drawer-resize-bg: #ebe9e4;
+	--diff-revised-bg: color-mix( in srgb, var(--wp-admin-theme-color, #3858e9) 8%, #fff );
+	--diff-revised-border: color-mix( in srgb, var(--wp-admin-theme-color, #3858e9) 30%, transparent );
+	--drawer-resize-bg: var(--color-border);
 	position: absolute;
 	top: 0;
 	bottom: 0;
@@ -1484,6 +1484,13 @@
 	margin: 0 0 var(--space-2);
 }
 
+.plume-diff-block__unchanged > *,
+.plume-diff-block__removed > *,
+.plume-diff-added > * {
+	margin: 0;
+	line-height: inherit;
+}
+
 .plume-diff-block__removed {
 	background: var(--diff-removed-bg);
 	border-left: 3px solid var(--diff-removed-border);
@@ -1497,6 +1504,7 @@
 }
 
 .plume-diff-block__added-wrapper {
+	position: relative;
 	margin-bottom: var(--space-2);
 }
 
@@ -1585,7 +1593,7 @@
 }
 
 .plume-comment-thread__body--open {
-	max-height: 600px;
+	max-height: 4000px;
 }
 
 @media ( prefers-reduced-motion: reduce ) {
@@ -1650,6 +1658,38 @@
 	display: flex;
 	gap: var(--space-2);
 	margin-top: var(--space-2);
+}
+
+/* "Back to plan" link row in diff states */
+.plume-review-drawer__back {
+	padding: var(--space-2) var(--space-4) 0 18px;
+	flex-shrink: 0;
+}
+
+/* Plan summary — Markdown content of the AI's proposed changes */
+.plume-plan-summary {
+	font-size: var(--text-base);
+	line-height: 1.7;
+	color: var(--color-text-primary);
+	padding: var(--space-4) 0;
+}
+
+.plume-plan-summary > * + * {
+	margin-top: var(--space-3);
+}
+
+.plume-plan-summary > *:first-child {
+	margin-top: 0;
+}
+
+.plume-plan-summary ul,
+.plume-plan-summary ol {
+	padding-left: var(--space-5);
+}
+
+/* Apply-success "View post" link in the chat bubble */
+.plume-bubble__apply-success {
+	padding: var(--space-2) var(--space-4) var(--space-3);
 }
 
 /* Small button variants used inside the drawer */

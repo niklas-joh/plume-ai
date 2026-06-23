@@ -1,32 +1,100 @@
+import { marked } from 'marked';
+
 /**
  * Paragraph-level diff between two text strings.
  *
- * Splits both texts on double-newline boundaries (matching WordPress block
- * editor paragraph separators), runs an LCS algorithm, then groups consecutive
- * removed+added pairs into DiffBlock objects suitable for the ReviewDrawer.
+ * Normalises both sides to a common HTML representation before diffing:
+ * the old text (WordPress block markup) has block comment delimiters stripped;
+ * the new text (Markdown from the AI plan) is converted to HTML via `marked`.
+ * Each top-level block element becomes one unit in the LCS comparison.
  *
- * @param {string} oldText  Current post content (raw, may contain HTML).
- * @param {string} newText  Proposed post content from the AI plan.
+ * @param {string} oldText  Current post content (raw WordPress block markup).
+ * @param {string} newText  Proposed post content from the AI plan (Markdown).
  * @return {Array<{id: string, unchanged: string[], removedText: string|null, addedText: string|null}>}
  */
 export function computeDiff( oldText, newText ) {
-	const oldParas = splitParagraphs( oldText );
-	const newParas = splitParagraphs( newText );
-
-	const ops = lcs( oldParas, newParas );
+	const oldHtml = stripBlockMarkup( oldText );
+	const newHtml = marked.parse( newText );
+	const oldBlocks = htmlToBlocks( oldHtml );
+	const newBlocks = htmlToBlocks( newHtml );
+	const ops = lcs( oldBlocks, newBlocks );
 	return groupOps( ops );
 }
 
 // ---------------------------------------------------------------------------
-// Internal helpers
+// Normalisation helpers
 // ---------------------------------------------------------------------------
 
-function splitParagraphs( text ) {
-	return text
-		.split( /\n\n+/ )
-		.map( ( p ) => p.trim() )
+/**
+ * Strips WordPress block comment delimiters, leaving clean inner HTML.
+ *
+ * @param {string} raw  Raw WordPress post content.
+ * @return {string}
+ */
+function stripBlockMarkup( raw ) {
+	return raw.replace( /<!--\s*\/?wp:[^>]*?-->/g, '' ).trim();
+}
+
+/**
+ * Splits an HTML string into individual block-level elements.
+ *
+ * Uses the DOM when available (browser environment) so each `<p>`, `<h2>`,
+ * `<ul>`, etc. becomes one diffable unit. Falls back to double-newline
+ * splitting for server-side or test environments.
+ *
+ * @param {string} html  HTML string to split.
+ * @return {string[]}    Array of `outerHTML` strings for each block element.
+ */
+function htmlToBlocks( html ) {
+	if ( typeof document === 'undefined' ) {
+		return html
+			.split( /\n\n+/ )
+			.map( ( p ) => p.trim() )
+			.filter( Boolean );
+	}
+	const el = document.createElement( 'div' );
+	el.innerHTML = html;
+	return Array.from( el.children )
+		.map( ( node ) => node.outerHTML )
 		.filter( Boolean );
 }
+
+/**
+ * Reduces an HTML block to a normalised tag+text key for LCS equality checks.
+ *
+ * Compares by tag name and text content, ignoring attributes (e.g. WP adds
+ * class="wp-block-heading" that Markdown output lacks). Two blocks are
+ * considered equal when they represent the same semantic element with the
+ * same text.
+ *
+ * @param {string} html  outerHTML of a single block element.
+ * @return {string}
+ */
+function normalizeForComparison( html ) {
+	if ( typeof document !== 'undefined' ) {
+		const div = document.createElement( 'div' );
+		div.innerHTML = html;
+		const el = div.firstElementChild;
+		if ( el ) {
+			const tag = el.tagName.toLowerCase();
+			const text = el.textContent
+				.replace( /\s+/g, ' ' )
+				.trim()
+				.toLowerCase();
+			return `${ tag }:${ text }`;
+		}
+		return div.textContent.replace( /\s+/g, ' ' ).trim().toLowerCase();
+	}
+	return html
+		.replace( /<[^>]*>/g, '' )
+		.replace( /\s+/g, ' ' )
+		.trim()
+		.toLowerCase();
+}
+
+// ---------------------------------------------------------------------------
+// Internal diff helpers
+// ---------------------------------------------------------------------------
 
 /**
  * Compute edit ops via LCS.
@@ -47,7 +115,8 @@ function lcs( oldParas, newParas ) {
 	for ( let i = 1; i <= m; i++ ) {
 		for ( let j = 1; j <= n; j++ ) {
 			dp[ i ][ j ] =
-				oldParas[ i - 1 ] === newParas[ j - 1 ]
+				normalizeForComparison( oldParas[ i - 1 ] ) ===
+				normalizeForComparison( newParas[ j - 1 ] )
 					? dp[ i - 1 ][ j - 1 ] + 1
 					: Math.max( dp[ i - 1 ][ j ], dp[ i ][ j - 1 ] );
 		}
@@ -58,7 +127,12 @@ function lcs( oldParas, newParas ) {
 	let i = m;
 	let j = n;
 	while ( i > 0 || j > 0 ) {
-		if ( i > 0 && j > 0 && oldParas[ i - 1 ] === newParas[ j - 1 ] ) {
+		if (
+			i > 0 &&
+			j > 0 &&
+			normalizeForComparison( oldParas[ i - 1 ] ) ===
+				normalizeForComparison( newParas[ j - 1 ] )
+		) {
 			ops.unshift( { type: 'equal', text: oldParas[ i - 1 ] } );
 			i--;
 			j--;

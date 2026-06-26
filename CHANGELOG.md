@@ -1,3 +1,9 @@
+## [1.10.3](https://github.com/niklas-joh/plume-ai/compare/v1.10.2...v1.10.3) (2026-06-26)
+
+### Bug Fixes
+
+* **readme:** fix Contributors username and add Development section ([#836](https://github.com/niklas-joh/plume-ai/issues/836)) ([5ff3a9b](https://github.com/niklas-joh/plume-ai/commit/5ff3a9bcb99a83db3bca39b9fc8adc77d5be75d3)), closes [#832](https://github.com/niklas-joh/plume-ai/issues/832) [#833](https://github.com/niklas-joh/plume-ai/issues/833)
+
 ## [1.10.2](https://github.com/niklas-joh/plume-ai/compare/v1.10.1...v1.10.2) (2026-06-21)
 
 ### Bug Fixes

@@ -3,7 +3,7 @@
  * Plugin Name:       Plume
  * Plugin URI:        https://wpaimind.com
  * Description:       AI-powered writing, image generation, and content design tools for WordPress.
- * Version:           1.10.2
+ * Version:           1.10.3
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            Niklas Johansson
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Composer autoloader — loads Plume classes via PSR-4.
 require_once __DIR__ . '/vendor/autoload.php';
 
-define( 'PLUME_VERSION', '1.10.2' );
+define( 'PLUME_VERSION', '1.10.3' );
 define( 'PLUME_FILE', __FILE__ );
 define( 'PLUME_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PLUME_URL', plugin_dir_url( __FILE__ ) );

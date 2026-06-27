@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { createHmac } from 'crypto';
 import worker from '../src/index';
 import { makeEnv } from './helpers/kv-mock';
+import { currentMonthKey } from './helpers/month';
 import type { SiteRecord } from '../src/types';
 
 const TEST_TOKEN =
@@ -293,10 +294,7 @@ describe( '/dev/reset-usage', () => {
 		const env = makeDevEnv();
 		await seedSite( env );
 
-		const now = new Date();
-		const month = `${ now.getFullYear() }-${ String(
-			now.getMonth() + 1
-		).padStart( 2, '0' ) }`;
+		const month = currentMonthKey();
 		await env.USAGE_KV.put( `usage:${ TEST_TOKEN }:${ month }`, '95' );
 
 		const body = '{}';

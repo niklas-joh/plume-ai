@@ -3,6 +3,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import worker from '../src/index';
 import { makeEnv } from './helpers/kv-mock';
+import { currentMonthKey } from './helpers/month';
 import {
 	chatCredits,
 	GENERATOR_CREDITS,
@@ -49,11 +50,9 @@ function makeChatRequest( body = VALID_BODY ) {
 async function getStoredUsage(
 	env: ReturnType< typeof makeEnv >
 ): Promise< number > {
-	const month =
-		new Date().getFullYear() +
-		'-' +
-		String( new Date().getMonth() + 1 ).padStart( 2, '0' );
-	const stored = await env.USAGE_KV.get( `usage:${ TEST_TOKEN }:${ month }` );
+	const stored = await env.USAGE_KV.get(
+		`usage:${ TEST_TOKEN }:${ currentMonthKey() }`
+	);
 	return Number( stored );
 }
 
@@ -83,12 +82,8 @@ describe( 'handleChatProxy', () => {
 		const env = await makeEnvWithSiteToken( 'pro_byok' );
 		await worker.fetch( makeChatRequest(), env );
 
-		const month =
-			new Date().getFullYear() +
-			'-' +
-			String( new Date().getMonth() + 1 ).padStart( 2, '0' );
 		const stored = await env.USAGE_KV.get(
-			`usage:${ TEST_TOKEN }:${ month }`
+			`usage:${ TEST_TOKEN }:${ currentMonthKey() }`
 		);
 		expect( stored ).toBeNull();
 	} );
@@ -735,11 +730,10 @@ describe( 'handleChatProxy', () => {
 
 	it( 'returns 429 once monthly credit allowance is exhausted for a free-tier site', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
-		const month =
-			new Date().getFullYear() +
-			'-' +
-			String( new Date().getMonth() + 1 ).padStart( 2, '0' );
-		await env.USAGE_KV.put( `usage:${ TEST_TOKEN }:${ month }`, '100' );
+		await env.USAGE_KV.put(
+			`usage:${ TEST_TOKEN }:${ currentMonthKey() }`,
+			'100'
+		);
 
 		const response = await worker.fetch( makeChatRequest(), env );
 		expect( response.status ).toBe( 429 );
@@ -757,11 +751,10 @@ describe( 'handleChatProxy', () => {
 
 	it( 'returns 429 once monthly credit allowance is exhausted for a pro_managed-tier site', async () => {
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
-		const month =
-			new Date().getFullYear() +
-			'-' +
-			String( new Date().getMonth() + 1 ).padStart( 2, '0' );
-		await env.USAGE_KV.put( `usage:${ TEST_TOKEN }:${ month }`, '500' );
+		await env.USAGE_KV.put(
+			`usage:${ TEST_TOKEN }:${ currentMonthKey() }`,
+			'500'
+		);
 
 		const response = await worker.fetch( makeChatRequest(), env );
 		expect( response.status ).toBe( 429 );
@@ -779,11 +772,7 @@ describe( 'handleChatProxy', () => {
 
 	it( 'allows a request at used = limit-1, then blocks the next one at used = limit', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
-		const month =
-			new Date().getFullYear() +
-			'-' +
-			String( new Date().getMonth() + 1 ).padStart( 2, '0' );
-		const usageKey = `usage:${ TEST_TOKEN }:${ month }`;
+		const usageKey = `usage:${ TEST_TOKEN }:${ currentMonthKey() }`;
 		await env.USAGE_KV.put( usageKey, '99' );
 
 		vi.stubGlobal(

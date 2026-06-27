@@ -5,11 +5,18 @@ export const SEO_CREDITS = 1;
 export const IMAGE_CREDITS = 15;
 
 /**
+ * Weighted tokens that map to a single chat credit. Deliberately mirrors the
+ * free-tier MAX_TOKENS (2_000) in index.ts so the relationship between the
+ * per-call token cap and one credit is explicit and tunable in one place.
+ */
+export const TOKENS_PER_CREDIT = 2000;
+
+/**
  * Computes the credit cost of a single chat completion, scaled by total token
  * volume and the model's relative weight (the existing per-model weight table
  * resolved by index.ts's getModelConfig(), not redefined here).
  *
- * Formula: ceil((inputTokens + outputTokens) * weight / 2000).
+ * Formula: ceil((inputTokens + outputTokens) * weight / TOKENS_PER_CREDIT).
  *
  * @since NEXT_VERSION
  * @param {number} inputTokens  Actual input token count returned by the provider for this call.
@@ -22,5 +29,7 @@ export function chatCredits(
 	outputTokens: number,
 	weight: number
 ): number {
-	return Math.ceil( ( inputTokens + outputTokens ) * weight / 2000 );
+	return Math.ceil(
+		( ( inputTokens + outputTokens ) * weight ) / TOKENS_PER_CREDIT
+	);
 }

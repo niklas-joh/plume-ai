@@ -18,6 +18,17 @@ import { chatCredits, GENERATOR_CREDITS, SEO_CREDITS, IMAGE_CREDITS } from './cr
 
 const MAX_BODY_BYTES = 1_048_576; // 1 MB
 
+// Flat per-call credit cost for non-chat features. Chat is special-cased
+// (token-weighted) in handleChatProxy; everything else is a fixed lookup.
+const FLAT_FEATURE_CREDITS: Record<
+	Exclude< ProxyRequest[ 'feature' ], 'chat' >,
+	number
+> = {
+	generator: GENERATOR_CREDITS,
+	seo: SEO_CREDITS,
+	images: IMAGE_CREDITS,
+};
+
 type Provider = 'claude' | 'openai' | 'gemini';
 
 // Fallback model lists used when no config:models entry exists in USAGE_KV.
@@ -490,6 +501,14 @@ const DEV_TIMESTAMP_WINDOW_S = 60;
 /** Valid tier values accepted by /dev/set-tier. */
 const VALID_TIERS: SiteTier[] = [ 'free', 'pro_managed', 'pro_byok' ];
 
+/** Valid feature values accepted by /v1/chat — kept in lockstep with ProxyRequest['feature']. */
+const VALID_FEATURES: ProxyRequest[ 'feature' ][] = [
+	'chat',
+	'generator',
+	'seo',
+	'images',
+];
+
 type DevAuthResult =
 	| { authenticated: true; site_token: string; record: SiteRecord }
 	| { authenticated: false; error: string; status: number };
@@ -708,7 +727,6 @@ async function handleChatProxy(
 		}
 
 		const body = JSON.parse( bodyText ) as ProxyRequest;
-		const VALID_FEATURES = [ 'chat', 'generator', 'seo', 'images' ] as const;
 		if ( ! body.feature || ! VALID_FEATURES.includes( body.feature ) ) {
 			return jsonResponse(
 				{ error: 'Missing or invalid feature — must be one of: chat, generator, seo, images' },
@@ -804,12 +822,8 @@ async function handleChatProxy(
 				normalized.usage.output_tokens,
 				weight
 			);
-		} else if ( feature === 'generator' ) {
-			creditsCharged = GENERATOR_CREDITS;
-		} else if ( feature === 'seo' ) {
-			creditsCharged = SEO_CREDITS;
 		} else {
-			creditsCharged = IMAGE_CREDITS;
+			creditsCharged = FLAT_FEATURE_CREDITS[ feature ];
 		}
 		await updateUsage( siteToken, creditsCharged, env );
 

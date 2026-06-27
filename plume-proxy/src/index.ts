@@ -14,17 +14,18 @@ import { authenticateRequest, generateToken } from './auth';
 import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
 import { verifyHmac } from './signature';
-import { TRIAL_PERIOD_MS } from './constants';
+import { chatCredits, GENERATOR_CREDITS, SEO_CREDITS, IMAGE_CREDITS } from './credits';
 
 const MAX_BODY_BYTES = 1_048_576; // 1 MB
 
 type Provider = 'claude' | 'openai' | 'gemini';
 
 // Fallback model lists used when no config:models entry exists in USAGE_KV.
+// `free` carries only Claude Haiku — gpt-4.1-nano is deliberately not added
+// (its weight is undefined, tracked in issue #856).
 const DEFAULT_TIER_MODELS: Record< Provider, Record< ProxyTier, string[] > > = {
 	claude: {
 		free: [ 'claude-haiku-4-5-20251001' ],
-		trial: [ 'claude-haiku-4-5-20251001' ],
 		pro_managed: [
 			'claude-haiku-4-5-20251001',
 			'claude-sonnet-4-6',
@@ -32,27 +33,24 @@ const DEFAULT_TIER_MODELS: Record< Provider, Record< ProxyTier, string[] > > = {
 		],
 	},
 	openai: {
-		free: [ 'gpt-4o-mini' ],
-		trial: [ 'gpt-4o-mini' ],
-		pro_managed: [ 'gpt-4o-mini', 'gpt-4o' ],
+		free: [],
+		pro_managed: [ 'gpt-4.1' ],
 	},
 	gemini: {
-		free: [ 'gemini-2.5-flash' ],
-		trial: [ 'gemini-2.5-flash' ],
-		pro_managed: [ 'gemini-2.5-flash', 'gemini-2.5-pro' ],
+		free: [],
+		pro_managed: [ 'gemini-3.5-flash', 'gemini-3.1-pro' ],
 	},
 };
 
 // Fallback token weights — relative cost multipliers applied to raw token counts
-// before storing in the usage KV, so quota enforcement is provider/model-agnostic.
+// before computing credits, so quota enforcement is provider/model-agnostic.
 const DEFAULT_MODEL_TOKEN_WEIGHT: Record< string, number > = {
 	'claude-haiku-4-5-20251001': 1,
 	'claude-sonnet-4-6': 3,
 	'claude-opus-4-6': 5,
-	'gpt-4o-mini': 1,
-	'gpt-4o': 10,
-	'gemini-2.5-flash': 1,
-	'gemini-2.5-pro': 5,
+	'gpt-4.1': 2,
+	'gemini-3.5-flash': 2,
+	'gemini-3.1-pro': 2,
 };
 
 /**
@@ -490,7 +488,7 @@ async function handleRotateSecret(
 const DEV_TIMESTAMP_WINDOW_S = 60;
 
 /** Valid tier values accepted by /dev/set-tier. */
-const VALID_TIERS: SiteTier[] = [ 'free', 'trial', 'pro_managed', 'pro_byok' ];
+const VALID_TIERS: SiteTier[] = [ 'free', 'pro_managed', 'pro_byok' ];
 
 type DevAuthResult =
 	| { authenticated: true; site_token: string; record: SiteRecord }
@@ -620,7 +618,7 @@ async function handleDevSetTier(
 }
 
 /**
- * Zero out this month's usage counter for the authenticated site.
+ * Zero out this month's credit counter for the authenticated site.
  *
  * @param {Request} request Incoming Worker request.
  * @param {Env}     env     Worker environment bindings.
@@ -645,8 +643,9 @@ async function handleDevResetUsage(
 }
 
 /**
- * Set this month's usage counter to an explicit value for the authenticated site.
- * Pass the tier's monthly limit to simulate a fully-exhausted quota.
+ * Set this month's credit counter to an explicit value for the authenticated site.
+ * Pass the tier's monthly limit (free=100, pro_managed=500) to simulate a
+ * fully-exhausted quota.
  *
  * @param {Request} request Incoming Worker request.
  * @param {Env}     env     Worker environment bindings.
@@ -709,6 +708,15 @@ async function handleChatProxy(
 		}
 
 		const body = JSON.parse( bodyText ) as ProxyRequest;
+		const VALID_FEATURES = [ 'chat', 'generator', 'seo', 'images' ] as const;
+		if ( ! body.feature || ! VALID_FEATURES.includes( body.feature ) ) {
+			return jsonResponse(
+				{ error: 'Missing or invalid feature — must be one of: chat, generator, seo, images' },
+				400
+			);
+		}
+		const { feature } = body;
+
 		const { model, max_tokens: maxTokens } = body;
 		const { site_token: siteToken, tier } = auth;
 
@@ -729,20 +737,7 @@ async function handleChatProxy(
 			);
 		}
 
-		// Lazily downgrade expired trials to free without blocking the request.
-		let effectiveTier = tier as ProxyTier;
-		if ( effectiveTier === 'trial' && auth.record ) {
-			const startedAt =
-				auth.record.trial_started_at ?? auth.record.created_at;
-			if ( Date.now() - startedAt > TRIAL_PERIOD_MS ) {
-				const demoted: SiteRecord = { ...auth.record, tier: 'free' };
-				await env.USAGE_KV.put(
-					`site:${ siteToken }`,
-					JSON.stringify( demoted )
-				);
-				effectiveTier = 'free';
-			}
-		}
+		const effectiveTier = tier as ProxyTier;
 
 		const rateLimitCheck = await checkRateLimit(
 			siteToken,
@@ -796,10 +791,22 @@ async function handleChatProxy(
 			);
 		}
 
-		const weight = tokenWeights[ selectedModel ] ?? 1;
-		const rawTokens =
-			normalized.usage.input_tokens + normalized.usage.output_tokens;
-		await updateUsage( siteToken, rawTokens * weight, env );
+		let creditsCharged: number;
+		if ( feature === 'chat' ) {
+			const weight = tokenWeights[ selectedModel ] ?? 1;
+			creditsCharged = chatCredits(
+				normalized.usage.input_tokens,
+				normalized.usage.output_tokens,
+				weight
+			);
+		} else if ( feature === 'generator' ) {
+			creditsCharged = GENERATOR_CREDITS;
+		} else if ( feature === 'seo' ) {
+			creditsCharged = SEO_CREDITS;
+		} else {
+			creditsCharged = IMAGE_CREDITS;
+		}
+		await updateUsage( siteToken, creditsCharged, env );
 
 		const responseData: Record< string, unknown > = {
 			content: normalized.content,
@@ -812,20 +819,24 @@ async function handleChatProxy(
 	} catch ( error ) {
 		// eslint-disable-next-line no-console
 		console.error( 'Proxy error:', error );
-		return jsonResponse( { error: 'Internal proxy error' }, 500 );
+		const status = typeof ( error as { status?: number } )?.status === 'number'
+			? ( error as { status: number } ).status
+			: 500;
+		const message = status !== 500 && error instanceof Error ? error.message : 'Internal proxy error';
+		return jsonResponse( { error: message }, status );
 	}
 }
 
-// Mirrors NJ_Tier_Config::MONTHLY_LIMITS (PHP). Keep in sync.
-const MONTHLY_LIMITS: Record< ProxyTier, number > = {
-	free: 50_000,
-	trial: 300_000,
-	pro_managed: 2_000_000,
+// Worker is now authoritative for monthly allowances, expressed in credits
+// (not raw tokens). PR 2 will have the plugin fetch this from the Worker at
+// runtime rather than re-declaring it in PHP — see plan §3.3.
+const MONTHLY_CREDIT_LIMITS: Record< ProxyTier, number > = {
+	free: 100,
+	pro_managed: 500,
 };
 
 const MAX_TOKENS: Record< ProxyTier, number > = {
-	free: 1_000,
-	trial: 4_000,
+	free: 2_000,
 	pro_managed: 8_000,
 };
 
@@ -834,7 +845,7 @@ async function checkRateLimit(
 	tier: ProxyTier,
 	env: Env
 ): Promise< { allowed: boolean; used: number; limit: number } > {
-	const limit = MONTHLY_LIMITS[ tier ];
+	const limit = MONTHLY_CREDIT_LIMITS[ tier ];
 	const key = `usage:${ siteToken }:${ getCurrentMonth() }`;
 	const used = parseInt( ( await env.USAGE_KV.get( key ) ) ?? '0', 10 );
 	return { allowed: used < limit, used, limit };
@@ -842,17 +853,16 @@ async function checkRateLimit(
 
 async function updateUsage(
 	siteToken: string,
-	tokens: number,
+	credits: number,
 	env: Env
 ): Promise< void > {
 	const key = `usage:${ siteToken }:${ getCurrentMonth() }`;
 	// KV does not support atomic increments, so concurrent requests perform a
-	// non-atomic read-modify-write. Under burst load this can under-count tokens,
-	// meaning at most one extra request per concurrent burst slips past the monthly
-	// limit. Replace with a Durable Object counter (tracked in issue #312) to make
-	// enforcement fully atomic.
+	// non-atomic read-modify-write. Under burst load this can under-count credits.
+	// Replace with a Durable Object counter (tracked in issue #312) to make
+	// enforcement fully atomic. NOT fixed by this migration — see risk list.
 	const current = parseInt( ( await env.USAGE_KV.get( key ) ) ?? '0', 10 );
-	await env.USAGE_KV.put( key, String( current + tokens ), {
+	await env.USAGE_KV.put( key, String( current + credits ), {
 		expirationTtl: getSecondsUntilNextMonth(),
 	} );
 }
@@ -866,6 +876,12 @@ function getModelForTier(
 	const allowed =
 		tierModels[ provider ]?.[ tier ] ??
 		DEFAULT_TIER_MODELS[ provider ][ tier ];
+	if ( allowed.length === 0 ) {
+		throw Object.assign(
+			new Error( `No ${ provider } models available for tier ${ tier }` ),
+			{ status: 400 }
+		);
+	}
 	if ( requestedModel && allowed.includes( requestedModel ) ) {
 		return requestedModel;
 	}

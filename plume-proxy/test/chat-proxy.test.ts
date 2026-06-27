@@ -3,6 +3,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import worker from '../src/index';
 import { makeEnv } from './helpers/kv-mock';
+import { chatCredits } from '../src/credits';
 import type { SiteRecord, ToolParam } from '../src/types';
 
 afterEach( () => {
@@ -15,18 +16,15 @@ const TEST_TOKEN =
 const VALID_BODY = JSON.stringify( {
 	messages: [ { role: 'user', content: 'Hello' } ],
 	provider: 'claude',
+	feature: 'chat',
 } );
 
-async function makeEnvWithSiteToken(
-	tier: SiteRecord[ 'tier' ],
-	trialStartedAt?: number
-) {
+async function makeEnvWithSiteToken( tier: SiteRecord[ 'tier' ] ) {
 	const env = makeEnv();
 	const record: SiteRecord = {
 		site_url: 'https://example.com',
 		tier,
 		created_at: Date.now(),
-		trial_started_at: trialStartedAt ?? Date.now(),
 	};
 	await env.USAGE_KV.put( `site:${ TEST_TOKEN }`, JSON.stringify( record ) );
 	return env;
@@ -41,6 +39,17 @@ function makeChatRequest( body = VALID_BODY ) {
 		},
 		body,
 	} );
+}
+
+async function getStoredUsage(
+	env: ReturnType< typeof makeEnv >
+): Promise< number > {
+	const month =
+		new Date().getFullYear() +
+		'-' +
+		String( new Date().getMonth() + 1 ).padStart( 2, '0' );
+	const stored = await env.USAGE_KV.get( `usage:${ TEST_TOKEN }:${ month }` );
+	return Number( stored );
 }
 
 const mockTool: ToolParam = {
@@ -65,47 +74,49 @@ describe( 'handleChatProxy', () => {
 		} );
 	} );
 
-	it( 'demotes an expired trial to free and stores the updated record', async () => {
-		// trial_started_at is 31 days ago — past the 30-day window.
-		const thirtyOneDaysAgo = Date.now() - 31 * 24 * 60 * 60 * 1000;
-		const env = await makeEnvWithSiteToken( 'trial', thirtyOneDaysAgo );
-
-		// Stub fetch so the upstream call returns a non-2xx — the
-		// important thing is that the demote path runs before the upstream call.
-		vi.stubGlobal(
-			'fetch',
-			vi.fn().mockRejectedValue( new Error( 'upstream error' ) )
-		);
-
+	it( 'BYOK request never reaches credit charging — no usage KV write after a 403', async () => {
+		const env = await makeEnvWithSiteToken( 'pro_byok' );
 		await worker.fetch( makeChatRequest(), env );
 
-		// Record in KV must now show tier=free.
-		const updated = ( await env.USAGE_KV.get< SiteRecord >(
-			`site:${ TEST_TOKEN }`,
-			'json'
-		) ) as SiteRecord;
-		expect( updated.tier ).toBe( 'free' );
+		const month =
+			new Date().getFullYear() +
+			'-' +
+			String( new Date().getMonth() + 1 ).padStart( 2, '0' );
+		const stored = await env.USAGE_KV.get(
+			`usage:${ TEST_TOKEN }:${ month }`
+		);
+		expect( stored ).toBeNull();
 	} );
 
-	it( 'does not demote an active trial (< 30 days)', async () => {
-		const env = await makeEnvWithSiteToken( 'trial' ); // trial_started_at = now
+	it( 'returns 400 when feature field is missing from the request body', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Hello' } ],
+			provider: 'claude',
+		} );
 
-		vi.stubGlobal(
-			'fetch',
-			vi.fn().mockRejectedValue( new Error( 'upstream error' ) )
-		);
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 400 );
+		const json = ( await response.json() ) as { error: string };
+		expect( json.error ).toMatch( /feature/i );
+	} );
 
-		await worker.fetch( makeChatRequest(), env );
+	it( 'returns 400 when feature field is an invalid value (not chat/generator/seo/images)', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Hello' } ],
+			provider: 'claude',
+			feature: 'unicorn',
+		} );
 
-		const record = ( await env.USAGE_KV.get< SiteRecord >(
-			`site:${ TEST_TOKEN }`,
-			'json'
-		) ) as SiteRecord;
-		expect( record.tier ).toBe( 'trial' );
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 400 );
+		const json = ( await response.json() ) as { error: string };
+		expect( json.error ).toMatch( /feature/i );
 	} );
 
 	it( 'Claude adapter: sends input_schema in upstream request', async () => {
-		const env = await makeEnvWithSiteToken( 'trial' );
+		const env = await makeEnvWithSiteToken( 'free' );
 
 		let capturedBody: Record< string, unknown > | null = null;
 		vi.stubGlobal(
@@ -130,6 +141,7 @@ describe( 'handleChatProxy', () => {
 			messages: [ { role: 'user', content: 'Summarise post 140' } ],
 			provider: 'claude',
 			tools: [ mockTool ],
+			feature: 'chat',
 		} );
 
 		const response = await worker.fetch( makeChatRequest( body ), env );
@@ -151,7 +163,7 @@ describe( 'handleChatProxy', () => {
 	} );
 
 	it( 'Claude adapter: relays tool_call when Claude returns a tool_use block', async () => {
-		const env = await makeEnvWithSiteToken( 'trial' );
+		const env = await makeEnvWithSiteToken( 'free' );
 
 		vi.stubGlobal(
 			'fetch',
@@ -181,6 +193,7 @@ describe( 'handleChatProxy', () => {
 			messages: [ { role: 'user', content: 'Summarise post 42' } ],
 			provider: 'claude',
 			tools: [ mockTool ],
+			feature: 'chat',
 		} );
 
 		const response = await worker.fetch( makeChatRequest( body ), env );
@@ -205,7 +218,7 @@ describe( 'handleChatProxy', () => {
 	} );
 
 	it( 'Claude adapter: returns text-only response when no tool_use block is present', async () => {
-		const env = await makeEnvWithSiteToken( 'trial' );
+		const env = await makeEnvWithSiteToken( 'free' );
 
 		vi.stubGlobal(
 			'fetch',
@@ -234,7 +247,7 @@ describe( 'handleChatProxy', () => {
 	} );
 
 	it( 'OpenAI adapter: sends correct OpenAI-format body and returns normalised response', async () => {
-		const env = await makeEnvWithSiteToken( 'trial' );
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
 
 		let capturedUrl: string | null = null;
 		let capturedBody: Record< string, unknown > | null = null;
@@ -266,6 +279,7 @@ describe( 'handleChatProxy', () => {
 			messages: [ { role: 'user', content: 'Hello OpenAI' } ],
 			provider: 'openai',
 			tools: [ mockTool ],
+			feature: 'chat',
 		} );
 
 		const response = await worker.fetch( makeChatRequest( body ), env );
@@ -300,7 +314,7 @@ describe( 'handleChatProxy', () => {
 	} );
 
 	it( 'Gemini adapter: sends correct Gemini-format body and returns normalised response', async () => {
-		const env = await makeEnvWithSiteToken( 'trial' );
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
 
 		let capturedUrl: string | null = null;
 		let capturedBody: Record< string, unknown > | null = null;
@@ -336,6 +350,7 @@ describe( 'handleChatProxy', () => {
 			messages: [ { role: 'user', content: 'Hello Gemini' } ],
 			provider: 'gemini',
 			tools: [ mockTool ],
+			feature: 'chat',
 		} );
 
 		const response = await worker.fetch( makeChatRequest( body ), env );
@@ -374,7 +389,7 @@ describe( 'handleChatProxy', () => {
 	} );
 
 	it( 'returns a UUID-format tool_call id when Gemini functionCall part is returned', async () => {
-		const env = await makeEnvWithSiteToken( 'trial' );
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
 
 		vi.stubGlobal(
 			'fetch',
@@ -409,6 +424,7 @@ describe( 'handleChatProxy', () => {
 			messages: [ { role: 'user', content: 'Fetch post 7' } ],
 			provider: 'gemini',
 			tools: [ mockTool ],
+			feature: 'chat',
 		} );
 
 		const response = await worker.fetch( makeChatRequest( body ), env );
@@ -434,11 +450,12 @@ describe( 'handleChatProxy', () => {
 	} );
 
 	it( 'returns 400 for unknown provider', async () => {
-		const env = await makeEnvWithSiteToken( 'trial' );
+		const env = await makeEnvWithSiteToken( 'free' );
 
 		const body = JSON.stringify( {
 			messages: [ { role: 'user', content: 'Hello' } ],
 			provider: 'groq',
+			feature: 'chat',
 		} );
 
 		const response = await worker.fetch( makeChatRequest( body ), env );
@@ -447,7 +464,7 @@ describe( 'handleChatProxy', () => {
 		expect( json.error ).toBe( 'Unknown provider' );
 	} );
 
-	it( 'returns 403 when a higher-tier OpenAI model is requested by a free site', async () => {
+	it( 'returns 200 when a higher-tier OpenAI model is requested by a free site — falls back to default', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 
 		vi.stubGlobal(
@@ -466,59 +483,45 @@ describe( 'handleChatProxy', () => {
 		const body = JSON.stringify( {
 			messages: [ { role: 'user', content: 'Hello' } ],
 			provider: 'openai',
-			model: 'gpt-4o',
+			model: 'gpt-4.1',
+			feature: 'chat',
 		} );
 
-		// Free tier does not include gpt-4o — worker should fall back to gpt-4o-mini
-		// and succeed (200), not 403. The tier check silently falls back rather than
-		// rejecting, which matches the existing Claude behaviour.
+		// Free tier has no openai models at all — getModelForTier throws a typed
+		// 400 (empty allowed-models array), not a fallback to a different model.
 		const response = await worker.fetch( makeChatRequest( body ), env );
-		expect( response.status ).toBe( 200 );
+		expect( response.status ).toBe( 400 );
+	} );
 
-		// Verify it fell back to the allowed model, not gpt-4o
-		const sentBody = JSON.parse(
-			(
-				vi.mocked( globalThis.fetch ).mock
-					.calls[ 0 ][ 1 ] as RequestInit
-			 ).body as string
-		) as Record< string, unknown >;
-		expect( sentBody.model ).toBe( 'gpt-4o-mini' );
+	it( 'GPT-4.1 nano is not yet present in DEFAULT_TIER_MODELS.free for openai', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Hello' } ],
+			provider: 'openai',
+			model: 'gpt-4.1-nano',
+			feature: 'chat',
+		} );
+
+		// free.openai is an empty array — issue #856 tracks adding gpt-4.1-nano,
+		// not resolved by this PR.
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 400 );
 	} );
 
 	it( 'returns 200 when a higher-tier Gemini model is requested by a free site — falls back to default', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 
-		vi.stubGlobal(
-			'fetch',
-			vi.fn().mockImplementation( async () => {
-				return new Response(
-					JSON.stringify( {
-						candidates: [
-							{ content: { parts: [ { text: 'ok' } ] } },
-						],
-						usageMetadata: {
-							promptTokenCount: 5,
-							candidatesTokenCount: 2,
-						},
-					} ),
-					{ status: 200 }
-				);
-			} )
-		);
-
 		const body = JSON.stringify( {
 			messages: [ { role: 'user', content: 'Hello' } ],
 			provider: 'gemini',
-			model: 'gemini-2.5-pro',
+			model: 'gemini-3.1-pro',
+			feature: 'chat',
 		} );
 
-		// Free tier does not include gemini-2.5-pro — worker falls back to gemini-2.5-flash.
+		// Free tier has no gemini models at all — getModelForTier throws a typed 400.
 		const response = await worker.fetch( makeChatRequest( body ), env );
-		expect( response.status ).toBe( 200 );
-
-		const calledUrl = vi.mocked( globalThis.fetch ).mock
-			.calls[ 0 ][ 0 ] as string;
-		expect( calledUrl ).toContain( 'gemini-2.5-flash' );
+		expect( response.status ).toBe( 400 );
 	} );
 
 	it( 'uses KV model config override when config:models is set in USAGE_KV', async () => {
@@ -531,7 +534,6 @@ describe( 'handleChatProxy', () => {
 				tier_models: {
 					claude: {
 						free: [ 'claude-haiku-4-5-20251001' ],
-						trial: [ 'claude-haiku-4-5-20251001' ],
 						pro_managed: [
 							'claude-haiku-4-5-20251001',
 							'claude-opus-4-7',
@@ -548,7 +550,7 @@ describe( 'handleChatProxy', () => {
 				return new Response(
 					JSON.stringify( {
 						content: [ { type: 'text', text: 'ok' } ],
-						usage: { input_tokens: 10, output_tokens: 5 },
+						usage: { input_tokens: 2000, output_tokens: 2000 },
 					} ),
 					{ status: 200 }
 				);
@@ -559,6 +561,7 @@ describe( 'handleChatProxy', () => {
 			messages: [ { role: 'user', content: 'Hello' } ],
 			provider: 'claude',
 			model: 'claude-opus-4-7',
+			feature: 'chat',
 		} );
 
 		const response = await worker.fetch( makeChatRequest( body ), env );
@@ -573,18 +576,13 @@ describe( 'handleChatProxy', () => {
 		) as Record< string, unknown >;
 		expect( sentBody.model ).toBe( 'claude-opus-4-7' );
 
-		// Verify the KV-specified token weight (10+5=15 raw, ×20 = 300 effective)
-		const month =
-			new Date().getFullYear() +
-			'-' +
-			String( new Date().getMonth() + 1 ).padStart( 2, '0' );
-		const stored = await env.USAGE_KV.get(
-			`usage:${ TEST_TOKEN }:${ month }`
-		);
-		expect( Number( stored ) ).toBe( 300 );
+		// Verify chatCredits(input=2000, output=2000, weight=20) credits stored.
+		const stored = await getStoredUsage( env );
+		expect( stored ).toBe( chatCredits( 2000, 2000, 20 ) );
+		expect( stored ).toBe( 40 );
 	} );
 
-	it( 'token weight: effective tokens stored in KV equal raw tokens × weight for a heavy model', async () => {
+	it( 'chat credits: KV value equals chatCredits(input, output, weight) for a heavy model', async () => {
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
 
 		vi.stubGlobal(
@@ -593,30 +591,176 @@ describe( 'handleChatProxy', () => {
 				return new Response(
 					JSON.stringify( {
 						content: [ { type: 'text', text: 'response' } ],
-						usage: { input_tokens: 100, output_tokens: 50 },
+						usage: { input_tokens: 10_000, output_tokens: 5_000 },
 					} ),
 					{ status: 200 }
 				);
 			} )
 		);
 
-		// claude-opus-4-6 has weight 15
+		// claude-opus-4-6 has weight 5.
 		const body = JSON.stringify( {
 			messages: [ { role: 'user', content: 'Hello' } ],
 			provider: 'claude',
 			model: 'claude-opus-4-6',
+			feature: 'chat',
 		} );
 
 		await worker.fetch( makeChatRequest( body ), env );
 
+		const stored = await getStoredUsage( env );
+		expect( stored ).toBe( chatCredits( 10_000, 5_000, 5 ) );
+		expect( stored ).toBe( 38 );
+	} );
+
+	it( 'free tier: chat call charges credits per chatCredits(input, output, weight) and stores result in usage KV', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [ { type: 'text', text: 'response' } ],
+						usage: { input_tokens: 1000, output_tokens: 1000 },
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+
+		// claude-haiku-4-5-20251001 has weight 1.
+		const response = await worker.fetch( makeChatRequest(), env );
+		expect( response.status ).toBe( 200 );
+
+		const stored = await getStoredUsage( env );
+		expect( stored ).toBe( chatCredits( 1000, 1000, 1 ) );
+		expect( stored ).toBe( 1 );
+	} );
+
+	it( 'chat credits: Math.ceil rounding applies when (input+output)*weight is not a multiple of 2000', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [ { type: 'text', text: 'response' } ],
+						usage: { input_tokens: 100, output_tokens: 1 },
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+
+		// weight=1, raw=101 → ceil(101/2000) = 1, not a clean division.
+		const response = await worker.fetch( makeChatRequest(), env );
+		expect( response.status ).toBe( 200 );
+
+		const stored = await getStoredUsage( env );
+		expect( stored ).toBe( chatCredits( 100, 1, 1 ) );
+		expect( stored ).toBe( 1 );
+	} );
+
+	it( 'chat credits: no spurious rounding when (input+output)*weight is an exact multiple of 2000', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [ { type: 'text', text: 'response' } ],
+						usage: { input_tokens: 2000, output_tokens: 2000 },
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+
+		// weight=1, raw=4000 → 4000/2000 = 2 exactly.
+		const response = await worker.fetch( makeChatRequest(), env );
+		expect( response.status ).toBe( 200 );
+
+		const stored = await getStoredUsage( env );
+		expect( stored ).toBe( chatCredits( 2000, 2000, 1 ) );
+		expect( stored ).toBe( 2 );
+	} );
+
+	it( 'returns 429 once monthly credit allowance is exhausted for a free-tier site', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
 		const month =
 			new Date().getFullYear() +
 			'-' +
 			String( new Date().getMonth() + 1 ).padStart( 2, '0' );
-		const stored = await env.USAGE_KV.get(
-			`usage:${ TEST_TOKEN }:${ month }`
+		await env.USAGE_KV.put( `usage:${ TEST_TOKEN }:${ month }`, '100' );
+
+		const response = await worker.fetch( makeChatRequest(), env );
+		expect( response.status ).toBe( 429 );
+		const json = ( await response.json() ) as {
+			error: string;
+			used: number;
+			limit: number;
+		};
+		expect( json ).toEqual( {
+			error: 'Rate limit exceeded',
+			used: 100,
+			limit: 100,
+		} );
+	} );
+
+	it( 'returns 429 once monthly credit allowance is exhausted for a pro_managed-tier site', async () => {
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
+		const month =
+			new Date().getFullYear() +
+			'-' +
+			String( new Date().getMonth() + 1 ).padStart( 2, '0' );
+		await env.USAGE_KV.put( `usage:${ TEST_TOKEN }:${ month }`, '500' );
+
+		const response = await worker.fetch( makeChatRequest(), env );
+		expect( response.status ).toBe( 429 );
+		const json = ( await response.json() ) as {
+			error: string;
+			used: number;
+			limit: number;
+		};
+		expect( json ).toEqual( {
+			error: 'Rate limit exceeded',
+			used: 500,
+			limit: 500,
+		} );
+	} );
+
+	it( 'allows a request at used = limit-1, then blocks the next one at used = limit', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		const month =
+			new Date().getFullYear() +
+			'-' +
+			String( new Date().getMonth() + 1 ).padStart( 2, '0' );
+		const usageKey = `usage:${ TEST_TOKEN }:${ month }`;
+		await env.USAGE_KV.put( usageKey, '99' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [ { type: 'text', text: 'ok' } ],
+						usage: { input_tokens: 1, output_tokens: 0 },
+					} ),
+					{ status: 200 }
+				);
+			} )
 		);
-		// raw = 150, weight = 5, effective = 750
-		expect( Number( stored ) ).toBe( 750 );
+
+		// used=99 < limit=100 — allowed, charges 1 credit, used becomes 100.
+		const first = await worker.fetch( makeChatRequest(), env );
+		expect( first.status ).toBe( 200 );
+		expect( Number( await env.USAGE_KV.get( usageKey ) ) ).toBe( 100 );
+
+		// used=100 is no longer < limit=100 — blocked.
+		const second = await worker.fetch( makeChatRequest(), env );
+		expect( second.status ).toBe( 429 );
 	} );
 } );

@@ -102,7 +102,7 @@ describe( 'authenticateDevRequest', () => {
 	it( 'returns 401 when Authorization header is missing', async () => {
 		const env = makeDevEnv();
 		await seedSite( env );
-		const body = JSON.stringify( { tier: 'trial' } );
+		const body = JSON.stringify( { tier: 'pro_managed' } );
 		const ts = Math.floor( Date.now() / 1000 );
 		const req = new Request( 'https://worker.example.com/dev/set-tier', {
 			method: 'POST',
@@ -120,7 +120,7 @@ describe( 'authenticateDevRequest', () => {
 	it( 'returns 401 when tier_sync_secret is absent from the site record', async () => {
 		const env = makeDevEnv();
 		await seedSite( env, { tier_sync_secret: undefined } );
-		const body = JSON.stringify( { tier: 'trial' } );
+		const body = JSON.stringify( { tier: 'pro_managed' } );
 		const res = await worker.fetch(
 			makeDevRequest( '/dev/set-tier', body ),
 			env,
@@ -132,7 +132,7 @@ describe( 'authenticateDevRequest', () => {
 	it( 'returns 401 when X-Dev-Signature header is missing', async () => {
 		const env = makeDevEnv();
 		await seedSite( env );
-		const body = JSON.stringify( { tier: 'trial' } );
+		const body = JSON.stringify( { tier: 'pro_managed' } );
 		const ts = Math.floor( Date.now() / 1000 );
 		const req = new Request( 'https://worker.example.com/dev/set-tier', {
 			method: 'POST',
@@ -150,7 +150,7 @@ describe( 'authenticateDevRequest', () => {
 	it( 'returns 401 for a malformed (odd-length) hex signature', async () => {
 		const env = makeDevEnv();
 		await seedSite( env );
-		const body = JSON.stringify( { tier: 'trial' } );
+		const body = JSON.stringify( { tier: 'pro_managed' } );
 		const res = await worker.fetch(
 			makeDevRequest( '/dev/set-tier', body, { signature: 'abc' } ),
 			env,
@@ -162,7 +162,7 @@ describe( 'authenticateDevRequest', () => {
 	it( 'returns 401 when the HMAC does not match', async () => {
 		const env = makeDevEnv();
 		await seedSite( env );
-		const body = JSON.stringify( { tier: 'trial' } );
+		const body = JSON.stringify( { tier: 'pro_managed' } );
 		const res = await worker.fetch(
 			makeDevRequest( '/dev/set-tier', body, { secret: 'wrong-secret' } ),
 			env,
@@ -174,7 +174,7 @@ describe( 'authenticateDevRequest', () => {
 	it( 'returns 401 when timestamp is too far in the past (>60 s)', async () => {
 		const env = makeDevEnv();
 		await seedSite( env );
-		const body = JSON.stringify( { tier: 'trial' } );
+		const body = JSON.stringify( { tier: 'pro_managed' } );
 		const oldTs = Math.floor( Date.now() / 1000 ) - 120;
 		const res = await worker.fetch(
 			makeDevRequest( '/dev/set-tier', body, { timestamp: oldTs } ),
@@ -187,7 +187,7 @@ describe( 'authenticateDevRequest', () => {
 	it( 'returns 401 when timestamp is too far in the future (>60 s)', async () => {
 		const env = makeDevEnv();
 		await seedSite( env );
-		const body = JSON.stringify( { tier: 'trial' } );
+		const body = JSON.stringify( { tier: 'pro_managed' } );
 		const futureTs = Math.floor( Date.now() / 1000 ) + 120;
 		const res = await worker.fetch(
 			makeDevRequest( '/dev/set-tier', body, { timestamp: futureTs } ),
@@ -204,7 +204,7 @@ describe( '/dev/set-tier', () => {
 	it( 'returns 200 and updates the tier for a valid request', async () => {
 		const env = makeDevEnv();
 		await seedSite( env, { tier: 'free' } );
-		const body = JSON.stringify( { tier: 'trial' } );
+		const body = JSON.stringify( { tier: 'pro_managed' } );
 		const res = await worker.fetch(
 			makeDevRequest( '/dev/set-tier', body ),
 			env,
@@ -213,19 +213,31 @@ describe( '/dev/set-tier', () => {
 		expect( res.status ).toBe( 200 );
 		const json = ( await res.json() ) as { ok: boolean; tier: string };
 		expect( json.ok ).toBe( true );
-		expect( json.tier ).toBe( 'trial' );
+		expect( json.tier ).toBe( 'pro_managed' );
 
 		const stored = await env.USAGE_KV.get< SiteRecord >(
 			`site:${ TEST_TOKEN }`,
 			'json'
 		);
-		expect( stored?.tier ).toBe( 'trial' );
+		expect( stored?.tier ).toBe( 'pro_managed' );
 	} );
 
 	it( 'returns 400 for an invalid tier string', async () => {
 		const env = makeDevEnv();
 		await seedSite( env );
 		const body = JSON.stringify( { tier: 'super_premium' } );
+		const res = await worker.fetch(
+			makeDevRequest( '/dev/set-tier', body ),
+			env,
+			makeCtx()
+		);
+		expect( res.status ).toBe( 400 );
+	} );
+
+	it( 'returns 400 when tier is "trial" (removed tier rejected by /dev/set-tier validation)', async () => {
+		const env = makeDevEnv();
+		await seedSite( env );
+		const body = JSON.stringify( { tier: 'trial' } );
 		const res = await worker.fetch(
 			makeDevRequest( '/dev/set-tier', body ),
 			env,
@@ -259,7 +271,7 @@ describe( '/dev/set-tier', () => {
 	} );
 
 	it( 'accepts all valid SiteTier values', async () => {
-		const tiers = [ 'free', 'trial', 'pro_managed', 'pro_byok' ] as const;
+		const tiers = [ 'free', 'pro_managed', 'pro_byok' ] as const;
 		for ( const tier of tiers ) {
 			const env = makeDevEnv();
 			await seedSite( env );
@@ -285,7 +297,7 @@ describe( '/dev/reset-usage', () => {
 		const month = `${ now.getFullYear() }-${ String(
 			now.getMonth() + 1
 		).padStart( 2, '0' ) }`;
-		await env.USAGE_KV.put( `usage:${ TEST_TOKEN }:${ month }`, '99999' );
+		await env.USAGE_KV.put( `usage:${ TEST_TOKEN }:${ month }`, '95' );
 
 		const body = '{}';
 		const res = await worker.fetch(
@@ -311,7 +323,7 @@ describe( '/dev/set-usage', () => {
 	it( 'returns 200 and persists the usage value', async () => {
 		const env = makeDevEnv();
 		await seedSite( env );
-		const body = JSON.stringify( { usage: 42000 } );
+		const body = JSON.stringify( { usage: 80 } );
 		const res = await worker.fetch(
 			makeDevRequest( '/dev/set-usage', body ),
 			env,
@@ -320,7 +332,7 @@ describe( '/dev/set-usage', () => {
 		expect( res.status ).toBe( 200 );
 		const json = ( await res.json() ) as { ok: boolean; usage: number };
 		expect( json.ok ).toBe( true );
-		expect( json.usage ).toBe( 42000 );
+		expect( json.usage ).toBe( 80 );
 	} );
 
 	it( 'returns 400 for a negative usage value', async () => {

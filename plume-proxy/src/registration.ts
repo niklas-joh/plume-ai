@@ -2,7 +2,6 @@
 
 import { Env, SiteRecord } from './types';
 import { generateToken } from './auth';
-import { TRIAL_PERIOD_MS } from './constants';
 
 export const REGISTRATION_RATE_LIMIT = 5; // max new registrations per IP per hour
 export const CHALLENGE_RATE_LIMIT = 20; // max challenge requests per IP per hour
@@ -127,7 +126,6 @@ export async function handleRegistration(
 	await env.USAGE_KV.delete( `challenge:${ challengeToken }` );
 
 	// Idempotent — return the existing token if already registered.
-	// If the stored record is an expired trial, demote it to free.
 	const urlHash = await sha256( siteUrl );
 	const existingToken = await env.USAGE_KV.get( `site_url:${ urlHash }` );
 	if ( existingToken ) {
@@ -136,19 +134,6 @@ export async function handleRegistration(
 			'json'
 		);
 		if ( record ) {
-			const startedAt = record.trial_started_at ?? record.created_at;
-			if (
-				record.tier === 'trial' &&
-				Date.now() - startedAt > TRIAL_PERIOD_MS
-			) {
-				const demoted: SiteRecord = { ...record, tier: 'free' };
-				await env.USAGE_KV.put(
-					`site:${ existingToken }`,
-					JSON.stringify( demoted )
-				);
-				return jsonResponse( { token: existingToken, tier: 'free' } );
-			}
-
 			return jsonResponse( { token: existingToken, tier: record.tier } );
 		}
 	}
@@ -179,9 +164,8 @@ export async function handleRegistration(
 	const now = Date.now();
 	const record: SiteRecord = {
 		site_url: siteUrl,
-		tier: 'trial',
+		tier: 'free',
 		created_at: now,
-		trial_started_at: now,
 		tier_sync_secret: tierSyncSecret,
 	};
 
@@ -189,7 +173,7 @@ export async function handleRegistration(
 	await env.USAGE_KV.put( `site_url:${ urlHash }`, token );
 
 	return jsonResponse(
-		{ token, tier: 'trial', tier_sync_secret: tierSyncSecret },
+		{ token, tier: 'free', tier_sync_secret: tierSyncSecret },
 		201
 	);
 }

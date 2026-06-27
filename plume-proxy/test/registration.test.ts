@@ -165,7 +165,7 @@ describe( 'handleRegistration', () => {
 		expect( data.error ).toMatch( /site verification failed/i );
 	} );
 
-	it( 'returns 201 and tier=trial for a valid new registration', async () => {
+	it( 'returns 201 and tier=free for a valid new registration', async () => {
 		const challenge = 'c'.repeat( 64 );
 		const env = await makeEnvWithChallenge( challenge );
 		const res = await handleRegistration(
@@ -185,7 +185,7 @@ describe( 'handleRegistration', () => {
 		};
 		expect( typeof data.token ).toBe( 'string' );
 		expect( data.token.length ).toBeGreaterThan( 0 );
-		expect( data.tier ).toBe( 'trial' );
+		expect( data.tier ).toBe( 'free' );
 		// New: secret is returned in response and is a 64-char hex token.
 		expect( data.tier_sync_secret ).toMatch( /^[0-9a-f]{64}$/ );
 
@@ -274,51 +274,6 @@ describe( 'handleRegistration', () => {
 		const data2 = ( await res2.json() ) as { token: string };
 
 		expect( data1.token ).toBe( data2.token );
-	} );
-
-	it( 'idempotent re-registration of an expired trial returns tier=free', async () => {
-		const challenge1 = '1'.repeat( 64 );
-		const env = await makeEnvWithChallenge( challenge1 );
-		const siteUrl = 'https://expired-trial.example.com';
-
-		// Initial registration — creates trial record.
-		const res1 = await handleRegistration(
-			makeRequest( {
-				body: { site_url: siteUrl, challenge_token: challenge1 },
-			} ),
-			env
-		);
-		const { token } = ( await res1.json() ) as { token: string };
-
-		// Backdate trial_started_at by 31 days.
-		const stored = ( await env.USAGE_KV.get<
-			import('../src/types').SiteRecord
-		>( `site:${ token }`, 'json' ) ) as import('../src/types').SiteRecord;
-		const expired = {
-			...stored,
-			trial_started_at: Date.now() - 31 * 24 * 60 * 60 * 1000,
-		};
-		await env.USAGE_KV.put( `site:${ token }`, JSON.stringify( expired ) );
-
-		// Re-register — must come back as free.
-		const challenge2 = '2'.repeat( 64 );
-		await env.USAGE_KV.put( `challenge:${ challenge2 }`, '1' );
-		vi.stubGlobal(
-			'fetch',
-			vi.fn().mockResolvedValue( new Response( '{}', { status: 200 } ) )
-		);
-
-		const res2 = await handleRegistration(
-			makeRequest( {
-				body: { site_url: siteUrl, challenge_token: challenge2 },
-			} ),
-			env
-		);
-		const data2 = ( await res2.json() ) as Record< string, unknown >;
-		expect( data2.token ).toBe( token );
-		expect( data2.tier ).toBe( 'free' );
-		// Secret was already stored on initial registration — must not be re-exposed.
-		expect( data2 ).not.toHaveProperty( 'tier_sync_secret' );
 	} );
 
 	it( 're-registration does not expose tier_sync_secret when it already exists', async () => {

@@ -14,7 +14,7 @@ export interface Env {
 }
 
 /** Tiers handled by this proxy (rate-limited and counted). */
-export type ProxyTier = 'free' | 'trial' | 'pro_managed';
+export type ProxyTier = 'free' | 'pro_managed';
 
 /** All possible tier values a site JWT may carry. */
 export type SiteTier = ProxyTier | 'pro_byok';
@@ -23,7 +23,6 @@ export interface SiteRecord {
 	site_url: string;
 	tier: SiteTier;
 	created_at: number;
-	trial_started_at?: number;
 	ls_licence_key?: string;
 	/**
 	 * Shared HMAC secret used to sign tier-update pushes from the Worker to the
@@ -73,6 +72,11 @@ export interface ProxyRequest {
 	system?: string | SystemBlock[];
 	tools?: ToolParam[];
 	provider?: 'claude' | 'openai' | 'gemini';
+	/**
+	 * Required, not inferred — the Worker must know what it's charging for before
+	 * the upstream call, and must never guess the feature from request shape.
+	 */
+	feature: 'chat' | 'generator' | 'seo' | 'images';
 }
 
 export interface MessageParam {

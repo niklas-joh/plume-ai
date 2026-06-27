@@ -737,7 +737,12 @@ async function handleChatProxy(
 			);
 		}
 
-		const effectiveTier = tier as ProxyTier;
+		// Coerce any unrecognised/legacy tier (e.g. records still stored as
+		// 'trial' before that tier was removed) to free, so they degrade
+		// gracefully instead of yielding undefined credit limits. pro_byok is
+		// already 403'd above, leaving pro_managed as the only non-free value.
+		const effectiveTier: ProxyTier =
+			tier === 'pro_managed' ? 'pro_managed' : 'free';
 
 		const rateLimitCheck = await checkRateLimit(
 			siteToken,

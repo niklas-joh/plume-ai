@@ -32,6 +32,9 @@
 	font-family: var(--font-sans);
 	font-size: var(--text-base);
 	overflow: hidden;
+
+	/* Anchor for the absolutely-positioned review drawer overlay. */
+	position: relative;
 	transition: grid-template-columns 0.15s ease;
 }
 
@@ -1157,5 +1160,530 @@
 	color: #1d2327;
 	background: #f0f0f1;
 	border-color: #dcdcde;
+}
+
+/* ════════════════════════════════════════════════
+   Review & Comment Drawer
+   ════════════════════════════════════════════════ */
+
+/* Scoped diff color tokens — kept here so they don't pollute the global sheet */
+.plume-review-drawer {
+	--diff-removed-bg: #fef2f2;
+	--diff-removed-border: #fca5a5;
+	--diff-removed-text: #991b1b;
+	--diff-added-bg: #f0fdf4;
+	--diff-added-border: #86efac;
+	--diff-added-text: #166534;
+	--diff-annotated-bg: #fef9c3;
+	--diff-annotated-border: var(--color-warning);
+	--diff-revised-bg: #f0f6fc;
+	--diff-revised-border: #c2d8ed;
+	--drawer-resize-bg: #ebe9e4;
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	display: flex;
+	flex-direction: column;
+	background: var(--color-bg);
+	border-left: 2px solid var(--wp-admin-theme-color, #3858e9);
+	box-shadow: -4px 0 16px rgba( 0, 0, 0, 0.08 );
+	z-index: 100;
+	animation: plume-drawer-in 200ms cubic-bezier( 0.25, 0, 0, 1 ) both;
+	overflow: hidden;
+}
+
+@keyframes plume-drawer-in {
+
+	from { transform: translateX( 100% ); }
+
+	to   { transform: translateX( 0 ); }
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+
+	.plume-review-drawer {
+		animation: none;
+	}
+}
+
+/* Resize handle */
+.plume-review-drawer__resize {
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: 10px;
+	cursor: col-resize;
+	background: var(--drawer-resize-bg);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	user-select: none;
+	color: var(--color-text-muted);
+	z-index: 1;
+}
+
+.plume-review-drawer__resize:hover {
+	background: var(--color-border);
+}
+
+/* Header */
+.plume-review-drawer__header {
+	padding: var(--space-3) var(--space-4) var(--space-3) 18px;
+	background: var(--color-surface);
+	border-bottom: 1px solid var(--color-border);
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-2);
+	flex-shrink: 0;
+}
+
+.plume-review-drawer__header--revised {
+	background: var(--diff-revised-bg);
+	border-bottom-color: var(--diff-revised-border);
+}
+
+.plume-review-drawer__header-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.plume-review-drawer__title {
+	font-size: 15px;
+	font-weight: 700;
+	color: var(--color-text-primary);
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin: 0;
+}
+
+.plume-review-drawer__revised-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	border-radius: 10px;
+	font-size: 11px;
+	font-weight: 600;
+	background: var(--wp-admin-theme-color, #3858e9);
+	color: #fff;
+}
+
+.plume-review-drawer__subtitle {
+	font-size: 12px;
+	color: var(--color-text-muted);
+	margin: 2px 0 0;
+}
+
+.plume-review-drawer__subtitle--warning {
+	color: var(--color-warning);
+	font-weight: 600;
+}
+
+.plume-review-drawer__subtitle--revised {
+	color: var(--wp-admin-theme-color, #3858e9);
+}
+
+.plume-review-drawer__close {
+	flex-shrink: 0;
+	background: none;
+	border: none;
+	padding: 2px;
+	cursor: pointer;
+	color: var(--color-text-muted);
+	border-radius: var(--radius-sm);
+	line-height: 1;
+}
+
+.plume-review-drawer__close:hover {
+	color: var(--color-text-primary);
+	background: var(--color-surface-2);
+}
+
+/* AI response strip (State 3) */
+.plume-review-drawer__ai-strip {
+	background: var(--diff-revised-bg);
+	border-bottom: 1px solid var(--color-border);
+	font-size: 12px;
+	color: var(--wp-admin-theme-color, #3858e9);
+	flex-shrink: 0;
+	overflow: hidden;
+}
+
+.plume-review-drawer__ai-strip-header {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-4);
+	cursor: pointer;
+	user-select: none;
+}
+
+.plume-review-drawer__ai-strip-body {
+	padding: 0 var(--space-4) var(--space-3);
+	white-space: pre-wrap;
+	line-height: 1.6;
+}
+
+.plume-review-drawer__ai-strip--collapsed .plume-review-drawer__ai-strip-body {
+	display: none;
+}
+
+/* Error banner */
+.plume-review-drawer__error {
+	background: color-mix( in srgb, var(--color-error) 10%, #fff );
+	border-left: 3px solid var(--color-error);
+	padding: var(--space-2) var(--space-4);
+	font-size: 12px;
+	color: var(--color-text-primary);
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	flex-shrink: 0;
+}
+
+.plume-review-drawer__error button {
+	flex-shrink: 0;
+}
+
+/* Body — scrollable */
+.plume-review-drawer__body {
+	flex: 1;
+	overflow-y: auto;
+	padding: var(--space-4);
+	padding-left: 18px;
+}
+
+/* Loading interstitial */
+.plume-review-drawer__loading {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-3);
+	color: var(--color-text-secondary);
+	font-size: 13px;
+}
+
+/* General feedback textarea */
+.plume-review-drawer__feedback {
+	flex-shrink: 0;
+	padding: var(--space-3) var(--space-4) 0;
+}
+
+.plume-review-drawer__feedback label {
+	display: block;
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--color-text-secondary);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: var(--space-1);
+}
+
+.plume-review-drawer__feedback textarea {
+	width: 100%;
+	min-height: 64px;
+	resize: vertical;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	padding: var(--space-2) var(--space-3);
+	font-size: 13px;
+	color: var(--color-text-primary);
+	background: var(--color-bg);
+	box-sizing: border-box;
+	font-family: inherit;
+	line-height: 1.5;
+}
+
+.plume-review-drawer__feedback textarea:focus {
+	outline: none;
+	border-color: var(--wp-admin-theme-color, #3858e9);
+	box-shadow: 0 0 0 2px color-mix( in srgb, var(--wp-admin-theme-color, #3858e9) 15%, transparent );
+}
+
+/* Footer */
+.plume-review-drawer__footer {
+	padding: var(--space-3) var(--space-4);
+	border-top: 1px solid var(--color-border);
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	flex-shrink: 0;
+	background: var(--color-bg);
+}
+
+.plume-review-drawer__footer-count {
+	margin-left: auto;
+	font-size: 12px;
+	color: var(--color-text-muted);
+}
+
+/* Diff view container */
+.plume-diff-view {
+	display: flex;
+	flex-direction: column;
+}
+
+.plume-diff-view__body {
+	flex: 1;
+}
+
+/* Diff legend bar */
+.plume-diff-view__legend {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-2) 0;
+	margin-top: var(--space-3);
+	border-top: 1px dashed var(--color-border);
+	background: var(--color-surface);
+	flex-wrap: wrap;
+}
+
+.plume-diff-legend__item {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 11px;
+	padding: 1px 6px;
+	border-radius: var(--radius-sm);
+}
+
+.plume-diff-legend__item--removed {
+	color: var(--diff-removed-text);
+	background: var(--diff-removed-bg);
+}
+
+.plume-diff-legend__item--added {
+	color: var(--diff-added-text);
+	background: var(--diff-added-bg);
+}
+
+.plume-diff-legend__item--unchanged {
+	color: var(--color-text-muted);
+}
+
+.plume-diff-legend__item--commented {
+	color: var(--color-warning);
+	background: color-mix( in srgb, var(--color-warning) 10%, transparent );
+}
+
+/* Diff blocks */
+.plume-diff-block {
+	margin-bottom: var(--space-2);
+}
+
+.plume-diff-block__unchanged {
+	color: var(--color-text-muted);
+	line-height: 1.9;
+	user-select: none;
+	margin: 0 0 var(--space-2);
+}
+
+.plume-diff-block__removed {
+	background: var(--diff-removed-bg);
+	border-left: 3px solid var(--diff-removed-border);
+	color: var(--diff-removed-text);
+	text-decoration: line-through;
+	user-select: none;
+	padding: var(--space-2) var(--space-3);
+	margin: 0 0 2px;
+	border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+	line-height: 1.7;
+}
+
+.plume-diff-block__added-wrapper {
+	margin-bottom: var(--space-2);
+}
+
+.plume-diff-added {
+	background: var(--diff-added-bg);
+	border-left: 3px solid var(--diff-added-border);
+	color: var(--diff-added-text);
+	padding: var(--space-2) var(--space-3);
+	margin: 0;
+	border-radius: 0 var(--radius-sm) 0 0;
+	line-height: 1.7;
+	cursor: text;
+	position: relative;
+}
+
+.plume-diff-added--annotated {
+	background: var(--diff-annotated-bg);
+	border-left-color: var(--diff-annotated-border);
+}
+
+/* Comment count badge inside Added block */
+.plume-diff-badge {
+	position: absolute;
+	top: 4px;
+	right: 6px;
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	background: var(--color-warning);
+	color: #fff;
+	font-size: 10px;
+	padding: 2px 5px;
+	border-radius: 10px;
+	line-height: 1;
+}
+
+/* Floating "Add comment" tooltip */
+.plume-add-comment-tooltip {
+	position: absolute;
+	transform: translateX( -50% );
+	background: var(--color-text-primary);
+	color: #fff;
+	font-size: 12px;
+	padding: 4px 10px;
+	border-radius: var(--radius-sm);
+	border: none;
+	cursor: pointer;
+	white-space: nowrap;
+	z-index: 10;
+}
+
+.plume-add-comment-tooltip:hover {
+	opacity: 0.9;
+}
+
+/* Comment thread */
+.plume-comment-thread {
+	border-left: 3px solid var(--diff-annotated-border);
+	background: color-mix( in srgb, var(--color-warning) 5%, var(--color-bg) );
+	border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+.plume-comment-thread__toggle {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	width: 100%;
+	padding: var(--space-2) var(--space-3);
+	background: color-mix( in srgb, var(--color-warning) 10%, transparent );
+	border: none;
+	border-radius: 0;
+	cursor: pointer;
+	font-size: 12px;
+	color: var(--color-warning);
+	text-align: left;
+}
+
+.plume-comment-thread__toggle:hover {
+	background: color-mix( in srgb, var(--color-warning) 15%, transparent );
+}
+
+.plume-comment-thread__body {
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height 180ms ease-out;
+}
+
+.plume-comment-thread__body--open {
+	max-height: 600px;
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+
+	.plume-comment-thread__body {
+		transition: none;
+	}
+}
+
+/* Comment items */
+.plume-comment-item {
+	padding: var(--space-2) var(--space-3);
+	border-bottom: 1px solid color-mix( in srgb, var(--color-warning) 20%, transparent );
+}
+
+.plume-comment-item:last-child {
+	border-bottom: none;
+}
+
+.plume-comment-item__anchor {
+	display: inline-block;
+	font-size: 11px;
+	background: color-mix( in srgb, var(--color-warning) 15%, transparent );
+	border: 1px solid var(--color-warning);
+	color: var(--color-text-secondary);
+	padding: 1px 6px;
+	border-radius: var(--radius-sm);
+	margin-bottom: var(--space-1);
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.plume-comment-item__text {
+	font-size: 13px;
+	color: var(--color-text-primary);
+	margin: 0 0 var(--space-1);
+	line-height: 1.5;
+}
+
+.plume-comment-item__textarea {
+	width: 100%;
+	box-sizing: border-box;
+	border: 1px solid var(--color-warning);
+	border-radius: var(--radius-sm);
+	padding: var(--space-2);
+	font-size: 13px;
+	font-family: inherit;
+	color: var(--color-text-primary);
+	background: var(--color-bg);
+	resize: vertical;
+	line-height: 1.5;
+}
+
+.plume-comment-item__textarea:focus {
+	outline: none;
+	box-shadow: 0 0 0 2px color-mix( in srgb, var(--color-warning) 25%, transparent );
+}
+
+.plume-comment-item__actions {
+	display: flex;
+	gap: var(--space-2);
+	margin-top: var(--space-2);
+}
+
+/* Small button variants used inside the drawer */
+.plume-btn--xs {
+	font-size: 11px;
+	padding: 2px 8px;
+}
+
+.plume-btn--warning {
+	background: var(--color-warning);
+	color: #fff;
+	border: 1px solid var(--color-warning);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+}
+
+.plume-btn--warning:hover {
+	opacity: 0.85;
+}
+
+.plume-btn--danger {
+	color: var(--color-error);
+	border-color: var(--color-error);
+}
+
+.plume-btn--success {
+	background: var(--color-success);
+	color: #fff;
+	border: 1px solid var(--color-success);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+}
+
+.plume-btn--success:hover {
+	opacity: 0.85;
 }
 

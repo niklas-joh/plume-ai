@@ -6,6 +6,7 @@ import MessageList from './MessageList';
 import Composer from './Composer';
 import QuickActions from '../RightPanel/QuickActions';
 import ModelSelector from '../RightPanel/ModelSelector';
+import ReviewDrawer from './ReviewDrawer';
 import apiFetch from '@wordpress/api-fetch';
 import { LAUNCH_ACTIONS } from './actions';
 import { storageGet, storageSet } from '../../utils/storage';
@@ -50,6 +51,7 @@ export default function ChatApp() {
 	const [ forcePickerOpen, setForcePickerOpen ] = useState( false );
 	const [ deletingIds, setDeletingIds ] = useState( new Set() );
 	const [ deleteErrors, setDeleteErrors ] = useState( {} );
+	const [ drawerPlan, setDrawerPlan ] = useState( null );
 	const skipLoadRef = useRef( false );
 	// Tracks which conversation IDs have already had a title PATCH dispatched,
 	// preventing a second send if the user types quickly before state settles.
@@ -222,6 +224,9 @@ export default function ChatApp() {
 					tools_used: passiveTools.length > 0 ? passiveTools : null,
 				},
 			] );
+			if ( res.pending_plan?.plan_type === 'update' ) {
+				setDrawerPlan( res.pending_plan );
+			}
 			if ( needsTitleUpdate ) {
 				const rawTitle = content.slice( 0, 60 );
 				// Avoid cutting mid-word; fall back to hard slice if no word boundary found.
@@ -403,6 +408,18 @@ export default function ChatApp() {
 					onRequestAttach={ requestPostAttach }
 				/>
 			</aside>
+
+			{ drawerPlan && (
+				<ReviewDrawer
+					plan={ drawerPlan }
+					convId={ activeConvId }
+					selectedProvider={ selectedProvider }
+					selectedModel={ selectedModel }
+					onApply={ () => setDrawerPlan( null ) }
+					onClose={ () => setDrawerPlan( null ) }
+					onMessagesRefresh={ () => loadMessages( activeConvId ) }
+				/>
+			) }
 		</div>
 	);
 }

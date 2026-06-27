@@ -39,17 +39,21 @@ jobs:
 
       - name: Resolve PR context
         id: pr_context
+        # All ${{...}} values are passed via env to avoid shell-injection paths
+        # (untrusted github/inputs context must never be interpolated into run:).
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_NUMBER_INPUT: ${{ github.event.pull_request.number || inputs.pr_number }}
+          REPO: ${{ github.repository }}
         run: |
           # For pull_request events the number comes from the event payload.
           # For workflow_dispatch it must be supplied via the pr_number input.
-          PR_NUMBER="${{ github.event.pull_request.number || inputs.pr_number }}"
+          PR_NUMBER="$PR_NUMBER_INPUT"
           if [[ -z "$PR_NUMBER" ]]; then
             echo "::error::No PR number available. Supply pr_number when triggering manually."
             exit 1
           fi
-          PR_JSON=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}")
+          PR_JSON=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}")
           echo "pr_number=${PR_NUMBER}"                          >> "$GITHUB_OUTPUT"
           echo "pr_url=$(echo "$PR_JSON"    | jq -r '.html_url')" >> "$GITHUB_OUTPUT"
           echo "base_ref=$(echo "$PR_JSON"  | jq -r '.base.ref')" >> "$GITHUB_OUTPUT"

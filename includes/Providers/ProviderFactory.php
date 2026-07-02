@@ -22,6 +22,16 @@ use Plume\Settings\ProviderSettings;
 class ProviderFactory {
 
 	/**
+	 * Providers that can route through the managed proxy when no API key is set.
+	 *
+	 * Ollama is excluded — it has no proxy path and requires a configured URL.
+	 *
+	 * @since NEXT_VERSION
+	 * @var string[]
+	 */
+	public const PROXY_CAPABLE = [ 'claude', 'openai', 'gemini' ];
+
+	/**
 	 * Inject the provider settings to supply decrypted API keys.
 	 *
 	 * @since 1.0.0

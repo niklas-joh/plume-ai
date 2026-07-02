@@ -4,10 +4,9 @@
  *
  * TierConfig no longer owns a feature matrix or token limits — the Worker's
  * credit ledger is now the sole source of truth for both feature gating
- * (every tier can use every feature; only model_selection/own_api_key remain
- * gated, both via TierManager::user_can()) and quota enforcement. This file
- * asserts those structures were actually removed, not just hardcoded to a
- * pass-through value, per the no-legacy-users directive.
+ * (every tier can use every feature; no feature is tier-gated any more) and
+ * quota enforcement. This file asserts those structures were actually removed,
+ * not just hardcoded to a pass-through value, per the no-legacy-users directive.
  *
  * No WordPress functions are called by the class under test, so Brain Monkey
  * bootstrapping is not required here.

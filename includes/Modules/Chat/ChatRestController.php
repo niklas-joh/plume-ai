@@ -310,7 +310,7 @@ class ChatRestController {
 				// Proxy-capable providers are only unavailable when the site has
 				// neither an API key nor a proxy registration, so scheduling a
 				// registration is the fix; Ollama has no proxy path and needs a URL.
-				$proxy_capable = in_array( $provider_slug, [ 'claude', 'openai', 'gemini' ], true );
+				$proxy_capable = in_array( $provider_slug, ProviderFactory::PROXY_CAPABLE, true );
 
 				if ( $proxy_capable ) {
 					// Site token absent — schedule re-registration so the next page load succeeds.

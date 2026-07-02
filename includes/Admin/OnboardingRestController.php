@@ -8,6 +8,7 @@
 declare( strict_types=1 );
 namespace Plume\Admin;
 
+use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -100,7 +101,7 @@ class OnboardingRestController {
 			update_option( 'plume_default_provider', sanitize_text_field( $provider ) );
 		}
 		if ( $api_keys && is_array( $api_keys ) ) {
-			$valid    = [ 'openai', 'claude', 'gemini' ];
+			$valid    = ProviderFactory::PROXY_CAPABLE;
 			$settings = static::make_provider_settings();
 			foreach ( $api_keys as $p => $key ) {
 				if ( in_array( $p, $valid, true ) && ! empty( $key ) ) {

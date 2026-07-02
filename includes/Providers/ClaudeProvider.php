@@ -18,8 +18,9 @@ use Plume\Proxy\SiteRegistration;
 /**
  * Handles completions, streaming, and key-aware routing for Anthropic Claude.
  *
- * Free and pro_managed tiers route through the NJ proxy client so that
- * usage is logged centrally. The pro_byok tier calls the Anthropic API directly.
+ * Sites without a configured key route through the managed proxy so that
+ * usage is logged centrally; a configured API key calls the Anthropic API
+ * directly, on any tier.
  *
  * @since 1.0.0
  */

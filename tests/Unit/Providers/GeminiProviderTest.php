@@ -29,10 +29,7 @@ class GeminiProviderTest extends TestCase {
 		};
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		// Routing is key-based; these stubs only satisfy incidental option reads.
-		Functions\when( 'get_option' )->alias(
-			fn( $key, $default = false ) =>
-				'plume_site_tier' === $key ? 'pro_byok' : $default
-		);
+		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
 		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );

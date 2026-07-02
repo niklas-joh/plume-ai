@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
 use Plume\Tiers\TierManager;
 
@@ -135,7 +136,7 @@ class SettingsRestController {
 		// API keys — skip any that are the mask placeholder (i.e. unchanged).
 		$api_keys = $request->get_param( 'api_keys' );
 		if ( is_array( $api_keys ) ) {
-			$provider_map = [ 'claude', 'openai', 'gemini' ];
+			$provider_map = ProviderFactory::PROXY_CAPABLE;
 
 			foreach ( $provider_map as $provider ) {
 				if ( isset( $api_keys[ $provider ] ) && '••••••' !== $api_keys[ $provider ] ) {

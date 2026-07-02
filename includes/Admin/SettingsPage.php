@@ -64,7 +64,6 @@ class SettingsPage {
 			[
 				'nonce'         => wp_create_nonce( 'wp_rest' ),
 				'restUrl'       => esc_url_raw( rest_url( 'plume/v1' ) ),
-				'upgradeUrl'    => esc_url( admin_url( 'admin.php?page=plume-upgrade' ) ),
 				'currentPostId' => 0,
 				'isPaid'        => TierManager::is_paid(),
 				'siteTitle'     => get_bloginfo( 'name' ),

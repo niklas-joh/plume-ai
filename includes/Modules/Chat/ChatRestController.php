@@ -407,6 +407,8 @@ class ChatRestController {
 					}
 				}
 
+				$tools = $this->strip_single_use_tools( $tools, $provider_slug, $tools_called );
+
 				// If the model included chat_response, use its message as the final text and exit.
 				if ( null !== $chat_response_tu ) {
 					$final_response = $response->with_text( $chat_response_tu['input']['message'] ?? '' );
@@ -441,12 +443,14 @@ class ChatRestController {
 
 			return rest_ensure_response(
 				[
-					'content'      => $final_response->content,
-					'model'        => $final_response->model,
-					'credits'      => $final_response->credits_charged,
-					'cost_usd'     => $final_response->cost_usd,
-					'pending_plan' => $pending_plan,
-					'tools_called' => \array_values( \array_unique( $tools_called ) ),
+					'content'           => $final_response->content,
+					'model'             => $final_response->model,
+					'credits'           => $final_response->credits_charged,
+					'cost_usd'          => $final_response->cost_usd,
+					'prompt_tokens'     => $final_response->prompt_tokens,
+					'completion_tokens' => $final_response->completion_tokens,
+					'pending_plan'      => $pending_plan,
+					'tools_called'      => \array_values( \array_unique( $tools_called ) ),
 				]
 			);
 		} catch ( ProviderException $e ) {
@@ -652,6 +656,62 @@ class ChatRestController {
 	}
 
 	// ── Private helpers ───────────────────────────────────────────────────────
+
+	/**
+	 * Removes single-use write tools from the tool list once they've been called.
+	 *
+	 * Both plan_post and plan_update instruct the model "do not call again" in their
+	 * descriptions, and the agentic loop above already breaks via $pending_plan when
+	 * either returns a pending_approval result. This is a defensive second layer: if a
+	 * call to either tool ever returns a non-pending_approval result (e.g. an error),
+	 * the loop does not break, and without this filter the tool would remain available
+	 * for the model to call again, risking a duplicate approval card. Data-gathering
+	 * tools (get_recent_posts, get_post_content, search_posts, get_pages, get_site_info)
+	 * are deliberately never stripped — PR #792 did that and #803 reverted it because it
+	 * broke multi-step sequential chains such as get_recent_posts -> get_post_content -> plan_update.
+	 *
+	 * @since NEXT_VERSION
+	 * @param array<int, array<string, mixed>> $tools         Provider-formatted tool list.
+	 * @param string                           $provider_slug Provider slug ('claude', 'openai', 'gemini', 'proxy').
+	 * @param string[]                         $tools_called  Tool names called so far this request.
+	 * @return array<int, array<string, mixed>> Filtered tool list.
+	 */
+	private function strip_single_use_tools( array $tools, string $provider_slug, array $tools_called ): array {
+		$single_use = array_intersect( \Plume\Tools\ToolRegistry::SINGLE_USE_TOOLS, $tools_called );
+		if ( empty( $single_use ) || empty( $tools ) ) {
+			return $tools;
+		}
+
+		if ( 'gemini' === $provider_slug ) {
+			if ( empty( $tools[0]['functionDeclarations'] ) ) {
+				return $tools;
+			}
+			$tools[0]['functionDeclarations'] = array_values(
+				array_filter(
+					$tools[0]['functionDeclarations'],
+					static fn( array $decl ): bool => ! in_array( $decl['name'] ?? '', $single_use, true )
+				)
+			);
+			return $tools;
+		}
+
+		if ( 'openai' === $provider_slug ) {
+			return array_values(
+				array_filter(
+					$tools,
+					static fn( array $t ): bool => ! in_array( $t['function']['name'] ?? '', $single_use, true )
+				)
+			);
+		}
+
+		// claude and proxy both key tool names at the top level.
+		return array_values(
+			array_filter(
+				$tools,
+				static fn( array $t ): bool => ! in_array( $t['name'] ?? '', $single_use, true )
+			)
+		);
+	}
 
 	/**
 	 * Extract every tool call from a provider response in a normalised shape.

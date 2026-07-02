@@ -19,6 +19,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ToolRegistry {
 
 	/**
+	 * Write tools that may only be invoked once per conversation turn.
+	 *
+	 * Consumed by ChatRestController's strip guard; defined here beside the tool
+	 * definitions so a plan-tool rename cannot silently desync the guard from the
+	 * tools it removes after first use.
+	 *
+	 * @since NEXT_VERSION
+	 * @var string[]
+	 */
+	public const SINGLE_USE_TOOLS = [ 'plan_post', 'plan_update' ];
+
+	/**
 	 * All registered tool definitions.
 	 *
 	 * @var ToolDefinition[]

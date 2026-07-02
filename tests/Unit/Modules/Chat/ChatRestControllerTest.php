@@ -564,6 +564,8 @@ class ChatRestControllerTest extends TestCase {
         $this->assertInstanceOf( \WP_REST_Response::class, $response );
         $this->assertSame( 200, $response->get_status() );
         $this->assertSame( 'Final answer', $response->data['content'] );
+        $this->assertSame( 20, $response->data['prompt_tokens'] );
+        $this->assertSame( 15, $response->data['completion_tokens'] );
     }
 
     public function test_send_message_returns_429_with_retry_after_header_on_rate_limit(): void {
@@ -2000,5 +2002,103 @@ class ChatRestControllerTest extends TestCase {
         $item = $response->data[0];
         $this->assertArrayHasKey( 'edit_link', $item );
         $this->assertSame( '', $item['edit_link'], 'edit_link must fall back to empty string when the user cannot edit the post.' );
+    }
+
+    // ── strip_single_use_tools ───────────────────────────────────────────────
+
+    /**
+     * Call the private strip_single_use_tools method via reflection.
+     */
+    private function call_strip_single_use_tools( array $tools, string $provider_slug, array $tools_called ): array {
+        $method = new \ReflectionMethod( ChatRestController::class, 'strip_single_use_tools' );
+        $method->setAccessible( true );
+        $controller = new ChatRestController( $this->tool_registry, $this->tool_executor );
+        return $method->invoke( $controller, $tools, $provider_slug, $tools_called );
+    }
+
+    public function test_strip_single_use_tools_removes_plan_post_from_claude_format(): void {
+        $tools = [
+            [ 'name' => 'get_recent_posts', 'description' => '...' ],
+            [ 'name' => 'plan_post', 'description' => '...' ],
+        ];
+
+        $result = $this->call_strip_single_use_tools( $tools, 'claude', [ 'plan_post' ] );
+
+        $this->assertCount( 1, $result );
+        $this->assertSame( 'get_recent_posts', $result[0]['name'] );
+    }
+
+    public function test_strip_single_use_tools_removes_plan_update_from_proxy_format(): void {
+        $tools = [
+            [ 'name' => 'plan_update', 'description' => '...' ],
+            [ 'name' => 'get_site_info', 'description' => '...' ],
+        ];
+
+        $result = $this->call_strip_single_use_tools( $tools, 'proxy', [ 'plan_update' ] );
+
+        $this->assertCount( 1, $result );
+        $this->assertSame( 'get_site_info', $result[0]['name'] );
+    }
+
+    public function test_strip_single_use_tools_removes_plan_post_from_openai_format(): void {
+        $tools = [
+            [ 'type' => 'function', 'function' => [ 'name' => 'plan_post' ] ],
+            [ 'type' => 'function', 'function' => [ 'name' => 'search_posts' ] ],
+        ];
+
+        $result = $this->call_strip_single_use_tools( $tools, 'openai', [ 'plan_post' ] );
+
+        $this->assertCount( 1, $result );
+        $this->assertSame( 'search_posts', $result[0]['function']['name'] );
+    }
+
+    public function test_strip_single_use_tools_removes_plan_update_from_gemini_format(): void {
+        $tools = [
+            [
+                'functionDeclarations' => [
+                    [ 'name' => 'plan_update' ],
+                    [ 'name' => 'get_pages' ],
+                ],
+            ],
+        ];
+
+        $result = $this->call_strip_single_use_tools( $tools, 'gemini', [ 'plan_update' ] );
+
+        $this->assertCount( 1, $result[0]['functionDeclarations'] );
+        $this->assertSame( 'get_pages', $result[0]['functionDeclarations'][0]['name'] );
+    }
+
+    public function test_strip_single_use_tools_never_removes_data_gathering_tools(): void {
+        // Regression guard for #803: stripping data-gathering tools breaks multi-step
+        // sequential chains like get_recent_posts -> get_post_content -> plan_update.
+        $tools = [
+            [ 'name' => 'get_recent_posts', 'description' => '...' ],
+            [ 'name' => 'get_post_content', 'description' => '...' ],
+            [ 'name' => 'search_posts', 'description' => '...' ],
+            [ 'name' => 'get_pages', 'description' => '...' ],
+            [ 'name' => 'get_site_info', 'description' => '...' ],
+            [ 'name' => 'plan_post', 'description' => '...' ],
+        ];
+
+        $result = $this->call_strip_single_use_tools( $tools, 'claude', [ 'get_recent_posts', 'get_post_content', 'plan_post' ] );
+
+        $names = array_column( $result, 'name' );
+        $this->assertContains( 'get_recent_posts', $names );
+        $this->assertContains( 'get_post_content', $names );
+        $this->assertContains( 'search_posts', $names );
+        $this->assertContains( 'get_pages', $names );
+        $this->assertContains( 'get_site_info', $names );
+        $this->assertNotContains( 'plan_post', $names );
+    }
+
+    public function test_strip_single_use_tools_returns_unchanged_when_nothing_called(): void {
+        $tools = [
+            [ 'name' => 'get_recent_posts', 'description' => '...' ],
+            [ 'name' => 'plan_post', 'description' => '...' ],
+        ];
+
+        $result = $this->call_strip_single_use_tools( $tools, 'claude', [ 'get_recent_posts' ] );
+
+        $this->assertCount( 2, $result );
     }
 }

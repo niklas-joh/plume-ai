@@ -159,7 +159,52 @@ describe( 'handleChatProxy', () => {
 				properties: { post_id: { type: 'integer' } },
 				required: [ 'post_id' ],
 			},
+			cache_control: { type: 'ephemeral' },
 		} );
+	} );
+
+	it( 'Claude adapter: marks only the last tool with cache_control', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		const secondTool: ToolParam = {
+			name: 'get_recent_posts',
+			description: 'List recent posts',
+			parameters: { type: 'object', properties: {} },
+		};
+
+		let capturedBody: Record< string, unknown > | null = null;
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockImplementation(
+					async ( _url: string, init: RequestInit ) => {
+						capturedBody = JSON.parse( init.body as string );
+						return new Response(
+							JSON.stringify( {
+								content: [ { type: 'text', text: 'Summary' } ],
+								usage: { input_tokens: 10, output_tokens: 5 },
+							} ),
+							{ status: 200 }
+						);
+					}
+				)
+		);
+
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Summarise post 140' } ],
+			provider: 'claude',
+			tools: [ mockTool, secondTool ],
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const sentTools = ( capturedBody as Record< string, unknown > )
+			.tools as Array< Record< string, unknown > >;
+		expect( sentTools ).toHaveLength( 2 );
+		expect( sentTools[ 0 ] ).not.toHaveProperty( 'cache_control' );
+		expect( sentTools[ 1 ].cache_control ).toEqual( { type: 'ephemeral' } );
 	} );
 
 	it( 'Claude adapter: relays tool_calls when Claude returns a tool_use block', async () => {

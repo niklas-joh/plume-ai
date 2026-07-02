@@ -313,6 +313,29 @@ class ClaudeProvider extends AbstractProvider {
 	}
 
 	/**
+	 * Marks the tools array for prompt caching.
+	 *
+	 * Anthropic caches everything up to and including the tool carrying cache_control
+	 * as a single prefix, mirroring how build_system_field() caches the system prompt.
+	 * Below Anthropic's per-model minimum (1,024 tokens for Sonnet 5) the API simply
+	 * skips caching rather than erroring, so no size gate is needed here: the agentic
+	 * loop in ChatRestController re-sends the full tool list on every iteration, and
+	 * tool definitions routinely exceed the minimum on their own.
+	 *
+	 * @since NEXT_VERSION
+	 * @param array<int, array<string, mixed>> $tools Claude-wire-format tool definitions.
+	 * @return array<int, array<string, mixed>> Tools with cache_control on the last entry.
+	 */
+	private function apply_tools_cache_control( array $tools ): array {
+		if ( empty( $tools ) ) {
+			return $tools;
+		}
+		$last                            = array_key_last( $tools );
+		$tools[ $last ]['cache_control'] = [ 'type' => 'ephemeral' ];
+		return $tools;
+	}
+
+	/**
 	 * Build the Anthropic API request body from a completion request.
 	 *
 	 * @since 1.0.0
@@ -329,7 +352,8 @@ class ClaudeProvider extends AbstractProvider {
 			$body['system'] = $this->build_system_field( $request->system );
 		}
 		if ( ! empty( $request->tools ) ) {
-			$body['tools'] = $request->tools; // Already in Claude wire format from ToolRegistry.
+			// Already in Claude wire format from ToolRegistry; cache_control added here.
+			$body['tools'] = $this->apply_tools_cache_control( $request->tools );
 			if ( $request->force_tool_use ) {
 				$body['tool_choice'] = [ 'type' => 'any' ];
 			}

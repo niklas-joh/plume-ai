@@ -99,11 +99,16 @@ async function getModelConfig( env: Env ): Promise< {
 	};
 }
 
+// Anthropic caches everything up to and including the tool carrying cache_control
+// as a single prefix, so marking only the last tool covers the whole array.
 function toClaudeTools( tools: ToolParam[] ) {
-	return tools.map( ( t ) => ( {
+	return tools.map( ( t, i ) => ( {
 		name: t.name,
 		description: t.description,
 		input_schema: t.parameters,
+		...( i === tools.length - 1
+			? { cache_control: { type: 'ephemeral' as const } }
+			: {} ),
 	} ) );
 }
 

@@ -21,9 +21,9 @@ class ToolRegistry {
 	/**
 	 * Write tools that may only be invoked once per conversation turn.
 	 *
-	 * Single source of truth shared by the registry, the executor dispatch map,
-	 * and ChatRestController's strip guard so a rename cannot silently desync the
-	 * guard from the tools it is meant to remove after first use.
+	 * Consumed by ChatRestController's strip guard; defined here beside the tool
+	 * definitions so a plan-tool rename cannot silently desync the guard from the
+	 * tools it removes after first use.
 	 *
 	 * @since NEXT_VERSION
 	 * @var string[]

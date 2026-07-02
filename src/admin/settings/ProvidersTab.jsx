@@ -126,8 +126,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 							<Button
 								variant="primary"
 								disabled={
-									isSaving ||
-									dirty[ id ] === undefined
+									isSaving || dirty[ id ] === undefined
 								}
 								onClick={ () => handleSaveKey( id ) }
 							>

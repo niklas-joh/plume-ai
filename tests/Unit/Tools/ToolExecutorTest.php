@@ -24,6 +24,10 @@ if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 	define( 'HOUR_IN_SECONDS', 3600 );
 }
 
+if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
+	define( 'MINUTE_IN_SECONDS', 60 );
+}
+
 class ToolExecutorTest extends TestCase {
 
 	protected function setUp(): void {
@@ -250,77 +254,111 @@ class ToolExecutorTest extends TestCase {
 		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => $v );
 
 		$executor = $this->make_executor();
-		$result   = $executor->execute( 'plan_update', [ 'post_id' => 5, 'new_content' => 'Content' ], 1 );
+		$result   = $executor->execute( 'plan_update', [ 'post_id' => 5 ], 1 );
 
 		$this->assertArrayHasKey( 'error', $result );
 		$this->assertStringContainsString( 'changes', strtolower( $result['error'] ) );
 	}
 
-	public function test_plan_update_returns_error_when_new_content_missing(): void {
+	public function test_plan_update_stages_draft_and_returns_awaiting_content(): void {
+		// plan_update no longer accepts new_content — it stages a draft transient and
+		// returns 'awaiting_content' so the agentic loop forces submit_post_content next,
+		// giving the (potentially large) post body its own dedicated token budget.
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
 		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => $v );
-		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
-
-		$executor = $this->make_executor();
-		$result   = $executor->execute( 'plan_update', [ 'post_id' => 5, 'changes' => 'Made changes' ], 1 );
-
-		$this->assertArrayHasKey( 'error', $result );
-		$this->assertStringContainsString( 'new_content', strtolower( $result['error'] ) );
-	}
-
-	public function test_plan_update_stores_plan_with_new_content_and_new_title(): void {
-		Functions\when( 'user_can' )->justReturn( true );
-		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
-		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => $v );
-		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
 		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
-		Functions\when( 'wp_generate_uuid4' )->justReturn( 'abcd1234-5678-90ab-cdef-000000000000' );
-		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\expect( 'set_transient' )
+			->once()
+			->with(
+				'plume_plan_draft_1',
+				[
+					'plan_type'   => 'update',
+					'post_id'     => 5,
+					'changes'     => 'Made the intro punchier',
+					'post_status' => '',
+					'new_title'   => 'Improved Title',
+				],
+				5 * MINUTE_IN_SECONDS
+			)
+			->andReturn( true );
 
 		$executor = $this->make_executor();
 		$result   = $executor->execute(
 			'plan_update',
 			[
-				'post_id'     => 5,
-				'changes'     => 'Made the intro punchier',
-				'new_content' => 'Full updated post body',
-				'new_title'   => 'Improved Title',
+				'post_id'   => 5,
+				'changes'   => 'Made the intro punchier',
+				'new_title' => 'Improved Title',
 			],
 			1
 		);
+
+		$this->assertSame( [ 'status' => 'awaiting_content', 'post_id' => 5 ], $result );
+	}
+
+	// -------------------------------------------------------------------------
+	// submit_post_content
+	// -------------------------------------------------------------------------
+
+	public function test_submit_post_content_returns_error_when_no_draft_found(): void {
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'get_transient' )->justReturn( false );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute( 'submit_post_content', [ 'post_id' => 5, 'content' => 'Body' ], 1 );
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertStringContainsString( 'plan_update', $result['error'] );
+	}
+
+	public function test_submit_post_content_returns_error_when_post_id_mismatches_draft(): void {
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'get_transient' )->justReturn( [ 'post_id' => 9, 'changes' => 'x' ] );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute( 'submit_post_content', [ 'post_id' => 5, 'content' => 'Body' ], 1 );
+
+		$this->assertArrayHasKey( 'error', $result );
+	}
+
+	public function test_submit_post_content_returns_error_when_content_missing(): void {
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'get_transient' )->justReturn( [ 'post_id' => 5, 'changes' => 'x' ] );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute( 'submit_post_content', [ 'post_id' => 5 ], 1 );
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertStringContainsString( 'content', strtolower( $result['error'] ) );
+	}
+
+	public function test_submit_post_content_merges_draft_and_finalises_plan(): void {
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_generate_uuid4' )->justReturn( 'abcd1234-5678-90ab-cdef-000000000000' );
+		Functions\when( 'get_transient' )->justReturn( [
+			'plan_type'   => 'update',
+			'post_id'     => 5,
+			'changes'     => 'Made the intro punchier',
+			'new_title'   => 'Improved Title',
+			'post_status' => '',
+		] );
+		Functions\expect( 'delete_transient' )->once()->with( 'plume_plan_draft_1' );
+		Functions\when( 'set_transient' )->justReturn( true );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute( 'submit_post_content', [ 'post_id' => 5, 'content' => 'Full updated post body' ], 1 );
 
 		$this->assertArrayHasKey( 'new_content', $result );
 		$this->assertSame( 'Full updated post body', $result['new_content'] );
 		$this->assertArrayHasKey( 'new_title', $result );
 		$this->assertSame( 'Improved Title', $result['new_title'] );
-		$this->assertSame( 'pending_approval', $result['status'] );
-	}
-
-	public function test_plan_update_ignores_analysis_field_in_stored_plan(): void {
-		// `analysis` is conversational-only — it must never be written into the
-		// persisted plan transient consumed by PlansRestController/PlanCard.
-		Functions\when( 'user_can' )->justReturn( true );
-		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
-		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => $v );
-		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
-		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
-		Functions\when( 'wp_generate_uuid4' )->justReturn( 'abcd1234-5678-90ab-cdef-000000000000' );
-		Functions\when( 'set_transient' )->justReturn( true );
-
-		$executor = $this->make_executor();
-		$result   = $executor->execute(
-			'plan_update',
-			[
-				'post_id'     => 5,
-				'analysis'    => 'This intro is weak and the CTA is buried; tightening both.',
-				'changes'     => 'Made the intro punchier',
-				'new_content' => 'Full updated post body',
-			],
-			1
-		);
-
-		$this->assertArrayNotHasKey( 'analysis', $result );
 		$this->assertSame( 'pending_approval', $result['status'] );
 	}
 

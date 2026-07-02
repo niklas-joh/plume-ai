@@ -336,18 +336,29 @@ class ChatRestController {
 				);
 			}
 
-			$tools = $provider->supports_tools()
+			$tools_full = $provider->supports_tools()
 				? $this->tool_registry->get_for_provider( $provider_slug )
 				: [];
 
-			$max_iterations = self::MAX_TOOL_ITERATIONS;
-			$iteration      = 0;
-			$final_response = null;
-			$pending_plan   = null;
-			$tools_called   = [];
+			$max_iterations       = self::MAX_TOOL_ITERATIONS;
+			$iteration            = 0;
+			$final_response       = null;
+			$pending_plan         = null;
+			$pending_plan_message = '';
+			$tools_called         = [];
+			$force_submit_content = false;
 
 			while ( $iteration < $max_iterations ) {
 				++$iteration;
+
+				// plan_update stages a draft awaiting its content on the previous iteration —
+				// restrict this iteration to submit_post_content only, so the model's full
+				// output-token budget goes to the post body instead of being shared with
+				// anything else. force_tool_use then guarantees it is what gets called.
+				$tools = $force_submit_content
+					? $this->restrict_tools_to( $tools_full, $provider_slug, [ 'submit_post_content' ] )
+					: $this->strip_single_use_tools( $tools_full, $provider_slug, $tools_called );
+				$force_submit_content = false;
 
 				$req = new CompletionRequest(
 					messages:       $messages,
@@ -390,8 +401,7 @@ class ChatRestController {
 				}
 
 				// Execute all non-chat_response tools and collect results.
-				$tool_results         = [];
-				$pending_plan_message = '';
+				$tool_results = [];
 				foreach ( $all_tool_uses as $tu ) {
 					if ( 'chat_response' === $tu['name'] ) {
 						continue;
@@ -401,13 +411,21 @@ class ChatRestController {
 					$tool_results[ $tu['id'] ] = $result;
 					$tools_called[]            = $tool_name;
 
-					if ( 'pending_approval' === ( $result['status'] ?? '' ) ) {
-						$pending_plan         = $result;
-						$pending_plan_message = \sanitize_textarea_field( $tu['input']['analysis'] ?? '' );
+					$status = $result['status'] ?? '';
+					if ( 'awaiting_content' === $status ) {
+						// plan_update staged a draft — force submit_post_content next iteration
+						// so the model's full budget goes to the post body, not shared reasoning.
+						$force_submit_content = true;
+					} elseif ( 'pending_approval' === $status ) {
+						$pending_plan = $result;
+					}
+
+					// submit_post_content's own input has no `analysis` field — the one captured
+					// on plan_update's earlier awaiting_content call is deliberately preserved.
+					if ( in_array( $status, [ 'awaiting_content', 'pending_approval' ], true ) && ! empty( $tu['input']['analysis'] ) ) {
+						$pending_plan_message = \sanitize_textarea_field( $tu['input']['analysis'] );
 					}
 				}
-
-				$tools = $this->strip_single_use_tools( $tools, $provider_slug, $tools_called );
 
 				// If the model included chat_response, use its message as the final text and exit.
 				if ( null !== $chat_response_tu ) {
@@ -709,6 +727,58 @@ class ChatRestController {
 			array_filter(
 				$tools,
 				static fn( array $t ): bool => ! in_array( $t['name'] ?? '', $single_use, true )
+			)
+		);
+	}
+
+	/**
+	 * Narrows the tool list down to only the named tools, in the current provider's wire format.
+	 *
+	 * Used to force the model to call submit_post_content on the iteration immediately
+	 * following a plan_update call that staged a draft (status 'awaiting_content'): since
+	 * force_tool_use requires calling *something*, narrowing the list to one tool guarantees
+	 * the model spends that iteration's full token budget on the post body instead of
+	 * anything else. Mirrors strip_single_use_tools' per-provider shape handling, inverted
+	 * to an allowlist rather than a denylist.
+	 *
+	 * @since NEXT_VERSION
+	 * @param array<int, array<string, mixed>> $tools         Provider-formatted tool list.
+	 * @param string                           $provider_slug Provider slug ('claude', 'openai', 'gemini', 'proxy').
+	 * @param string[]                         $keep_names    Tool names to keep.
+	 * @return array<int, array<string, mixed>> Filtered tool list.
+	 */
+	private function restrict_tools_to( array $tools, string $provider_slug, array $keep_names ): array {
+		if ( empty( $tools ) ) {
+			return $tools;
+		}
+
+		if ( 'gemini' === $provider_slug ) {
+			if ( empty( $tools[0]['functionDeclarations'] ) ) {
+				return $tools;
+			}
+			$tools[0]['functionDeclarations'] = array_values(
+				array_filter(
+					$tools[0]['functionDeclarations'],
+					static fn( array $decl ): bool => in_array( $decl['name'] ?? '', $keep_names, true )
+				)
+			);
+			return $tools;
+		}
+
+		if ( 'openai' === $provider_slug ) {
+			return array_values(
+				array_filter(
+					$tools,
+					static fn( array $t ): bool => in_array( $t['function']['name'] ?? '', $keep_names, true )
+				)
+			);
+		}
+
+		// claude and proxy both key tool names at the top level.
+		return array_values(
+			array_filter(
+				$tools,
+				static fn( array $t ): bool => in_array( $t['name'] ?? '', $keep_names, true )
 			)
 		);
 	}

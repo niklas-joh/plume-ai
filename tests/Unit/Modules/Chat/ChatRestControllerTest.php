@@ -1612,6 +1612,10 @@ class ChatRestControllerTest extends TestCase {
     }
 
     public function test_send_message_uses_analysis_as_content_when_plan_update_includes_it(): void {
+        // plan_update stages a draft (status: awaiting_content, no new_content accepted) on
+        // iteration 1; the loop must force submit_post_content on iteration 2 and surface the
+        // analysis captured on iteration 1 as the final reply once submit_post_content lands
+        // the real pending_approval plan.
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( 'claude' );
@@ -1624,15 +1628,18 @@ class ChatRestControllerTest extends TestCase {
             [ 'role' => 'user', 'content' => 'Please review and tighten this post' ],
         ] );
 
-        $analysis_text = 'The intro buries the lede and the CTA is missing; tightening both.';
-        $tool_input    = [
-            'analysis'    => $analysis_text,
-            'post_id'     => 7,
-            'changes'     => 'Tightened intro, added CTA',
-            'new_content' => 'Full updated body.',
+        $analysis_text     = 'The intro buries the lede and the CTA is missing; tightening both.';
+        $plan_update_input = [
+            'analysis' => $analysis_text,
+            'post_id'  => 7,
+            'changes'  => 'Tightened intro, added CTA',
+        ];
+        $submit_input       = [
+            'post_id' => 7,
+            'content' => 'Full updated body.',
         ];
 
-        $plan_response = new CompletionResponse(
+        $plan_update_response = new CompletionResponse(
             content:           '',
             model:             'claude-3-5-sonnet',
             prompt_tokens:     10,
@@ -1640,10 +1647,24 @@ class ChatRestControllerTest extends TestCase {
             cost_usd:          0.0,
             raw:               [
                 'content' => [
-                    [ 'type' => 'tool_use', 'id' => 'tu_1', 'name' => 'plan_update', 'input' => $tool_input ],
+                    [ 'type' => 'tool_use', 'id' => 'tu_1', 'name' => 'plan_update', 'input' => $plan_update_input ],
                 ],
             ],
-            tool_call:         [ 'id' => 'tu_1', 'name' => 'plan_update', 'arguments' => $tool_input ],
+            tool_call:         [ 'id' => 'tu_1', 'name' => 'plan_update', 'arguments' => $plan_update_input ],
+        );
+
+        $submit_response = new CompletionResponse(
+            content:           '',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     10,
+            completion_tokens: 5,
+            cost_usd:          0.0,
+            raw:               [
+                'content' => [
+                    [ 'type' => 'tool_use', 'id' => 'tu_2', 'name' => 'submit_post_content', 'input' => $submit_input ],
+                ],
+            ],
+            tool_call:         [ 'id' => 'tu_2', 'name' => 'submit_post_content', 'arguments' => $submit_input ],
         );
 
         $pending = [
@@ -1656,16 +1677,29 @@ class ChatRestControllerTest extends TestCase {
             'post_status' => '',
         ];
 
-        $this->tool_registry->method( 'get_for_provider' )->willReturn( [ [ 'name' => 'plan_update' ] ] );
-        $this->tool_executor->expects( $this->once() )
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [
+            [ 'name' => 'plan_update' ],
+            [ 'name' => 'submit_post_content' ],
+        ] );
+
+        $executed = [];
+        $this->tool_executor->expects( $this->exactly( 2 ) )
             ->method( 'execute' )
-            ->with( 'plan_update', $tool_input, 1 )
-            ->willReturn( $pending );
+            ->willReturnCallback( function ( string $name, array $args, int $user_id ) use ( &$executed, $plan_update_input, $submit_input, $pending ): array {
+                $executed[] = $name;
+                if ( 'plan_update' === $name ) {
+                    $this->assertSame( $plan_update_input, $args );
+                    return [ 'status' => 'awaiting_content', 'post_id' => 7 ];
+                }
+                $this->assertSame( 'submit_post_content', $name );
+                $this->assertSame( $submit_input, $args );
+                return $pending;
+            } );
 
         $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
         $provider_mock->method( 'is_available' )->willReturn( true );
         $provider_mock->method( 'supports_tools' )->willReturn( true );
-        $provider_mock->method( 'complete' )->willReturn( $plan_response );
+        $provider_mock->method( 'complete' )->willReturnOnConsecutiveCalls( $plan_update_response, $submit_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
@@ -1682,9 +1716,11 @@ class ChatRestControllerTest extends TestCase {
         $response = $controller->send_message( $request );
 
         $this->assertSame( 200, $response->get_status() );
-        $this->assertSame( $analysis_text, $response->data['content'], 'analysis text must be surfaced as the reply, not the generic fallback' );
+        $this->assertSame( [ 'plan_update', 'submit_post_content' ], $executed );
+        $this->assertSame( $analysis_text, $response->data['content'], 'analysis captured on the plan_update iteration must be preserved as the final reply' );
         $this->assertSame( $pending, $response->data['pending_plan'] );
         $this->assertContains( 'plan_update', $response->data['tools_called'] );
+        $this->assertContains( 'submit_post_content', $response->data['tools_called'] );
     }
 
     public function test_send_message_uses_analysis_as_content_when_plan_post_includes_it(): void {
@@ -2100,5 +2136,70 @@ class ChatRestControllerTest extends TestCase {
         $result = $this->call_strip_single_use_tools( $tools, 'claude', [ 'get_recent_posts' ] );
 
         $this->assertCount( 2, $result );
+    }
+
+    // ── restrict_tools_to ────────────────────────────────────────────────────
+
+    /**
+     * Call the private restrict_tools_to method via reflection.
+     */
+    private function call_restrict_tools_to( array $tools, string $provider_slug, array $keep_names ): array {
+        $method = new \ReflectionMethod( ChatRestController::class, 'restrict_tools_to' );
+        $method->setAccessible( true );
+        $controller = new ChatRestController( $this->tool_registry, $this->tool_executor );
+        return $method->invoke( $controller, $tools, $provider_slug, $keep_names );
+    }
+
+    public function test_restrict_tools_to_keeps_only_named_tool_in_claude_format(): void {
+        $tools = [
+            [ 'name' => 'plan_update', 'description' => '...' ],
+            [ 'name' => 'submit_post_content', 'description' => '...' ],
+            [ 'name' => 'get_site_info', 'description' => '...' ],
+        ];
+
+        $result = $this->call_restrict_tools_to( $tools, 'claude', [ 'submit_post_content' ] );
+
+        $this->assertCount( 1, $result );
+        $this->assertSame( 'submit_post_content', $result[0]['name'] );
+    }
+
+    public function test_restrict_tools_to_keeps_only_named_tool_in_proxy_format(): void {
+        $tools = [
+            [ 'name' => 'submit_post_content', 'description' => '...' ],
+            [ 'name' => 'get_site_info', 'description' => '...' ],
+        ];
+
+        $result = $this->call_restrict_tools_to( $tools, 'proxy', [ 'submit_post_content' ] );
+
+        $this->assertCount( 1, $result );
+        $this->assertSame( 'submit_post_content', $result[0]['name'] );
+    }
+
+    public function test_restrict_tools_to_keeps_only_named_tool_in_openai_format(): void {
+        $tools = [
+            [ 'type' => 'function', 'function' => [ 'name' => 'submit_post_content' ] ],
+            [ 'type' => 'function', 'function' => [ 'name' => 'search_posts' ] ],
+        ];
+
+        $result = $this->call_restrict_tools_to( $tools, 'openai', [ 'submit_post_content' ] );
+
+        $this->assertCount( 1, $result );
+        $this->assertSame( 'submit_post_content', $result[0]['function']['name'] );
+    }
+
+    public function test_restrict_tools_to_keeps_only_named_tool_in_gemini_format(): void {
+        $tools = [
+            [
+                'functionDeclarations' => [
+                    [ 'name' => 'submit_post_content' ],
+                    [ 'name' => 'get_pages' ],
+                ],
+            ],
+        ];
+
+        $result = $this->call_restrict_tools_to( $tools, 'gemini', [ 'submit_post_content' ] );
+
+        $this->assertCount( 1, $result[0]['functionDeclarations'] );
+        $this->assertSame( 'submit_post_content', $result[0]['functionDeclarations'][0]['name'] );
     }
 }

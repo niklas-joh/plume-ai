@@ -27,7 +27,9 @@ const DEFAULT_WIDTH = 360;
  * content, lets the user annotate specific passages, and supports requesting
  * a revision round-trip through the existing chat messages endpoint.
  *
- * State machine: plan -> reviewing -> commenting -> loading -> plan (revised)
+ * State machine: reviewing (default) -> commenting -> loading -> reviewing (revised).
+ * `plan` is a secondary view reachable via "Back to plan", showing the AI's
+ * prose summary instead of the diff; it is never the default entry point.
  *
  * @param {Object}   props
  * @param {Object}   props.plan               Pending plan object (`plan_type === 'update'`).
@@ -52,7 +54,7 @@ export default function ReviewDrawer( {
 	onClose,
 	onMessagesRefresh,
 } ) {
-	const [ drawerState, setDrawerState ] = useState( 'plan' );
+	const [ drawerState, setDrawerState ] = useState( 'reviewing' );
 	const [ currentPlan, setCurrentPlan ] = useState( plan );
 	const [ postContent, setPostContent ] = useState( null );
 	const [ diffBlocks, setDiffBlocks ] = useState( [] );
@@ -339,7 +341,7 @@ export default function ReviewDrawer( {
 			setAiSummary( res.content ?? '' );
 			setRevision( ( r ) => r + 1 );
 			setAiResponseOpen( true );
-			setDrawerState( 'plan' );
+			setDrawerState( 'reviewing' );
 			onMessagesRefresh();
 		} catch ( err ) {
 			setError(
@@ -446,15 +448,13 @@ export default function ReviewDrawer( {
 			{ /* Header */ }
 			<div
 				className={ `plume-review-drawer__header${
-					revision > 0 && drawerState === 'plan'
-						? ' plume-review-drawer__header--revised'
-						: ''
+					revision > 0 ? ' plume-review-drawer__header--revised' : ''
 				}` }
 			>
 				<div className="plume-review-drawer__header-text">
 					<p className="plume-review-drawer__title">
 						{ getDrawerTitle() }
-						{ drawerState === 'plan' && revision > 0 && (
+						{ revision > 0 && (
 							<span className="plume-review-drawer__revised-badge">
 								{ __( 'Revised', 'plume' ) }
 							</span>
@@ -503,8 +503,8 @@ export default function ReviewDrawer( {
 				</div>
 			) }
 
-			{ /* AI response strip — shown in plan state after a revision round-trip */ }
-			{ drawerState === 'plan' && aiSummary && (
+			{ /* AI response strip — shown after a revision round-trip, in whichever state the drawer is in */ }
+			{ drawerState !== 'loading' && aiSummary && (
 				<div
 					className={ `plume-review-drawer__ai-strip${
 						aiResponseOpen
@@ -654,8 +654,10 @@ export default function ReviewDrawer( {
 						) }
 					</div>
 
-					{ /* General feedback */ }
-					{ drawerState === 'commenting' && (
+					{ /* General feedback — available from reviewing too, so users can
+					   request a revision without first highlighting specific text */ }
+					{ ( drawerState === 'reviewing' ||
+						drawerState === 'commenting' ) && (
 						<div className="plume-review-drawer__feedback">
 							<label htmlFor={ `plume-feedback-${ revision }` }>
 								{ __( 'Overall feedback', 'plume' ) }

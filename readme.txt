@@ -54,7 +54,7 @@ chosen provider. Review each provider's privacy policy and terms of service befo
 * OpenAI: https://openai.com/policies/privacy-policy
 * Google Gemini: https://policies.google.com/privacy
 * Ollama is self-hosted; no external transmission occurs when using Ollama.
-* **Plume AI - Write and Design** (`https://plume-proxy.plume.workers.dev`): Free and managed-pro
+* **Plume AI - Write and Design** (`https://plume-proxy.plumewp.workers.dev`): Free and managed-pro
   tiers route chat requests through this service. The service receives your
   site URL (for registration) and the chat messages you send. No messages are stored
   beyond the in-flight API call. See: https://wpaimind.com/privacy-policy

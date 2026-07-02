@@ -8,7 +8,7 @@ token limits via KV, and forwards to Anthropic.
 
 ```php
 // URL of the deployed Worker (or set via WP Admin → Plume Settings)
-define( 'PLUME_PROXY_URL', 'https://plume-proxy.plume.workers.dev' );
+define( 'PLUME_PROXY_URL', 'https://plume-proxy.plumewp.workers.dev' );
 ```
 
 ## First-time setup

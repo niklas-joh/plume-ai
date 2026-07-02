@@ -9,6 +9,8 @@ declare( strict_types=1 );
 
 namespace Plume\Admin;
 
+use Plume\Admin\Concerns\DetectsPlumeAdminPage;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -26,23 +28,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ActivationNotice {
 
-	private const OPTION = 'plume_just_activated';
+	use DetectsPlumeAdminPage;
 
-	/**
-	 * Returns true when the current admin screen is a Plume plugin page.
-	 *
-	 * Same detection as TierSyncBackfillNotice::is_plume_admin_page() — kept
-	 * private in each notice class because notices must not depend on one
-	 * another's internals.
-	 *
-	 * @since NEXT_VERSION
-	 * @return bool True when the URL carries a `page` param starting with 'plume'.
-	 */
-	private static function is_plume_admin_page(): bool {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page detection, no state change.
-		$page = isset( $_GET['page'] ) ? \sanitize_key( \wp_unslash( $_GET['page'] ) ) : '';
-		return \str_starts_with( $page, 'plume' );
-	}
+	private const OPTION = 'plume_just_activated';
 
 	/**
 	 * Register the admin_notices hook.

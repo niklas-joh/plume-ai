@@ -29,6 +29,22 @@ class ActivationNotice {
 	private const OPTION = 'plume_just_activated';
 
 	/**
+	 * Returns true when the current admin screen is a Plume plugin page.
+	 *
+	 * Same detection as TierSyncBackfillNotice::is_plume_admin_page() — kept
+	 * private in each notice class because notices must not depend on one
+	 * another's internals.
+	 *
+	 * @since NEXT_VERSION
+	 * @return bool True when the URL carries a `page` param starting with 'plume'.
+	 */
+	private static function is_plume_admin_page(): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page detection, no state change.
+		$page = isset( $_GET['page'] ) ? \sanitize_key( \wp_unslash( $_GET['page'] ) ) : '';
+		return \str_starts_with( $page, 'plume' );
+	}
+
+	/**
 	 * Register the admin_notices hook.
 	 *
 	 * @since 1.0.0
@@ -43,6 +59,12 @@ class ActivationNotice {
 	 * has manage_options capability. Deletes the flag before rendering.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Rendering is limited to Plume admin screens so the
+	 *                      notice never occupies unrelated wp-admin pages
+	 *                      (WP.org Guideline 11). The flag is only consumed
+	 *                      once the notice can actually render, so activating
+	 *                      and browsing elsewhere first does not burn the
+	 *                      single-use disclosure.
 	 * @return void
 	 */
 	public static function maybe_display(): void {
@@ -50,6 +72,9 @@ class ActivationNotice {
 			return;
 		}
 		if ( ! \current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		if ( ! self::is_plume_admin_page() ) {
 			return;
 		}
 		// Delete before rendering — single-use flag, prevents re-display on reload.

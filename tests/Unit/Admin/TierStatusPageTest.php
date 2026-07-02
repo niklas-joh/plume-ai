@@ -239,7 +239,7 @@ class TierStatusPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'Manage your API keys', $output );
 	}
 
-	public function test_render_omits_api_keys_link_for_pro_managed_tier(): void {
+	public function test_render_shows_api_keys_link_for_pro_managed_tier(): void {
 		$this->stub_display_functions();
 		$this->stub_tier_and_registration( 'pro_managed', true );
 
@@ -247,6 +247,7 @@ class TierStatusPageTest extends TestCase {
 		TierStatusPage::render();
 		$output = ob_get_clean();
 
-		$this->assertStringNotContainsString( 'Manage your API keys', $output );
+		$this->assertStringContainsString( 'Manage your API keys', $output );
+		$this->assertStringContainsString( 'plume-settings', $output );
 	}
 }

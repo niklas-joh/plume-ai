@@ -189,6 +189,33 @@ class GeminiProviderTest extends TestCase {
 		Functions\when( 'wp_remote_post' )->justReturn( [
 			'response' => [ 'code' => 200 ],
 			'body'     => json_encode( [
+				'content'    => '',
+				'usage'      => [ 'input_tokens' => 10, 'output_tokens' => 4 ],
+				'tool_calls' => [
+					[ 'id' => 'gemini_123', 'name' => 'get_posts', 'arguments' => [ 'count' => 3 ] ],
+				],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+
+		$provider = new GeminiProvider( '' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'list posts' ] ] );
+		$response = $provider->complete( $request );
+
+		// The Worker now emits tool_calls (plural); the provider exposes the first entry.
+		$this->assertTrue( $response->is_tool_call() );
+		$this->assertSame( 'get_posts', $response->tool_call['name'] );
+		$this->assertSame( 'gemini_123', $response->tool_call['id'] );
+		$this->assertSame( [ 'count' => 3 ], $response->tool_call['arguments'] );
+	}
+
+	public function test_complete_via_proxy_tool_call_singular_fallback(): void {
+		// Backward-compat: any in-flight response may still carry the old singular tool_call shape.
+		$this->mock_free_tier_proxy();
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
 				'content'   => '',
 				'usage'     => [ 'input_tokens' => 10, 'output_tokens' => 4 ],
 				'tool_call' => [ 'id' => 'gemini_123', 'name' => 'get_posts', 'arguments' => [ 'count' => 3 ] ],
@@ -203,6 +230,7 @@ class GeminiProviderTest extends TestCase {
 
 		$this->assertTrue( $response->is_tool_call() );
 		$this->assertSame( 'get_posts', $response->tool_call['name'] );
+		$this->assertSame( 'gemini_123', $response->tool_call['id'] );
 		$this->assertSame( [ 'count' => 3 ], $response->tool_call['arguments'] );
 	}
 

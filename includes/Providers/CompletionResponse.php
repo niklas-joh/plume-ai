@@ -66,6 +66,33 @@ final class CompletionResponse {
 	}
 
 	/**
+	 * Extract tool calls from a normalised proxy result.
+	 *
+	 * The Worker sends `tool_calls` (plural array); older in-flight responses used
+	 * `tool_call` (singular). Centralising this contract here prevents the per-provider
+	 * drift that let Claude diverge from OpenAI/Gemini (see #892/#893). Returns the first
+	 * call (or null) so callers can keep is_tool_call() a simple null-check, plus the full
+	 * array for multi-call execution in a single turn.
+	 *
+	 * @since NEXT_VERSION
+	 * @param mixed $result Normalised proxy response; non-array input yields no calls.
+	 * @return array{0: array|null, 1: array<int, array>} [first_tool_call_or_null, all_tool_calls].
+	 */
+	public static function first_and_all_tool_calls_from_proxy( mixed $result ): array {
+		if ( ! \is_array( $result ) ) {
+			return [ null, [] ];
+		}
+		if ( ! empty( $result['tool_calls'] ) && \is_array( $result['tool_calls'] ) ) {
+			$all = array_values( $result['tool_calls'] );
+			return [ $all[0] ?? null, $all ];
+		}
+		if ( ! empty( $result['tool_call'] ) ) {
+			return [ $result['tool_call'], [ $result['tool_call'] ] ];
+		}
+		return [ null, [] ];
+	}
+
+	/**
 	 * Return a new instance with the content replaced.
 	 *
 	 * Used by the agentic loop to extract the message from a chat_response tool call

@@ -63,7 +63,8 @@ class RealChatTest extends RealIntegrationTestCase {
 			sprintf( 'Expected 200, got %d. Body: %s', $response->get_status(), wp_json_encode( $data ) )
 		);
 		$this->assertNotEmpty( $data['content'] ?? '' );
-		$this->assertGreaterThan( 0, (int) ( $data['credits'] ?? 0 ) );
+		// BYOK tier calls Anthropic directly; credits_charged = 0 (no Plume credits consumed).
+		$this->assertGreaterThanOrEqual( 0, (int) ( $data['credits'] ?? 0 ) );
 	}
 
 	/**

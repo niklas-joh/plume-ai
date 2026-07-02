@@ -204,35 +204,20 @@ class ClaudeProvider extends AbstractProvider {
 		// does not double-log via the parent path.
 		$this->proxy_logged = true;
 
-		// Build CompletionResponse directly from the proxy's normalised shape { content, usage, tool_call? }.
+		// Build CompletionResponse directly from the proxy's normalised shape { content, usage, model, tool_calls? }.
 		// parse_response() expects the upstream Claude wire format and cannot handle the normalised response.
-		$model      = ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL;
-		$in_tokens  = (int) ( $result['usage']['input_tokens'] ?? 0 );
-		$out_tokens = (int) ( $result['usage']['output_tokens'] ?? 0 );
-		$cost       = $this->calculate_cost( $model, $in_tokens, $out_tokens );
+		// Prefer the model slug the Worker resolved (it may differ from what the request asked for), then
+		// fall back to the requested model, then the plugin default.
+		$worker_model = \sanitize_text_field( $result['model'] ?? '' );
+		$model        = '' !== $worker_model ? $worker_model : ( ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL );
+		$in_tokens    = (int) ( $result['usage']['input_tokens'] ?? 0 );
+		$out_tokens   = (int) ( $result['usage']['output_tokens'] ?? 0 );
+		$cost         = $this->calculate_cost( $model, $in_tokens, $out_tokens );
 
-		if ( ! empty( $result['tool_call'] ) ) {
-			return new CompletionResponse(
-				content: $result['content'] ?? '',
-				model: $model,
-				prompt_tokens: $in_tokens,
-				completion_tokens: $out_tokens,
-				cost_usd: $cost,
-				raw: $result,
-				tool_call: $result['tool_call'],
-				credits_charged: (int) ( $result['credits_charged'] ?? 0 ),
-			);
-		}
-
-		return new CompletionResponse(
-			content:          $result['content'] ?? '',
-			model:            $model,
-			prompt_tokens:    $in_tokens,
-			completion_tokens: $out_tokens,
-			cost_usd:         $cost,
-			raw:              $result,
-			credits_charged:  (int) ( $result['credits_charged'] ?? 0 ),
-		);
+		// Detect a tool-call response. build_proxy_response() centralises the plural/singular contract
+		// and response assembly so the three providers cannot drift apart: the full array is preserved
+		// in `raw` for extract_tool_calls() and `tool_call` holds the first entry (null-check friendly).
+		return $this->build_proxy_response( $result, $model, $cost );
 	}
 
 	/**

@@ -104,7 +104,7 @@ class ProxyClient {
 		}
 
 		if ( 401 === $code ) {
-			// Token may be stale — clear it so maybe_register() re-issues on next admin_init.
+			// Token may be stale — clear it so maybe_register() re-issues on the next proxy call.
 			// Re-registration is async; the current request cannot be retried transparently.
 			// TODO #326: inline register() + retry once to avoid user-visible auth errors.
 			delete_option( SiteRegistration::OPTION_TOKEN );

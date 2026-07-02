@@ -63,7 +63,7 @@ class ActivationNotice {
 			<p>
 				<?php
 				\esc_html_e(
-					'This plugin connects to Plume AI - Write and Design and to third-party AI providers (Anthropic Claude, OpenAI, Google Gemini). Only your site address is shared during setup — no content leaves your site until you start a conversation. Your messages are then forwarded to the AI provider on your behalf.',
+					'This plugin connects to Plume AI - Write and Design and to third-party AI providers (Anthropic Claude, OpenAI, Google Gemini). Nothing is transmitted until you first use an AI feature — at that point your site address is shared once to connect to the service, and the content you submit is forwarded to the AI provider on your behalf.',
 					'plume'
 				);
 				?>

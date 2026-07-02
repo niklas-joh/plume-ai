@@ -514,6 +514,58 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertIsString( $result );
 	}
 
+	public function test_apply_tools_cache_control_marks_last_tool(): void {
+		$provider = new ClaudeProvider( 'sk-ant-test' );
+		$method   = new \ReflectionMethod( $provider, 'apply_tools_cache_control' );
+		$tools    = [
+			[ 'name' => 'get_recent_posts', 'description' => '...', 'input_schema' => [] ],
+			[ 'name' => 'plan_post', 'description' => '...', 'input_schema' => [] ],
+		];
+
+		$result = $method->invoke( $provider, $tools );
+
+		$this->assertArrayNotHasKey( 'cache_control', $result[0] );
+		$this->assertSame( [ 'type' => 'ephemeral' ], $result[1]['cache_control'] );
+	}
+
+	public function test_apply_tools_cache_control_returns_empty_array_unchanged(): void {
+		$provider = new ClaudeProvider( 'sk-ant-test' );
+		$method   = new \ReflectionMethod( $provider, 'apply_tools_cache_control' );
+
+		$result = $method->invoke( $provider, [] );
+
+		$this->assertSame( [], $result );
+	}
+
+	public function test_build_body_adds_cache_control_to_last_tool(): void {
+		$provider = new ClaudeProvider( 'sk-ant-test' );
+		$method   = new \ReflectionMethod( $provider, 'build_body' );
+		$request  = new CompletionRequest(
+			[ [ 'role' => 'user', 'content' => 'hi' ] ],
+			tools: [
+				[ 'name' => 'get_recent_posts', 'description' => '...', 'input_schema' => [] ],
+				[ 'name' => 'plan_post', 'description' => '...', 'input_schema' => [] ],
+			],
+			force_tool_use: true,
+		);
+
+		$body = $method->invoke( $provider, $request );
+
+		$this->assertArrayNotHasKey( 'cache_control', $body['tools'][0] );
+		$this->assertSame( [ 'type' => 'ephemeral' ], $body['tools'][1]['cache_control'] );
+		$this->assertSame( [ 'type' => 'any' ], $body['tool_choice'] );
+	}
+
+	public function test_build_body_omits_tools_key_when_no_tools(): void {
+		$provider = new ClaudeProvider( 'sk-ant-test' );
+		$method   = new \ReflectionMethod( $provider, 'build_body' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+
+		$body = $method->invoke( $provider, $request );
+
+		$this->assertArrayNotHasKey( 'tools', $body );
+	}
+
 	public function test_complete_parses_cache_tokens_in_response(): void {
 		Functions\when( 'wp_remote_post' )->justReturn( [
 			'response' => [ 'code' => 200 ],
@@ -606,6 +658,8 @@ class ClaudeProviderTest extends TestCase {
 		$provider->complete( $request );
 
 		$this->assertArrayHasKey( 'tools', $captured_body );
-		$this->assertSame( $tools, $captured_body['tools'] );
+		$this->assertSame( 'get_recent_posts', $captured_body['tools'][0]['name'] );
+		$this->assertSame( 'Fetches recent posts.', $captured_body['tools'][0]['description'] );
+		$this->assertSame( [ 'type' => 'ephemeral' ], $captured_body['tools'][0]['cache_control'] );
 	}
 }

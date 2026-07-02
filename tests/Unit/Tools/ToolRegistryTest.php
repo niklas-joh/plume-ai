@@ -143,6 +143,30 @@ class ToolRegistryTest extends TestCase {
 	}
 
 	// -------------------------------------------------------------------------
+	// analysis parameter on plan tools
+	// -------------------------------------------------------------------------
+
+	public function test_plan_tools_require_analysis_parameter(): void {
+		$this->stub_write_tools( true );
+		$this->stub_apply_filters_passthrough();
+
+		$registry = new ToolRegistry();
+		$tools    = $registry->get_for_provider( 'claude' );
+
+		$by_name = [];
+		foreach ( $tools as $tool ) {
+			$by_name[ $tool['name'] ] = $tool;
+		}
+
+		foreach ( [ 'plan_post', 'plan_update' ] as $name ) {
+			$this->assertArrayHasKey( $name, $by_name );
+			$schema = $by_name[ $name ]['input_schema'];
+			$this->assertArrayHasKey( 'analysis', $schema['properties'] );
+			$this->assertContains( 'analysis', $schema['required'] );
+		}
+	}
+
+	// -------------------------------------------------------------------------
 	// allowed_post_types()
 	// -------------------------------------------------------------------------
 

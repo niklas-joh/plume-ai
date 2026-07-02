@@ -288,7 +288,10 @@ class ChatRestController {
 		);
 
 		$injector = $this->make_voice_injector();
-		$system   = $injector->build_system_prompt( '', $user_id );
+		$system   = $injector->build_system_prompt(
+			'Tool rule: when the user wants to edit or update a post, call plan_update directly after reading the post — never use chat_response to share your analysis or ask for permission first. Your analysis goes in the plan_update analysis field.',
+			$user_id
+		);
 
 		$context_post_id = absint( $request->get_param( 'context_post_id' ) );
 		if ( $context_post_id > 0 ) {
@@ -356,6 +359,7 @@ class ChatRestController {
 					],
 					tools:          $tools,
 					force_tool_use: ! empty( $tools ),
+					max_tokens:     8192,
 				);
 
 				$response = $provider->complete( $req );
@@ -386,7 +390,8 @@ class ChatRestController {
 				}
 
 				// Execute all non-chat_response tools and collect results.
-				$tool_results = [];
+				$tool_results         = [];
+				$pending_plan_message = '';
 				foreach ( $all_tool_uses as $tu ) {
 					if ( 'chat_response' === $tu['name'] ) {
 						continue;
@@ -397,9 +402,12 @@ class ChatRestController {
 					$tools_called[]            = $tool_name;
 
 					if ( 'pending_approval' === ( $result['status'] ?? '' ) ) {
-						$pending_plan = $result;
+						$pending_plan         = $result;
+						$pending_plan_message = \sanitize_textarea_field( $tu['input']['analysis'] ?? '' );
 					}
 				}
+
+				$tools = $this->strip_single_use_tools( $tools, $provider_slug, $tools_called );
 
 				// If the model included chat_response, use its message as the final text and exit.
 				if ( null !== $chat_response_tu ) {
@@ -407,11 +415,13 @@ class ChatRestController {
 					break;
 				}
 
-				// Safety net for models that ignore the "call chat_response after plan_update/plan_post" instruction.
+				// Safety net for models that omit `analysis` on plan_update/plan_post, or for
+				// legacy tool-call fixtures/providers that don't send it.
 				if ( null !== $pending_plan ) {
-					$final_response = $response->with_text(
-						__( "I've prepared the changes for your review.", 'plume' )
-					);
+					$message        = '' !== $pending_plan_message
+						? $pending_plan_message
+						: __( "I've prepared the changes for your review.", 'plume' );
+					$final_response = $response->with_text( $message );
 					break;
 				}
 
@@ -419,10 +429,9 @@ class ChatRestController {
 			}
 
 			if ( null === $final_response ) {
-				return new \WP_REST_Response(
-					[ 'message' => 'Tool call limit reached without a final response.' ],
-					500
-				);
+				// Substitute a displayable message so the chat UI receives a 200 rather than crashing on 500.
+				$limit_message  = \__( 'The assistant reached the maximum number of steps without finishing. Please try rephrasing your request or breaking it into smaller tasks.', 'plume' );
+				$final_response = $response->with_text( $limit_message );
 			}
 
 			// Log the Worker's reported credit cost exactly once per user message, after all
@@ -434,12 +443,14 @@ class ChatRestController {
 
 			return rest_ensure_response(
 				[
-					'content'      => $final_response->content,
-					'model'        => $final_response->model,
-					'credits'      => $final_response->credits_charged,
-					'cost_usd'     => $final_response->cost_usd,
-					'pending_plan' => $pending_plan,
-					'tools_called' => \array_values( \array_unique( $tools_called ) ),
+					'content'           => $final_response->content,
+					'model'             => $final_response->model,
+					'credits'           => $final_response->credits_charged,
+					'cost_usd'          => $final_response->cost_usd,
+					'prompt_tokens'     => $final_response->prompt_tokens,
+					'completion_tokens' => $final_response->completion_tokens,
+					'pending_plan'      => $pending_plan,
+					'tools_called'      => \array_values( \array_unique( $tools_called ) ),
 				]
 			);
 		} catch ( ProviderException $e ) {
@@ -647,6 +658,62 @@ class ChatRestController {
 	// ── Private helpers ───────────────────────────────────────────────────────
 
 	/**
+	 * Removes single-use write tools from the tool list once they've been called.
+	 *
+	 * Both plan_post and plan_update instruct the model "do not call again" in their
+	 * descriptions, and the agentic loop above already breaks via $pending_plan when
+	 * either returns a pending_approval result. This is a defensive second layer: if a
+	 * call to either tool ever returns a non-pending_approval result (e.g. an error),
+	 * the loop does not break, and without this filter the tool would remain available
+	 * for the model to call again, risking a duplicate approval card. Data-gathering
+	 * tools (get_recent_posts, get_post_content, search_posts, get_pages, get_site_info)
+	 * are deliberately never stripped — PR #792 did that and #803 reverted it because it
+	 * broke multi-step sequential chains such as get_recent_posts -> get_post_content -> plan_update.
+	 *
+	 * @since NEXT_VERSION
+	 * @param array<int, array<string, mixed>> $tools         Provider-formatted tool list.
+	 * @param string                           $provider_slug Provider slug ('claude', 'openai', 'gemini', 'proxy').
+	 * @param string[]                         $tools_called  Tool names called so far this request.
+	 * @return array<int, array<string, mixed>> Filtered tool list.
+	 */
+	private function strip_single_use_tools( array $tools, string $provider_slug, array $tools_called ): array {
+		$single_use = array_intersect( \Plume\Tools\ToolRegistry::SINGLE_USE_TOOLS, $tools_called );
+		if ( empty( $single_use ) || empty( $tools ) ) {
+			return $tools;
+		}
+
+		if ( 'gemini' === $provider_slug ) {
+			if ( empty( $tools[0]['functionDeclarations'] ) ) {
+				return $tools;
+			}
+			$tools[0]['functionDeclarations'] = array_values(
+				array_filter(
+					$tools[0]['functionDeclarations'],
+					static fn( array $decl ): bool => ! in_array( $decl['name'] ?? '', $single_use, true )
+				)
+			);
+			return $tools;
+		}
+
+		if ( 'openai' === $provider_slug ) {
+			return array_values(
+				array_filter(
+					$tools,
+					static fn( array $t ): bool => ! in_array( $t['function']['name'] ?? '', $single_use, true )
+				)
+			);
+		}
+
+		// claude and proxy both key tool names at the top level.
+		return array_values(
+			array_filter(
+				$tools,
+				static fn( array $t ): bool => ! in_array( $t['name'] ?? '', $single_use, true )
+			)
+		);
+	}
+
+	/**
 	 * Extract every tool call from a provider response in a normalised shape.
 	 *
 	 * Claude exposes tool_use blocks in raw['content']; Gemini exposes functionCall
@@ -676,7 +743,9 @@ class ChatRestController {
 				];
 			}
 		} else {
-			foreach ( $response->raw['content'] ?? [] as $block ) {
+			// Proxy responses set raw['content'] to a string; only iterate when it's an array.
+			$raw_content = $response->raw['content'] ?? [];
+			foreach ( \is_array( $raw_content ) ? $raw_content : [] as $block ) {
 				if ( ( $block['type'] ?? '' ) === 'tool_use' ) {
 					$tool_uses[] = [
 						'id'    => $block['id'],
@@ -687,14 +756,21 @@ class ChatRestController {
 			}
 		}
 
-		// Fall back to the single tool_call extracted by the provider if raw parsing found nothing.
+		// Fall back to the normalised proxy tool call(s) if raw parsing found nothing.
+		// CompletionResponse::first_and_all_tool_calls_from_proxy() handles the tool_calls (plural) /
+		// tool_call (singular) contract; older responses expose only the singular tool_call property.
 		if ( empty( $tool_uses ) ) {
-			$tool_call   = $response->tool_call;
-			$tool_uses[] = [
-				'id'    => $tool_call['id'],
-				'name'  => $tool_call['name'],
-				'input' => $tool_call['arguments'],
-			];
+			[ , $all_tool_calls ] = CompletionResponse::first_and_all_tool_calls_from_proxy( $response->raw );
+			if ( empty( $all_tool_calls ) && null !== $response->tool_call ) {
+				$all_tool_calls = [ $response->tool_call ];
+			}
+			foreach ( $all_tool_calls as $tc ) {
+				$tool_uses[] = [
+					'id'    => $tc['id'] ?? '',
+					'name'  => $tc['name'] ?? '',
+					'input' => $tc['arguments'] ?? [],
+				];
+			}
 		}
 
 		return $tool_uses;
@@ -717,6 +793,10 @@ class ChatRestController {
 		array $tool_results
 	): array {
 		$tool_call = $tool_response->tool_call;
+
+		// Full ordered set of executed tool calls — every one must be written back so the
+		// model sees all results next turn and does not re-request calls 2..N (#898).
+		$all_tool_calls = $this->extract_tool_calls( $tool_response, $provider_slug );
 
 		// Convenience: result for the primary (first) tool call.
 		$first_result        = reset( $tool_results );
@@ -742,15 +822,29 @@ class ChatRestController {
 					array_filter( $raw_content, fn( $b ) => ( $b['type'] ?? '' ) === 'tool_use' )
 				);
 				if ( ! $has_tool_use_block ) {
-					$tool_input  = ! empty( $tool_call['arguments'] ) ? (object) $tool_call['arguments'] : new \stdClass();
-					$raw_content = [
-						[
+					// Rebuild one tool_use block per executed call so parallel calls 2..N survive (#898).
+					$raw_content = [];
+					foreach ( $all_tool_calls as $tc ) {
+						$tool_input    = ! empty( $tc['input'] ) ? (object) $tc['input'] : new \stdClass();
+						$raw_content[] = [
 							'type'  => 'tool_use',
-							'id'    => $tool_call['id'],
-							'name'  => $tool_call['name'],
+							'id'    => $tc['id'],
+							'name'  => $tc['name'],
 							'input' => $tool_input,
-						],
-					];
+						];
+					}
+					// Fall back to the primary tool call if extraction yielded nothing.
+					if ( empty( $raw_content ) ) {
+						$tool_input  = ! empty( $tool_call['arguments'] ) ? (object) $tool_call['arguments'] : new \stdClass();
+						$raw_content = [
+							[
+								'type'  => 'tool_use',
+								'id'    => $tool_call['id'],
+								'name'  => $tool_call['name'],
+								'input' => $tool_input,
+							],
+						];
+					}
 				}
 				$messages[] = [
 					'role'    => 'assistant',
@@ -786,24 +880,43 @@ class ChatRestController {
 
 			case 'openai':
 			case 'grok':
+				// Emit one tool_calls[] entry per executed call so calls 2..N are not dropped (#898).
+				$tool_calls_payload = [];
+				foreach ( $all_tool_calls as $tc ) {
+					$tool_calls_payload[] = [
+						'id'       => $tc['id'],
+						'type'     => 'function',
+						'function' => [
+							'name'      => $tc['name'],
+							'arguments' => \wp_json_encode( $tc['input'] ),
+						],
+					];
+				}
+				// Fall back to the primary tool call if extraction yielded nothing.
+				if ( empty( $tool_calls_payload ) ) {
+					$tool_calls_payload[] = [
+						'id'       => $tool_call['id'],
+						'type'     => 'function',
+						'function' => [
+							'name'      => $tool_call['name'],
+							'arguments' => \wp_json_encode( $tool_call['arguments'] ),
+						],
+					];
+				}
 				$messages[] = [
 					'role'       => 'assistant',
-					'tool_calls' => [
-						[
-							'id'       => $tool_call['id'],
-							'type'     => 'function',
-							'function' => [
-								'name'      => $tool_call['name'],
-								'arguments' => \wp_json_encode( $tool_call['arguments'] ),
-							],
-						],
-					],
+					'tool_calls' => $tool_calls_payload,
 				];
-				$messages[] = [
-					'role'         => 'tool',
-					'tool_call_id' => $tool_call['id'],
-					'content'      => $default_result_json,
-				];
+				// One tool result message per tool_call_id.
+				foreach ( $tool_calls_payload as $tc_entry ) {
+					$tc_id      = $tc_entry['id'];
+					$tc_result  = $tool_results[ $tc_id ] ?? $default_result;
+					$messages[] = [
+						'role'         => 'tool',
+						'tool_call_id' => $tc_id,
+						'content'      => \wp_json_encode( $tc_result ),
+					];
+				}
 				break;
 
 			case 'gemini':

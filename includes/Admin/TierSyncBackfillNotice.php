@@ -83,6 +83,37 @@ class TierSyncBackfillNotice {
 	}
 
 	/**
+	 * Returns true when the current admin screen is a Plume plugin page.
+	 *
+	 * Limits notices to Plume pages so WP.org Guideline 11 is satisfied — plugin
+	 * notices must not appear on unrelated admin screens.
+	 *
+	 * @since NEXT_VERSION
+	 * @return bool True when the URL carries a `page` param starting with 'plume'.
+	 */
+	private static function is_plume_admin_page(): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page detection, no state change.
+		$page = isset( $_GET['page'] ) ? \sanitize_key( \wp_unslash( $_GET['page'] ) ) : '';
+		return \str_starts_with( $page, 'plume' );
+	}
+
+	/**
+	 * Returns true when the current user may view a Plume admin notice.
+	 *
+	 * Bundles the capability + Plume-page pair shared by can_show_tier_notice()
+	 * and maybe_display_result() so the two guards never drift apart.
+	 *
+	 * @since NEXT_VERSION
+	 * @return bool True when the user has manage_options on a Plume admin page.
+	 */
+	private static function current_user_can_see_plume_notice(): bool {
+		if ( ! \current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+		return self::is_plume_admin_page();
+	}
+
+	/**
 	 * Returns true when the current user may see a tier notice.
 	 *
 	 * Shared preamble for maybe_display() and maybe_display_sig_mismatch() so the
@@ -92,7 +123,7 @@ class TierSyncBackfillNotice {
 	 * @return bool True when the common preconditions are met.
 	 */
 	private static function can_show_tier_notice(): bool {
-		if ( ! \current_user_can( 'manage_options' ) ) {
+		if ( ! self::current_user_can_see_plume_notice() ) {
 			return false;
 		}
 		return SiteRegistration::is_registered();
@@ -206,7 +237,7 @@ class TierSyncBackfillNotice {
 	 * @return void
 	 */
 	public static function maybe_display_result(): void {
-		if ( ! \current_user_can( 'manage_options' ) ) {
+		if ( ! self::current_user_can_see_plume_notice() ) {
 			return;
 		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display of redirect result.
@@ -291,7 +322,9 @@ class TierSyncBackfillNotice {
 
 		$referer = \wp_get_referer();
 		if ( ! $referer ) {
-			$referer = \admin_url();
+			// Fall back to the main Plume page so the page-guard in
+			// maybe_display_result() doesn't suppress the outcome notice.
+			$referer = \admin_url( 'admin.php?page=plume' );
 		}
 
 		$redirect = \add_query_arg( 'plume_rotate', $status, $referer );

@@ -28,8 +28,7 @@ class GeminiProviderTest extends TestCase {
 			public function query( string $sql ): int { return 1; }
 		};
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		// Return 'pro_byok' so do_complete() routes direct — preserving existing test behaviour.
-		// Tier is now site-level, so we stub the SITE_OPTION not user meta.
+		// Routing is key-based; these stubs only satisfy incidental option reads.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) =>
 				'plume_site_tier' === $key ? 'pro_byok' : $default

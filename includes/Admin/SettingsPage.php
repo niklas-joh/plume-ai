@@ -69,10 +69,6 @@ class SettingsPage {
 				'isPaid'        => TierManager::is_paid(),
 				'siteTitle'     => get_bloginfo( 'name' ),
 				'tier'          => TierManager::get_user_tier(),
-				'features'      => [
-					'model_selection' => TierManager::user_can( 'model_selection' ),
-					'own_api_key'     => TierManager::user_can( 'own_api_key' ),
-				],
 			]
 		);
 

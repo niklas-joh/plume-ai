@@ -9,7 +9,6 @@ declare( strict_types=1 );
 namespace Plume\Admin;
 
 use Plume\Settings\ProviderSettings;
-use Plume\Tiers\TierManager;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
@@ -78,12 +77,13 @@ class OnboardingRestController {
 	 * Handles the onboarding POST endpoint.
 	 *
 	 * Saves provider, API keys, and onboarding-seen state from the request.
-	 * Returns 403 if the current user's tier does not include the own_api_key feature
-	 * and api_keys are present in the payload.
+	 * API keys are accepted on every tier (WP.org Guideline 5 — bringing your
+	 * own key is never plan-gated).
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Removed the own_api_key tier gate.
 	 * @param WP_REST_Request $request Incoming REST request.
-	 * @return WP_REST_Response|\WP_Error 200 on success; WP_Error 403 if tier gate fails.
+	 * @return WP_REST_Response|\WP_Error 200 on success.
 	 */
 	public static function save( WP_REST_Request $request ): WP_REST_Response|\WP_Error {
 		$seen = $request->get_param( 'seen' );
@@ -100,14 +100,6 @@ class OnboardingRestController {
 			update_option( 'plume_default_provider', sanitize_text_field( $provider ) );
 		}
 		if ( $api_keys && is_array( $api_keys ) ) {
-			if ( ! TierManager::user_can( 'own_api_key' ) ) {
-				return new \WP_Error(
-					'rest_plan_required',
-					__( 'API key management requires the Pro BYOK plan.', 'plume' ),
-					[ 'status' => 403 ]
-				);
-			}
-
 			$valid    = [ 'openai', 'claude', 'gemini' ];
 			$settings = static::make_provider_settings();
 			foreach ( $api_keys as $p => $key ) {

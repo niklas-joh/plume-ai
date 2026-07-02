@@ -30,13 +30,9 @@ class ClaudeProviderTest extends TestCase {
 			public function query( string $sql ): int { return 1; }
 		};
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		// Return 'pro_byok' so routing goes direct — preserving existing test behaviour.
-		// Tier is now site-level, so we stub the SITE_OPTION not user meta.
-		Functions\when( 'get_option' )->alias(
-			fn( $key, $default = false ) =>
-				'plume_site_tier' === $key ? 'pro_byok' : $default
-		);
-		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
+		// Routing is key-based (a configured key goes direct); this generic
+		// get_option stub only satisfies incidental option reads.
+		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
 		Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
 		Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
 	}
@@ -47,9 +43,8 @@ class ClaudeProviderTest extends TestCase {
 	}
 
 	public function test_is_available_false_without_key(): void {
-		// No API key and user is pro_byok (not proxy-routed) → unavailable.
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
+		// No API key and site not registered with the proxy → unavailable.
+		Functions\when( 'get_option' )->justReturn( '' );
 		$provider = new ClaudeProvider( '' );
 		$this->assertFalse( $provider->is_available() );
 	}
@@ -59,19 +54,15 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertTrue( $provider->is_available() );
 	}
 
-	public function test_is_available_true_for_proxy_tier_with_registered_site(): void {
-		// No API key, free tier, site registered → proxy-routed users are available.
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'get_user_meta' )->justReturn( 'free' );
+	public function test_is_available_true_without_key_when_site_registered(): void {
+		// No API key but the site is registered → proxy routing is available,
+		// regardless of tier (availability is never tier-dependent).
 		Functions\when( 'get_option' )->justReturn( 'some-token' );
 		$provider = new ClaudeProvider( '' );
 		$this->assertTrue( $provider->is_available() );
 	}
 
-	public function test_is_available_false_for_proxy_tier_without_registration(): void {
-		// No API key, free tier, but site not registered → unavailable.
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'get_user_meta' )->justReturn( 'free' );
+	public function test_is_available_false_without_key_when_site_not_registered(): void {
 		Functions\when( 'get_option' )->justReturn( '' );
 		$provider = new ClaudeProvider( '' );
 		$this->assertFalse( $provider->is_available() );
@@ -101,13 +92,8 @@ class ClaudeProviderTest extends TestCase {
 	}
 
 	public function test_complete_throws_on_api_error(): void {
-		// Stub tier resolution so routing goes direct (pro_byok path).
+		// Provider has its own key, so routing goes direct.
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'get_option' )->alias(
-			fn( $key, $default = false ) =>
-				'plume_site_tier' === $key ? 'pro_byok' : $default
-		);
-		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
 
 		Functions\when( 'wp_remote_post' )->justReturn( [
 			'response' => [ 'code' => 401 ],
@@ -256,13 +242,9 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertEqualsWithDelta( 25.0, $response->cost_usd, 0.0001 );
 	}
 
-	public function test_complete_routes_free_tier_to_proxy_returns_error_when_not_registered(): void {
-		// Mock get_current_user_id — called by TierManager::get_user_tier() and ProxyClient::chat().
+	public function test_complete_routes_keyless_site_to_proxy_returns_error_when_not_registered(): void {
+		// Called by ProxyClient::chat().
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-		// Mock get_user_meta to return 'free' tier (called by TierManager::get_user_tier()).
-		Functions\when( 'get_user_meta' )
-			->justReturn( 'free' );
 
 		// Mock get_option to return empty token (site not registered — called by SiteRegistration::get_site_token()).
 		Functions\when( 'get_option' )
@@ -274,28 +256,23 @@ class ClaudeProviderTest extends TestCase {
 		// Stub translation functions used inside ProxyClient::chat().
 		Functions\stubs( [ '__' => fn( $str ) => $str ] );
 
-		$provider = new ClaudeProvider( 'test-api-key' );
+		$provider = new ClaudeProvider( '' );
 		$request  = new CompletionRequest(
 			messages: [ [ 'role' => 'user', 'content' => 'Hi' ] ],
 			max_tokens: 100,
 		);
 
-		// For a free-tier user, do_complete() routes through ProxyClient.
+		// A keyless site routes through ProxyClient.
 		// ProxyClient::chat() returns WP_Error('not_registered') when site token is missing.
 		// ClaudeProvider converts this WP_Error to a ProviderException.
 		$this->expectException( ProviderException::class );
 		$provider->complete( $request );
 	}
 
-	public function test_complete_routes_pro_byok_direct_not_via_proxy(): void {
-		// Mock get_current_user_id — called by TierManager::get_user_tier().
+	public function test_complete_routes_own_key_direct_not_via_proxy(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 2 );
 
-		// Mock get_user_meta to return 'pro_byok' tier.
-		Functions\when( 'get_user_meta' )
-			->justReturn( 'pro_byok' );
-
-		// pro_byok users route to parent::do_complete() which calls wp_remote_post directly.
+		// A configured key routes to parent::do_complete() which calls wp_remote_post directly.
 		// Stub wp_remote_post to return a valid response.
 		Functions\when( 'wp_remote_post' )->justReturn( [
 			'response' => [ 'code' => 200 ],
@@ -324,11 +301,10 @@ class ClaudeProviderTest extends TestCase {
 	}
 
 	public function test_complete_via_proxy_forwards_tools(): void {
-		// Sets up $wpdb, get_current_user_id, sanitize_key, sanitize_text_field (defaults get_user_meta to 'pro_byok').
+		// Sets up $wpdb, get_current_user_id, sanitize_key, sanitize_text_field.
 		$this->mock_wpdb();
-		// Override to 'free' so routing goes via proxy instead of direct.
-		Functions\when( 'get_user_meta' )->justReturn( 'free' );
-		// SiteRegistration::get_site_token() reads this option.
+		// SiteRegistration::get_site_token() reads this option; the provider is
+		// constructed keyless below, which is what routes via the proxy.
 		Functions\when( 'get_option' )->justReturn( 'mock-site-token' );
 		Functions\stubs( [ '__' => fn( $str ) => $str ] );
 
@@ -370,7 +346,6 @@ class ClaudeProviderTest extends TestCase {
 
 	public function test_complete_via_proxy_defaults_content_to_empty_string_when_absent(): void {
 		$this->mock_wpdb();
-		Functions\when( 'get_user_meta' )->justReturn( 'free' );
 		Functions\when( 'get_option' )->justReturn( 'mock-site-token' );
 		Functions\stubs( [ '__' => fn( $str ) => $str ] );
 

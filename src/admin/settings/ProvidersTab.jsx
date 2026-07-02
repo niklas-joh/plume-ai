@@ -25,7 +25,9 @@ const IMAGE_PROVIDER_OPTIONS = [
  *
  * API keys are stored per-provider in a dirty-state map and only persisted
  * when the user explicitly clicks Save, preventing accidental overwrites.
- * Pro feature gates (model_selection, own_api_key) are read from plumeData.
+ * Providers, models, and API keys are configurable on every tier (WP.org
+ * Guideline 5) — the managed proxy enforces each plan's model catalogue
+ * service-side.
  *
  * @param {Object}   props
  * @param {Object}   props.settings      Full settings object from the REST API.
@@ -34,9 +36,6 @@ const IMAGE_PROVIDER_OPTIONS = [
  * @return {ReactElement}
  */
 export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
-	const features = window.plumeData?.features ?? {};
-	const upgradeUrl =
-		window.plumeData?.upgradeUrl ?? 'admin.php?page=plume-upgrade';
 	const apiKeys = settings?.api_keys ?? {};
 	const [ dirty, setDirty ] = useState( {} ); // { [provider]: string }
 
@@ -76,19 +75,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 					Default Providers
 				</h3>
 
-				{ ! features.model_selection && (
-					<p className="plume-upgrade-notice">
-						{ __(
-							'Model selection is available on the Pro plan.',
-							'plume'
-						) }{ ' ' }
-						<a href={ upgradeUrl }>
-							{ __( 'Upgrade →', 'plume' ) }
-						</a>
-					</p>
-				) }
-
-				<fieldset disabled={ ! features.model_selection }>
+				<fieldset>
 					<SelectControl
 						label={ __( 'Default AI Provider', 'plume' ) }
 						options={ PROVIDER_OPTIONS }
@@ -115,18 +102,6 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 			<section className="plume-settings-section">
 				<h3 className="plume-settings-section-title">API Keys</h3>
 
-				{ ! features.own_api_key && (
-					<p className="plume-upgrade-notice">
-						{ __(
-							'API key management is available on the Pro BYOK plan.',
-							'plume'
-						) }{ ' ' }
-						<a href={ upgradeUrl }>
-							{ __( 'Upgrade →', 'plume' ) }
-						</a>
-					</p>
-				) }
-
 				{ API_KEY_PROVIDERS.map( ( { id, label } ) => (
 					<div
 						key={ id }
@@ -147,14 +122,12 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 								}
 								autoComplete="new-password"
 								__nextHasNoMarginBottom
-								disabled={ ! features.own_api_key }
 							/>
 							<Button
 								variant="primary"
 								disabled={
 									isSaving ||
-									dirty[ id ] === undefined ||
-									! features.own_api_key
+									dirty[ id ] === undefined
 								}
 								onClick={ () => handleSaveKey( id ) }
 							>

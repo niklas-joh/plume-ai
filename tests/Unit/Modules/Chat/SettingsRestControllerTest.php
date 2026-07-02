@@ -461,13 +461,6 @@ class SettingsRestControllerTest extends TestCase {
     public function test_save_settings_skips_masked_api_keys(): void {
         Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
-        // Tier gate: TierManager::user_can() needs these stubs.
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'get_option' )->alias(
-            fn( $key, $default = false ) =>
-                'plume_site_tier' === $key ? 'pro_byok' : $default
-        );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'pro_byok' : null );
         Functions\when( '__' )->returnArg();
 
         $api_key_calls = [];
@@ -502,19 +495,30 @@ class SettingsRestControllerTest extends TestCase {
         $this->assertEmpty( $api_key_calls );
     }
 
-    public function test_save_settings_rejects_api_keys_for_free_tier(): void {
+    public function test_save_settings_accepts_api_keys_on_free_tier(): void {
+        // Bringing your own key is never plan-gated (WP.org Guideline 5), so a
+        // free-tier site must be able to store a key like any other tier.
         Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         Functions\when( '__' )->alias( fn( $s ) => $s );
-        // tier gate: simulate a free-tier user.
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
+        Functions\when( 'get_option' )->alias(
+            fn( $key, $default = false ) =>
+                'plume_site_tier' === $key ? 'free' : $default
+        );
 
-        $controller = new class extends SettingsRestController {
+        $api_key_calls = [];
+        $controller = new class( $api_key_calls ) extends SettingsRestController {
+            private array $calls;
+            public function __construct( array &$calls ) { $this->calls = &$calls; }
             protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
-                $stub = new class extends \Plume\Settings\ProviderSettings {
-                    public function __construct() {}
-                    public function set_api_key( string $provider, string $key ): void {}
+                $calls = &$this->calls;
+                $stub  = new class( $calls ) extends \Plume\Settings\ProviderSettings {
+                    private array $calls;
+                    public function __construct( array &$calls ) { $this->calls = &$calls; }
+                    public function set_api_key( string $provider, string $key ): void {
+                        $this->calls[] = [ $provider, $key ];
+                    }
                 };
                 return $stub;
             }
@@ -529,9 +533,7 @@ class SettingsRestControllerTest extends TestCase {
 
         $response = $controller->save_settings( $request );
 
-        // Free-tier users must be rejected with 403 and the plan_required error code.
-        $this->assertInstanceOf( \WP_Error::class, $response );
-        $this->assertSame( 'rest_plan_required', $response->get_error_code() );
-        $this->assertSame( 403, $response->get_error_data()['status'] );
+        $this->assertNotInstanceOf( \WP_Error::class, $response );
+        $this->assertSame( [ [ 'claude', 'sk-free-attempt' ] ], $api_key_calls );
     }
 }

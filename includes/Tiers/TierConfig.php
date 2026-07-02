@@ -16,11 +16,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Single source of truth for recognised tier slugs and proxy connectivity.
  *
- * Feature gating is no longer tier-based (every tier can use every content
- * feature; only model_selection/own_api_key remain gated, via
- * TierManager::user_can()) and credit limits live exclusively in the
- * Cloudflare Worker's KV store, fetched/cached by UsageTracker. This class
- * therefore only owns the valid tier slugs and proxy URL resolution.
+ * No feature is tier-gated (WP.org Guideline 5 — plugins must be fully
+ * functional). Tiers only determine the managed service's credit allowance and
+ * model catalogue, enforced exclusively by the Cloudflare Worker's KV store
+ * and fetched/cached by UsageTracker. This class therefore only owns the
+ * valid tier slugs and proxy URL resolution.
  *
  * @since 1.2.0
  */

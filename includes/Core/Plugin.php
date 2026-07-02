@@ -123,7 +123,7 @@ class Plugin {
 			\Plume\Modules\Usage\UsageModule::register();
 		}
 		// SEO and Images are always registered so their admin pages enqueue assets;
-		// the Pro gate is enforced inside each React app.
+		// both are available on every tier.
 		\Plume\Modules\Seo\SeoModule::register();
 		\Plume\Modules\Images\ImagesModule::register();
 	}

@@ -27,13 +27,9 @@ jest.mock( '../../src/admin/utils/storage', () => ( {
 	storageSet: jest.fn(),
 } ) );
 
-// Provide the global plumeData the component reads on initialisation
-// (ChatApp.jsx line 36). Note: this previously stubbed window.plumeindData —
-// a typo that never matched the component's actual window.plumeData read, so
-// the isPro/features stub below was silently inert until this fix.
+// Provide the global plumeData the component reads on initialisation.
 beforeAll( () => {
 	global.window.plumeData = {
-		features: { model_selection: false },
 		defaultProvider: 'claude',
 		restUrl: 'http://localhost/wp-json/plume/v1',
 		nonce: 'test-nonce',
@@ -111,7 +107,9 @@ describe( 'ChatApp', () => {
 		expect( container.querySelector( '.plume-pro-teaser' ) ).toBeNull();
 	} );
 
-	it( 'disables the model Advanced toggle when features.model_selection is false', async () => {
+	it( 'enables the model Advanced toggle on every tier', async () => {
+		// Model selection is never tier-gated (WP.org Guideline 5) — the managed
+		// proxy enforces each plan's model catalogue service-side.
 		await act( async () => {
 			root.render( <ChatApp /> );
 		} );
@@ -119,6 +117,6 @@ describe( 'ChatApp', () => {
 		const toggle = container.querySelector(
 			'.plume-model-advanced-toggle'
 		);
-		expect( toggle.disabled ).toBe( true );
+		expect( toggle.disabled ).toBe( false );
 	} );
 } );

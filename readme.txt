@@ -30,9 +30,15 @@ into your WordPress dashboard, giving you AI assistance without leaving the edit
 |---|---|---|---|
 | **Price** | Free | $79/year | Free (your own API key, billed by your provider) |
 | **Credits/month** | 100 | 500 | No credit limit — billed directly by your provider |
-| **Available models** | Claude Haiku 4.5, GPT-4.1 nano | + Claude Sonnet 4.6, Claude Opus 4.6, GPT-4.1, Gemini 3.1 Pro | Any model your configured provider supports |
+| **Available models (managed service)** | Claude Haiku 4.5, GPT-4.1 nano | + Claude Sonnet 4.6, Claude Opus 4.6, GPT-4.1, Gemini 3.1 Pro | Not used — your provider's full catalogue |
 | **Chat, Generator, SEO, Images** | All included | All included | All included |
-| **Your own API key (BYOK)** | — | — | Required |
+| **Your own API key (BYOK)** | Optional | Optional | Required |
+
+Every feature of the plugin works on every plan — nothing is locked. Model and
+provider selection is available everywhere; the managed service simply serves
+each plan its own model catalogue. You can enter your own API key on any plan
+(free of charge): requests then go directly to your chosen provider with no
+credit limit.
 
 * **Free** — Chat, Generator, SEO, and Images all included from day one.
   100 credits/month using Claude Haiku 4.5 or GPT-4.1 nano.
@@ -40,9 +46,9 @@ into your WordPress dashboard, giving you AI assistance without leaving the edit
   to Claude Sonnet 4.6, Claude Opus 4.6, GPT-4.1, and Gemini 3.1 Pro.
   $79/year.
 * **Pro BYOK** — Everything in Free, with no credit limit and access to
-  any model your configured provider supports. Requires your own API key,
+  any model your configured provider supports. Uses your own API key,
   sent directly to your chosen provider — never through Plume's managed
-  service.
+  service. Entering a key is free on every plan.
 
 **Supported AI providers:** Anthropic Claude, OpenAI (GPT-4+), Google Gemini, Ollama (local/self-hosted)
 
@@ -63,7 +69,7 @@ chosen provider. Review each provider's privacy policy and terms of service befo
 
 1. Upload the `plume` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the **Plugins** menu in WordPress.
-3. (Optional — Pro BYOK only) Navigate to **Plume AI - Write and Design → Settings** and enter your own API key. Free and managed-plan users do not need an API key.
+3. (Optional, any plan) Navigate to **Plume AI - Write and Design → Settings** and enter your own API key to call your provider directly. Without a key, requests use the managed service.
 4. Start using the Chat, Generator, or Usage modules from the admin menu.
 
 == Frequently Asked Questions ==
@@ -75,13 +81,13 @@ one or more providers and switch between them in the settings.
 
 = Does this plugin store my API keys securely? =
 
-**Free / Pro Managed tiers:** No API key is required — chat requests are routed
+**Without your own API key:** No key is required — chat requests are routed
 through Plume AI - Write and Design (see External services above). Your messages are
 forwarded to Claude (Anthropic) on your behalf.
 
-**Pro BYOK tier:** Your own API key is stored encrypted (AES-256-CBC) in the WordPress
-database and is transmitted directly to the AI provider you have chosen. It is never sent
-to any other server.
+**With your own API key (any plan):** Your key is stored encrypted (AES-256-CBC) in the
+WordPress database and is transmitted directly to the AI provider you have chosen. It is
+never sent to any other server.
 
 = Is this plugin GDPR-compliant? =
 
@@ -110,6 +116,8 @@ To regenerate compiled assets: install Node.js 18+ and npm, then run:
 
 = NEXT_VERSION =
 * **All features are now available on every tier.** Chat, Generator, SEO, and Images are no longer locked behind Pro — every site gets full access to all four modules from the moment you install or update.
+* **Model and provider selection is now available on every plan.** The managed service enforces each plan's model catalogue server-side; nothing is locked in the plugin.
+* **You can enter your own API key on any plan**, free of charge (previously Pro BYOK only). Sites with a key call the provider directly with no credit limit; sites without one use the managed service.
 * **Usage is now measured in credits, not tokens.** Each AI action (a chat turn, a generated draft, an SEO suggestion, an image) costs a small number of credits depending on the model used. Your plan determines how many credits you get each month and which models you can choose from — not which features you can use.
 * **Free** now includes 100 credits/month, with access to Claude Haiku 4.5 and GPT-4.1 nano.
 * **Pro Managed** ($79/year) now includes 500 credits/month, plus access to larger models — Claude Sonnet 4.6, Claude Opus 4.6, GPT-4.1, and Gemini 3.1 Pro — for higher-quality results on demanding tasks.

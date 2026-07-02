@@ -1,6 +1,10 @@
 <?php
 /**
- * Manages user licence tiers (Free, Trial, Pro Managed, Pro BYOK).
+ * Manages site licence tiers (Free, Pro Managed, Pro BYOK).
+ *
+ * No feature is tier-gated in PHP (WP.org Guideline 5 — plugins must be fully
+ * functional). Tiers only determine the managed service's credit allowance and
+ * model catalogue, both enforced by the Cloudflare Worker.
  *
  * @package Plume
  */
@@ -112,34 +116,6 @@ class TierManager {
 			do_action( 'plume_tier_changed', $tier );
 		}
 		return $ok;
-	}
-
-	/**
-	 * Checks whether a user's current tier grants access to a feature.
-	 *
-	 * Trial removal means every tier now has uniform access to content features
-	 * (chat/generator/seo/images) — credit exhaustion is the Worker's enforcement
-	 * mechanism, not a PHP-side feature gate. Only model_selection and own_api_key
-	 * remain genuinely tier-gated capabilities.
-	 *
-	 * @since 1.2.0
-	 * @since NEXT_VERSION Collapsed to a two-branch match() now that TierConfig::FEATURES
-	 *                      no longer exists. Removed the $user_id parameter entirely —
-	 *                      its only real caller (ToolExecutor's generate_seo_meta() tier
-	 *                      gate) was deleted in the same redesign, leaving zero production
-	 *                      callers that passed a real argument; per the no-legacy-shims
-	 *                      directive a parameter kept only against a hypothetical future
-	 *                      caller is removed rather than left unused.
-	 * @param string $feature Feature key (e.g. 'chat', 'generator', 'own_api_key').
-	 * @return bool True when the feature is enabled for the site's tier.
-	 */
-	public static function user_can( string $feature ): bool {
-		$tier = self::get_user_tier();
-		return match ( $feature ) {
-			'model_selection' => 'free' !== $tier,
-			'own_api_key'     => 'pro_byok' === $tier,
-			default           => true,
-		};
 	}
 
 	/**

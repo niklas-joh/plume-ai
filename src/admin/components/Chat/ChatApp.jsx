@@ -33,9 +33,6 @@ const LAUNCH_SUGGESTIONS = [
  * @return {ReactElement}
  */
 export default function ChatApp() {
-	const { features } = window.plumeData || {};
-	const modelSelection = features?.model_selection ?? false;
-
 	const [ conversations, setConversations ] = useState( [] );
 	const [ activeConvId, setActiveConvId ] = useState( null );
 	const [ messages, setMessages ] = useState( [] );
@@ -395,7 +392,6 @@ export default function ChatApp() {
 					selectedModel={ selectedModel }
 					onProviderChange={ setSelectedProvider }
 					onModelChange={ setSelectedModel }
-					modelSelection={ modelSelection }
 				/>
 				<QuickActions
 					onAction={ sendMessage }

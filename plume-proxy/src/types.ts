@@ -51,11 +51,11 @@ export interface ToolParam {
 export interface NormalizedResponse {
 	content: string;
 	usage: { input_tokens: number; output_tokens: number };
-	tool_call?: {
+	tool_calls?: Array< {
 		id: string;
 		name: string;
 		arguments: Record< string, unknown >;
-	};
+	} >;
 }
 
 export interface SystemBlock {

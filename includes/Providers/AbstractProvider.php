@@ -176,4 +176,36 @@ abstract class AbstractProvider implements ProviderInterface {
 	protected function maybe_log( CompletionRequest $request, CompletionResponse $response ): void {
 		// Intentional no-op: BYOK users have no credit limit and "Unlimited" is shown in the UI.
 	}
+
+	/**
+	 * Build a CompletionResponse from the proxy's normalised shape `{ content, usage, model, tool_calls? }`.
+	 *
+	 * Centralises the response assembly shared by all three proxy providers (Claude, OpenAI, Gemini)
+	 * so the plural/singular tool-call contract cannot drift between them (see #893). Token counts are
+	 * read from `$result['usage']`; the first proxy tool call (or null) is exposed via `tool_call` so
+	 * is_tool_call() stays a simple null-check while the full array is preserved in `raw`.
+	 *
+	 * @since NEXT_VERSION
+	 * @param array  $result The proxy's normalised response payload.
+	 * @param string $model  The resolved model slug (Worker-reported, requested, or default).
+	 * @param float  $cost   The USD cost computed by the concrete provider's pricing.
+	 * @return CompletionResponse
+	 */
+	protected function build_proxy_response( array $result, string $model, float $cost ): CompletionResponse {
+		$in_tokens  = (int) ( $result['usage']['input_tokens'] ?? 0 );
+		$out_tokens = (int) ( $result['usage']['output_tokens'] ?? 0 );
+
+		[ $first_tool_call ] = CompletionResponse::first_and_all_tool_calls_from_proxy( $result );
+
+		return new CompletionResponse(
+			content:           $result['content'] ?? '',
+			model:             $model,
+			prompt_tokens:     $in_tokens,
+			completion_tokens: $out_tokens,
+			cost_usd:          $cost,
+			raw:               $result,
+			tool_call:         $first_tool_call,
+			credits_charged:   (int) ( $result['credits_charged'] ?? 0 ),
+		);
+	}
 }

@@ -191,6 +191,33 @@ class OpenAIProviderTest extends TestCase {
 		Functions\when( 'wp_remote_post' )->justReturn( [
 			'response' => [ 'code' => 200 ],
 			'body'     => json_encode( [
+				'content'    => '',
+				'usage'      => [ 'input_tokens' => 15, 'output_tokens' => 6 ],
+				'tool_calls' => [
+					[ 'id' => 'call_abc123', 'name' => 'get_posts', 'arguments' => [ 'count' => 5 ] ],
+				],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+
+		$provider = new OpenAIProvider( '' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'list posts' ] ] );
+		$response = $provider->complete( $request );
+
+		// The Worker now emits tool_calls (plural); the provider exposes the first entry.
+		$this->assertTrue( $response->is_tool_call() );
+		$this->assertSame( 'get_posts', $response->tool_call['name'] );
+		$this->assertSame( 'call_abc123', $response->tool_call['id'] );
+		$this->assertSame( [ 'count' => 5 ], $response->tool_call['arguments'] );
+	}
+
+	public function test_complete_via_proxy_tool_call_singular_fallback(): void {
+		// Backward-compat: any in-flight response may still carry the old singular tool_call shape.
+		$this->mock_free_tier_proxy();
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
 				'content'   => '',
 				'usage'     => [ 'input_tokens' => 15, 'output_tokens' => 6 ],
 				'tool_call' => [ 'id' => 'call_abc123', 'name' => 'get_posts', 'arguments' => [ 'count' => 5 ] ],

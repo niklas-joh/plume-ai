@@ -296,4 +296,55 @@ class ToolExecutorTest extends TestCase {
 		$this->assertSame( 'Improved Title', $result['new_title'] );
 		$this->assertSame( 'pending_approval', $result['status'] );
 	}
+
+	public function test_plan_update_ignores_analysis_field_in_stored_plan(): void {
+		// `analysis` is conversational-only — it must never be written into the
+		// persisted plan transient consumed by PlansRestController/PlanCard.
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_generate_uuid4' )->justReturn( 'abcd1234-5678-90ab-cdef-000000000000' );
+		Functions\when( 'set_transient' )->justReturn( true );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute(
+			'plan_update',
+			[
+				'post_id'     => 5,
+				'analysis'    => 'This intro is weak and the CTA is buried; tightening both.',
+				'changes'     => 'Made the intro punchier',
+				'new_content' => 'Full updated post body',
+			],
+			1
+		);
+
+		$this->assertArrayNotHasKey( 'analysis', $result );
+		$this->assertSame( 'pending_approval', $result['status'] );
+	}
+
+	public function test_plan_post_ignores_analysis_field_in_stored_plan(): void {
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_generate_uuid4' )->justReturn( 'abcd1234-5678-90ab-cdef-000000000000' );
+		Functions\when( 'set_transient' )->justReturn( true );
+
+		$executor = $this->make_executor();
+		$result   = $executor->execute(
+			'plan_post',
+			[
+				'title'    => 'Widgets',
+				'analysis' => 'The user asked for a launch post; drafting an announcement.',
+				'content'  => 'Full body.',
+			],
+			1
+		);
+
+		$this->assertArrayNotHasKey( 'analysis', $result );
+		$this->assertSame( 'pending_approval', $result['status'] );
+	}
 }

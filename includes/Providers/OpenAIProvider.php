@@ -216,35 +216,18 @@ class OpenAIProvider extends AbstractProvider {
 		// ProxyClient::chat() already called UsageTracker::log_usage() — flag to suppress parent logging.
 		$this->proxy_logged = true;
 
-		// Build CompletionResponse directly from the proxy's normalised shape { content, usage, tool_call? }.
+		// Build CompletionResponse directly from the proxy's normalised shape { content, usage, model, tool_calls? }.
 		// parse_response() expects the upstream OpenAI wire format and cannot handle the normalised response.
-		$in_tokens  = (int) ( $result['usage']['input_tokens'] ?? 0 );
-		$out_tokens = (int) ( $result['usage']['output_tokens'] ?? 0 );
-		$pricing    = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
-		$cost       = ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
+		$worker_model = \sanitize_text_field( $result['model'] ?? '' );
+		$model        = '' !== $worker_model ? $worker_model : $model;
+		$in_tokens    = (int) ( $result['usage']['input_tokens'] ?? 0 );
+		$out_tokens   = (int) ( $result['usage']['output_tokens'] ?? 0 );
+		$pricing      = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
+		$cost         = ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
 
-		if ( ! empty( $result['tool_call'] ) ) {
-			return new CompletionResponse(
-				content: '',
-				model: $model,
-				prompt_tokens: $in_tokens,
-				completion_tokens: $out_tokens,
-				cost_usd: $cost,
-				raw: $result,
-				tool_call: $result['tool_call'],
-				credits_charged: (int) ( $result['credits_charged'] ?? 0 ),
-			);
-		}
-
-		return new CompletionResponse(
-			content:          $result['content'] ?? '',
-			model:            $model,
-			prompt_tokens:    $in_tokens,
-			completion_tokens: $out_tokens,
-			cost_usd:         $cost,
-			raw:              $result,
-			credits_charged:  (int) ( $result['credits_charged'] ?? 0 ),
-		);
+		// Worker sends tool_calls (plural array); build_proxy_response() centralises the plural/singular
+		// contract and response assembly shared with Claude and Gemini to prevent drift (see #893).
+		return $this->build_proxy_response( $result, $model, $cost );
 	}
 
 	/**

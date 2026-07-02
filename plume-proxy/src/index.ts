@@ -187,24 +187,23 @@ async function callClaude(
 		| undefined ) ?? { input_tokens: 0, output_tokens: 0 };
 
 	const textBlock = blocks.find( ( b ) => b.type === 'text' && b.text );
-	const toolBlock = blocks.find(
+	const toolBlocks = blocks.filter(
 		( b ) => b.type === 'tool_use' && b.id && b.name
 	);
 	const textContent = textBlock?.text ?? '';
 
-	if ( toolBlock?.id && toolBlock?.name ) {
+	if ( toolBlocks.length > 0 ) {
 		return {
 			content: textContent,
 			usage: {
 				input_tokens: usage.input_tokens,
 				output_tokens: usage.output_tokens,
 			},
-			tool_call: {
-				id: toolBlock.id,
-				name: toolBlock.name,
-				arguments:
-					( toolBlock.input as Record< string, unknown > ) ?? {},
-			},
+			tool_calls: toolBlocks.map( ( b ) => ( {
+				id: b.id as string,
+				name: b.name as string,
+				arguments: ( b.input as Record< string, unknown > ) ?? {},
+			} ) ),
 		};
 	}
 
@@ -291,18 +290,18 @@ async function callOpenAI(
 	};
 
 	if ( choices[ 0 ]?.finish_reason === 'tool_calls' ) {
-		const tc = choices[ 0 ].message.tool_calls?.[ 0 ];
-		if ( tc ) {
+		const tcs = choices[ 0 ].message.tool_calls ?? [];
+		if ( tcs.length > 0 ) {
 			return {
 				content: '',
 				usage: normalizedUsage,
-				tool_call: {
+				tool_calls: tcs.map( ( tc ) => ( {
 					id: tc.id,
 					name: tc.function.name,
 					arguments: JSON.parse(
 						tc.function.arguments ?? '{}'
 					) as Record< string, unknown >,
-				},
+				} ) ),
 			};
 		}
 	}
@@ -373,18 +372,20 @@ async function callGemini(
 		output_tokens: usageMeta.candidatesTokenCount,
 	};
 
-	for ( const part of candidates[ 0 ]?.content?.parts ?? [] ) {
-		if ( part.functionCall ) {
-			return {
-				content: '',
-				usage: normalizedUsage,
-				tool_call: {
-					id: `gemini_${ crypto.randomUUID() }`,
-					name: part.functionCall.name,
-					arguments: part.functionCall.args ?? {},
-				},
-			};
-		}
+	const functionCallParts = ( candidates[ 0 ]?.content?.parts ?? [] ).filter(
+		( p ) => p.functionCall
+	);
+
+	if ( functionCallParts.length > 0 ) {
+		return {
+			content: '',
+			usage: normalizedUsage,
+			tool_calls: functionCallParts.map( ( part ) => ( {
+				id: `gemini_${ crypto.randomUUID() }`,
+				name: part.functionCall!.name,
+				arguments: part.functionCall!.args ?? {},
+			} ) ),
+		};
 	}
 
 	return {
@@ -814,7 +815,8 @@ async function handleChatProxy(
 		// so total token cost is captured without needing cross-request accumulation.
 		// Scoped to 'chat' so flat-rate features are never silently zeroed if they
 		// ever gain tool support in future.
-		const isToolUseStep = feature === 'chat' && !! normalized.tool_call;
+		const isToolUseStep =
+			feature === 'chat' && ( normalized.tool_calls?.length ?? 0 ) > 0;
 
 		let creditsCharged: number;
 		if ( isToolUseStep ) {
@@ -838,9 +840,10 @@ async function handleChatProxy(
 			content: normalized.content,
 			usage: normalized.usage,
 			credits_charged: creditsCharged,
+			model: selectedModel,
 		};
 		if ( isToolUseStep ) {
-			responseData.tool_call = normalized.tool_call;
+			responseData.tool_calls = normalized.tool_calls;
 		}
 		return jsonResponse( responseData );
 	} catch ( error ) {
@@ -873,7 +876,7 @@ const MONTHLY_CREDIT_LIMITS: Record< ProxyTier, number > = {
 };
 
 const MAX_TOKENS: Record< ProxyTier, number > = {
-	free: 2_000,
+	free: 6_000,
 	pro_managed: 8_000,
 };
 

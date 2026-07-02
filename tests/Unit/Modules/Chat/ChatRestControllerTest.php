@@ -641,17 +641,21 @@ class ChatRestControllerTest extends TestCase {
         $this->assertSame( 502, $response->get_status(), 'Provider 403 must be masked as 502.' );
     }
 
-    public function test_send_message_returns_500_after_max_iterations(): void {
+    public function test_send_message_returns_200_with_message_after_max_iterations(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( 'claude' );
         Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        // __() is called to build the limit message; pass strings through untranslated in unit tests.
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'update_user_meta' )->justReturn( true );
 
         $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
         $store_mock->method( 'get_messages' )->willReturn( [
             [ 'role' => 'user', 'content' => 'Hi' ],
         ] );
+        $store_mock->method( 'add_message' )->willReturn( 99 );
 
         $tool_response = new CompletionResponse(
             content:           '',
@@ -669,7 +673,7 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
         $provider_mock->method( 'is_available' )->willReturn( true );
         $provider_mock->method( 'supports_tools' )->willReturn( true );
-        // Always returns a tool call response.
+        // Always returns a tool call response — loop will exhaust MAX_TOOL_ITERATIONS.
         $provider_mock->method( 'complete' )->willReturn( $tool_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
@@ -687,8 +691,9 @@ class ChatRestControllerTest extends TestCase {
         $response = $controller->send_message( $request );
 
         $this->assertInstanceOf( \WP_REST_Response::class, $response );
-        $this->assertSame( 500, $response->get_status() );
-        $this->assertStringContainsString( 'limit', $response->data['message'] );
+        // Must be 200 with a user-facing message, not a 500 crash.
+        $this->assertSame( 200, $response->get_status() );
+        $this->assertStringContainsString( 'maximum number of steps', $response->data['content'] );
     }
 
     // ── Provider unavailability — 503 / 422 branching ─────────────────────────
@@ -1182,6 +1187,90 @@ class ChatRestControllerTest extends TestCase {
         $this->assertInstanceOf( \stdClass::class, $user_parts[1]['functionResponse']['response'] );
     }
 
+    // ── append_tool_exchange: OpenAI/Grok & Claude proxy writeback (#898/#899) ──
+
+    public function test_openai_append_tool_exchange_writes_back_all_tool_calls(): void {
+        // Proxy responses set raw['content'] to a string and carry every call in tool_calls (plural).
+        $response = new CompletionResponse(
+            content: '',
+            model: 'gpt-4o',
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            raw: [
+                'content'    => '',
+                'tool_calls' => [
+                    [ 'id' => 'call_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+                    [ 'id' => 'call_2', 'name' => 'get_site_info', 'arguments' => [] ],
+                ],
+            ],
+            tool_call: [ 'id' => 'call_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+        );
+
+        $messages = $this->call_append_tool_exchange( [], 'openai', $response, [
+            'call_1' => [ 'posts' => [] ],
+            'call_2' => [ 'name' => 'Plume AI' ],
+        ] );
+
+        // One assistant turn carrying both calls + one tool result message per id.
+        $this->assertCount( 3, $messages );
+        $this->assertSame( 'assistant', $messages[0]['role'] );
+        $this->assertCount( 2, $messages[0]['tool_calls'], 'Assistant turn must declare both parallel tool calls' );
+        $this->assertSame( 'call_1', $messages[0]['tool_calls'][0]['id'] );
+        $this->assertSame( 'get_recent_posts', $messages[0]['tool_calls'][0]['function']['name'] );
+        $this->assertSame( 'call_2', $messages[0]['tool_calls'][1]['id'] );
+        $this->assertSame( 'get_site_info', $messages[0]['tool_calls'][1]['function']['name'] );
+
+        $this->assertSame( 'tool', $messages[1]['role'] );
+        $this->assertSame( 'call_1', $messages[1]['tool_call_id'] );
+        $this->assertSame( \wp_json_encode( [ 'posts' => [] ] ), $messages[1]['content'] );
+        $this->assertSame( 'tool', $messages[2]['role'] );
+        $this->assertSame( 'call_2', $messages[2]['tool_call_id'] );
+        $this->assertSame( \wp_json_encode( [ 'name' => 'Plume AI' ] ), $messages[2]['content'] );
+    }
+
+    public function test_claude_proxy_append_tool_exchange_reconstructs_all_tool_use_blocks(): void {
+        // Proxy normalises raw['content'] to a flat string, so the tool_use blocks must be
+        // reconstructed from the plural tool_calls array — one per executed call (#898).
+        $response = new CompletionResponse(
+            content: '',
+            model: 'claude-3-5-sonnet',
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            raw: [
+                'content'    => '',
+                'tool_calls' => [
+                    [ 'id' => 'tu_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+                    [ 'id' => 'tu_2', 'name' => 'get_site_info', 'arguments' => [] ],
+                ],
+            ],
+            tool_call: [ 'id' => 'tu_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+        );
+
+        $messages = $this->call_append_tool_exchange( [], 'claude', $response, [
+            'tu_1' => [ 'posts' => [] ],
+            'tu_2' => [ 'name' => 'Plume AI' ],
+        ] );
+
+        // One assistant turn with both tool_use blocks + one user turn with both tool_result blocks.
+        $this->assertCount( 2, $messages );
+        $assistant_blocks = $messages[0]['content'];
+        $this->assertCount( 2, $assistant_blocks, 'Assistant turn must carry both reconstructed tool_use blocks' );
+        $this->assertSame( 'tool_use', $assistant_blocks[0]['type'] );
+        $this->assertSame( 'tu_1', $assistant_blocks[0]['id'] );
+        $this->assertSame( 'get_recent_posts', $assistant_blocks[0]['name'] );
+        $this->assertSame( 'tu_2', $assistant_blocks[1]['id'] );
+        // An empty argument set must be encoded as a JSON object, never a JSON array.
+        $this->assertInstanceOf( \stdClass::class, $assistant_blocks[1]['input'] );
+
+        $result_blocks = $messages[1]['content'];
+        $this->assertCount( 2, $result_blocks, 'User turn must carry both tool_result blocks' );
+        $this->assertSame( 'tool_result', $result_blocks[0]['type'] );
+        $this->assertSame( 'tu_1', $result_blocks[0]['tool_use_id'] );
+        $this->assertSame( \wp_json_encode( [ 'posts' => [] ] ), $result_blocks[0]['content'] );
+        $this->assertSame( 'tu_2', $result_blocks[1]['tool_use_id'] );
+        $this->assertSame( \wp_json_encode( [ 'name' => 'Plume AI' ] ), $result_blocks[1]['content'] );
+    }
+
     // ── extract_tool_calls ─────────────────────────────────────────────────────
 
     /**
@@ -1243,6 +1332,34 @@ class ChatRestControllerTest extends TestCase {
         $this->assertCount( 1, $calls );
         $this->assertSame( 'gemini_generated_1', $calls[0]['id'] );
         $this->assertSame( 'get_site_info', $calls[0]['name'] );
+    }
+
+    public function test_extract_tool_calls_returns_all_proxy_tool_calls(): void {
+        // Proxy responses set raw['content'] to a string and carry every tool call in the
+        // tool_calls (plural) array — all of them must execute in a single turn (#887).
+        $response = new CompletionResponse(
+            content: '',
+            model: 'gpt-4o',
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            raw: [
+                'content'    => '',
+                'tool_calls' => [
+                    [ 'id' => 'call_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+                    [ 'id' => 'call_2', 'name' => 'get_site_info', 'arguments' => [] ],
+                ],
+            ],
+            tool_call: [ 'id' => 'call_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+        );
+
+        $calls = $this->call_extract_tool_calls( $response, 'openai' );
+
+        $this->assertCount( 2, $calls, 'Both proxy tool_calls must be extracted for execution' );
+        $this->assertSame( 'call_1', $calls[0]['id'] );
+        $this->assertSame( 'get_recent_posts', $calls[0]['name'] );
+        $this->assertSame( [ 'count' => 3 ], $calls[0]['input'] );
+        $this->assertSame( 'call_2', $calls[1]['id'] );
+        $this->assertSame( 'get_site_info', $calls[1]['name'] );
     }
 
     public function test_extract_tool_calls_returns_all_claude_tool_use_blocks(): void {
@@ -1489,6 +1606,156 @@ class ChatRestControllerTest extends TestCase {
         $this->assertSame( 200, $response->get_status() );
         $this->assertSame( "I've prepared the changes for your review.", $response->data['content'] );
         $this->assertSame( $pending, $response->data['pending_plan'], 'pending_plan must be surfaced in the REST response' );
+        $this->assertContains( 'plan_post', $response->data['tools_called'] );
+    }
+
+    public function test_send_message_uses_analysis_as_content_when_plan_update_includes_it(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        Functions\when( '__' )->alias( fn( $v ) => $v );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [
+            [ 'role' => 'user', 'content' => 'Please review and tighten this post' ],
+        ] );
+
+        $analysis_text = 'The intro buries the lede and the CTA is missing; tightening both.';
+        $tool_input    = [
+            'analysis'    => $analysis_text,
+            'post_id'     => 7,
+            'changes'     => 'Tightened intro, added CTA',
+            'new_content' => 'Full updated body.',
+        ];
+
+        $plan_response = new CompletionResponse(
+            content:           '',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     10,
+            completion_tokens: 5,
+            cost_usd:          0.0,
+            raw:               [
+                'content' => [
+                    [ 'type' => 'tool_use', 'id' => 'tu_1', 'name' => 'plan_update', 'input' => $tool_input ],
+                ],
+            ],
+            tool_call:         [ 'id' => 'tu_1', 'name' => 'plan_update', 'arguments' => $tool_input ],
+        );
+
+        $pending = [
+            'id'          => 'def45678',
+            'status'      => 'pending_approval',
+            'plan_type'   => 'update',
+            'post_id'     => 7,
+            'changes'     => 'Tightened intro, added CTA',
+            'new_content' => 'Full updated body.',
+            'post_status' => '',
+        ];
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [ [ 'name' => 'plan_update' ] ] );
+        $this->tool_executor->expects( $this->once() )
+            ->method( 'execute' )
+            ->with( 'plan_update', $tool_input, 1 )
+            ->willReturn( $pending );
+
+        $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( true );
+        $provider_mock->method( 'complete' )->willReturn( $plan_response );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '42' ] );
+        $request->set_body_params( [ 'content' => 'Please review and tighten this post', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $this->assertSame( 200, $response->get_status() );
+        $this->assertSame( $analysis_text, $response->data['content'], 'analysis text must be surfaced as the reply, not the generic fallback' );
+        $this->assertSame( $pending, $response->data['pending_plan'] );
+        $this->assertContains( 'plan_update', $response->data['tools_called'] );
+    }
+
+    public function test_send_message_uses_analysis_as_content_when_plan_post_includes_it(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        Functions\when( '__' )->alias( fn( $v ) => $v );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [
+            [ 'role' => 'user', 'content' => 'Write a post about widgets' ],
+        ] );
+
+        $analysis_text = 'You asked for a launch announcement, so I drafted one covering the key features.';
+        $tool_input    = [
+            'analysis' => $analysis_text,
+            'title'    => 'Widgets',
+            'content'  => 'Full body.',
+        ];
+
+        $plan_response = new CompletionResponse(
+            content:           '',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     10,
+            completion_tokens: 5,
+            cost_usd:          0.0,
+            raw:               [
+                'content' => [
+                    [ 'type' => 'tool_use', 'id' => 'tu_1', 'name' => 'plan_post', 'input' => $tool_input ],
+                ],
+            ],
+            tool_call:         [ 'id' => 'tu_1', 'name' => 'plan_post', 'arguments' => $tool_input ],
+        );
+
+        $pending = [
+            'id'          => 'abc12345',
+            'status'      => 'pending_approval',
+            'plan_type'   => 'create',
+            'title'       => 'Widgets',
+            'content'     => 'Full body.',
+            'post_status' => 'draft',
+        ];
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [ [ 'name' => 'plan_post' ] ] );
+        $this->tool_executor->expects( $this->once() )
+            ->method( 'execute' )
+            ->with( 'plan_post', $tool_input, 1 )
+            ->willReturn( $pending );
+
+        $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( true );
+        $provider_mock->method( 'complete' )->willReturn( $plan_response );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '42' ] );
+        $request->set_body_params( [ 'content' => 'Write a post about widgets', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $this->assertSame( 200, $response->get_status() );
+        $this->assertSame( $analysis_text, $response->data['content'], 'analysis text must be surfaced as the reply, not the generic fallback' );
+        $this->assertSame( $pending, $response->data['pending_plan'] );
         $this->assertContains( 'plan_post', $response->data['tools_called'] );
     }
 

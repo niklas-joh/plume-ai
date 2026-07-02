@@ -162,7 +162,7 @@ describe( 'handleChatProxy', () => {
 		} );
 	} );
 
-	it( 'Claude adapter: relays tool_call when Claude returns a tool_use block', async () => {
+	it( 'Claude adapter: relays tool_calls when Claude returns a tool_use block', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 
 		vi.stubGlobal(
@@ -203,18 +203,20 @@ describe( 'handleChatProxy', () => {
 			content: string;
 			usage: { input_tokens: number; output_tokens: number };
 			credits_charged: number;
-			tool_call?: {
+			tool_calls?: Array< {
 				id: string;
 				name: string;
 				arguments: Record< string, unknown >;
-			};
+			} >;
 		};
 		expect( json.content ).toBe( "I'll fetch that post for you." );
-		expect( json.tool_call ).toEqual( {
-			id: 'toolu_01',
-			name: 'get_post_content',
-			arguments: { post_id: 42 },
-		} );
+		expect( json.tool_calls ).toEqual( [
+			{
+				id: 'toolu_01',
+				name: 'get_post_content',
+				arguments: { post_id: 42 },
+			},
+		] );
 		expect( json.usage ).toEqual( { input_tokens: 20, output_tokens: 10 } );
 		// Intermediate tool-use steps must not be billed.
 		expect( json.credits_charged ).toBe( 0 );
@@ -244,10 +246,10 @@ describe( 'handleChatProxy', () => {
 
 		const json = ( await response.json() ) as {
 			content: string;
-			tool_call?: unknown;
+			tool_calls?: unknown;
 		};
 		expect( json.content ).toBe( 'Here is the summary.' );
-		expect( json.tool_call ).toBeUndefined();
+		expect( json.tool_calls ).toBeUndefined();
 	} );
 
 	it( 'OpenAI adapter: sends correct OpenAI-format body and returns normalised response', async () => {
@@ -392,7 +394,7 @@ describe( 'handleChatProxy', () => {
 		expect( json.usage ).toEqual( { input_tokens: 6, output_tokens: 3 } );
 	} );
 
-	it( 'returns a UUID-format tool_call id when Gemini functionCall part is returned', async () => {
+	it( 'returns a UUID-format tool_call id in tool_calls[0] when Gemini functionCall part is returned', async () => {
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
 
 		vi.stubGlobal(
@@ -437,15 +439,16 @@ describe( 'handleChatProxy', () => {
 		const json = ( await response.json() ) as {
 			content: string;
 			usage: { input_tokens: number; output_tokens: number };
-			tool_call?: {
+			tool_calls?: Array< {
 				id: string;
 				name: string;
 				arguments: Record< string, unknown >;
-			};
+			} >;
 		};
 
-		expect( json.tool_call ).toBeDefined();
-		const toolCall = json.tool_call!;
+		expect( json.tool_calls ).toBeDefined();
+		expect( json.tool_calls ).toHaveLength( 1 );
+		const toolCall = json.tool_calls![ 0 ];
 		expect( toolCall.id ).toMatch(
 			/^gemini_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 		);

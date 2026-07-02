@@ -21,7 +21,8 @@ use Plume\Tools\ToolExecutor;
  * REST controller for pending plan execution.
  *
  * Route:
- *   POST /plume/v1/plans/{id}/execute — execute an AI-proposed plan (create or update post).
+ *   POST   /plume/v1/plans/{id}/execute — execute an AI-proposed plan (create or update post).
+ *   DELETE /plume/v1/plans/{id}         — discard a pending plan without executing it.
  *
  * Plans are stored as WordPress transients keyed by user ID + plan ID, ensuring
  * only the owning user can execute them. Transients expire after one hour.
@@ -89,6 +90,22 @@ class PlansRestController {
 				],
 			]
 		);
+
+		\register_rest_route(
+			RestApi::API_NAMESPACE,
+			'/plans/(?P<id>[a-f0-9]+)',
+			[
+				'methods'             => \WP_REST_Server::DELETABLE,
+				'callback'            => [ $this, 'dismiss_plan' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'id' => [
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_key',
+					],
+				],
+			]
+		);
 	}
 
 	/**
@@ -146,6 +163,27 @@ class PlansRestController {
 			],
 			200
 		);
+	}
+
+	/**
+	 * Discard a pending plan without executing it.
+	 *
+	 * Called by the review drawer before requesting a revision — otherwise the
+	 * superseded plan's transient stays executable for up to an hour — and when
+	 * the drawer is dismissed without applying. Deleting an already-expired or
+	 * unknown transient is a no-op, so this is safe to call idempotently.
+	 *
+	 * @since NEXT_VERSION
+	 * @param \WP_REST_Request $request Incoming REST request with plan ID in path.
+	 * @return \WP_REST_Response
+	 */
+	public function dismiss_plan( \WP_REST_Request $request ): \WP_REST_Response {
+		$user_id = \get_current_user_id();
+		$plan_id = $request->get_param( 'id' );
+
+		\delete_transient( ToolExecutor::plan_transient_key( $user_id, $plan_id ) );
+
+		return new \WP_REST_Response( null, 204 );
 	}
 
 	/**

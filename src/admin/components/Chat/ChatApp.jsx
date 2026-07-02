@@ -6,6 +6,7 @@ import MessageList from './MessageList';
 import Composer from './Composer';
 import QuickActions from '../RightPanel/QuickActions';
 import ModelSelector from '../RightPanel/ModelSelector';
+import ReviewDrawer from './ReviewDrawer';
 import apiFetch from '@wordpress/api-fetch';
 import { LAUNCH_ACTIONS } from './actions';
 import { storageGet, storageSet } from '../../utils/storage';
@@ -51,6 +52,7 @@ export default function ChatApp() {
 	const [ forcePickerOpen, setForcePickerOpen ] = useState( false );
 	const [ deletingIds, setDeletingIds ] = useState( new Set() );
 	const [ deleteErrors, setDeleteErrors ] = useState( {} );
+	const [ drawerPlan, setDrawerPlan ] = useState( null );
 	const skipLoadRef = useRef( false );
 	// Tracks which conversation IDs have already had a title PATCH dispatched,
 	// preventing a second send if the user types quickly before state settles.
@@ -62,6 +64,20 @@ export default function ChatApp() {
 	}, [] );
 
 	useEffect( () => {
+		// Restore (or clear) the review drawer for whichever conversation is now
+		// active — sessionStorage, not localStorage, so a stale plan from a
+		// previous browser session never resurfaces days later.
+		try {
+			const stored = activeConvId
+				? window.sessionStorage.getItem(
+						`plume_drawer_plan_${ activeConvId }`
+				  )
+				: null;
+			setDrawerPlan( stored ? JSON.parse( stored ) : null );
+		} catch {
+			setDrawerPlan( null );
+		}
+
 		if ( activeConvId ) {
 			if ( skipLoadRef.current ) {
 				skipLoadRef.current = false;
@@ -70,6 +86,27 @@ export default function ChatApp() {
 			loadMessages( activeConvId );
 		}
 	}, [ activeConvId ] );
+
+	// Persist the open plan so a same-tab refresh restores the drawer instead
+	// of silently dropping it (the transient it points to is still alive).
+	useEffect( () => {
+		if ( ! activeConvId ) {
+			return;
+		}
+		const key = `plume_drawer_plan_${ activeConvId }`;
+		try {
+			if ( drawerPlan ) {
+				window.sessionStorage.setItem(
+					key,
+					JSON.stringify( drawerPlan )
+				);
+			} else {
+				window.sessionStorage.removeItem( key );
+			}
+		} catch {
+			// Storage unavailable — drawer still works, just won't survive a refresh.
+		}
+	}, [ drawerPlan, activeConvId ] );
 
 	async function loadConversations() {
 		try {
@@ -223,6 +260,9 @@ export default function ChatApp() {
 					tools_used: passiveTools.length > 0 ? passiveTools : null,
 				},
 			] );
+			if ( res.pending_plan?.plan_type === 'update' ) {
+				setDrawerPlan( res.pending_plan );
+			}
 			if ( needsTitleUpdate ) {
 				const rawTitle = content.slice( 0, 60 );
 				// Avoid cutting mid-word; fall back to hard slice if no word boundary found.
@@ -403,6 +443,28 @@ export default function ChatApp() {
 					onRequestAttach={ requestPostAttach }
 				/>
 			</aside>
+
+			{ drawerPlan && (
+				<ReviewDrawer
+					plan={ drawerPlan }
+					convId={ activeConvId }
+					selectedProvider={ selectedProvider }
+					selectedModel={ selectedModel }
+					onApply={ ( { changes, editUrl } ) => {
+						setDrawerPlan( null );
+						setMessages( ( prev ) => [
+							...prev,
+							{
+								role: 'assistant',
+								content: changes ?? '',
+								applyEditUrl: editUrl ?? null,
+							},
+						] );
+					} }
+					onClose={ () => setDrawerPlan( null ) }
+					onMessagesRefresh={ () => loadMessages( activeConvId ) }
+				/>
+			) }
 		</div>
 	);
 }

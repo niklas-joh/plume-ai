@@ -596,12 +596,20 @@ jobs:
   # Makes live Anthropic API calls and real proxy requests.
   # Each test class skips (not fails) when the required secret is absent.
   # Tier-gating tests need no secrets — they run unconditionally.
+  #
+  # Skips `synchronize` (every push) — each run spends real credits against the
+  # CI site token's monthly Worker-side quota (free tier = 100/month), and the
+  # token was getting exhausted after ~8 pushes/month. Still runs on
+  # opened/reopened/ready_for_review. Other jobs in this workflow are unaffected
+  # and keep running on synchronize as normal.
   real-integration:
     name: Real Integration — live Anthropic API
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: changes
-    if: needs.changes.outputs.php == 'true' || needs.changes.outputs.proxy == 'true'
+    if: |
+      (needs.changes.outputs.php == 'true' || needs.changes.outputs.proxy == 'true')
+      && github.event.action != 'synchronize'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 

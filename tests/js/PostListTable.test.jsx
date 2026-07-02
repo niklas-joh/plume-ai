@@ -123,6 +123,53 @@ describe( 'PostListTable', () => {
 		expect( rows.length ).toBeGreaterThanOrEqual( FIXTURE_POSTS.length );
 	} );
 
+	it( 'includes draft posts in the all-posts view', async () => {
+		const apiFetch = require( '@wordpress/api-fetch' );
+		const draftPost = {
+			id: 3,
+			title: { rendered: 'Draft Post' },
+			type: 'post',
+			status: 'draft',
+			modified: new Date().toISOString(),
+			plume_seo_status: null,
+		};
+		const makeResponse = ( data ) => ( {
+			json: () => Promise.resolve( data ),
+			headers: { get: () => '1' },
+		} );
+		apiFetch.mockImplementation( ( { path } ) => {
+			if ( path && path.includes( '/wp/v2/posts' ) ) {
+				return Promise.resolve(
+					makeResponse( [
+						...FIXTURE_POSTS.filter( ( p ) => p.type === 'post' ),
+						draftPost,
+					] )
+				);
+			}
+			if ( path && path.includes( '/wp/v2/pages' ) ) {
+				return Promise.resolve(
+					makeResponse( FIXTURE_POSTS.filter( ( p ) => p.type === 'page' ) )
+				);
+			}
+			return Promise.resolve( makeResponse( [] ) );
+		} );
+
+		await act( async () => {
+			root.render( <PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } /> );
+		} );
+
+		// All three posts (2 fixture + 1 draft) should appear under the "All Posts" tab.
+		const rows = container.querySelectorAll( 'tbody tr' );
+		expect( rows.length ).toBeGreaterThanOrEqual( 3 );
+
+		// Verify the fetch path requests all statuses so drafts are not filtered server-side.
+		const calls = apiFetch.mock.calls;
+		const postFetchPath = calls.find( ( [ args ] ) =>
+			args.path && args.path.includes( '/wp/v2/posts' )
+		)?.[ 0 ]?.path ?? '';
+		expect( postFetchPath ).toContain( 'status=publish,draft,pending,future,private' );
+	} );
+
 	it( 'renders the search input', async () => {
 		await act( async () => {
 			root.render( <PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } /> );

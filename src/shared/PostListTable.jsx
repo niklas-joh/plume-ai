@@ -41,7 +41,7 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 				// strips those fields and they arrive as undefined.
 				const fetchAllPages = async ( base ) => {
 					const firstResponse = await apiFetch( {
-						path: `${ base }?per_page=100&_embed=1&context=edit&page=1`,
+						path: `${ base }?per_page=100&_embed=1&context=edit&status=publish,draft,pending,future,private&page=1`,
 						parse: false,
 					} );
 					const firstData = await firstResponse.json();
@@ -58,7 +58,7 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 					for ( let p = 2; p <= totalPages; p++ ) {
 						remainingRequests.push(
 							apiFetch( {
-								path: `${ base }?per_page=100&_embed=1&context=edit&page=${ p }`,
+								path: `${ base }?per_page=100&_embed=1&context=edit&status=publish,draft,pending,future,private&page=${ p }`,
 								parse: false,
 							} ).then( ( r ) => r.json() )
 						);

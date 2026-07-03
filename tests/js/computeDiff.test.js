@@ -190,6 +190,41 @@ describe( 'computeDiff', () => {
 			expect( change.inlineHtml ).toMatch( /<ins[^>]*>New<\/ins>/ );
 		} );
 
+		it( 'pairs consecutive lightly-edited paragraphs and inline-diffs each', () => {
+			// Two adjacent paragraphs both change, with no identical paragraph
+			// between them — the block LCS emits all removals then all additions,
+			// so groupOps must pair them positionally for the inline diff to fire.
+			const oldText =
+				'We can scan many candidate profiles quickly today.\n\n' +
+				'You will learn the basics of fairness audits now.';
+			const newText =
+				'We can scan many candidate profiles rapidly today.\n\n' +
+				'You will learn the basics of fairness audits soon.';
+
+			const changes = changedBlocks( computeDiff( oldText, newText ) );
+
+			expect( changes ).toHaveLength( 2 );
+			changes.forEach( ( c ) => {
+				expect( c.inlineHtml ).not.toBeNull();
+				expect( c.inlineHtml ).toMatch( /<del/ );
+				expect( c.inlineHtml ).toMatch( /<ins/ );
+			} );
+			// Each paragraph paired with its own counterpart, not the other one.
+			expect( changes[ 0 ].inlineHtml ).toMatch(
+				/<del[^>]*>quickly<\/del>/
+			);
+			expect( changes[ 0 ].inlineHtml ).toMatch(
+				/<ins[^>]*>rapidly<\/ins>/
+			);
+			// Tokens split on whitespace, so trailing punctuation rides along.
+			expect( changes[ 1 ].inlineHtml ).toMatch(
+				/<del[^>]*>now\.<\/del>/
+			);
+			expect( changes[ 1 ].inlineHtml ).toMatch(
+				/<ins[^>]*>soon\.<\/ins>/
+			);
+		} );
+
 		it( 'does not inline-diff list blocks (falls back to before/after)', () => {
 			const blocks = computeDiff(
 				'<ul><li>one item</li><li>two item</li></ul>',

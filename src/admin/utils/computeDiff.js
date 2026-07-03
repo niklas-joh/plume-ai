@@ -360,9 +360,15 @@ function lcs( oldParas, newParas ) {
 /**
  * Group a flat ops list into DiffBlock objects.
  *
- * Each DiffBlock collects leading unchanged paragraphs plus one
- * remove+add pair (either may be null for pure insertions/deletions).
- * A trailing run of equal ops becomes a final unchanged-only block.
+ * Each change region (a maximal run of non-equal ops between two unchanged
+ * anchors) is split into its removed and added paragraphs, then paired
+ * positionally — removed paragraph N with added paragraph N — so a lightly
+ * edited paragraph pairs with its counterpart and gets a word-level inline
+ * diff, instead of a whole run of removals followed by a whole run of
+ * additions (which is how the block-level LCS emits a region with no identical
+ * paragraphs to anchor on). Leftover removals/additions become pure
+ * deletions/insertions. A trailing run of equal ops becomes a final
+ * unchanged-only block.
  *
  * The block counter is scoped per call so ids are stable within a single
  * diff but never imply continuity across separate `computeDiff` invocations.
@@ -385,37 +391,39 @@ function groupOps( ops ) {
 			continue;
 		}
 
-		// Start a new diff block.
-		const block = {
-			id: `diff-${ ++blockCounter }`,
-			unchanged: pendingUnchanged,
-			removedText: null,
-			addedText: null,
-			inlineHtml: null,
-		};
-		pendingUnchanged = [];
-
-		if ( op.type === 'remove' ) {
-			block.removedText = op.text;
-			idx++;
-			// Pair with an immediately following 'add' if present.
-			if ( idx < ops.length && ops[ idx ].type === 'add' ) {
-				block.addedText = ops[ idx ].text;
-				idx++;
-				// A modified (not wholly replaced) block gets a word-level inline
-				// diff so a small edit doesn't read as two whole paragraphs.
-				block.inlineHtml = computeInlineDiff(
-					block.removedText,
-					block.addedText
-				);
+		// Gather the whole change region (removes and adds keep document order
+		// within their own list) up to the next unchanged anchor.
+		const removes = [];
+		const adds = [];
+		while ( idx < ops.length && ops[ idx ].type !== 'equal' ) {
+			if ( ops[ idx ].type === 'remove' ) {
+				removes.push( ops[ idx ].text );
+			} else {
+				adds.push( ops[ idx ].text );
 			}
-		} else {
-			// Pure insertion (no preceding remove).
-			block.addedText = op.text;
 			idx++;
 		}
 
-		blocks.push( block );
+		// Pair removed↔added paragraphs by position; the first block of the
+		// region carries the leading unchanged context, the rest carry none.
+		const pairCount = Math.max( removes.length, adds.length );
+		for ( let k = 0; k < pairCount; k++ ) {
+			const removedText = k < removes.length ? removes[ k ] : null;
+			const addedText = k < adds.length ? adds[ k ] : null;
+			blocks.push( {
+				id: `diff-${ ++blockCounter }`,
+				unchanged: k === 0 ? pendingUnchanged : [],
+				removedText,
+				addedText,
+				// A modified (not wholly replaced) paragraph gets a word-level
+				// inline diff so a small edit doesn't read as two whole paragraphs.
+				inlineHtml:
+					removedText && addedText
+						? computeInlineDiff( removedText, addedText )
+						: null,
+			} );
+		}
+		pendingUnchanged = [];
 	}
 
 	// Any trailing unchanged paragraphs form a final block.

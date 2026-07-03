@@ -1660,6 +1660,34 @@
 	border-bottom: none;
 }
 
+/* Cancel-comment control anchored to the top-right of the input row. */
+.plume-comment-item--input {
+	position: relative;
+}
+
+.plume-comment-item__close {
+	position: absolute;
+	top: var(--space-1);
+	right: var(--space-1);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: none;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--color-text-muted);
+	cursor: pointer;
+	z-index: 1;
+}
+
+.plume-comment-item__close:hover {
+	background: color-mix( in srgb, var(--color-warning) 15%, transparent );
+	color: var(--color-text-primary);
+}
+
 .plume-comment-item__anchor {
 	display: inline-block;
 	font-size: 11px;

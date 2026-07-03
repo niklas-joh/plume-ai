@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageSquare, ChevronDown, ChevronUp, X } from 'lucide-react';
 
 /**
  * Per-DiffBlock comment thread rendered below an Added paragraph.
@@ -61,14 +61,23 @@ export default function CommentThread( {
 		setActiveAnchor( null );
 	}
 
+	// Abandon the in-progress comment: clear the input and anchor, and collapse
+	// the thread when there are no saved comments to keep showing.
+	function handleCancelInput() {
+		setInputText( '' );
+		setActiveAnchor( null );
+		if ( ! hasComments ) {
+			setIsExpanded( false );
+		}
+	}
+
 	function handleInputKeyDown( e ) {
 		if ( e.key === 'Enter' && ! e.shiftKey ) {
 			e.preventDefault();
 			handleSave();
 		}
 		if ( e.key === 'Escape' ) {
-			setInputText( '' );
-			setActiveAnchor( null );
+			handleCancelInput();
 		}
 	}
 
@@ -143,6 +152,15 @@ export default function CommentThread( {
 				) ) }
 
 				<div className="plume-comment-item plume-comment-item--input">
+					<button
+						type="button"
+						className="plume-comment-item__close"
+						onClick={ handleCancelInput }
+						aria-label={ __( 'Cancel comment', 'plume' ) }
+						title={ __( 'Cancel comment', 'plume' ) }
+					>
+						<X size={ 12 } />
+					</button>
 					{ activeAnchor && (
 						<span
 							className="plume-comment-item__anchor"

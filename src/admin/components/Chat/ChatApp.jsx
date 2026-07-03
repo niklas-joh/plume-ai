@@ -61,7 +61,22 @@ export default function ChatApp() {
 	useEffect( () => {
 		loadConversations();
 		loadProviders();
+		// Restore the last-open conversation so a page reload returns the user to
+		// where they were — and lets the [activeConvId] effect below re-open the
+		// review drawer from the server-side pending plan.
+		const savedConv = storageGet( 'plume-active-conv' );
+		if ( savedConv ) {
+			setActiveConvId( Number( savedConv ) );
+		}
 	}, [] );
+
+	// Persist the active conversation for reload restoration.
+	useEffect( () => {
+		storageSet(
+			'plume-active-conv',
+			activeConvId ? String( activeConvId ) : ''
+		);
+	}, [ activeConvId ] );
 
 	useEffect( () => {
 		// Re-hydrate the review drawer for whichever conversation is now active.

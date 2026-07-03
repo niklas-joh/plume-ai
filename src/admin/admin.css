@@ -1476,15 +1476,30 @@
 }
 
 /* Diff blocks */
-.plume-diff-block {
-	margin-bottom: var(--space-2);
+
+/* Every paragraph — unchanged, removed, added, or inline — renders with the
+   same typography and a transparent background. Change is signalled only by the
+   red (removed) / green (added) text markers, never by a box or border, and any
+   paragraph can be drag-selected to attach a comment. */
+.plume-diff-row {
+	position: relative;
+	margin: 0 0 var(--space-2);
+	-webkit-user-select: text;
+	user-select: text;
+	cursor: text;
+	line-height: 1.8;
 }
 
-.plume-diff-block__unchanged {
-	color: var(--color-text-muted);
-	line-height: 1.9;
-	user-select: none;
-	margin: 0 0 var(--space-2);
+.plume-diff-block__unchanged,
+.plume-diff-block__removed,
+.plume-diff-block__inline,
+.plume-diff-added {
+	color: var(--color-text-primary);
+	background: none;
+	border: none;
+	padding: 0;
+	margin: 0;
+	line-height: inherit;
 }
 
 .plume-diff-block__unchanged > *,
@@ -1495,41 +1510,18 @@
 	line-height: inherit;
 }
 
+/* A wholly removed paragraph: red, struck through. */
 .plume-diff-block__removed {
-	background: var(--diff-removed-bg);
-	border-left: 3px solid var(--diff-removed-border);
 	color: var(--diff-removed-text);
 	text-decoration: line-through;
-
-	/* Selectable so a passage can be annotated; -webkit- prefix for iOS Safari. */
-	-webkit-user-select: text;
-	user-select: text;
-	padding: var(--space-2) var(--space-3);
-	margin: 0 0 2px;
-	border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-	line-height: 1.7;
 }
 
-/* Modified block rendered as a single word-level inline diff. */
-.plume-diff-block__inline {
-	background: var(--color-surface);
-	border-left: 3px solid var(--color-border);
-	color: var(--color-text-primary);
-	-webkit-user-select: text;
-	user-select: text;
-	cursor: text;
-	padding: var(--space-2) var(--space-3);
-	margin: 0 0 var(--space-2);
-	border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-	line-height: 1.7;
-	position: relative;
+/* A wholly added paragraph: green. */
+.plume-diff-added {
+	color: var(--diff-added-text);
 }
 
-.plume-diff-block__inline--annotated {
-	background: var(--diff-annotated-bg);
-	border-left-color: var(--diff-annotated-border);
-}
-
+/* Word-level markers inside an inline diff. */
 .plume-diff-block__inline del.plume-diff-del {
 	background: var(--diff-removed-bg);
 	color: var(--diff-removed-text);
@@ -1546,37 +1538,11 @@
 	padding: 0 2px;
 }
 
-.plume-diff-block__added-wrapper {
-	position: relative;
-	margin-bottom: var(--space-2);
-}
-
-.plume-diff-added {
-	background: var(--diff-added-bg);
-	border-left: 3px solid var(--diff-added-border);
-	color: var(--diff-added-text);
-	padding: var(--space-2) var(--space-3);
-	margin: 0;
-	border-radius: 0 var(--radius-sm) 0 0;
-	line-height: 1.7;
-
-	/* -webkit- prefix so drag-to-select works on iOS Safari. */
-	-webkit-user-select: text;
-	user-select: text;
-	cursor: text;
-	position: relative;
-}
-
-.plume-diff-added--annotated {
-	background: var(--diff-annotated-bg);
-	border-left-color: var(--diff-annotated-border);
-}
-
-/* Comment count badge inside Added block */
+/* Comment count badge — floats at the row's top-right. */
 .plume-diff-badge {
 	position: absolute;
-	top: 4px;
-	right: 6px;
+	top: 0;
+	right: 0;
 	display: inline-flex;
 	align-items: center;
 	gap: 3px;

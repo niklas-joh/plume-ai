@@ -5,15 +5,57 @@ import CommentThread from './CommentThread';
 import { htmlToText } from '../../utils/htmlToText';
 
 /**
+ * Flatten DiffBlocks into a single list of paragraph rows so that every
+ * paragraph — unchanged, removed, added, or an inline word-diff — is an
+ * independently selectable, commentable unit rendered with uniform typography.
+ * Change is conveyed only by the red (removed) / green (added) markers, not by
+ * any per-block background or border.
+ *
+ * @param {Array} blocks computeDiff output.
+ * @return {Array<{id: string, kind: 'unchanged'|'removed'|'added'|'inline', html: string}>}
+ */
+function buildRows( blocks ) {
+	const rows = [];
+	blocks.forEach( ( block ) => {
+		block.unchanged.forEach( ( para, i ) => {
+			rows.push( {
+				id: `${ block.id }-u${ i }`,
+				kind: 'unchanged',
+				html: para,
+			} );
+		} );
+		if ( block.inlineHtml ) {
+			rows.push( {
+				id: block.id,
+				kind: 'inline',
+				html: block.inlineHtml,
+			} );
+			return;
+		}
+		if ( block.removedText ) {
+			rows.push( {
+				id: `${ block.id }-r`,
+				kind: 'removed',
+				html: block.removedText,
+			} );
+		}
+		if ( block.addedText ) {
+			rows.push( { id: block.id, kind: 'added', html: block.addedText } );
+		}
+	} );
+	return rows;
+}
+
+/**
  * Scrollable diff body with text-selection tooltip and sticky legend bar.
  *
- * Renders each DiffBlock as unchanged (dimmed), removed (strikethrough red),
- * and added (green, selectable) paragraphs using `dangerouslySetInnerHTML`
- * so that headings, lists, and other block-level elements are rendered
- * semantically rather than as flat text.
+ * Renders every paragraph — unchanged, removed (strikethrough red), added
+ * (green), or an inline word-diff — with uniform typography via
+ * `dangerouslySetInnerHTML`, so headings, lists, and other block elements keep
+ * their structure and change is signalled only by the red/green markers.
  *
- * Users can drag-select text inside any annotatable block (removed or added)
- * to trigger a comment via a floating tooltip.
+ * Any paragraph can be drag-selected to attach a comment via a floating
+ * tooltip; each paragraph is an independently commentable unit.
  *
  * @param {Object}   props
  * @param {Array}    props.blocks            DiffBlock[] from computeDiff.
@@ -47,7 +89,7 @@ export default function DiffView( {
 
 	/**
 	 * Walks up from a node looking for any element with a `data-block-id`
-	 * attribute (set on both removed and added wrappers).
+	 * attribute (set on every paragraph row, so any text is commentable).
 	 *
 	 * @param {Node} node
 	 * @return {Element|null}
@@ -157,107 +199,62 @@ export default function DiffView( {
 				style={ { position: 'relative' } }
 			>
 				{ header }
-				{ blocks.map( ( block ) => {
-					const blockComments = commentsForBlock( block.id );
-					const isAnnotated = blockComments.length > 0;
+				{ buildRows( blocks ).map( ( row ) => {
+					const rowComments = commentsForBlock( row.id );
+					const kindClass = {
+						unchanged: 'plume-diff-block__unchanged',
+						removed: 'plume-diff-block__removed',
+						added: 'plume-diff-added',
+						inline: 'plume-diff-block__inline',
+					}[ row.kind ];
+					const kindLabel = {
+						unchanged: __( 'Unchanged', 'plume' ),
+						removed: __( 'Removed text', 'plume' ),
+						added: __( 'Proposed text', 'plume' ),
+						inline: __( 'Changed text', 'plume' ),
+					}[ row.kind ];
 
 					return (
-						<div key={ block.id } className="plume-diff-block">
-							{ block.unchanged.map( ( para, idx ) => (
-								// eslint-disable-next-line react/no-danger
-								<div
-									key={ idx }
-									className="plume-diff-block__unchanged"
-									aria-label={ __( 'Unchanged', 'plume' ) }
-									dangerouslySetInnerHTML={ { __html: para } }
-								/>
-							) ) }
-
-							{ /* A modified block with a word-level inline diff hides the
-							   separate red "removed" block — the deletions are shown
-							   inline instead. */ }
-							{ ! block.inlineHtml && block.removedText && (
-								// eslint-disable-next-line react/no-danger
-								<div
-									className="plume-diff-block__removed"
-									data-block-id={ block.id }
-									aria-label={ `${ __(
-										'Removed text',
-										'plume'
-									) }: ${ htmlToText( block.removedText ) }` }
-									dangerouslySetInnerHTML={ {
-										__html: block.removedText,
-									} }
-								/>
+						<div key={ row.id } className="plume-diff-row">
+							{ /* eslint-disable-next-line react/no-danger */ }
+							<div
+								className={ kindClass }
+								data-block-id={ row.id }
+								aria-label={
+									row.kind === 'unchanged'
+										? kindLabel
+										: `${ kindLabel }: ${ htmlToText(
+												row.html
+										  ) }`
+								}
+								dangerouslySetInnerHTML={ { __html: row.html } }
+							/>
+							{ rowComments.length > 0 && (
+								<span
+									className="plume-diff-badge"
+									aria-hidden="true"
+								>
+									<MessageSquare size={ 10 } />
+									{ rowComments.length }
+								</span>
 							) }
-
-							{ ( block.inlineHtml || block.addedText ) && (
-								<div className="plume-diff-block__added-wrapper">
-									{ /* eslint-disable-next-line react/no-danger */ }
-									<div
-										className={
-											block.inlineHtml
-												? `plume-diff-block__inline${
-														isAnnotated
-															? ' plume-diff-block__inline--annotated'
-															: ''
-												  }`
-												: `plume-diff-added${
-														isAnnotated
-															? ' plume-diff-added--annotated'
-															: ''
-												  }`
-										}
-										data-block-id={ block.id }
-										aria-label={
-											block.inlineHtml
-												? `${ __(
-														'Changed text',
-														'plume'
-												  ) }: ${ htmlToText(
-														block.inlineHtml
-												  ) }`
-												: `${ __(
-														'Proposed text',
-														'plume'
-												  ) }: ${ htmlToText(
-														block.addedText
-												  ) }`
-										}
-										dangerouslySetInnerHTML={ {
-											__html:
-												block.inlineHtml ??
-												block.addedText,
-										} }
-									/>
-									{ isAnnotated && (
-										<span
-											className="plume-diff-badge"
-											aria-hidden="true"
-										>
-											<MessageSquare size={ 10 } />
-											{ blockComments.length }
-										</span>
-									) }
-									<CommentThread
-										diffBlockId={ block.id }
-										comments={ blockComments }
-										onSave={ onSaveComment }
-										onDelete={ onDeleteComment }
-										onUnsavedChange={ onUnsavedChange }
-										pendingAnchor={
-											pendingAnchors[ block.id ] ?? null
-										}
-										onAnchorConsumed={ () =>
-											setPendingAnchors( ( prev ) => {
-												const next = { ...prev };
-												delete next[ block.id ];
-												return next;
-											} )
-										}
-									/>
-								</div>
-							) }
+							<CommentThread
+								diffBlockId={ row.id }
+								comments={ rowComments }
+								onSave={ onSaveComment }
+								onDelete={ onDeleteComment }
+								onUnsavedChange={ onUnsavedChange }
+								pendingAnchor={
+									pendingAnchors[ row.id ] ?? null
+								}
+								onAnchorConsumed={ () =>
+									setPendingAnchors( ( prev ) => {
+										const next = { ...prev };
+										delete next[ row.id ];
+										return next;
+									} )
+								}
+							/>
 						</div>
 					);
 				} ) }

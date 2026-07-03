@@ -1,3 +1,25 @@
+## [1.11.0](https://github.com/niklas-joh/plume-ai/compare/v1.10.3...v1.11.0) (2026-07-03)
+
+### New Features
+
+* **credits:** replace trial tier with credits-based usage tracking ([#869](https://github.com/niklas-joh/plume-ai/issues/869)) ([6c90e1b](https://github.com/niklas-joh/plume-ai/commit/6c90e1b184591bd13e8a0556de781497d132bc57)), closes [#831](https://github.com/niklas-joh/plume-ai/issues/831) [#867](https://github.com/niklas-joh/plume-ai/issues/867) [#868](https://github.com/niklas-joh/plume-ai/issues/868) [#867](https://github.com/niklas-joh/plume-ai/issues/867) [#868](https://github.com/niklas-joh/plume-ai/issues/868) [#870](https://github.com/niklas-joh/plume-ai/issues/870) [#871](https://github.com/niklas-joh/plume-ai/issues/871) [#872](https://github.com/niklas-joh/plume-ai/issues/872)
+
+### Bug Fixes
+
+* **chat:** token usage in REST response, single-use tool guard, and tool-definition caching ([#901](https://github.com/niklas-joh/plume-ai/issues/901)) ([adf4649](https://github.com/niklas-joh/plume-ai/commit/adf464938093cfdf4f0491f124390658ac5a6b6e)), closes [#826](https://github.com/niklas-joh/plume-ai/issues/826) [#825](https://github.com/niklas-joh/plume-ai/issues/825) [#803](https://github.com/niklas-joh/plume-ai/issues/803) [#855](https://github.com/niklas-joh/plume-ai/issues/855) [#855](https://github.com/niklas-joh/plume-ai/issues/855)
+* **ci:** pass github/inputs context via env, not inline run: interpolation ([#866](https://github.com/niklas-joh/plume-ai/issues/866)) ([03b22a1](https://github.com/niklas-joh/plume-ai/commit/03b22a1c6189f201da058905fa37602378308ad4))
+* **proxy:** forward all tool calls per turn, surface model name, graceful iteration limit ([#891](https://github.com/niklas-joh/plume-ai/issues/891)) ([ce4d9a6](https://github.com/niklas-joh/plume-ai/commit/ce4d9a6d6f530f7b9ce7b905a56c046f42be5ca1))
+* **seo:** include draft/pending/scheduled posts in SEO page list ([#897](https://github.com/niklas-joh/plume-ai/issues/897)) ([f983e5c](https://github.com/niklas-joh/plume-ai/commit/f983e5c1a99566c3d40918b631d2f0ae228dcfa3))
+* **wporg:** scope tier-sync notices to Plume admin pages only ([#888](https://github.com/niklas-joh/plume-ai/issues/888)) ([3fd2995](https://github.com/niklas-joh/plume-ai/commit/3fd29957f842846caa031758ee6b436e024f8b73)), closes [#834](https://github.com/niklas-joh/plume-ai/issues/834)
+
+### Code Refactors
+
+* **proxy:** replace trial tier with credits-based usage tracking ([#861](https://github.com/niklas-joh/plume-ai/issues/861)) ([006cbfc](https://github.com/niklas-joh/plume-ai/commit/006cbfcf000e00459dfb5ce69f6ad10ac9c3023c)), closes [#856](https://github.com/niklas-joh/plume-ai/issues/856) [#862](https://github.com/niklas-joh/plume-ai/issues/862) [#863](https://github.com/niklas-joh/plume-ai/issues/863) [#864](https://github.com/niklas-joh/plume-ai/issues/864) [#865](https://github.com/niklas-joh/plume-ai/issues/865)
+
+### Documentation
+
+* **readme:** correct managed proxy service URL to plumewp.workers.dev ([#910](https://github.com/niklas-joh/plume-ai/issues/910)) ([642fc27](https://github.com/niklas-joh/plume-ai/commit/642fc27ee4746cc7ef2feee55e1b0cefa53464cb)), closes [831/#832](https://github.com/831/plume-ai/issues/832)
+
 ## [1.10.3](https://github.com/niklas-joh/plume-ai/compare/v1.10.2...v1.10.3) (2026-06-26)
 
 ### Bug Fixes

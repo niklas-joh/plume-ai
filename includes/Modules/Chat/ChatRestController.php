@@ -606,7 +606,7 @@ class ChatRestController {
 	 * check, identical across every tier.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Removed the tier and quota checks (and the user_can_chat()/
+	 * @since 1.11.0 Removed the tier and quota checks (and the user_can_chat()/
 	 *                      user_within_quota() helper methods entirely) as part of the
 	 *                      credits-based redesign.
 	 * @return bool|\WP_Error True on success; WP_Error with 403 status on failure.
@@ -670,7 +670,7 @@ class ChatRestController {
 	 * are deliberately never stripped — PR #792 did that and #803 reverted it because it
 	 * broke multi-step sequential chains such as get_recent_posts -> get_post_content -> plan_update.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @param array<int, array<string, mixed>> $tools         Provider-formatted tool list.
 	 * @param string                           $provider_slug Provider slug ('claude', 'openai', 'gemini', 'proxy').
 	 * @param string[]                         $tools_called  Tool names called so far this request.

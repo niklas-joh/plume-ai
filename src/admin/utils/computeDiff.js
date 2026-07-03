@@ -17,7 +17,7 @@ marked.setOptions( { breaks: true, gfm: true } );
  *
  * @param {string} oldText  Current post content (raw WordPress block markup).
  * @param {string} newText  Proposed post content from the AI plan (Markdown).
- * @return {Array<{id: string, unchanged: string[], removedText: string|null, addedText: string|null}>}
+ * @return {Array<{id: string, unchanged: string[], removedText: string|null, addedText: string|null, inlineHtml: string|null}>}
  */
 export function computeDiff( oldText, newText ) {
 	// Sanitise both sides: every block string flows untouched into DiffView's
@@ -31,6 +31,180 @@ export function computeDiff( oldText, newText ) {
 	const newBlocks = htmlToBlocks( newHtml );
 	const ops = lcs( oldBlocks, newBlocks );
 	return groupOps( ops );
+}
+
+// ---------------------------------------------------------------------------
+// Word-level (intra-block) diff
+// ---------------------------------------------------------------------------
+
+// Below this similarity the two blocks are effectively unrelated (a genuine
+// rewrite), so an inline word diff would be noise — fall back to before/after.
+const INLINE_SIMILARITY_THRESHOLD = 0.4;
+
+// Block tags whose text is prose enough to word-diff meaningfully. Lists,
+// tables, quotes and preformatted blocks are left to the before/after layout.
+const INLINE_DIFF_TAGS = [ 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ];
+
+/**
+ * Extract the leading block tag name from an outerHTML string.
+ *
+ * @param {string} html  outerHTML of a single block, or plain text.
+ * @return {string}      Lowercased tag name, or '' for unwrapped text.
+ */
+function blockTag( html ) {
+	const match = html.match( /^\s*<([a-z0-9-]+)/i );
+	return match ? match[ 1 ].toLowerCase() : '';
+}
+
+/**
+ * HTML-escape a plain-text token before it is wrapped in del/ins markup.
+ *
+ * @param {string} text
+ * @return {string}
+ */
+function escapeHtml( text ) {
+	return text
+		.replace( /&/g, '&amp;' )
+		.replace( /</g, '&lt;' )
+		.replace( />/g, '&gt;' );
+}
+
+/**
+ * Build a word-level inline diff between a removed and an added block.
+ *
+ * Returns a single sanitised HTML string in which unchanged words render
+ * plainly, deleted words are wrapped in `<del>` and inserted words in `<ins>`,
+ * so a one-word edit reads as one struck word plus one new word rather than two
+ * whole paragraphs. Returns `null` when an inline diff would not be meaningful:
+ * non-prose blocks (lists, tables…), mismatched block tags, or a similarity
+ * below the threshold (a genuine rewrite), leaving the before/after layout.
+ *
+ * @param {string} removedHtml  outerHTML of the removed block.
+ * @param {string} addedHtml    outerHTML of the added block.
+ * @return {string|null}
+ */
+function computeInlineDiff( removedHtml, addedHtml ) {
+	const oldTag = blockTag( removedHtml );
+	const newTag = blockTag( addedHtml );
+
+	// Only inline-diff prose blocks, and only when both sides are the same kind
+	// of block (a paragraph turning into a heading is a structural change).
+	const tagOk = ( t ) =>
+		t === '' || t === 'p' || INLINE_DIFF_TAGS.includes( t );
+	if ( ! tagOk( oldTag ) || ! tagOk( newTag ) ) {
+		return null;
+	}
+	const oldIsPara = oldTag === '' || oldTag === 'p';
+	const newIsPara = newTag === '' || newTag === 'p';
+	if ( ! oldIsPara && ! newIsPara && oldTag !== newTag ) {
+		return null;
+	}
+
+	const oldTokens = htmlToText( removedHtml )
+		.trim()
+		.split( /\s+/ )
+		.filter( Boolean );
+	const newTokens = htmlToText( addedHtml )
+		.trim()
+		.split( /\s+/ )
+		.filter( Boolean );
+	if ( oldTokens.length === 0 || newTokens.length === 0 ) {
+		return null;
+	}
+
+	const ops = lcsTokens( oldTokens, newTokens );
+	const equalCount = ops.filter( ( op ) => op.type === 'equal' ).length;
+	const similarity =
+		( 2 * equalCount ) / ( oldTokens.length + newTokens.length );
+	if ( similarity < INLINE_SIMILARITY_THRESHOLD ) {
+		return null;
+	}
+
+	// Coalesce consecutive same-type ops so runs of changed words share one
+	// del/ins wrapper rather than one per word.
+	const parts = [];
+	let run = null;
+	const flush = () => {
+		if ( ! run ) {
+			return;
+		}
+		const text = escapeHtml( run.words.join( ' ' ) );
+		if ( run.type === 'equal' ) {
+			parts.push( text );
+		} else if ( run.type === 'remove' ) {
+			parts.push( `<del class="plume-diff-del">${ text }</del>` );
+		} else {
+			parts.push( `<ins class="plume-diff-ins">${ text }</ins>` );
+		}
+		run = null;
+	};
+	for ( const op of ops ) {
+		if ( ! run || run.type !== op.type ) {
+			flush();
+			run = { type: op.type, words: [] };
+		}
+		run.words.push( op.text );
+	}
+	flush();
+
+	const inner = parts.join( ' ' );
+	const tag = newIsPara ? 'p' : newTag;
+	const html = `<${ tag }>${ inner }</${ tag }>`;
+
+	return DOMPurify.sanitize( html, {
+		ALLOWED_TAGS: [ ...INLINE_DIFF_TAGS, 'del', 'ins' ],
+		ALLOWED_ATTR: [ 'class' ],
+	} );
+}
+
+/**
+ * Word-level LCS over two token arrays.
+ *
+ * Mirrors `lcs()` but compares tokens directly (case-insensitive) and carries
+ * the original token text through so casing is preserved in the output.
+ *
+ * @param {string[]} oldTokens
+ * @param {string[]} newTokens
+ * @return {Array<{type: string, text: string}>}
+ */
+function lcsTokens( oldTokens, newTokens ) {
+	const m = oldTokens.length;
+	const n = newTokens.length;
+	const oldKeys = oldTokens.map( ( t ) => t.toLowerCase() );
+	const newKeys = newTokens.map( ( t ) => t.toLowerCase() );
+
+	const dp = Array.from( { length: m + 1 }, () =>
+		new Array( n + 1 ).fill( 0 )
+	);
+	for ( let i = 1; i <= m; i++ ) {
+		for ( let j = 1; j <= n; j++ ) {
+			dp[ i ][ j ] =
+				oldKeys[ i - 1 ] === newKeys[ j - 1 ]
+					? dp[ i - 1 ][ j - 1 ] + 1
+					: Math.max( dp[ i - 1 ][ j ], dp[ i ][ j - 1 ] );
+		}
+	}
+
+	const ops = [];
+	let i = m;
+	let j = n;
+	while ( i > 0 || j > 0 ) {
+		if ( i > 0 && j > 0 && oldKeys[ i - 1 ] === newKeys[ j - 1 ] ) {
+			ops.unshift( { type: 'equal', text: oldTokens[ i - 1 ] } );
+			i--;
+			j--;
+		} else if (
+			j > 0 &&
+			( i === 0 || dp[ i ][ j - 1 ] >= dp[ i - 1 ][ j ] )
+		) {
+			ops.unshift( { type: 'add', text: newTokens[ j - 1 ] } );
+			j--;
+		} else {
+			ops.unshift( { type: 'remove', text: oldTokens[ i - 1 ] } );
+			i--;
+		}
+	}
+	return ops;
 }
 
 // ---------------------------------------------------------------------------
@@ -194,7 +368,7 @@ function lcs( oldParas, newParas ) {
  * diff but never imply continuity across separate `computeDiff` invocations.
  *
  * @param {Array<{type: string, text: string}>} ops
- * @return {Array<{id: string, unchanged: string[], removedText: string|null, addedText: string|null}>}
+ * @return {Array<{id: string, unchanged: string[], removedText: string|null, addedText: string|null, inlineHtml: string|null}>}
  */
 function groupOps( ops ) {
 	const blocks = [];
@@ -217,6 +391,7 @@ function groupOps( ops ) {
 			unchanged: pendingUnchanged,
 			removedText: null,
 			addedText: null,
+			inlineHtml: null,
 		};
 		pendingUnchanged = [];
 
@@ -227,6 +402,12 @@ function groupOps( ops ) {
 			if ( idx < ops.length && ops[ idx ].type === 'add' ) {
 				block.addedText = ops[ idx ].text;
 				idx++;
+				// A modified (not wholly replaced) block gets a word-level inline
+				// diff so a small edit doesn't read as two whole paragraphs.
+				block.inlineHtml = computeInlineDiff(
+					block.removedText,
+					block.addedText
+				);
 			}
 		} else {
 			// Pure insertion (no preceding remove).
@@ -244,6 +425,7 @@ function groupOps( ops ) {
 			unchanged: pendingUnchanged,
 			removedText: null,
 			addedText: null,
+			inlineHtml: null,
 		} );
 	}
 

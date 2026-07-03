@@ -125,4 +125,81 @@ describe( 'computeDiff', () => {
 		expect( changedBlocks( blocks ) ).toHaveLength( 0 );
 		expect( blocks[ 0 ].unchanged ).toEqual( [ 'A', 'B' ] );
 	} );
+
+	describe( 'inline (word-level) diff', () => {
+		/**
+		 * Count non-overlapping matches of a pattern in a string.
+		 *
+		 * @param {string} str
+		 * @param {RegExp} re Must be a global regex.
+		 * @return {number}
+		 */
+		function countMatches( str, re ) {
+			return ( str.match( re ) ?? [] ).length;
+		}
+
+		it( 'wraps only the changed word in del/ins for a small edit', () => {
+			const blocks = computeDiff(
+				'The quick brown fox jumps',
+				'The quick red fox jumps'
+			);
+			const change = changedBlocks( blocks )[ 0 ];
+
+			expect( change.inlineHtml ).not.toBeNull();
+			// Exactly one deletion and one insertion, around the single changed word.
+			expect(
+				countMatches( change.inlineHtml, /<del\b[^>]*>/g )
+			).toBe( 1 );
+			expect(
+				countMatches( change.inlineHtml, /<ins\b[^>]*>/g )
+			).toBe( 1 );
+			expect( change.inlineHtml ).toMatch(
+				/<del[^>]*>brown<\/del>/
+			);
+			expect( change.inlineHtml ).toMatch( /<ins[^>]*>red<\/ins>/ );
+			// Unchanged words stay outside any del/ins wrapper.
+			expect( change.inlineHtml ).toMatch( /The quick /);
+			expect( change.inlineHtml ).toMatch( / fox jumps/ );
+		} );
+
+		it( 'produces no inline diff for a genuine rewrite (low similarity)', () => {
+			const blocks = computeDiff(
+				'The quick brown fox',
+				'Completely different sentence entirely'
+			);
+			const change = changedBlocks( blocks )[ 0 ];
+
+			// Falls back to the before/after block layout.
+			expect( change.inlineHtml ).toBeNull();
+			expect( change.removedText ).toBe( 'The quick brown fox' );
+			expect( change.addedText ).toBe(
+				'<p>Completely different sentence entirely</p>'
+			);
+		} );
+
+		it( 'inline-diffs a heading, preserving the heading tag', () => {
+			const blocks = computeDiff(
+				'<h2>Our Old Heading Here</h2>',
+				'## Our New Heading Here'
+			);
+			const change = changedBlocks( blocks )[ 0 ];
+
+			expect( change.inlineHtml ).not.toBeNull();
+			expect( change.inlineHtml ).toMatch( /^<h2>/ );
+			expect( change.inlineHtml ).toMatch( /<del[^>]*>Old<\/del>/ );
+			expect( change.inlineHtml ).toMatch( /<ins[^>]*>New<\/ins>/ );
+		} );
+
+		it( 'does not inline-diff list blocks (falls back to before/after)', () => {
+			const blocks = computeDiff(
+				'<ul><li>one item</li><li>two item</li></ul>',
+				'- one item\n- three item'
+			);
+			const change = changedBlocks( blocks )[ 0 ];
+
+			expect( change.inlineHtml ).toBeNull();
+			expect( change.removedText ).toContain( '<ul>' );
+			expect( change.addedText ).toContain( '<ul>' );
+		} );
+	} );
 } );

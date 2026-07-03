@@ -648,6 +648,8 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( 'claude' );
         Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        // send_message records a conversation→plan pointer transient when a plan is pending.
+        Functions\when( 'set_transient' )->justReturn( true );
         // __() is called to build the limit message; pass strings through untranslated in unit tests.
         Functions\when( '__' )->returnArg();
         Functions\when( 'update_user_meta' )->justReturn( true );
@@ -1497,6 +1499,8 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( 'claude' );
         Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        // send_message records a conversation→plan pointer transient when a plan is pending.
+        Functions\when( 'set_transient' )->justReturn( true );
 
         $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
@@ -1549,6 +1553,8 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( 'claude' );
         Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        // send_message records a conversation→plan pointer transient when a plan is pending.
+        Functions\when( 'set_transient' )->justReturn( true );
         Functions\when( '__' )->alias( fn( $v ) => $v );
 
         $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
@@ -1620,6 +1626,8 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( 'claude' );
         Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        // send_message records a conversation→plan pointer transient when a plan is pending.
+        Functions\when( 'set_transient' )->justReturn( true );
         Functions\when( '__' )->alias( fn( $v ) => $v );
 
         $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
@@ -1728,6 +1736,8 @@ class ChatRestControllerTest extends TestCase {
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( 'claude' );
         Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        // send_message records a conversation→plan pointer transient when a plan is pending.
+        Functions\when( 'set_transient' )->justReturn( true );
         Functions\when( '__' )->alias( fn( $v ) => $v );
 
         $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
@@ -2038,6 +2048,76 @@ class ChatRestControllerTest extends TestCase {
         $item = $response->data[0];
         $this->assertArrayHasKey( 'edit_link', $item );
         $this->assertSame( '', $item['edit_link'], 'edit_link must fall back to empty string when the user cannot edit the post.' );
+    }
+
+    // ── get_pending_plan ──────────────────────────────────────────────────────
+
+    private function make_pending_plan_request( int $conv_id ): \WP_REST_Request {
+        $request = new \WP_REST_Request( 'GET' );
+        $request->set_url_params( [ 'id' => (string) $conv_id ] );
+        return $request;
+    }
+
+    public function test_get_pending_plan_returns_403_when_conversation_not_owned(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => '999' ] );
+
+        $controller = $this->make_controller_with_store( $store_mock );
+        $response   = $controller->get_pending_plan( $this->make_pending_plan_request( 7 ) );
+
+        $this->assertSame( 403, $response->get_status() );
+        $this->assertNull( $response->data['pending_plan'] );
+    }
+
+    public function test_get_pending_plan_returns_null_when_no_pointer(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'get_transient' )->justReturn( false );
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => '5' ] );
+
+        $controller = $this->make_controller_with_store( $store_mock );
+        $response   = $controller->get_pending_plan( $this->make_pending_plan_request( 7 ) );
+
+        $this->assertNull( $response->data['pending_plan'] );
+    }
+
+    public function test_get_pending_plan_returns_plan_when_pointer_and_transient_live(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        $plan = [ 'id' => 'abc12345', 'plan_type' => 'update', 'post_id' => 7 ];
+        // Pointer transient resolves to the plan id; the plan transient resolves to the plan.
+        Functions\when( 'get_transient' )->alias( static function ( string $key ) use ( $plan ) {
+            if ( 'plume_conv_pending_plan_5_7' === $key ) {
+                return 'abc12345';
+            }
+            if ( 'plume_plan_5_abc12345' === $key ) {
+                return $plan;
+            }
+            return false;
+        } );
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => '5' ] );
+
+        $controller = $this->make_controller_with_store( $store_mock );
+        $response   = $controller->get_pending_plan( $this->make_pending_plan_request( 7 ) );
+
+        $this->assertSame( $plan, $response->data['pending_plan'] );
+    }
+
+    public function test_get_pending_plan_self_heals_stale_pointer(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        // Pointer exists but the plan transient is gone (executed/dismissed/expired).
+        Functions\when( 'get_transient' )->alias( static function ( string $key ) {
+            return 'plume_conv_pending_plan_5_7' === $key ? 'abc12345' : false;
+        } );
+        Functions\expect( 'delete_transient' )->once()->with( 'plume_conv_pending_plan_5_7' );
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => '5' ] );
+
+        $controller = $this->make_controller_with_store( $store_mock );
+        $response   = $controller->get_pending_plan( $this->make_pending_plan_request( 7 ) );
+
+        $this->assertNull( $response->data['pending_plan'] );
     }
 
     // ── strip_single_use_tools ───────────────────────────────────────────────

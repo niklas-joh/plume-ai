@@ -113,6 +113,14 @@ if ( ! function_exists( 'rest_ensure_response' ) ) {
 	function rest_ensure_response( $data ) { return new \WP_REST_Response( $data ); }
 }
 
+// WordPress time constants used by transient TTLs in the code under test.
+if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
+	define( 'MINUTE_IN_SECONDS', 60 );
+}
+if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
+	define( 'HOUR_IN_SECONDS', 3600 );
+}
+
 // Minimal $wpdb stub so UsageTracker::log_usage() doesn't throw in tests
 // that don't set up their own $wpdb mock (e.g. provider tests).
 global $wpdb;

@@ -64,49 +64,44 @@ export default function ChatApp() {
 	}, [] );
 
 	useEffect( () => {
-		// Restore (or clear) the review drawer for whichever conversation is now
-		// active — sessionStorage, not localStorage, so a stale plan from a
-		// previous browser session never resurfaces days later.
-		try {
-			const stored = activeConvId
-				? window.sessionStorage.getItem(
-						`plume_drawer_plan_${ activeConvId }`
-				  )
-				: null;
-			setDrawerPlan( stored ? JSON.parse( stored ) : null );
-		} catch {
+		// Re-hydrate the review drawer for whichever conversation is now active.
+		// The server holds the source of truth (a still-live update plan), so a
+		// page reload or another device re-opens the drawer; switching away clears
+		// it. A stale request is ignored if the user switches again mid-flight.
+		let cancelled = false;
+		if ( ! activeConvId ) {
 			setDrawerPlan( null );
+		} else {
+			apiFetch( {
+				path: `/plume/v1/conversations/${ activeConvId }/pending-plan`,
+			} )
+				.then( ( res ) => {
+					if ( cancelled ) {
+						return;
+					}
+					const plan = res?.pending_plan ?? null;
+					setDrawerPlan( plan?.plan_type === 'update' ? plan : null );
+				} )
+				.catch( () => {
+					if ( ! cancelled ) {
+						setDrawerPlan( null );
+					}
+				} );
 		}
 
 		if ( activeConvId ) {
 			if ( skipLoadRef.current ) {
 				skipLoadRef.current = false;
-				return;
+				return () => {
+					cancelled = true;
+				};
 			}
 			loadMessages( activeConvId );
 		}
+		return () => {
+			cancelled = true;
+		};
 	}, [ activeConvId ] );
-
-	// Persist the open plan so a same-tab refresh restores the drawer instead
-	// of silently dropping it (the transient it points to is still alive).
-	useEffect( () => {
-		if ( ! activeConvId ) {
-			return;
-		}
-		const key = `plume_drawer_plan_${ activeConvId }`;
-		try {
-			if ( drawerPlan ) {
-				window.sessionStorage.setItem(
-					key,
-					JSON.stringify( drawerPlan )
-				);
-			} else {
-				window.sessionStorage.removeItem( key );
-			}
-		} catch {
-			// Storage unavailable — drawer still works, just won't survive a refresh.
-		}
-	}, [ drawerPlan, activeConvId ] );
 
 	async function loadConversations() {
 		try {

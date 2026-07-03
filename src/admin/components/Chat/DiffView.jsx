@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from '@wordpress/element';
+import { useState, useRef, useCallback, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { MessageSquare } from 'lucide-react';
 import CommentThread from './CommentThread';
@@ -23,6 +23,7 @@ import { htmlToText } from '../../utils/htmlToText';
  * @param {Function} props.onDeleteComment   Forwarded to CommentThread.onDelete.
  * @param {Function} props.onUnsavedChange   Forwarded to CommentThread.onUnsavedChange.
  * @param {string}   props.drawerState       Current drawer state for legend rendering.
+ * @param {ReactNode} [props.header]         Optional node rendered at the top of the scroll body (e.g. the plan summary), so it scrolls with the diff.
  * @return {ReactElement}
  */
 export default function DiffView( {
@@ -33,6 +34,7 @@ export default function DiffView( {
 	onDeleteComment,
 	onUnsavedChange,
 	drawerState,
+	header = null,
 } ) {
 	const [ tooltip, setTooltip ] = useState( null ); // { x, y, diffBlockId, selectedText }
 	const [ pendingAnchors, setPendingAnchors ] = useState( {} ); // diffBlockId -> selectedText
@@ -61,15 +63,22 @@ export default function DiffView( {
 		return null;
 	}
 
-	function handleMouseUp() {
-		const sel = bodyRef.current?.ownerDocument?.defaultView?.getSelection();
+	// Reads the live selection and positions (or dismisses) the "Add comment"
+	// tooltip. Shared by pointerup (immediate, desktop) and a debounced
+	// selectionchange listener (the reliable signal on iOS Safari, which does
+	// not fire pointerup after a long-press/handle selection).
+	const updateTooltipFromSelection = useCallback( () => {
+		if ( ! bodyRef.current ) {
+			return;
+		}
+		const sel = bodyRef.current.ownerDocument?.defaultView?.getSelection();
 		if ( ! sel || sel.isCollapsed || ! sel.toString().trim() ) {
 			setTooltip( null );
 			return;
 		}
 
 		const blockEl = findBlockAncestor( sel.anchorNode );
-		if ( ! blockEl ) {
+		if ( ! blockEl || ! bodyRef.current.contains( blockEl ) ) {
 			// Selection not in a commentable block — dismiss tooltip without clearing selection.
 			setTooltip( null );
 			return;
@@ -87,7 +96,28 @@ export default function DiffView( {
 			diffBlockId,
 			selectedText,
 		} );
-	}
+	}, [] );
+
+	// Touch-friendly selection: iOS fires `selectionchange` while dragging the
+	// selection handles but not pointerup, so debounce it and re-evaluate once
+	// the selection settles.
+	useEffect( () => {
+		const doc = bodyRef.current?.ownerDocument ?? document;
+		let timer = null;
+		const onSelectionChange = () => {
+			if ( timer ) {
+				clearTimeout( timer );
+			}
+			timer = setTimeout( updateTooltipFromSelection, 250 );
+		};
+		doc.addEventListener( 'selectionchange', onSelectionChange );
+		return () => {
+			if ( timer ) {
+				clearTimeout( timer );
+			}
+			doc.removeEventListener( 'selectionchange', onSelectionChange );
+		};
+	}, [ updateTooltipFromSelection ] );
 
 	function handleTooltipClick() {
 		if ( ! tooltip ) {
@@ -122,10 +152,11 @@ export default function DiffView( {
 			<div
 				ref={ bodyRef }
 				className="plume-diff-view__body"
-				onMouseUp={ handleMouseUp }
+				onPointerUp={ updateTooltipFromSelection }
 				onClick={ handleBodyClick }
 				style={ { position: 'relative' } }
 			>
+				{ header }
 				{ blocks.map( ( block ) => {
 					const blockComments = commentsForBlock( block.id );
 					const isAnnotated = blockComments.length > 0;
@@ -142,7 +173,10 @@ export default function DiffView( {
 								/>
 							) ) }
 
-							{ block.removedText && (
+							{ /* A modified block with a word-level inline diff hides the
+							   separate red "removed" block — the deletions are shown
+							   inline instead. */ }
+							{ ! block.inlineHtml && block.removedText && (
 								// eslint-disable-next-line react/no-danger
 								<div
 									className="plume-diff-block__removed"
@@ -157,24 +191,43 @@ export default function DiffView( {
 								/>
 							) }
 
-							{ block.addedText && (
+							{ ( block.inlineHtml || block.addedText ) && (
 								<div className="plume-diff-block__added-wrapper">
 									{ /* eslint-disable-next-line react/no-danger */ }
 									<div
-										className={ `plume-diff-added${
-											isAnnotated
-												? ' plume-diff-added--annotated'
-												: ''
-										}` }
+										className={
+											block.inlineHtml
+												? `plume-diff-block__inline${
+														isAnnotated
+															? ' plume-diff-block__inline--annotated'
+															: ''
+												  }`
+												: `plume-diff-added${
+														isAnnotated
+															? ' plume-diff-added--annotated'
+															: ''
+												  }`
+										}
 										data-block-id={ block.id }
-										aria-label={ `${ __(
-											'Proposed text',
-											'plume'
-										) }: ${ htmlToText(
-											block.addedText
-										) }` }
+										aria-label={
+											block.inlineHtml
+												? `${ __(
+														'Changed text',
+														'plume'
+												  ) }: ${ htmlToText(
+														block.inlineHtml
+												  ) }`
+												: `${ __(
+														'Proposed text',
+														'plume'
+												  ) }: ${ htmlToText(
+														block.addedText
+												  ) }`
+										}
 										dangerouslySetInnerHTML={ {
-											__html: block.addedText,
+											__html:
+												block.inlineHtml ??
+												block.addedText,
 										} }
 									/>
 									{ isAnnotated && (

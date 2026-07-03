@@ -1221,6 +1221,9 @@
 	justify-content: center;
 	flex-shrink: 0;
 	user-select: none;
+
+	/* Let a pointer/touch drag resize the drawer instead of scrolling the page. */
+	touch-action: none;
 	color: var(--color-text-muted);
 	z-index: 1;
 }
@@ -1486,6 +1489,7 @@
 
 .plume-diff-block__unchanged > *,
 .plume-diff-block__removed > *,
+.plume-diff-block__inline > *,
 .plume-diff-added > * {
 	margin: 0;
 	line-height: inherit;
@@ -1496,11 +1500,50 @@
 	border-left: 3px solid var(--diff-removed-border);
 	color: var(--diff-removed-text);
 	text-decoration: line-through;
-	user-select: none;
+
+	/* Selectable so a passage can be annotated; -webkit- prefix for iOS Safari. */
+	-webkit-user-select: text;
+	user-select: text;
 	padding: var(--space-2) var(--space-3);
 	margin: 0 0 2px;
 	border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 	line-height: 1.7;
+}
+
+/* Modified block rendered as a single word-level inline diff. */
+.plume-diff-block__inline {
+	background: var(--color-surface);
+	border-left: 3px solid var(--color-border);
+	color: var(--color-text-primary);
+	-webkit-user-select: text;
+	user-select: text;
+	cursor: text;
+	padding: var(--space-2) var(--space-3);
+	margin: 0 0 var(--space-2);
+	border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+	line-height: 1.7;
+	position: relative;
+}
+
+.plume-diff-block__inline--annotated {
+	background: var(--diff-annotated-bg);
+	border-left-color: var(--diff-annotated-border);
+}
+
+.plume-diff-block__inline del.plume-diff-del {
+	background: var(--diff-removed-bg);
+	color: var(--diff-removed-text);
+	text-decoration: line-through;
+	border-radius: 2px;
+	padding: 0 2px;
+}
+
+.plume-diff-block__inline ins.plume-diff-ins {
+	background: var(--diff-added-bg);
+	color: var(--diff-added-text);
+	text-decoration: none;
+	border-radius: 2px;
+	padding: 0 2px;
 }
 
 .plume-diff-block__added-wrapper {
@@ -1516,6 +1559,10 @@
 	margin: 0;
 	border-radius: 0 var(--radius-sm) 0 0;
 	line-height: 1.7;
+
+	/* -webkit- prefix so drag-to-select works on iOS Safari. */
+	-webkit-user-select: text;
+	user-select: text;
 	cursor: text;
 	position: relative;
 }
@@ -1661,17 +1708,35 @@
 }
 
 /* "Back to plan" link row in diff states */
-.plume-review-drawer__back {
-	padding: var(--space-2) var(--space-4) 0 18px;
-	flex-shrink: 0;
+
+/* Collapsible "Summary of changes" — sits at the top of the diff scroll body
+   so it scrolls with the diff rather than pinning above it. */
+.plume-review-drawer__summary {
+	background: var(--diff-revised-bg);
+	border: 1px solid var(--diff-revised-border);
+	border-radius: var(--radius-sm);
+	margin-bottom: var(--space-3);
+	overflow: hidden;
+}
+
+.plume-review-drawer__summary-header {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	cursor: pointer;
+	user-select: none;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--wp-admin-theme-color, #3858e9);
 }
 
 /* Plan summary — Markdown content of the AI's proposed changes */
 .plume-plan-summary {
-	font-size: var(--text-base);
+	font-size: var(--text-sm);
 	line-height: 1.7;
 	color: var(--color-text-primary);
-	padding: var(--space-4) 0;
+	padding: 0 var(--space-3) var(--space-3);
 }
 
 .plume-plan-summary > * + * {

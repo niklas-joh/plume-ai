@@ -7,7 +7,7 @@ import {
 	MessageSquare,
 	ChevronDown,
 	ChevronUp,
-	ArrowLeft,
+	FileText,
 } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 import { computeDiff } from '../../utils/computeDiff';
@@ -17,19 +17,19 @@ import MarkdownContent from '../../../shared/MarkdownContent';
 
 const DRAWER_WIDTH_KEY = 'plume_drawer_width';
 const MIN_WIDTH = 280;
-const MAX_WIDTH = 560;
-const DEFAULT_WIDTH = 360;
+const MAX_WIDTH = 680;
+const DEFAULT_WIDTH = 460;
 
 /**
  * Slide-in review drawer for AI-proposed post update plans.
  *
  * Shows a paragraph-level diff of the current post content vs the proposed
  * content, lets the user annotate specific passages, and supports requesting
- * a revision round-trip through the existing chat messages endpoint.
+ * a revision round-trip through the existing chat messages endpoint. The plan's
+ * prose summary and the diff live in one scrolling view — the summary is a
+ * collapsible section at the top of the diff.
  *
  * State machine: reviewing (default) -> commenting -> loading -> reviewing (revised).
- * `plan` is a secondary view reachable via "Back to plan", showing the AI's
- * prose summary instead of the diff; it is never the default entry point.
  *
  * @param {Object}   props
  * @param {Object}   props.plan               Pending plan object (`plan_type === 'update'`).
@@ -65,6 +65,7 @@ export default function ReviewDrawer( {
 	const [ revision, setRevision ] = useState( 0 );
 	const [ error, setError ] = useState( null );
 	const [ aiResponseOpen, setAiResponseOpen ] = useState( true );
+	const [ summaryOpen, setSummaryOpen ] = useState( true );
 	const [ drawerWidth, setDrawerWidth ] = useState(
 		() => parseInt( storageGet( DRAWER_WIDTH_KEY ), 10 ) || DEFAULT_WIDTH
 	);
@@ -109,7 +110,7 @@ export default function ReviewDrawer( {
 	// Transition state based on comments and feedback.
 	// drawerState is intentionally excluded — we only want to react to content changes.
 	useEffect( () => {
-		if ( drawerState === 'loading' || drawerState === 'plan' ) {
+		if ( drawerState === 'loading' ) {
 			return;
 		}
 		const hasSavedComments = comments.some( ( c ) => c.saved );
@@ -125,13 +126,18 @@ export default function ReviewDrawer( {
 	// Resize handle
 	// -----------------------------------------------------------------------
 
-	function handleResizeMouseDown( e ) {
+	// Pointer events (not mouse-only) so the grip also drags on touch/pen; the
+	// handle sets `touch-action: none` so a drag resizes instead of scrolling.
+	function handleResizePointerDown( e ) {
 		e.preventDefault();
 		resizingRef.current = true;
 		resizeStartXRef.current = e.clientX;
 		resizeStartWidthRef.current = drawerWidth;
+		e.currentTarget.setPointerCapture?.( e.pointerId );
 
-		function onMouseMove( moveEvent ) {
+		const target = e.currentTarget;
+
+		function onPointerMove( moveEvent ) {
 			if ( ! resizingRef.current ) {
 				return;
 			}
@@ -143,18 +149,22 @@ export default function ReviewDrawer( {
 			setDrawerWidth( newWidth );
 		}
 
-		function onMouseUp() {
+		function onPointerUp( upEvent ) {
 			resizingRef.current = false;
-			document.removeEventListener( 'mousemove', onMouseMove );
-			document.removeEventListener( 'mouseup', onMouseUp );
+			target.releasePointerCapture?.( upEvent.pointerId );
+			target.removeEventListener( 'pointermove', onPointerMove );
+			target.removeEventListener( 'pointerup', onPointerUp );
+			target.removeEventListener( 'pointercancel', onPointerUp );
 			setDrawerWidth( ( w ) => {
 				storageSet( DRAWER_WIDTH_KEY, String( w ) );
 				return w;
 			} );
 		}
 
-		document.addEventListener( 'mousemove', onMouseMove );
-		document.addEventListener( 'mouseup', onMouseUp );
+		// With pointer capture, subsequent move/up events fire on the handle.
+		target.addEventListener( 'pointermove', onPointerMove );
+		target.addEventListener( 'pointerup', onPointerUp );
+		target.addEventListener( 'pointercancel', onPointerUp );
 	}
 
 	function handleResizeKeyDown( e ) {
@@ -367,17 +377,6 @@ export default function ReviewDrawer( {
 		( savedCommentCount > 0 || generalNote.trim().length > 0 ) &&
 		unsavedBlockIds.size === 0;
 
-	const planSubtitle =
-		revision > 0
-			? __(
-					'Plan updated — review the changes below, then proceed.',
-					'plume'
-			  )
-			: __(
-					'Review the plan below, then proceed to see the diff.',
-					'plume'
-			  );
-
 	const reviewingSubtitle = sprintf(
 		/* translators: %d: number of proposed changes */
 		_n(
@@ -401,12 +400,7 @@ export default function ReviewDrawer( {
 	);
 
 	function getDrawerTitle() {
-		if ( drawerState !== 'plan' ) {
-			return __( 'Review Update', 'plume' );
-		}
-		return revision > 0
-			? __( 'Updated plan', 'plume' )
-			: __( 'Review plan', 'plume' );
+		return __( 'Review Update', 'plume' );
 	}
 
 	const footerCommentCount = sprintf(
@@ -432,7 +426,7 @@ export default function ReviewDrawer( {
 			{ /* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */ }
 			<div
 				className="plume-review-drawer__resize"
-				onMouseDown={ handleResizeMouseDown }
+				onPointerDown={ handleResizePointerDown }
 				onKeyDown={ handleResizeKeyDown }
 				role="separator"
 				aria-orientation="vertical"
@@ -460,11 +454,6 @@ export default function ReviewDrawer( {
 							</span>
 						) }
 					</p>
-					{ drawerState === 'plan' && (
-						<p className="plume-review-drawer__subtitle">
-							{ planSubtitle }
-						</p>
-					) }
 					{ drawerState === 'reviewing' && (
 						<p className="plume-review-drawer__subtitle">
 							{ reviewingSubtitle }
@@ -555,82 +544,10 @@ export default function ReviewDrawer( {
 				</div>
 			) }
 
-			{ /* Plan view */ }
-			{ drawerState === 'plan' && (
+			{ /* Diff view (with the plan summary as a collapsible header inside
+			   the same scroll region) — hidden only while a revision loads. */ }
+			{ drawerState !== 'loading' && (
 				<>
-					{ /* Plan summary body */ }
-					<div className="plume-review-drawer__body">
-						<MarkdownContent
-							content={ currentPlan.changes ?? '' }
-							className="plume-plan-summary"
-						/>
-						<div className="plume-review-drawer__feedback">
-							<label htmlFor={ `plume-plan-note-${ revision }` }>
-								{ __( 'Feedback (optional)', 'plume' ) }
-							</label>
-							<textarea
-								id={ `plume-plan-note-${ revision }` }
-								value={ generalNote }
-								onChange={ ( e ) =>
-									setGeneralNote( e.target.value )
-								}
-								placeholder={ __(
-									'Any notes for the AI…',
-									'plume'
-								) }
-							/>
-						</div>
-					</div>
-
-					{ /* Plan footer */ }
-					<div className="plume-review-drawer__footer">
-						<button
-							type="button"
-							className="plume-btn plume-btn--primary"
-							onClick={ () => {
-								setGeneralNote( '' );
-								setDrawerState( 'reviewing' );
-							} }
-						>
-							{ __( 'Review changes', 'plume' ) }
-						</button>
-						<button
-							type="button"
-							className="plume-btn plume-btn--ghost"
-							onClick={ handleRequestRevision }
-							disabled={ ! canRevise }
-						>
-							{ __( 'Request revision', 'plume' ) }
-						</button>
-						<button
-							type="button"
-							className="plume-btn plume-btn--ghost"
-							onClick={ handleClose }
-						>
-							{ __( 'Cancel', 'plume' ) }
-						</button>
-					</div>
-				</>
-			) }
-
-			{ /* Diff view — shown in reviewing / commenting states */ }
-			{ drawerState !== 'plan' && drawerState !== 'loading' && (
-				<>
-					{ /* Back-to-plan link in diff states */ }
-					{ ( drawerState === 'reviewing' ||
-						drawerState === 'commenting' ) && (
-						<div className="plume-review-drawer__back">
-							<button
-								type="button"
-								className="plume-btn plume-btn--ghost plume-btn--xs"
-								onClick={ () => setDrawerState( 'plan' ) }
-							>
-								<ArrowLeft size={ 12 } />
-								{ __( 'Back to plan', 'plume' ) }
-							</button>
-						</div>
-					) }
-
 					{ /* Scrollable diff body */ }
 					<div className="plume-review-drawer__body">
 						{ postContent === null ? (
@@ -650,6 +567,61 @@ export default function ReviewDrawer( {
 								onDeleteComment={ handleDeleteComment }
 								onUnsavedChange={ handleUnsavedChange }
 								drawerState={ drawerState }
+								header={
+									currentPlan.changes ? (
+										<div
+											className={ `plume-review-drawer__summary${
+												summaryOpen
+													? ''
+													: ' plume-review-drawer__summary--collapsed'
+											}` }
+										>
+											<div
+												className="plume-review-drawer__summary-header"
+												onClick={ () =>
+													setSummaryOpen(
+														( v ) => ! v
+													)
+												}
+												role="button"
+												tabIndex={ 0 }
+												onKeyDown={ ( e ) => {
+													if (
+														e.key === 'Enter' ||
+														e.key === ' '
+													) {
+														e.preventDefault();
+														setSummaryOpen(
+															( v ) => ! v
+														);
+													}
+												} }
+												aria-expanded={ summaryOpen }
+											>
+												<FileText size={ 12 } />
+												<span style={ { flex: 1 } }>
+													{ __(
+														'Summary of changes',
+														'plume'
+													) }
+												</span>
+												{ summaryOpen ? (
+													<ChevronUp size={ 12 } />
+												) : (
+													<ChevronDown size={ 12 } />
+												) }
+											</div>
+											{ summaryOpen && (
+												<MarkdownContent
+													content={
+														currentPlan.changes
+													}
+													className="plume-plan-summary"
+												/>
+											) }
+										</div>
+									) : null
+								}
 							/>
 						) }
 					</div>

@@ -131,6 +131,16 @@ class ChatRestController {
 
 		register_rest_route(
 			RestApi::API_NAMESPACE,
+			'/conversations/(?P<id>\d+)/pending-plan',
+			[
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_pending_plan' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
+
+		register_rest_route(
+			RestApi::API_NAMESPACE,
 			'/conversations/(?P<id>\d+)',
 			[
 				[
@@ -244,6 +254,55 @@ class ChatRestController {
 	public function get_messages( \WP_REST_Request $request ): \WP_REST_Response {
 		$store = $this->make_store();
 		return rest_ensure_response( $store->get_messages( (int) $request->get_param( 'id' ) ) );
+	}
+
+	/**
+	 * Return the plan this conversation is currently awaiting approval on, if any.
+	 *
+	 * Lets a reloaded page (or another device) re-open the review drawer. Reads
+	 * the conversation→plan pointer set in send_message, then the plan transient
+	 * itself; returns null and clears a stale pointer when the plan has been
+	 * executed, dismissed, or has expired.
+	 *
+	 * @since NEXT_VERSION
+	 * @param \WP_REST_Request $request Incoming REST request with conversation 'id'.
+	 * @return \WP_REST_Response Body is `{ pending_plan: object|null }`.
+	 */
+	public function get_pending_plan( \WP_REST_Request $request ): \WP_REST_Response {
+		$conv_id = (int) $request->get_param( 'id' );
+		$user_id = \get_current_user_id();
+
+		$conv = $this->make_store()->get_conversation( $conv_id );
+		if ( ! $conv || $user_id !== (int) $conv['user_id'] ) {
+			return new \WP_REST_Response( [ 'pending_plan' => null ], 403 );
+		}
+
+		$pointer_key = self::conv_pending_plan_key( $user_id, $conv_id );
+		$plan_id     = \get_transient( $pointer_key );
+		if ( false === $plan_id ) {
+			return rest_ensure_response( [ 'pending_plan' => null ] );
+		}
+
+		$plan = \get_transient( \Plume\Tools\ToolExecutor::plan_transient_key( $user_id, (string) $plan_id ) );
+		if ( false === $plan ) {
+			// Plan executed, dismissed, or expired — drop the stale pointer.
+			\delete_transient( $pointer_key );
+			return rest_ensure_response( [ 'pending_plan' => null ] );
+		}
+
+		return rest_ensure_response( [ 'pending_plan' => $plan ] );
+	}
+
+	/**
+	 * Transient key recording the plan a conversation is awaiting approval on.
+	 *
+	 * @since NEXT_VERSION
+	 * @param int $user_id WordPress user ID who owns the conversation.
+	 * @param int $conv_id Conversation record ID.
+	 * @return string
+	 */
+	private static function conv_pending_plan_key( int $user_id, int $conv_id ): string {
+		return "plume_conv_pending_plan_{$user_id}_{$conv_id}";
 	}
 
 	/**
@@ -458,6 +517,18 @@ class ChatRestController {
 			UsageTracker::log_usage( $final_response->credits_charged, $user_id );
 
 			$store->add_message( $conv_id, 'assistant', $final_response->content, $final_response->model, $final_response->total_tokens );
+
+			// Remember which plan this conversation is currently awaiting approval on
+			// so a page reload (or another device) can re-open the review drawer. The
+			// plan transient remains the source of truth; this pointer just records
+			// its id and self-heals in get_pending_plan when the plan is gone.
+			if ( null !== $pending_plan && ! empty( $pending_plan['id'] ) ) {
+				\set_transient(
+					self::conv_pending_plan_key( $user_id, $conv_id ),
+					$pending_plan['id'],
+					HOUR_IN_SECONDS
+				);
+			}
 
 			return rest_ensure_response(
 				[

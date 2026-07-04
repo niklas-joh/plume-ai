@@ -140,6 +140,49 @@ class ToolRegistryTest extends TestCase {
 		$this->assertNotContains( 'update_post', $names );
 		$this->assertContains( 'plan_post', $names );
 		$this->assertContains( 'plan_update', $names );
+		$this->assertContains( 'submit_post_content', $names );
+	}
+
+	public function test_plan_update_no_longer_accepts_new_content_directly(): void {
+		// new_content moved to submit_post_content so a single completion never has to
+		// share its output-token budget between a short summary and a potentially large
+		// post body — see the class docblock on ToolExecutor::plan_update().
+		$this->stub_write_tools( true );
+		$this->stub_apply_filters_passthrough();
+
+		$registry = new ToolRegistry();
+		$tools    = $registry->get_for_provider( 'claude' );
+
+		$by_name = [];
+		foreach ( $tools as $tool ) {
+			$by_name[ $tool['name'] ] = $tool;
+		}
+
+		$this->assertArrayNotHasKey( 'new_content', $by_name['plan_update']['input_schema']['properties'] );
+		$this->assertNotContains( 'new_content', $by_name['plan_update']['input_schema']['required'] );
+	}
+
+	public function test_submit_post_content_requires_post_id_and_content(): void {
+		$this->stub_write_tools( true );
+		$this->stub_apply_filters_passthrough();
+
+		$registry = new ToolRegistry();
+		$tools    = $registry->get_for_provider( 'claude' );
+
+		$by_name = [];
+		foreach ( $tools as $tool ) {
+			$by_name[ $tool['name'] ] = $tool;
+		}
+
+		$this->assertArrayHasKey( 'submit_post_content', $by_name );
+		$schema = $by_name['submit_post_content']['input_schema'];
+		$this->assertArrayHasKey( 'post_id', $schema['properties'] );
+		$this->assertArrayHasKey( 'content', $schema['properties'] );
+		$this->assertSame( [ 'post_id', 'content' ], $schema['required'] );
+	}
+
+	public function test_single_use_tools_includes_submit_post_content(): void {
+		$this->assertContains( 'submit_post_content', ToolRegistry::SINGLE_USE_TOOLS );
 	}
 
 	// -------------------------------------------------------------------------

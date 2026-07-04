@@ -6,6 +6,7 @@ import MessageList from './MessageList';
 import Composer from './Composer';
 import QuickActions from '../RightPanel/QuickActions';
 import ModelSelector from '../RightPanel/ModelSelector';
+import ReviewDrawer from './ReviewDrawer';
 import apiFetch from '@wordpress/api-fetch';
 import { LAUNCH_ACTIONS } from './actions';
 import { storageGet, storageSet } from '../../utils/storage';
@@ -51,6 +52,7 @@ export default function ChatApp() {
 	const [ forcePickerOpen, setForcePickerOpen ] = useState( false );
 	const [ deletingIds, setDeletingIds ] = useState( new Set() );
 	const [ deleteErrors, setDeleteErrors ] = useState( {} );
+	const [ drawerPlan, setDrawerPlan ] = useState( null );
 	const skipLoadRef = useRef( false );
 	// Tracks which conversation IDs have already had a title PATCH dispatched,
 	// preventing a second send if the user types quickly before state settles.
@@ -59,16 +61,61 @@ export default function ChatApp() {
 	useEffect( () => {
 		loadConversations();
 		loadProviders();
+		// Restore the last-open conversation so a page reload returns the user to
+		// where they were — and lets the [activeConvId] effect below re-open the
+		// review drawer from the server-side pending plan.
+		const savedConv = storageGet( 'plume-active-conv' );
+		if ( savedConv ) {
+			setActiveConvId( Number( savedConv ) );
+		}
 	}, [] );
 
+	// Persist the active conversation for reload restoration.
 	useEffect( () => {
+		storageSet(
+			'plume-active-conv',
+			activeConvId ? String( activeConvId ) : ''
+		);
+	}, [ activeConvId ] );
+
+	useEffect( () => {
+		// Re-hydrate the review drawer for whichever conversation is now active.
+		// The server holds the source of truth (a still-live update plan), so a
+		// page reload or another device re-opens the drawer; switching away clears
+		// it. A stale request is ignored if the user switches again mid-flight.
+		let cancelled = false;
+		if ( ! activeConvId ) {
+			setDrawerPlan( null );
+		} else {
+			apiFetch( {
+				path: `/plume/v1/conversations/${ activeConvId }/pending-plan`,
+			} )
+				.then( ( res ) => {
+					if ( cancelled ) {
+						return;
+					}
+					const plan = res?.pending_plan ?? null;
+					setDrawerPlan( plan?.plan_type === 'update' ? plan : null );
+				} )
+				.catch( () => {
+					if ( ! cancelled ) {
+						setDrawerPlan( null );
+					}
+				} );
+		}
+
 		if ( activeConvId ) {
 			if ( skipLoadRef.current ) {
 				skipLoadRef.current = false;
-				return;
+				return () => {
+					cancelled = true;
+				};
 			}
 			loadMessages( activeConvId );
 		}
+		return () => {
+			cancelled = true;
+		};
 	}, [ activeConvId ] );
 
 	async function loadConversations() {
@@ -223,6 +270,9 @@ export default function ChatApp() {
 					tools_used: passiveTools.length > 0 ? passiveTools : null,
 				},
 			] );
+			if ( res.pending_plan?.plan_type === 'update' ) {
+				setDrawerPlan( res.pending_plan );
+			}
 			if ( needsTitleUpdate ) {
 				const rawTitle = content.slice( 0, 60 );
 				// Avoid cutting mid-word; fall back to hard slice if no word boundary found.
@@ -403,6 +453,28 @@ export default function ChatApp() {
 					onRequestAttach={ requestPostAttach }
 				/>
 			</aside>
+
+			{ drawerPlan && (
+				<ReviewDrawer
+					plan={ drawerPlan }
+					convId={ activeConvId }
+					selectedProvider={ selectedProvider }
+					selectedModel={ selectedModel }
+					onApply={ ( { changes, editUrl } ) => {
+						setDrawerPlan( null );
+						setMessages( ( prev ) => [
+							...prev,
+							{
+								role: 'assistant',
+								content: changes ?? '',
+								applyEditUrl: editUrl ?? null,
+							},
+						] );
+					} }
+					onClose={ () => setDrawerPlan( null ) }
+					onMessagesRefresh={ () => loadMessages( activeConvId ) }
+				/>
+			) }
 		</div>
 	);
 }

@@ -247,6 +247,33 @@ class PlansRestControllerTest extends TestCase {
 		$controller->execute_plan( $request );
 	}
 
+	// ── dismiss_plan ────────────────────────────────────────────────────────────
+
+	public function test_dismiss_plan_deletes_the_transient_and_returns_204(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\expect( 'delete_transient' )->once()->andReturn( true );
+
+		$controller = new PlansRestController( $this->post_writer );
+		$request    = $this->make_request( 'ddd44444' );
+
+		$response = $controller->dismiss_plan( $request );
+
+		$this->assertInstanceOf( \WP_REST_Response::class, $response );
+		$this->assertSame( 204, $response->get_status() );
+	}
+
+	public function test_dismiss_plan_is_idempotent_when_transient_already_gone(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'delete_transient' )->justReturn( false );
+
+		$controller = new PlansRestController( $this->post_writer );
+		$request    = $this->make_request( 'unknown1' );
+
+		$response = $controller->dismiss_plan( $request );
+
+		$this->assertSame( 204, $response->get_status() );
+	}
+
 	// ── helper ────────────────────────────────────────────────────────────────
 
 	private function make_request( string $plan_id ): \WP_REST_Request {

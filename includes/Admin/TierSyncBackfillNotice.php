@@ -91,7 +91,7 @@ class TierSyncBackfillNotice {
 	 * Bundles the capability + Plume-page pair shared by can_show_tier_notice()
 	 * and maybe_display_result() so the two guards never drift apart.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @return bool True when the user has manage_options on a Plume admin page.
 	 */
 	private static function current_user_can_see_plume_notice(): bool {

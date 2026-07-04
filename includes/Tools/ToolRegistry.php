@@ -25,10 +25,10 @@ class ToolRegistry {
 	 * definitions so a plan-tool rename cannot silently desync the guard from the
 	 * tools it removes after first use.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @var string[]
 	 */
-	public const SINGLE_USE_TOOLS = [ 'plan_post', 'plan_update' ];
+	public const SINGLE_USE_TOOLS = [ 'plan_post', 'plan_update', 'submit_post_content' ];
 
 	/**
 	 * All registered tool definitions.
@@ -227,7 +227,7 @@ class ToolRegistry {
 
 		$this->tools[] = new ToolDefinition(
 			name:                'plan_update',
-			description:         'Propose an update to an existing WordPress post for user approval. Call this tool whenever the user asks you to edit, update, revise, improve, or change a post. Workflow: (1) call get_post_content to read the post, (2) call plan_update immediately — do NOT send a chat_response first to ask permission or share your review. In a single call provide: analysis (your conversational review of the post — this IS your message to the user), post_id, changes (a human-readable summary for the approval card), and new_content (the complete updated post body in Markdown). Do not call chat_response for this flow.',
+			description:         'Propose an update to an existing WordPress post for user approval. Call this tool whenever the user asks you to edit, update, revise, improve, or change a post. Workflow: (1) call get_post_content to read the post, (2) call plan_update immediately — do NOT send a chat_response first to ask permission or share your review, and do NOT include the rewritten post body here. In a single call provide: analysis (your conversational review of the post — this IS your message to the user), post_id, and changes (a human-readable summary for the approval card). Immediately after this call returns, you MUST call submit_post_content with the complete rewritten post body — it is the only tool available to you on that next turn. Do not call chat_response for this flow.',
 			parameters:          [
 				'type'       => 'object',
 				'properties' => [
@@ -242,10 +242,6 @@ class ToolRegistry {
 					'changes'     => [
 						'type'        => 'string',
 						'description' => 'Human-readable summary of what is being changed. Shown to the user on the approval card (e.g. "Made the intro punchier and tightened the conclusion").',
-					],
-					'new_content' => [
-						'type'        => 'string',
-						'description' => 'The complete updated post content to apply if the user approves. Must be the full post body, not a diff or partial snippet. Write it in Markdown; it is converted to WordPress blocks automatically when applied.',
 					],
 					'new_title'   => [
 						'type'        => 'string',
@@ -262,7 +258,28 @@ class ToolRegistry {
 						'additionalProperties' => [ 'type' => 'string' ],
 					],
 				],
-				'required'   => [ 'analysis', 'post_id', 'changes', 'new_content' ],
+				'required'   => [ 'analysis', 'post_id', 'changes' ],
+			],
+			capability:          'edit_posts',
+			requires_write_tools: true,
+		);
+
+		$this->tools[] = new ToolDefinition(
+			name:                'submit_post_content',
+			description:         'Submit the complete rewritten post body for the update you just proposed via plan_update. Call this immediately after plan_update returns — it is the only tool you can call on this turn. Write the full post content in Markdown, not a diff or partial snippet; the entire response budget for this turn is reserved for it, so do not add commentary — the analysis you already gave in plan_update is shown to the user as your message.',
+			parameters:          [
+				'type'       => 'object',
+				'properties' => [
+					'post_id' => [
+						'type'        => 'integer',
+						'description' => 'The ID of the post being updated — must match the post_id given to plan_update.',
+					],
+					'content' => [
+						'type'        => 'string',
+						'description' => 'The complete updated post content. Must be the full post body, not a diff or partial snippet. Write it in Markdown; it is converted to WordPress blocks automatically when applied.',
+					],
+				],
+				'required'   => [ 'post_id', 'content' ],
 			],
 			capability:          'edit_posts',
 			requires_write_tools: true,

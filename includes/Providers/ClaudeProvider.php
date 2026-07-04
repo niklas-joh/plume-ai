@@ -322,7 +322,7 @@ class ClaudeProvider extends AbstractProvider {
 	 * loop in ChatRestController re-sends the full tool list on every iteration, and
 	 * tool definitions routinely exceed the minimum on their own.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @param array<int, array<string, mixed>> $tools Claude-wire-format tool definitions.
 	 * @return array<int, array<string, mixed>> Tools with cache_control on the last entry.
 	 */

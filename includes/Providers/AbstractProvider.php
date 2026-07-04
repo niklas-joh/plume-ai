@@ -185,7 +185,7 @@ abstract class AbstractProvider implements ProviderInterface {
 	 * read from `$result['usage']`; the first proxy tool call (or null) is exposed via `tool_call` so
 	 * is_tool_call() stays a simple null-check while the full array is preserved in `raw`.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @param array  $result The proxy's normalised response payload.
 	 * @param string $model  The resolved model slug (Worker-reported, requested, or default).
 	 * @param float  $cost   The USD cost computed by the concrete provider's pricing.

@@ -131,6 +131,16 @@ class ChatRestController {
 
 		register_rest_route(
 			RestApi::API_NAMESPACE,
+			'/conversations/(?P<id>\d+)/pending-plan',
+			[
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_pending_plan' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
+
+		register_rest_route(
+			RestApi::API_NAMESPACE,
 			'/conversations/(?P<id>\d+)',
 			[
 				[
@@ -247,6 +257,55 @@ class ChatRestController {
 	}
 
 	/**
+	 * Return the plan this conversation is currently awaiting approval on, if any.
+	 *
+	 * Lets a reloaded page (or another device) re-open the review drawer. Reads
+	 * the conversation→plan pointer set in send_message, then the plan transient
+	 * itself; returns null and clears a stale pointer when the plan has been
+	 * executed, dismissed, or has expired.
+	 *
+	 * @since NEXT_VERSION
+	 * @param \WP_REST_Request $request Incoming REST request with conversation 'id'.
+	 * @return \WP_REST_Response Body is `{ pending_plan: object|null }`.
+	 */
+	public function get_pending_plan( \WP_REST_Request $request ): \WP_REST_Response {
+		$conv_id = (int) $request->get_param( 'id' );
+		$user_id = \get_current_user_id();
+
+		$conv = $this->make_store()->get_conversation( $conv_id );
+		if ( ! $conv || $user_id !== (int) $conv['user_id'] ) {
+			return new \WP_REST_Response( [ 'pending_plan' => null ], 403 );
+		}
+
+		$pointer_key = self::conv_pending_plan_key( $user_id, $conv_id );
+		$plan_id     = \get_transient( $pointer_key );
+		if ( false === $plan_id ) {
+			return rest_ensure_response( [ 'pending_plan' => null ] );
+		}
+
+		$plan = \get_transient( \Plume\Tools\ToolExecutor::plan_transient_key( $user_id, (string) $plan_id ) );
+		if ( false === $plan ) {
+			// Plan executed, dismissed, or expired — drop the stale pointer.
+			\delete_transient( $pointer_key );
+			return rest_ensure_response( [ 'pending_plan' => null ] );
+		}
+
+		return rest_ensure_response( [ 'pending_plan' => $plan ] );
+	}
+
+	/**
+	 * Transient key recording the plan a conversation is awaiting approval on.
+	 *
+	 * @since NEXT_VERSION
+	 * @param int $user_id WordPress user ID who owns the conversation.
+	 * @param int $conv_id Conversation record ID.
+	 * @return string
+	 */
+	private static function conv_pending_plan_key( int $user_id, int $conv_id ): string {
+		return "plume_conv_pending_plan_{$user_id}_{$conv_id}";
+	}
+
+	/**
 	 * Append a user message and run an AI completion turn, including tool-call loops.
 	 *
 	 * Handles multi-step tool-call agentic loops up to 5 iterations.
@@ -336,18 +395,29 @@ class ChatRestController {
 				);
 			}
 
-			$tools = $provider->supports_tools()
+			$tools_full = $provider->supports_tools()
 				? $this->tool_registry->get_for_provider( $provider_slug )
 				: [];
 
-			$max_iterations = self::MAX_TOOL_ITERATIONS;
-			$iteration      = 0;
-			$final_response = null;
-			$pending_plan   = null;
-			$tools_called   = [];
+			$max_iterations       = self::MAX_TOOL_ITERATIONS;
+			$iteration            = 0;
+			$final_response       = null;
+			$pending_plan         = null;
+			$pending_plan_message = '';
+			$tools_called         = [];
+			$force_submit_content = false;
 
 			while ( $iteration < $max_iterations ) {
 				++$iteration;
+
+				// plan_update stages a draft awaiting its content on the previous iteration —
+				// restrict this iteration to submit_post_content only, so the model's full
+				// output-token budget goes to the post body instead of being shared with
+				// anything else. force_tool_use then guarantees it is what gets called.
+				$tools = $force_submit_content
+					? $this->restrict_tools_to( $tools_full, $provider_slug, [ 'submit_post_content' ] )
+					: $this->strip_single_use_tools( $tools_full, $provider_slug, $tools_called );
+				$force_submit_content = false;
 
 				$req = new CompletionRequest(
 					messages:       $messages,
@@ -390,8 +460,7 @@ class ChatRestController {
 				}
 
 				// Execute all non-chat_response tools and collect results.
-				$tool_results         = [];
-				$pending_plan_message = '';
+				$tool_results = [];
 				foreach ( $all_tool_uses as $tu ) {
 					if ( 'chat_response' === $tu['name'] ) {
 						continue;
@@ -401,13 +470,21 @@ class ChatRestController {
 					$tool_results[ $tu['id'] ] = $result;
 					$tools_called[]            = $tool_name;
 
-					if ( 'pending_approval' === ( $result['status'] ?? '' ) ) {
-						$pending_plan         = $result;
-						$pending_plan_message = \sanitize_textarea_field( $tu['input']['analysis'] ?? '' );
+					$status = $result['status'] ?? '';
+					if ( 'awaiting_content' === $status ) {
+						// plan_update staged a draft — force submit_post_content next iteration
+						// so the model's full budget goes to the post body, not shared reasoning.
+						$force_submit_content = true;
+					} elseif ( 'pending_approval' === $status ) {
+						$pending_plan = $result;
+					}
+
+					// submit_post_content's own input has no `analysis` field — the one captured
+					// on plan_update's earlier awaiting_content call is deliberately preserved.
+					if ( in_array( $status, [ 'awaiting_content', 'pending_approval' ], true ) && ! empty( $tu['input']['analysis'] ) ) {
+						$pending_plan_message = \sanitize_textarea_field( $tu['input']['analysis'] );
 					}
 				}
-
-				$tools = $this->strip_single_use_tools( $tools, $provider_slug, $tools_called );
 
 				// If the model included chat_response, use its message as the final text and exit.
 				if ( null !== $chat_response_tu ) {
@@ -440,6 +517,18 @@ class ChatRestController {
 			UsageTracker::log_usage( $final_response->credits_charged, $user_id );
 
 			$store->add_message( $conv_id, 'assistant', $final_response->content, $final_response->model, $final_response->total_tokens );
+
+			// Remember which plan this conversation is currently awaiting approval on
+			// so a page reload (or another device) can re-open the review drawer. The
+			// plan transient remains the source of truth; this pointer just records
+			// its id and self-heals in get_pending_plan when the plan is gone.
+			if ( null !== $pending_plan && ! empty( $pending_plan['id'] ) ) {
+				\set_transient(
+					self::conv_pending_plan_key( $user_id, $conv_id ),
+					$pending_plan['id'],
+					HOUR_IN_SECONDS
+				);
+			}
 
 			return rest_ensure_response(
 				[
@@ -606,7 +695,7 @@ class ChatRestController {
 	 * check, identical across every tier.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Removed the tier and quota checks (and the user_can_chat()/
+	 * @since 1.11.0 Removed the tier and quota checks (and the user_can_chat()/
 	 *                      user_within_quota() helper methods entirely) as part of the
 	 *                      credits-based redesign.
 	 * @return bool|\WP_Error True on success; WP_Error with 403 status on failure.
@@ -670,7 +759,7 @@ class ChatRestController {
 	 * are deliberately never stripped — PR #792 did that and #803 reverted it because it
 	 * broke multi-step sequential chains such as get_recent_posts -> get_post_content -> plan_update.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @param array<int, array<string, mixed>> $tools         Provider-formatted tool list.
 	 * @param string                           $provider_slug Provider slug ('claude', 'openai', 'gemini', 'proxy').
 	 * @param string[]                         $tools_called  Tool names called so far this request.
@@ -709,6 +798,58 @@ class ChatRestController {
 			array_filter(
 				$tools,
 				static fn( array $t ): bool => ! in_array( $t['name'] ?? '', $single_use, true )
+			)
+		);
+	}
+
+	/**
+	 * Narrows the tool list down to only the named tools, in the current provider's wire format.
+	 *
+	 * Used to force the model to call submit_post_content on the iteration immediately
+	 * following a plan_update call that staged a draft (status 'awaiting_content'): since
+	 * force_tool_use requires calling *something*, narrowing the list to one tool guarantees
+	 * the model spends that iteration's full token budget on the post body instead of
+	 * anything else. Mirrors strip_single_use_tools' per-provider shape handling, inverted
+	 * to an allowlist rather than a denylist.
+	 *
+	 * @since NEXT_VERSION
+	 * @param array<int, array<string, mixed>> $tools         Provider-formatted tool list.
+	 * @param string                           $provider_slug Provider slug ('claude', 'openai', 'gemini', 'proxy').
+	 * @param string[]                         $keep_names    Tool names to keep.
+	 * @return array<int, array<string, mixed>> Filtered tool list.
+	 */
+	private function restrict_tools_to( array $tools, string $provider_slug, array $keep_names ): array {
+		if ( empty( $tools ) ) {
+			return $tools;
+		}
+
+		if ( 'gemini' === $provider_slug ) {
+			if ( empty( $tools[0]['functionDeclarations'] ) ) {
+				return $tools;
+			}
+			$tools[0]['functionDeclarations'] = array_values(
+				array_filter(
+					$tools[0]['functionDeclarations'],
+					static fn( array $decl ): bool => in_array( $decl['name'] ?? '', $keep_names, true )
+				)
+			);
+			return $tools;
+		}
+
+		if ( 'openai' === $provider_slug ) {
+			return array_values(
+				array_filter(
+					$tools,
+					static fn( array $t ): bool => in_array( $t['function']['name'] ?? '', $keep_names, true )
+				)
+			);
+		}
+
+		// claude and proxy both key tool names at the top level.
+		return array_values(
+			array_filter(
+				$tools,
+				static fn( array $t ): bool => in_array( $t['name'] ?? '', $keep_names, true )
 			)
 		);
 	}

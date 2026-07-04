@@ -25,7 +25,7 @@ class ToolRegistry {
 	 * definitions so a plan-tool rename cannot silently desync the guard from the
 	 * tools it removes after first use.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @var string[]
 	 */
 	public const SINGLE_USE_TOOLS = [ 'plan_post', 'plan_update', 'submit_post_content' ];

@@ -74,7 +74,7 @@ final class CompletionResponse {
 	 * call (or null) so callers can keep is_tool_call() a simple null-check, plus the full
 	 * array for multi-call execution in a single turn.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @param mixed $result Normalised proxy response; non-array input yields no calls.
 	 * @return array{0: array|null, 1: array<int, array>} [first_tool_call_or_null, all_tool_calls].
 	 */

@@ -9,6 +9,7 @@ declare( strict_types=1 );
 
 namespace Plume\Admin;
 
+use Plume\Admin\Concerns\DetectsPlumeAdminPage;
 use Plume\Proxy\SiteRegistration;
 use Plume\Tiers\TierManager;
 
@@ -31,6 +32,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 1.9.0
  */
 class TierSyncBackfillNotice {
+
+	use DetectsPlumeAdminPage;
 
 	/**
 	 * Admin-post action slug used both for the form submission and the
@@ -80,21 +83,6 @@ class TierSyncBackfillNotice {
 	 */
 	public static function enqueue_styles(): void {
 		\wp_add_inline_style( 'common', '.nj-backfill-form { display: inline; }' );
-	}
-
-	/**
-	 * Returns true when the current admin screen is a Plume plugin page.
-	 *
-	 * Limits notices to Plume pages so WP.org Guideline 11 is satisfied — plugin
-	 * notices must not appear on unrelated admin screens.
-	 *
-	 * @since 1.11.0
-	 * @return bool True when the URL carries a `page` param starting with 'plume'.
-	 */
-	private static function is_plume_admin_page(): bool {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page detection, no state change.
-		$page = isset( $_GET['page'] ) ? \sanitize_key( \wp_unslash( $_GET['page'] ) ) : '';
-		return \str_starts_with( $page, 'plume' );
 	}
 
 	/**

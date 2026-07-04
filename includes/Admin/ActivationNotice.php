@@ -9,6 +9,8 @@ declare( strict_types=1 );
 
 namespace Plume\Admin;
 
+use Plume\Admin\Concerns\DetectsPlumeAdminPage;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -25,6 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 1.0.0
  */
 class ActivationNotice {
+
+	use DetectsPlumeAdminPage;
 
 	private const OPTION = 'plume_just_activated';
 
@@ -43,6 +47,12 @@ class ActivationNotice {
 	 * has manage_options capability. Deletes the flag before rendering.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Rendering is limited to Plume admin screens so the
+	 *                      notice never occupies unrelated wp-admin pages
+	 *                      (WP.org Guideline 11). The flag is only consumed
+	 *                      once the notice can actually render, so activating
+	 *                      and browsing elsewhere first does not burn the
+	 *                      single-use disclosure.
 	 * @return void
 	 */
 	public static function maybe_display(): void {
@@ -50,6 +60,9 @@ class ActivationNotice {
 			return;
 		}
 		if ( ! \current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		if ( ! self::is_plume_admin_page() ) {
 			return;
 		}
 		// Delete before rendering — single-use flag, prevents re-display on reload.

@@ -92,7 +92,7 @@ describe( 'ImagesWorkArea — out-of-credits handling', () => {
 			container.querySelector( '.plume-out-of-credits-banner' )
 		).not.toBeNull();
 		expect( container.textContent ).toContain(
-			"You've used all your credits for this billing period."
+			'You’ve used all your credits for this billing period.'
 		);
 	} );
 

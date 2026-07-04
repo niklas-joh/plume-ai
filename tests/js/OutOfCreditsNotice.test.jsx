@@ -37,7 +37,7 @@ describe( 'OutOfCreditsNotice', () => {
 		} );
 
 		expect( container.textContent ).toContain(
-			"You've used all your credits for this billing period."
+			'You’ve used all your credits for this billing period.'
 		);
 	} );
 

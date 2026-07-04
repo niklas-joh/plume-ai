@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       Plume
+ * Plugin Name:       Plume AI - Write and Design
  * Plugin URI:        https://wpaimind.com
  * Description:       AI-powered writing, image generation, and content design tools for WordPress.
  * Version:           1.11.0

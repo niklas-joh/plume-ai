@@ -335,16 +335,24 @@ class ChatRestController {
 			return new \WP_REST_Response( [ 'message' => 'Forbidden.' ], 403 );
 		}
 
-		$store->add_message( $conv_id, 'user', $content );
+		// Build the outgoing message list from stored history plus the new user turn in
+		// memory. The user turn is persisted only once the provider call succeeds (see the
+		// add_message pair further down), so the client's silent one-shot retry on
+		// not_registered/auth_failed (ChatApp REGISTRATION_RETRY_CODES) cannot store the
+		// same user message twice.
 		$history = $store->get_messages( $conv_id );
 
-		$messages = array_map(
+		$messages   = array_map(
 			fn( $m ) => [
 				'role'    => $m['role'],
 				'content' => $m['content'],
 			],
 			$history
 		);
+		$messages[] = [
+			'role'    => 'user',
+			'content' => $content,
+		];
 
 		$injector = $this->make_voice_injector();
 		$system   = $injector->build_system_prompt(
@@ -415,7 +423,7 @@ class ChatRestController {
 				// restrict this iteration to submit_post_content only, so the model's full
 				// output-token budget goes to the post body instead of being shared with
 				// anything else. force_tool_use then guarantees it is what gets called.
-				$tools = $force_submit_content
+				$tools                = $force_submit_content
 					? $this->restrict_tools_to( $tools_full, $provider_slug, [ 'submit_post_content' ] )
 					: $this->strip_single_use_tools( $tools_full, $provider_slug, $tools_called );
 				$force_submit_content = false;
@@ -517,6 +525,9 @@ class ChatRestController {
 			// prevent per-iteration double-counting in the agentic loop.
 			UsageTracker::log_usage( $final_response->credits_charged, $user_id );
 
+			// Persist the user turn and assistant reply together, now that the provider
+			// call has succeeded — see the in-memory history note above.
+			$store->add_message( $conv_id, 'user', $content );
 			$store->add_message( $conv_id, 'assistant', $final_response->content, $final_response->model, $final_response->total_tokens );
 
 			// Remember which plan this conversation is currently awaiting approval on

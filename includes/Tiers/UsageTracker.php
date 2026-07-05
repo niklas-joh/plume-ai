@@ -25,7 +25,7 @@ class UsageTracker {
 	 *
 	 * Mirrors MONTHLY_CREDIT_LIMITS.free in plume-proxy/src/index.ts.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 */
 	public const FREE_CREDITS = 100;
 
@@ -34,14 +34,14 @@ class UsageTracker {
 	 *
 	 * Mirrors MONTHLY_CREDIT_LIMITS.pro_managed in plume-proxy/src/index.ts.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 */
 	public const PRO_MANAGED_CREDITS = 500;
 
 	/**
 	 * Fallback monthly credit limit used when the tier is unrecognised.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @deprecated Use FREE_CREDITS or PRO_MANAGED_CREDITS directly.
 	 */
 	public const FALLBACK_LIMIT = self::FREE_CREDITS;
@@ -68,7 +68,7 @@ class UsageTracker {
 	 * with a 429), so this local summary exists purely for dashboard display.
 	 *
 	 * @since 1.2.0
-	 * @since NEXT_VERSION limit now comes from get_cached_credit_limit() instead of
+	 * @since 1.11.0 limit now comes from get_cached_credit_limit() instead of
 	 *                      the deleted TierManager::get_monthly_limit(); can_use is
 	 *                      hardcoded true rather than computed locally.
 	 * @param int|null $user_id User ID; defaults to the current user.
@@ -120,7 +120,7 @@ class UsageTracker {
 	 * blocking a real request on an HTTP round trip is more important than a
 	 * dashboard figure being briefly stale or wrong by a fallback margin.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @param string $tier Tier slug.
 	 * @return int|null Monthly credit limit, or null for the unlimited pro_byok tier.
 	 */

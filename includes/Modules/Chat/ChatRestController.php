@@ -276,6 +276,43 @@ class ChatRestController {
 			return new \WP_REST_Response( [ 'message' => 'Forbidden.' ], 403 );
 		}
 
+		$factory  = $this->make_provider_factory();
+		$provider = $factory->make( $provider_slug );
+
+		// Checked before persisting the user turn: a client-side retry (e.g. while site
+		// registration is still completing in the background) re-sends the same content,
+		// and persisting unconditionally here would duplicate the user message on every
+		// such retry rather than only once the provider actually completes it.
+		if ( ! $provider->is_available() ) {
+			$is_proxy_tier = ! TierManager::user_can( 'own_api_key' );
+
+			if ( $is_proxy_tier ) {
+				// Site token absent — schedule re-registration so the next page load succeeds.
+				// Guard against double-scheduling: add_action does not deduplicate identical callbacks on the same hook.
+				if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
+					add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
+				}
+				return new \WP_REST_Response(
+					[
+						'message' => __( 'Connecting this site to Plume AI - Write and Design. Please try sending your message again in a moment.', 'plume' ),
+						'code'    => 'not_registered',
+					],
+					503
+				);
+			}
+
+			return new \WP_REST_Response(
+				[
+					'message' => sprintf(
+						/* translators: %s: provider slug */
+						__( 'No API key configured for "%s". Please add one in Plume → Settings.', 'plume' ),
+						$provider_slug
+					),
+				],
+				422
+			);
+		}
+
 		$store->add_message( $conv_id, 'user', $content );
 		$history = $store->get_messages( $conv_id );
 
@@ -304,39 +341,6 @@ class ChatRestController {
 		}
 
 		try {
-			$factory  = $this->make_provider_factory();
-			$provider = $factory->make( $provider_slug );
-
-			if ( ! $provider->is_available() ) {
-				$is_proxy_tier = ! TierManager::user_can( 'own_api_key' );
-
-				if ( $is_proxy_tier ) {
-					// Site token absent — schedule re-registration so the next page load succeeds.
-					// Guard against double-scheduling: add_action does not deduplicate identical callbacks on the same hook.
-					if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
-						add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
-					}
-					return new \WP_REST_Response(
-						[
-							'message' => __( 'Connecting this site to Plume — Write and Design. Please try sending your message again in a moment.', 'plume' ),
-							'code'    => 'not_registered',
-						],
-						503
-					);
-				}
-
-				return new \WP_REST_Response(
-					[
-						'message' => sprintf(
-							/* translators: %s: provider slug */
-							__( 'No API key configured for "%s". Please add one in Plume → Settings.', 'plume' ),
-							$provider_slug
-						),
-					],
-					422
-				);
-			}
-
 			$tools = $provider->supports_tools()
 				? $this->tool_registry->get_for_provider( $provider_slug )
 				: [];

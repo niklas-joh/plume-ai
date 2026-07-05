@@ -819,6 +819,10 @@ class ChatRestControllerTest extends TestCase {
         $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
         $store_mock->method( 'get_messages' )->willReturn( [] );
+        // The client silently retries this exact request once the site finishes registering —
+        // the user turn must not be persisted until a provider is actually available to answer it,
+        // otherwise every such retry duplicates the message row.
+        $store_mock->expects( $this->never() )->method( 'add_message' );
 
         $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
         $provider_mock->method( 'is_available' )->willReturn( false );
@@ -921,6 +925,7 @@ class ChatRestControllerTest extends TestCase {
         $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
         $store_mock->method( 'get_messages' )->willReturn( [] );
+        $store_mock->expects( $this->never() )->method( 'add_message' );
 
         $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
         $provider_mock->method( 'is_available' )->willReturn( false );

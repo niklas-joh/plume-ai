@@ -14,6 +14,7 @@ const NEW_CONVERSATION_TITLE = __( 'New conversation', 'plume' );
 
 // Site registration completing async (scheduled on the failed request's `shutdown`) usually
 // finishes within a couple of seconds — one silent retry avoids surfacing a raw error for it.
+// Keep in sync with the WP_Error codes raised in includes/Proxy/ProxyClient.php.
 const REGISTRATION_RETRY_CODES = new Set( [ 'not_registered', 'auth_failed' ] );
 const REGISTRATION_RETRY_DELAY_MS = 3000;
 

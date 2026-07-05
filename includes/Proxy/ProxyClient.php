@@ -51,6 +51,8 @@ class ProxyClient {
 			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
+			// This code is one of REGISTRATION_RETRY_CODES in src/admin/components/Chat/ChatApp.jsx,
+			// which silently retries the request instead of surfacing this to the user immediately.
 			return new WP_Error( 'not_registered', __( 'Connecting this site to Plume AI - Write and Design. Please try sending your message again in a moment.', 'plume' ) );
 		}
 
@@ -111,6 +113,8 @@ class ProxyClient {
 			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
+			// This code is one of REGISTRATION_RETRY_CODES in src/admin/components/Chat/ChatApp.jsx,
+			// which silently retries the request instead of surfacing this to the user immediately.
 			return new WP_Error( 'auth_failed', __( 'Reconnecting this site to Plume AI - Write and Design. Please try sending your message again in a moment.', 'plume' ) );
 		}
 

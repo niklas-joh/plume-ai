@@ -6,6 +6,7 @@ namespace Plume\Tests\Unit\Core;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Plume\Core\Plugin;
+use Plume\Proxy\SiteRegistration;
 use PHPUnit\Framework\TestCase;
 
 class PluginTest extends TestCase {
@@ -78,5 +79,33 @@ class PluginTest extends TestCase {
 
         Plugin::deactivate();
         $this->addToAssertionCount( 1 );
+    }
+
+    /**
+     * Compliance guard (WP.org Guideline 7 — no phoning home without consent):
+     * booting the plugin must NOT hook SiteRegistration::maybe_register on
+     * admin_init. Registering there would transmit the site URL to the proxy
+     * before the admin takes any AI action. Registration is scheduled lazily on
+     * shutdown of the first user-initiated proxy request instead, so silently
+     * re-adding the eager hook in a future refactor must fail this test.
+     */
+    public function test_init_hooks_does_not_register_site_registration_on_admin_init(): void {
+        $registered = [];
+        Functions\when( 'add_action' )->alias(
+            static function ( $hook, $callback = null ) use ( &$registered ) {
+                $registered[] = [ $hook, $callback ];
+                return true;
+            }
+        );
+        Functions\when( 'get_option' )->justReturn( [] );
+        Functions\when( 'add_filter' )->justReturn( true );
+
+        Plugin::instance();
+
+        $this->assertNotContains(
+            [ 'admin_init', [ SiteRegistration::class, 'maybe_register' ] ],
+            $registered,
+            'SiteRegistration::maybe_register must not be hooked on admin_init (WP.org Guideline 7).'
+        );
     }
 }

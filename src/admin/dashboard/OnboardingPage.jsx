@@ -66,7 +66,7 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 			id: 'plugin',
 			title: 'Use Plugin API',
 			badge: 'Free',
-			desc: 'Start immediately. Built-in access with usage limits. No API key needed.',
+			desc: 'Start immediately. Built-in access with usage limits. No API key needed. Registers your site to run AI models.',
 		},
 		{
 			id: 'own_key',
@@ -551,12 +551,13 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 /**
  * Final onboarding screen confirming that setup is complete.
  *
- * @param {Object} props
- * @param {string} props.apiTierLabel  Human-readable label describing the chosen API tier.
- * @param {Object} props.urls          URL map with at least a `chat` key for the CTA link.
+ * @param {Object}  props
+ * @param {string}  props.apiTierLabel  Human-readable label describing the chosen API tier.
+ * @param {Object}  props.urls          URL map with at least a `chat` key for the CTA link.
+ * @param {boolean} props.registered    Whether the site is already registered with the proxy (proxy tiers only; irrelevant for BYOK).
  * @return {ReactElement}
  */
-function DoneScreen( { apiTierLabel, urls } ) {
+function DoneScreen( { apiTierLabel, urls, registered } ) {
 	return (
 		<>
 			<div className="plume-ob-header">
@@ -579,6 +580,11 @@ function DoneScreen( { apiTierLabel, urls } ) {
 						{ apiTierLabel }.<br />
 						Change this anytime in Settings.
 					</div>
+					{ false === registered && (
+						<div className="plume-ob-success__sub">
+							Finishing setup — this can take a few seconds.
+						</div>
+					) }
 					<a href={ urls.chat } className="plume-ob-success__cta">
 						Open Chat &#x2192;
 					</a>
@@ -626,10 +632,11 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 	const [ apiTierLabel, setApiTierLabel ] = useState(
 		'Using Plugin API (free tier)'
 	);
+	const [ registered, setRegistered ] = useState( true );
 
 	const postOnboarding = useCallback(
 		async ( body ) => {
-			await window.fetch( `${ restUrl }/onboarding`, {
+			const res = await window.fetch( `${ restUrl }/onboarding`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -637,6 +644,11 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 				},
 				body: JSON.stringify( body ),
 			} );
+			try {
+				return await res.json();
+			} catch ( e ) {
+				return {};
+			}
 		},
 		[ nonce, restUrl ]
 	);
@@ -648,8 +660,9 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 
 	const handleStep1Continue = useCallback( async () => {
 		if ( connection === 'plugin' ) {
-			await postOnboarding( { seen: true } );
+			const result = await postOnboarding( { seen: true } );
 			setApiTierLabel( 'Using Plugin API (free tier)' );
+			setRegistered( result.registered !== false );
 			setStep( 'done' );
 		} else if ( connection === 'own_key' ) {
 			setStep( 'step2' );
@@ -659,7 +672,7 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 
 	const handleStep2Finish = useCallback(
 		async ( { provider, apiKeys, imageProvider } ) => {
-			await postOnboarding( {
+			const result = await postOnboarding( {
 				seen: true,
 				provider,
 				api_keys: apiKeys,
@@ -673,6 +686,7 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 						: ''
 				} API key`
 			);
+			setRegistered( result.registered !== false );
 			setStep( 'done' );
 		},
 		[ postOnboarding ]
@@ -699,7 +713,11 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 					/>
 				) }
 				{ step === 'done' && (
-					<DoneScreen apiTierLabel={ apiTierLabel } urls={ urls } />
+					<DoneScreen
+						apiTierLabel={ apiTierLabel }
+						urls={ urls }
+						registered={ registered }
+					/>
 				) }
 			</div>
 		</div>

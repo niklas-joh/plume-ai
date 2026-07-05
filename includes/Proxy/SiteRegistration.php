@@ -97,9 +97,15 @@ class SiteRegistration {
 	 * Register with the proxy Worker if not already registered.
 	 *
 	 * Idempotent — skips silently if a token is already stored.
-	 * Hooked to `init` in Plugin.php.
+	 *
+	 * Not hooked eagerly anywhere: ProxyClient and ChatRestController schedule
+	 * this on `shutdown` when a user-initiated proxy request finds no site
+	 * token, so the site URL is only transmitted after the admin has actually
+	 * used an AI feature (WP.org Guideline 7 — no phoning home without consent).
 	 *
 	 * @since 1.2.0
+	 * @since NEXT_VERSION No longer hooked to admin_init; registration is lazy,
+	 *                      scheduled on shutdown of the first proxy-backed request.
 	 * @return void
 	 */
 	public static function maybe_register(): void {

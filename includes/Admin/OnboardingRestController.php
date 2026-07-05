@@ -9,7 +9,9 @@ declare( strict_types=1 );
 namespace Plume\Admin;
 
 use Plume\Providers\ProviderFactory;
+use Plume\Proxy\SiteRegistration;
 use Plume\Settings\ProviderSettings;
+use Plume\Tiers\TierManager;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
@@ -81,10 +83,15 @@ class OnboardingRestController {
 	 * API keys are accepted on every tier (WP.org Guideline 5 — bringing your
 	 * own key is never plan-gated).
 	 *
+	 * For proxy-tier users (no own_api_key capability), also registers the site with
+	 * the proxy now rather than waiting for the next admin_init or a failed chat
+	 * request — the response's `registered` field reflects the outcome so the
+	 * client can set expectations before the user reaches Chat.
+	 *
 	 * @since 1.0.0
 	 * @since NEXT_VERSION Removed the own_api_key tier gate.
 	 * @param WP_REST_Request $request Incoming REST request.
-	 * @return WP_REST_Response|\WP_Error 200 on success.
+	 * @return WP_REST_Response|\WP_Error 200 on success (with `registered` bool).
 	 */
 	public static function save( WP_REST_Request $request ): WP_REST_Response|\WP_Error {
 		$seen = $request->get_param( 'seen' );
@@ -115,7 +122,25 @@ class OnboardingRestController {
 			update_option( 'plume_image_provider', sanitize_text_field( $image_provider ) );
 		}
 
-		return new WP_REST_Response( [ 'success' => true ], 200 );
+		// Proxy-tier users (no own_api_key) need a site token before their first chat request —
+		// register now, synchronously, rather than leaving it to the next admin_init or a failed chat call.
+		// BYOK users never need a site token, so `registered` stays true (nothing to wait for).
+		$registered = true;
+		if ( 'pro_byok' !== TierManager::get_user_tier() ) {
+			$registered = SiteRegistration::is_registered();
+			if ( ! $registered ) {
+				SiteRegistration::maybe_register();
+				$registered = SiteRegistration::is_registered();
+			}
+		}
+
+		return new WP_REST_Response(
+			[
+				'success'    => true,
+				'registered' => $registered,
+			],
+			200
+		);
 	}
 
 	/**

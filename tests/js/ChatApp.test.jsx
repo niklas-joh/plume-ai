@@ -34,6 +34,9 @@ beforeAll( () => {
 		restUrl: 'http://localhost/wp-json/plume/v1',
 		nonce: 'test-nonce',
 	};
+	// jsdom does not implement scrollIntoView; MessageList.jsx calls it whenever
+	// the message list re-renders, which only the tests below actually trigger.
+	window.HTMLElement.prototype.scrollIntoView = jest.fn();
 } );
 
 afterAll( () => {
@@ -118,5 +121,131 @@ describe( 'ChatApp', () => {
 			'.plume-model-advanced-toggle'
 		);
 		expect( toggle.disabled ).toBe( false );
+	} );
+
+	describe( 'registration-retry on send', () => {
+		// Controlled <textarea> — React tracks its own value setter, so a plain
+		// `textarea.value = …` is invisible to it. Bypassing via the native
+		// prototype setter and dispatching `input` is the standard workaround
+		// for driving a React-controlled field without @testing-library.
+		function typeAndSubmit( container, text ) {
+			const textarea = container.querySelector(
+				'.plume-composer__input'
+			);
+			const setter = Object.getOwnPropertyDescriptor(
+				window.HTMLTextAreaElement.prototype,
+				'value'
+			).set;
+			setter.call( textarea, text );
+			textarea.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+			textarea.dispatchEvent(
+				new KeyboardEvent( 'keydown', {
+					key: 'Enter',
+					bubbles: true,
+				} )
+			);
+		}
+
+		afterEach( () => {
+			jest.useRealTimers();
+		} );
+
+		it( 'silently retries once on a not_registered error and shows no error bubble when the retry succeeds', async () => {
+			jest.useFakeTimers();
+			const apiFetch = require( '@wordpress/api-fetch' );
+			let messageCalls = 0;
+			apiFetch.mockImplementation( ( { path, method } ) => {
+				if ( path === '/plume/v1/conversations' && method === 'POST' ) {
+					return Promise.resolve( {
+						id: 1,
+						title: 'New conversation',
+					} );
+				}
+				if (
+					path === '/plume/v1/conversations/1/messages' &&
+					method === 'POST'
+				) {
+					messageCalls += 1;
+					if ( 1 === messageCalls ) {
+						return Promise.reject( {
+							code: 'not_registered',
+							message: 'Connecting…',
+						} );
+					}
+					return Promise.resolve( {
+						content: 'Hello back',
+						model: 'claude',
+						credits: 1,
+					} );
+				}
+				return Promise.resolve( [] );
+			} );
+
+			await act( async () => {
+				root.render( <ChatApp /> );
+			} );
+
+			await act( async () => {
+				typeAndSubmit( container, 'Hi there' );
+			} );
+
+			// The first attempt has failed and the 3s retry timer is pending —
+			// advance it and let the retried apiFetch promise settle.
+			await act( async () => {
+				jest.advanceTimersByTime( 3000 );
+				await Promise.resolve();
+				await Promise.resolve();
+			} );
+
+			expect( messageCalls ).toBe( 2 );
+			expect(
+				container.querySelector( '.plume-bubble--error' )
+			).toBeNull();
+			expect( container.textContent ).toContain( 'Hello back' );
+		} );
+
+		it( 'shows exactly one error bubble when the retry also fails, without retrying a second time', async () => {
+			jest.useFakeTimers();
+			const apiFetch = require( '@wordpress/api-fetch' );
+			let messageCalls = 0;
+			apiFetch.mockImplementation( ( { path, method } ) => {
+				if ( path === '/plume/v1/conversations' && method === 'POST' ) {
+					return Promise.resolve( {
+						id: 1,
+						title: 'New conversation',
+					} );
+				}
+				if (
+					path === '/plume/v1/conversations/1/messages' &&
+					method === 'POST'
+				) {
+					messageCalls += 1;
+					return Promise.reject( {
+						code: 'not_registered',
+						message: 'Connecting this site to Plume AI.',
+					} );
+				}
+				return Promise.resolve( [] );
+			} );
+
+			await act( async () => {
+				root.render( <ChatApp /> );
+			} );
+
+			await act( async () => {
+				typeAndSubmit( container, 'Hi there' );
+			} );
+
+			await act( async () => {
+				jest.advanceTimersByTime( 3000 );
+				await Promise.resolve();
+				await Promise.resolve();
+			} );
+
+			expect( messageCalls ).toBe( 2 );
+			expect(
+				container.querySelectorAll( '.plume-bubble--error' ).length
+			).toBe( 1 );
+		} );
 	} );
 } );

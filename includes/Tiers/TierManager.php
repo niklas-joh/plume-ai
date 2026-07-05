@@ -63,7 +63,7 @@ class TierManager {
 	 *
 	 * @since 1.2.0
 	 * @since 1.9.0 Paid tiers resolve from the site-wide option.
-	 * @since NEXT_VERSION Removed the unused $user_id parameter and the trial-meta
+	 * @since 1.11.0 Removed the unused $user_id parameter and the trial-meta
 	 *                      fallback now that the trial tier no longer exists.
 	 * @return string Tier slug (e.g. 'free', 'pro_managed', 'pro_byok').
 	 */
@@ -125,7 +125,7 @@ class TierManager {
 	 * across admin pages and REST controllers (Domains B/C otherwise reimplement
 	 * this five-plus times).
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @return bool True when the site tier is anything other than 'free'.
 	 */
 	public static function is_paid(): bool {

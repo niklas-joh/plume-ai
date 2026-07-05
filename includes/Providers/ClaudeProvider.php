@@ -194,7 +194,8 @@ class ClaudeProvider extends AbstractProvider {
 		$result  = ProxyClient::chat( $request->messages, $feature, $options, 'claude' );
 
 		if ( is_wp_error( $result ) ) {
-			throw new ProviderException( $result->get_error_message(), 'claude' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new ProviderException( $result->get_error_message(), 'claude', 0, [], null, $result->get_error_code() );
 		}
 
 		// ProxyClient skips UsageTracker::log_usage() for 'chat' — ChatRestController logs once
@@ -320,7 +321,7 @@ class ClaudeProvider extends AbstractProvider {
 	 * loop in ChatRestController re-sends the full tool list on every iteration, and
 	 * tool definitions routinely exceed the minimum on their own.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @param array<int, array<string, mixed>> $tools Claude-wire-format tool definitions.
 	 * @return array<int, array<string, mixed>> Tools with cache_control on the last entry.
 	 */

@@ -9,6 +9,7 @@ declare( strict_types=1 );
 
 namespace Plume\Admin;
 
+use Plume\Admin\Concerns\DetectsPlumeAdminPage;
 use Plume\Proxy\SiteRegistration;
 use Plume\Tiers\TierManager;
 
@@ -31,6 +32,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 1.9.0
  */
 class TierSyncBackfillNotice {
+
+	use DetectsPlumeAdminPage;
 
 	/**
 	 * Admin-post action slug used both for the form submission and the
@@ -83,27 +86,12 @@ class TierSyncBackfillNotice {
 	}
 
 	/**
-	 * Returns true when the current admin screen is a Plume plugin page.
-	 *
-	 * Limits notices to Plume pages so WP.org Guideline 11 is satisfied — plugin
-	 * notices must not appear on unrelated admin screens.
-	 *
-	 * @since NEXT_VERSION
-	 * @return bool True when the URL carries a `page` param starting with 'plume'.
-	 */
-	private static function is_plume_admin_page(): bool {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page detection, no state change.
-		$page = isset( $_GET['page'] ) ? \sanitize_key( \wp_unslash( $_GET['page'] ) ) : '';
-		return \str_starts_with( $page, 'plume' );
-	}
-
-	/**
 	 * Returns true when the current user may view a Plume admin notice.
 	 *
 	 * Bundles the capability + Plume-page pair shared by can_show_tier_notice()
 	 * and maybe_display_result() so the two guards never drift apart.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.11.0
 	 * @return bool True when the user has manage_options on a Plume admin page.
 	 */
 	private static function current_user_can_see_plume_notice(): bool {

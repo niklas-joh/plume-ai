@@ -51,7 +51,9 @@ class ProxyClient {
 			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'not_registered', __( 'Site not connected to Plume AI - Write and Design. Please reload the page.', 'plume' ) );
+			// This code is one of REGISTRATION_RETRY_CODES in src/admin/components/Chat/ChatApp.jsx,
+			// which silently retries the request instead of surfacing this to the user immediately.
+			return new WP_Error( 'not_registered', __( 'Connecting this site to Plume AI - Write and Design. Please try sending your message again in a moment.', 'plume' ) );
 		}
 
 		$user_id = get_current_user_id();
@@ -104,14 +106,16 @@ class ProxyClient {
 		}
 
 		if ( 401 === $code ) {
-			// Token may be stale — clear it so maybe_register() re-issues on next admin_init.
+			// Token may be stale — clear it so maybe_register() re-issues on the next proxy call.
 			// Re-registration is async; the current request cannot be retried transparently.
 			// TODO #326: inline register() + retry once to avoid user-visible auth errors.
 			delete_option( SiteRegistration::OPTION_TOKEN );
 			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'auth_failed', __( 'Connection to Plume AI - Write and Design failed. Please reload the page and try again.', 'plume' ) );
+			// This code is one of REGISTRATION_RETRY_CODES in src/admin/components/Chat/ChatApp.jsx,
+			// which silently retries the request instead of surfacing this to the user immediately.
+			return new WP_Error( 'auth_failed', __( 'Reconnecting this site to Plume AI - Write and Design. Please try sending your message again in a moment.', 'plume' ) );
 		}
 
 		if ( $code < 200 || $code >= 300 ) {

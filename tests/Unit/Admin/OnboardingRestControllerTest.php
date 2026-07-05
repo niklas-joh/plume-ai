@@ -6,6 +6,7 @@ namespace Plume\Tests\Unit\Admin;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Plume\Admin\OnboardingRestController;
+use Plume\Proxy\SiteRegistration;
 use Plume\Settings\ProviderSettings;
 use PHPUnit\Framework\TestCase;
 
@@ -71,6 +72,11 @@ class OnboardingRestControllerTest extends TestCase {
 				return true;
 			}
 		);
+		// pro_byok: skips the site-registration branch, irrelevant to this test's assertion.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'plume_site_tier' === $key ? 'pro_byok' : $default
+		);
 
 		$request = new \WP_REST_Request( 'POST' );
 		$request->set_param( 'seen', true );
@@ -87,6 +93,11 @@ class OnboardingRestControllerTest extends TestCase {
 				$captured_key = $key;
 				return true;
 			}
+		);
+		// pro_byok: skips the site-registration branch, irrelevant to this test's assertion.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'plume_site_tier' === $key ? 'pro_byok' : $default
 		);
 
 		$request = new \WP_REST_Request( 'POST' );
@@ -174,6 +185,12 @@ class OnboardingRestControllerTest extends TestCase {
 	// ── save() — response ────────────────────────────────────────────────────
 
 	public function test_save_returns_success_response(): void {
+		// pro_byok: skips the site-registration branch, irrelevant to this test's assertion.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'plume_site_tier' === $key ? 'pro_byok' : $default
+		);
+
 		$request = new \WP_REST_Request( 'POST' );
 		// No params — all branches skipped, straight to the return statement.
 
@@ -182,5 +199,67 @@ class OnboardingRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_REST_Response::class, $response );
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertTrue( $response->data['success'] );
+		$this->assertTrue( $response->data['registered'] );
+	}
+
+	// ── save() — site registration ───────────────────────────────────────────
+
+	public function test_save_reports_registered_true_for_byok_tier_without_touching_site_token(): void {
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'plume_site_tier' === $key ? 'pro_byok' : $default
+		);
+
+		$request  = new \WP_REST_Request( 'POST' );
+		$response = OnboardingRestController::save( $request );
+
+		$this->assertTrue( $response->data['registered'] );
+	}
+
+	public function test_save_registers_site_for_proxy_tier_when_not_already_registered(): void {
+		// Default (free) tier — proxy-eligible.
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $default = false ) {
+				if ( SiteRegistration::OPTION_TOKEN === $key ) {
+					return '';
+				}
+				return $default;
+			}
+		);
+		// No backoff in effect, so maybe_register() proceeds to register().
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'wp_remote_get' )->justReturn(
+			new \WP_Error( 'http_request_failed', 'Connection refused' )
+		);
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$request  = new \WP_REST_Request( 'POST' );
+		$response = OnboardingRestController::save( $request );
+
+		// The Worker is unreachable in this test, so registration fails and the
+		// site token is still absent — the response must reflect that honestly.
+		$this->assertFalse( $response->data['registered'] );
+	}
+
+	public function test_save_reports_registered_false_when_maybe_register_is_backed_off(): void {
+		// Default (free) tier — proxy-eligible; no site token yet.
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $default = false ) {
+				if ( SiteRegistration::OPTION_TOKEN === $key ) {
+					return '';
+				}
+				return $default;
+			}
+		);
+		// A prior failed attempt already set the backoff transient — maybe_register()
+		// must skip silently rather than hammering the Worker on every onboarding save.
+		Functions\when( 'get_transient' )->justReturn( 1 );
+
+		$request  = new \WP_REST_Request( 'POST' );
+		$response = OnboardingRestController::save( $request );
+
+		$this->assertFalse( $response->data['registered'] );
 	}
 }

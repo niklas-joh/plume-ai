@@ -13,7 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use Plume\DB\Schema;
-use Plume\Proxy\SiteRegistration;
 use Plume\Tiers\TierManager;
 
 /**
@@ -96,7 +95,12 @@ class Plugin {
 	 * @return void
 	 */
 	private function init_hooks(): void {
-		add_action( 'admin_init', [ SiteRegistration::class, 'maybe_register' ] );
+		// Site registration is deliberately NOT hooked here. Registering on
+		// admin_init would transmit the site URL to the proxy service before
+		// the admin has taken any AI action (WP.org Guideline 7 — no phoning
+		// home without consent). ProxyClient and ChatRestController schedule
+		// SiteRegistration::maybe_register() on shutdown of the first
+		// user-initiated proxy request instead.
 		add_action( 'admin_menu', [ $this, 'register_admin_menu' ] );
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
 		add_action( 'plume_register_menu', [ \Plume\Admin\AdminMenu::class, 'register' ] );

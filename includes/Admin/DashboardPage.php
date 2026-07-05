@@ -92,7 +92,7 @@ class DashboardPage {
 	 * (pro_managed, pro_byok) never see the banner regardless of usage.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Removed the ProviderSettings/own-API-key lookup — that
+	 * @since 1.11.0 Removed the ProviderSettings/own-API-key lookup — that
 	 *                      signal no longer suppresses the banner on its own;
 	 *                      replaced isPro with isPaid and the free_tier banner
 	 *                      state with free_tier_low_credits (usage-threshold-gated).

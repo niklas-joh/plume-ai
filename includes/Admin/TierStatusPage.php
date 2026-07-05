@@ -91,7 +91,7 @@ class TierStatusPage {
 						<?php if ( $registered ) : ?>
 							<span class="plume-status--active">&#10003; <?php esc_html_e( 'Connected', 'plume' ); ?></span>
 						<?php else : ?>
-							<span class="plume-status--expired"><?php esc_html_e( 'Not connected — will auto-connect on next page load', 'plume' ); ?></span>
+							<span class="plume-status--expired"><?php esc_html_e( 'Not connected — connects automatically the first time you use an AI feature', 'plume' ); ?></span>
 						<?php endif; ?>
 					</td>
 				</tr>

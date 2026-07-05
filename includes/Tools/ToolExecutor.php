@@ -44,14 +44,15 @@ class ToolExecutor {
 	 */
 	public function execute( string $tool_name, array $args, int $user_id ): array {
 		$dispatch = [
-			'get_recent_posts'  => [ $this, 'get_recent_posts' ],
-			'get_post_content'  => [ $this, 'get_post_content' ],
-			'search_posts'      => [ $this, 'search_posts' ],
-			'get_pages'         => [ $this, 'get_pages' ],
-			'get_site_info'     => [ $this, 'get_site_info' ],
-			'generate_seo_meta' => [ $this, 'generate_seo_meta' ],
-			'plan_post'         => [ $this, 'plan_post' ],
-			'plan_update'       => [ $this, 'plan_update' ],
+			'get_recent_posts'    => [ $this, 'get_recent_posts' ],
+			'get_post_content'    => [ $this, 'get_post_content' ],
+			'search_posts'        => [ $this, 'search_posts' ],
+			'get_pages'           => [ $this, 'get_pages' ],
+			'get_site_info'       => [ $this, 'get_site_info' ],
+			'generate_seo_meta'   => [ $this, 'generate_seo_meta' ],
+			'plan_post'           => [ $this, 'plan_post' ],
+			'plan_update'         => [ $this, 'plan_update' ],
+			'submit_post_content' => [ $this, 'submit_post_content' ],
 		];
 
 		if ( ! isset( $dispatch[ $tool_name ] ) ) {
@@ -307,11 +308,17 @@ class ToolExecutor {
 	}
 
 	/**
-	 * Store a pending post-update plan for user approval.
+	 * Stage a pending post-update plan awaiting its full content.
 	 *
-	 * Requires both a human-readable change summary and the full updated content
-	 * so that the approval step can apply real changes via update_post.
+	 * Deliberately does not accept the rewritten post body: a single completion
+	 * that has to emit a short analysis/summary alongside a potentially large post
+	 * body shares one fixed output-token budget between them, so any post long
+	 * enough to matter risks the body being cut off mid-generation while the
+	 * short fields survive untouched. Splitting the body into its own dedicated
+	 * completion (via submit_post_content, forced as the only available tool on
+	 * the next agentic-loop iteration) gives it the full budget to itself instead.
 	 *
+	 * @since NEXT_VERSION Removed new_content; stages a draft instead of the final plan.
 	 * @since 1.0.0
 	 * @param array $args    Tool arguments from the AI provider.
 	 * @param int   $user_id WordPress user ID performing the call.
@@ -336,16 +343,10 @@ class ToolExecutor {
 			return [ 'error' => 'A description of changes is required.' ];
 		}
 
-		$new_content = \wp_kses_post( $args['new_content'] ?? '' );
-		if ( '' === $new_content ) {
-			return [ 'error' => 'The updated post content (new_content) is required.' ];
-		}
-
 		$plan_data = [
 			'plan_type'   => 'update',
 			'post_id'     => $post_id,
 			'changes'     => $changes,
-			'new_content' => $new_content,
 			'post_status' => \in_array( $args['status'] ?? '', [ 'draft', 'publish', 'pending' ], true )
 				? $args['status']
 				: '',
@@ -359,7 +360,64 @@ class ToolExecutor {
 			$plan_data['meta_fields'] = $args['meta_fields'];
 		}
 
+		\set_transient( self::draft_transient_key( $user_id ), $plan_data, 5 * MINUTE_IN_SECONDS );
+
+		return [
+			'status'  => 'awaiting_content',
+			'post_id' => $post_id,
+		];
+	}
+
+	/**
+	 * Complete a staged plan_update by attaching the full rewritten post body.
+	 *
+	 * @since NEXT_VERSION
+	 * @param array $args    Tool arguments from the AI provider.
+	 * @param int   $user_id WordPress user ID performing the call.
+	 * @return array
+	 */
+	private function submit_post_content( array $args, int $user_id ): array {
+		if ( ! \user_can( $user_id, 'edit_posts' ) ) {
+			return [ 'error' => 'Insufficient permissions.' ];
+		}
+
+		$post_id = \absint( $args['post_id'] ?? 0 );
+		if ( 0 === $post_id ) {
+			return [ 'error' => 'A valid post_id is required.' ];
+		}
+
+		$draft_key = self::draft_transient_key( $user_id );
+		$plan_data = \get_transient( $draft_key );
+		if ( false === $plan_data || ( $plan_data['post_id'] ?? 0 ) !== $post_id ) {
+			return [ 'error' => 'No pending update found for this post. Call plan_update first.' ];
+		}
+
+		$new_content = \wp_kses_post( $args['content'] ?? '' );
+		if ( '' === $new_content ) {
+			return [ 'error' => 'The updated post content is required.' ];
+		}
+
+		\delete_transient( $draft_key );
+
+		$plan_data['new_content'] = $new_content;
+
 		return $this->store_plan( $plan_data, $user_id );
+	}
+
+	/**
+	 * Returns the WordPress transient key for a user's in-flight plan_update draft.
+	 *
+	 * Single-slot per user — only one agentic loop runs per user request, so a
+	 * new plan_update call safely overwrites any prior, unclaimed draft. The
+	 * short TTL only needs to outlive the current request's remaining loop
+	 * iterations, not a full user-approval window like the final plan transient.
+	 *
+	 * @since NEXT_VERSION
+	 * @param int $user_id WordPress user ID who owns the draft.
+	 * @return string
+	 */
+	private static function draft_transient_key( int $user_id ): string {
+		return "plume_plan_draft_{$user_id}";
 	}
 
 	/**

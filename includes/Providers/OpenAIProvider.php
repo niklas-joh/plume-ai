@@ -208,7 +208,8 @@ class OpenAIProvider extends AbstractProvider {
 		$result  = ProxyClient::chat( $request->messages, $feature, $options, 'openai' );
 
 		if ( is_wp_error( $result ) ) {
-			throw new ProviderException( $result->get_error_message(), 'openai' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new ProviderException( $result->get_error_message(), 'openai', 0, [], null, $result->get_error_code() );
 		}
 
 		// ProxyClient::chat() already called UsageTracker::log_usage() — flag to suppress parent logging.

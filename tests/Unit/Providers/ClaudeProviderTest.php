@@ -264,9 +264,14 @@ class ClaudeProviderTest extends TestCase {
 
 		// A keyless site routes through ProxyClient.
 		// ProxyClient::chat() returns WP_Error('not_registered') when site token is missing.
-		// ClaudeProvider converts this WP_Error to a ProviderException.
-		$this->expectException( ProviderException::class );
-		$provider->complete( $request );
+		// ClaudeProvider converts this WP_Error to a ProviderException, preserving the
+		// WP_Error code so ChatRestController can pass it through to the REST client.
+		try {
+			$provider->complete( $request );
+			$this->fail( 'Expected a ProviderException to be thrown.' );
+		} catch ( ProviderException $e ) {
+			$this->assertSame( 'not_registered', $e->get_error_code() );
+		}
 	}
 
 	public function test_complete_routes_own_key_direct_not_via_proxy(): void {

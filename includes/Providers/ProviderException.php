@@ -28,6 +28,7 @@ class ProviderException extends \RuntimeException {
 	 * @param int         $http_status    HTTP status code.
 	 * @param array       $raw_response   Raw API response.
 	 * @param ?\Throwable $previous       Previous exception.
+	 * @param string      $error_code     Stable machine-readable error code (e.g. WP_Error code), empty if none.
 	 */
 	public function __construct(
 		string $message,
@@ -35,6 +36,7 @@ class ProviderException extends \RuntimeException {
 		private readonly int $http_status = 0,
 		private readonly array $raw_response = [],
 		?\Throwable $previous = null,
+		private readonly string $error_code = '',
 	) {
 		parent::__construct( $message, $http_status, $previous );
 	}
@@ -73,5 +75,15 @@ class ProviderException extends \RuntimeException {
 	 */
 	public function is_retryable(): bool {
 		return in_array( $this->http_status, [ 429, 500, 502, 503, 504 ], true );
+	}
+
+	/**
+	 * Get the stable machine-readable error code, if one was supplied.
+	 *
+	 * @since NEXT_VERSION
+	 * @return string
+	 */
+	public function get_error_code(): string {
+		return $this->error_code;
 	}
 }

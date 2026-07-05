@@ -112,6 +112,9 @@ class OnboardingRestControllerTest extends TestCase {
 
 	public function test_save_stores_api_keys_per_provider(): void {
 		Functions\when( 'sanitize_text_field' )->alias( fn( $s ) => $s );
+		// Free tier is proxy-eligible, so save() reaches maybe_register(); a live
+		// backoff transient short-circuits it before any Worker call is attempted.
+		Functions\when( 'get_transient' )->justReturn( 1 );
 
 		$mock_settings = $this->createMock( ProviderSettings::class );
 		$mock_settings->expects( $this->once() )
@@ -133,6 +136,10 @@ class OnboardingRestControllerTest extends TestCase {
 	}
 
 	public function test_save_ignores_invalid_provider_in_api_keys(): void {
+		// Free tier is proxy-eligible, so save() reaches maybe_register(); a live
+		// backoff transient short-circuits it before any Worker call is attempted.
+		Functions\when( 'get_transient' )->justReturn( 1 );
+
 		$mock_settings = $this->createMock( ProviderSettings::class );
 		$mock_settings->expects( $this->never() )->method( 'set_api_key' );
 
@@ -159,6 +166,9 @@ class OnboardingRestControllerTest extends TestCase {
 			fn( $key, $default = false ) =>
 				'plume_site_tier' === $key ? 'free' : $default
 		);
+		// Free tier is proxy-eligible, so save() reaches maybe_register(); a live
+		// backoff transient short-circuits it before any Worker call is attempted.
+		Functions\when( 'get_transient' )->justReturn( 1 );
 
 		$mock_settings = $this->createMock( ProviderSettings::class );
 		$mock_settings->expects( $this->once() )

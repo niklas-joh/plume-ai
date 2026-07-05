@@ -196,7 +196,8 @@ class ClaudeProvider extends AbstractProvider {
 		$result  = ProxyClient::chat( $request->messages, $feature, $options, 'claude' );
 
 		if ( is_wp_error( $result ) ) {
-			throw new ProviderException( $result->get_error_message(), 'claude' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new ProviderException( $result->get_error_message(), 'claude', 0, [], null, $result->get_error_code() );
 		}
 
 		// ProxyClient skips UsageTracker::log_usage() for 'chat' — ChatRestController logs once

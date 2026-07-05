@@ -641,6 +641,48 @@ class ChatRestControllerTest extends TestCase {
 
         $this->assertInstanceOf( \WP_REST_Response::class, $response );
         $this->assertSame( 502, $response->get_status(), 'Provider 403 must be masked as 502.' );
+        $this->assertSame( 'provider_error', $response->data['code'], 'Falls back to a generic code when the exception carries none.' );
+    }
+
+    /**
+     * A ProviderException carrying a WP_Error code (as ClaudeProvider now attaches for
+     * proxy failures) must surface that code so the client can distinguish a
+     * still-registering site from a genuine failure and retry accordingly.
+     */
+    public function test_send_message_propagates_provider_exception_error_code(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [] );
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+
+        $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( false );
+        $provider_mock->method( 'complete' )->willThrowException(
+            new \Plume\Providers\ProviderException( 'Reconnecting…', 'claude', 0, [], null, 'auth_failed' )
+        );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '12' ] );
+        $request->set_body_params( [ 'content' => 'Hi', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $this->assertInstanceOf( \WP_REST_Response::class, $response );
+        $this->assertSame( 'auth_failed', $response->data['code'] );
     }
 
     public function test_send_message_returns_200_with_message_after_max_iterations(): void {
@@ -798,7 +840,8 @@ class ChatRestControllerTest extends TestCase {
         $this->assertInstanceOf( \WP_REST_Response::class, $response );
         $this->assertSame( 503, $response->get_status(), 'Proxy-tier users must receive 503 when the provider is unavailable.' );
         $this->assertArrayHasKey( 'message', $response->data );
-        $this->assertStringContainsString( 'Could not connect', $response->data['message'] );
+        $this->assertStringContainsString( 'Connecting this site', $response->data['message'] );
+        $this->assertSame( 'not_registered', $response->data['code'], 'Client needs a stable code to distinguish this from a genuine failure and retry.' );
     }
 
     /**

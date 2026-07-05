@@ -51,7 +51,7 @@ class ProxyClient {
 			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'not_registered', __( 'Site not connected to Plume AI - Write and Design. Please reload the page.', 'plume' ) );
+			return new WP_Error( 'not_registered', __( 'Connecting this site to Plume AI - Write and Design. Please try sending your message again in a moment.', 'plume' ) );
 		}
 
 		$user_id = get_current_user_id();
@@ -111,7 +111,7 @@ class ProxyClient {
 			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
-			return new WP_Error( 'auth_failed', __( 'Connection to Plume AI - Write and Design failed. Please reload the page and try again.', 'plume' ) );
+			return new WP_Error( 'auth_failed', __( 'Reconnecting this site to Plume AI - Write and Design. Please try sending your message again in a moment.', 'plume' ) );
 		}
 
 		if ( $code < 200 || $code >= 300 ) {

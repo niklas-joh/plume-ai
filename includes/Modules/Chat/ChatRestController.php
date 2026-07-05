@@ -377,7 +377,8 @@ class ChatRestController {
 					}
 					return new \WP_REST_Response(
 						[
-							'message' => __( 'Could not connect to Plume — Write and Design. Please reload the page and try again.', 'plume' ),
+							'message' => __( 'Connecting this site to Plume — Write and Design. Please try sending your message again in a moment.', 'plume' ),
+							'code'    => 'not_registered',
 						],
 						503
 					);
@@ -551,7 +552,13 @@ class ChatRestController {
 			} else {
 				$status = $provider_status;
 			}
-			$response = new \WP_REST_Response( [ 'message' => $e->getMessage() ], $status );
+			$response = new \WP_REST_Response(
+				[
+					'message' => $e->getMessage(),
+					'code'    => '' !== $e->get_error_code() ? $e->get_error_code() : 'provider_error',
+				],
+				$status
+			);
 			if ( 429 === $status ) {
 				$next_month = new \DateTimeImmutable( 'first day of next month midnight UTC' );
 				$response->header( 'Retry-After', (string) max( 0, $next_month->getTimestamp() - time() ) );

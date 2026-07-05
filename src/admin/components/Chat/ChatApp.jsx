@@ -13,6 +13,11 @@ import { storageGet, storageSet } from '../../utils/storage';
 
 const NEW_CONVERSATION_TITLE = __( 'New conversation', 'plume' );
 
+// Site registration completing async (scheduled on the failed request's `shutdown`) usually
+// finishes within a couple of seconds — one silent retry avoids surfacing a raw error for it.
+const REGISTRATION_RETRY_CODES = new Set( [ 'not_registered', 'auth_failed' ] );
+const REGISTRATION_RETRY_DELAY_MS = 3000;
+
 const LAUNCH_SUGGESTIONS = [
 	{
 		...LAUNCH_ACTIONS[ 0 ],
@@ -209,6 +214,50 @@ export default function ChatApp() {
 		}
 	}
 
+	/**
+	 * Posts a chat message, silently retrying once if the site's registration
+	 * with the AI proxy is still completing in the background (see
+	 * REGISTRATION_RETRY_CODES) rather than surfacing a raw error immediately.
+	 *
+	 * @param {number} convId          Conversation ID to post the message to.
+	 * @param {string} content         Message text.
+	 * @param {?number} contextPostId  Post ID for context, if any.
+	 * @param {number} attempt         Internal retry counter; callers should omit this.
+	 * @return {Promise<Object>} The REST response body.
+	 */
+	async function sendChatMessage(
+		convId,
+		content,
+		contextPostId,
+		attempt = 0
+	) {
+		try {
+			return await apiFetch( {
+				path: `/plume/v1/conversations/${ convId }/messages`,
+				method: 'POST',
+				data: {
+					content,
+					provider: selectedProvider,
+					model: selectedModel,
+					context_post_id: contextPostId ?? attachedPost?.id ?? 0,
+				},
+			} );
+		} catch ( err ) {
+			if ( 0 === attempt && REGISTRATION_RETRY_CODES.has( err?.code ) ) {
+				await new Promise( ( resolve ) =>
+					setTimeout( resolve, REGISTRATION_RETRY_DELAY_MS )
+				);
+				return sendChatMessage(
+					convId,
+					content,
+					contextPostId,
+					attempt + 1
+				);
+			}
+			throw err;
+		}
+	}
+
 	async function sendMessage( content, contextPostId = null ) {
 		// Resolve conversation ID — create one if none active.
 		let convId = activeConvId;
@@ -242,16 +291,7 @@ export default function ChatApp() {
 		setIsLoading( true );
 
 		try {
-			const res = await apiFetch( {
-				path: `/plume/v1/conversations/${ convId }/messages`,
-				method: 'POST',
-				data: {
-					content,
-					provider: selectedProvider,
-					model: selectedModel,
-					context_post_id: contextPostId ?? attachedPost?.id ?? 0,
-				},
-			} );
+			const res = await sendChatMessage( convId, content, contextPostId );
 			// Filter out internal plumbing tools from the passive indicator.
 			const passiveTools = ( res.tools_called ?? [] ).filter(
 				( t ) =>

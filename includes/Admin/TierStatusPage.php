@@ -127,7 +127,7 @@ class TierStatusPage {
 			<?php if ( 'free' === $tier ) : ?>
 			<div class="card plume-upgrade-card">
 				<h2><?php esc_html_e( 'Upgrade your plan', 'plume' ); ?></h2>
-				<p><?php esc_html_e( 'Pro Managed gives you 500 credits/month and access to more models. Pro BYOK gives you no credit limit, using your own API key.', 'plume' ); ?></p>
+				<p><?php esc_html_e( 'Pro Managed gives you 500 credits/month on the managed service and access to more models. Alternatively, enter your own API key in Settings — free on every plan — for no credit limit, billed directly by your provider.', 'plume' ); ?></p>
 				<div class="plume-upgrade-actions">
 					<a href="<?php echo esc_url( SiteRegistration::checkout_url_pro_managed_monthly() ); ?>" class="button button-primary">
 						<?php esc_html_e( 'Pro Managed — Monthly', 'plume' ); ?>
@@ -135,13 +135,13 @@ class TierStatusPage {
 					<a href="<?php echo esc_url( SiteRegistration::checkout_url_pro_managed_annual() ); ?>" class="button button-primary">
 						<?php esc_html_e( 'Pro Managed — Annual', 'plume' ); ?>
 					</a>
-					<a href="<?php echo esc_url( SiteRegistration::checkout_url_pro_byok_onetime() ); ?>" class="button">
-						<?php esc_html_e( 'Pro BYOK — One-time', 'plume' ); ?>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=plume-settings' ) ); ?>" class="button">
+						<?php esc_html_e( 'Use your own API key', 'plume' ); ?>
 					</a>
 				</div>
 			</div>
 			<?php endif; ?>
-			<?php if ( 'pro_byok' === $tier ) : ?>
+			<?php if ( 'free' !== $tier ) : ?>
 			<p>
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=plume-settings' ) ); ?>">
 					<?php esc_html_e( 'Manage your API keys →', 'plume' ); ?>

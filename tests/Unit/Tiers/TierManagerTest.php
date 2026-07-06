@@ -34,16 +34,16 @@ class TierManagerTest extends TestCase {
 	 * than kept unused for call-site compatibility.
 	 */
 	/**
-	 * user_can()'s $user_id parameter was kept during planning "for callers that
-	 * pass a specific user's ID" — but every such caller (ToolExecutor.php's
-	 * generate_seo_meta() gate) was deleted in Phase 1.5, and zero production
-	 * call sites pass a real argument any more. Per the no-legacy-shims
-	 * directive, a parameter kept only against a hypothetical future caller
-	 * is removed rather than left unused.
+	 * user_can() was deleted outright once its last two gates (model_selection,
+	 * own_api_key) were removed for WP.org Guideline 5 compliance — no feature
+	 * is tier-gated in PHP any more, so a feature-gate API must not exist for
+	 * future code to quietly reintroduce one.
 	 */
-	public function test_user_can_has_no_user_id_parameter(): void {
-		$method = new \ReflectionMethod( TierManager::class, 'user_can' );
-		$this->assertCount( 1, $method->getParameters(), 'user_can() must take only $feature — the unused $user_id parameter was removed.' );
+	public function test_user_can_method_does_not_exist(): void {
+		$this->assertFalse(
+			method_exists( TierManager::class, 'user_can' ),
+			'user_can() must not exist — no feature is tier-gated (WP.org Guideline 5).'
+		);
 	}
 
 	public function test_get_user_tier_has_no_parameters(): void {
@@ -108,67 +108,6 @@ class TierManagerTest extends TestCase {
 		Functions\expect( 'do_action' )->never();
 
 		$this->assertFalse( TierManager::set_site_tier( 'pro_managed' ) );
-	}
-
-	// ── user_can — exercised against the get_user_tier resolution path ──────
-
-	public function test_free_user_can_chat_but_not_model_selection(): void {
-		Functions\expect( 'get_option' )->twice()->with( TierManager::SITE_OPTION, 'free' )->andReturn( 'free' );
-
-		$this->assertTrue( TierManager::user_can( 'chat' ) );
-		$this->assertFalse( TierManager::user_can( 'model_selection' ) );
-	}
-
-	public function test_pro_managed_site_grants_model_selection_but_not_own_api_key(): void {
-		Functions\expect( 'get_option' )->times( 3 )->with( TierManager::SITE_OPTION, 'free' )->andReturn( 'pro_managed' );
-		Functions\expect( 'get_option' )->times( 3 )->with( TierUpdateWebhookController::OPTION_SECRET, '' )->andReturn( '' );
-
-		$this->assertTrue( TierManager::user_can( 'chat' ) );
-		$this->assertTrue( TierManager::user_can( 'model_selection' ) );
-		// own_api_key remains gated to pro_byok only — Pro Managed users do not bring their own key.
-		$this->assertFalse( TierManager::user_can( 'own_api_key' ) );
-	}
-
-	public function test_pro_byok_site_grants_all_features(): void {
-		Functions\expect( 'get_option' )->times( 6 )->with( TierManager::SITE_OPTION, 'free' )->andReturn( 'pro_byok' );
-		Functions\expect( 'get_option' )->times( 6 )->with( TierUpdateWebhookController::OPTION_SECRET, '' )->andReturn( '' );
-
-		$this->assertTrue( TierManager::user_can( 'chat' ) );
-		$this->assertTrue( TierManager::user_can( 'model_selection' ) );
-		$this->assertTrue( TierManager::user_can( 'own_api_key' ) );
-		$this->assertTrue( TierManager::user_can( 'generator' ) );
-		$this->assertTrue( TierManager::user_can( 'seo' ) );
-		$this->assertTrue( TierManager::user_can( 'images' ) );
-	}
-
-	public function test_free_user_can_use_content_features(): void {
-		// Trial removal means free tier now has uniform access to chat/generator/seo/images —
-		// only model_selection and own_api_key remain genuinely tier-gated.
-		Functions\expect( 'get_option' )->times( 3 )->with( TierManager::SITE_OPTION, 'free' )->andReturn( 'free' );
-
-		$this->assertTrue( TierManager::user_can( 'generator' ) );
-		$this->assertTrue( TierManager::user_can( 'seo' ) );
-		$this->assertTrue( TierManager::user_can( 'images' ) );
-	}
-
-	public function test_pro_managed_site_can_use_content_features(): void {
-		Functions\expect( 'get_option' )->times( 3 )->with( TierManager::SITE_OPTION, 'free' )->andReturn( 'pro_managed' );
-		Functions\expect( 'get_option' )->times( 3 )->with( TierUpdateWebhookController::OPTION_SECRET, '' )->andReturn( '' );
-
-		$this->assertTrue( TierManager::user_can( 'generator' ) );
-		$this->assertTrue( TierManager::user_can( 'seo' ) );
-		$this->assertTrue( TierManager::user_can( 'images' ) );
-	}
-
-	/**
-	 * Covers the match()'s `default => true` arm directly — any feature key other
-	 * than 'model_selection'/'own_api_key' is uniformly allowed regardless of tier.
-	 */
-	public function test_user_can_default_branch_allows_unknown_feature_keys_uniformly(): void {
-		Functions\expect( 'get_option' )->times( 2 )->with( TierManager::SITE_OPTION, 'free' )->andReturn( 'free' );
-
-		$this->assertTrue( TierManager::user_can( 'chat' ) );
-		$this->assertTrue( TierManager::user_can( 'some_future_feature' ) );
 	}
 
 	public function test_is_paid_returns_false_for_free_tier(): void {

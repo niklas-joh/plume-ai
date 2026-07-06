@@ -8,6 +8,7 @@
 declare( strict_types=1 );
 namespace Plume\Admin;
 
+use Plume\Providers\ProviderFactory;
 use Plume\Proxy\SiteRegistration;
 use Plume\Settings\ProviderSettings;
 use Plume\Tiers\TierManager;
@@ -79,8 +80,8 @@ class OnboardingRestController {
 	 * Handles the onboarding POST endpoint.
 	 *
 	 * Saves provider, API keys, and onboarding-seen state from the request.
-	 * Returns 403 if the current user's tier does not include the own_api_key feature
-	 * and api_keys are present in the payload.
+	 * API keys are accepted on every tier (WP.org Guideline 5 — bringing your
+	 * own key is never plan-gated).
 	 *
 	 * For proxy-tier users (no own_api_key capability), also registers the site with
 	 * the proxy now rather than waiting for the next admin_init or a failed chat
@@ -88,8 +89,9 @@ class OnboardingRestController {
 	 * client can set expectations before the user reaches Chat.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Removed the own_api_key tier gate.
 	 * @param WP_REST_Request $request Incoming REST request.
-	 * @return WP_REST_Response|\WP_Error 200 on success (with `registered` bool); WP_Error 403 if tier gate fails.
+	 * @return WP_REST_Response|\WP_Error 200 on success (with `registered` bool).
 	 */
 	public static function save( WP_REST_Request $request ): WP_REST_Response|\WP_Error {
 		$seen = $request->get_param( 'seen' );
@@ -106,15 +108,7 @@ class OnboardingRestController {
 			update_option( 'plume_default_provider', sanitize_text_field( $provider ) );
 		}
 		if ( $api_keys && is_array( $api_keys ) ) {
-			if ( ! TierManager::user_can( 'own_api_key' ) ) {
-				return new \WP_Error(
-					'rest_plan_required',
-					__( 'API key management requires the Pro BYOK plan.', 'plume' ),
-					[ 'status' => 403 ]
-				);
-			}
-
-			$valid    = [ 'openai', 'claude', 'gemini' ];
+			$valid    = ProviderFactory::PROXY_CAPABLE;
 			$settings = static::make_provider_settings();
 			foreach ( $api_keys as $p => $key ) {
 				if ( in_array( $p, $valid, true ) && ! empty( $key ) ) {
@@ -132,7 +126,7 @@ class OnboardingRestController {
 		// register now, synchronously, rather than leaving it to the next admin_init or a failed chat call.
 		// BYOK users never need a site token, so `registered` stays true (nothing to wait for).
 		$registered = true;
-		if ( ! TierManager::user_can( 'own_api_key' ) ) {
+		if ( 'pro_byok' !== TierManager::get_user_tier() ) {
 			$registered = SiteRegistration::is_registered();
 			if ( ! $registered ) {
 				SiteRegistration::maybe_register();

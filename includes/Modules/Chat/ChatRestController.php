@@ -23,7 +23,6 @@ use Plume\Tools\ToolRegistry;
 use Plume\Tools\ToolExecutor;
 use Plume\Voice\VoiceInjector;
 use Plume\Proxy\SiteRegistration;
-use Plume\Tiers\TierManager;
 use Plume\Tiers\UsageTracker;
 
 /**
@@ -343,9 +342,12 @@ class ChatRestController {
 		// and persisting unconditionally here would duplicate the user message on every
 		// such retry rather than only once the provider actually completes it.
 		if ( ! $provider->is_available() ) {
-			$is_proxy_tier = ! TierManager::user_can( 'own_api_key' );
+			// Proxy-capable providers are only unavailable when the site has
+			// neither an API key nor a proxy registration, so scheduling a
+			// registration is the fix; Ollama has no proxy path and needs a URL.
+			$proxy_capable = in_array( $provider_slug, ProviderFactory::PROXY_CAPABLE, true );
 
-			if ( $is_proxy_tier ) {
+			if ( $proxy_capable ) {
 				// Site token absent — schedule re-registration so the next page load succeeds.
 				// Guard against double-scheduling: add_action does not deduplicate identical callbacks on the same hook.
 				if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {

@@ -112,13 +112,9 @@ class OnboardingRestControllerTest extends TestCase {
 
 	public function test_save_stores_api_keys_per_provider(): void {
 		Functions\when( 'sanitize_text_field' )->alias( fn( $s ) => $s );
-		// Tier gate: TierManager::user_can() needs these stubs.
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'get_option' )->alias(
-			fn( $key, $default = false ) =>
-				'plume_site_tier' === $key ? 'pro_byok' : $default
-		);
-		Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'pro_byok' : null );
+		// Free tier is proxy-eligible, so save() reaches maybe_register(); a live
+		// backoff transient short-circuits it before any Worker call is attempted.
+		Functions\when( 'get_transient' )->justReturn( 1 );
 
 		$mock_settings = $this->createMock( ProviderSettings::class );
 		$mock_settings->expects( $this->once() )
@@ -140,14 +136,9 @@ class OnboardingRestControllerTest extends TestCase {
 	}
 
 	public function test_save_ignores_invalid_provider_in_api_keys(): void {
-		// Tier gate: TierManager::user_can() needs these stubs.
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		// pro_byok is a site-level entitlement now, so stub the site option.
-		Functions\when( 'get_option' )->alias(
-			fn( $key, $default = false ) =>
-				'plume_site_tier' === $key ? 'pro_byok' : $default
-		);
-		Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'pro_byok' : null );
+		// Free tier is proxy-eligible, so save() reaches maybe_register(); a live
+		// backoff transient short-circuits it before any Worker call is attempted.
+		Functions\when( 'get_transient' )->justReturn( 1 );
 
 		$mock_settings = $this->createMock( ProviderSettings::class );
 		$mock_settings->expects( $this->never() )->method( 'set_api_key' );
@@ -166,20 +157,39 @@ class OnboardingRestControllerTest extends TestCase {
 		$ctrl::save( $request );
 	}
 
-	public function test_save_api_keys_rejected_for_free_tier(): void {
-		Functions\when( '__' )->alias( fn( $s ) => $s );
-		// tier gate: simulate a free-tier user.
+	public function test_save_api_keys_accepted_on_free_tier(): void {
+		// Bringing your own key is never plan-gated (WP.org Guideline 5), so the
+		// onboarding wizard must store keys for free-tier sites too.
+		Functions\when( 'sanitize_text_field' )->alias( fn( $s ) => $s );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) =>
+				'plume_site_tier' === $key ? 'free' : $default
+		);
+		// Free tier is proxy-eligible, so save() reaches maybe_register(); a live
+		// backoff transient short-circuits it before any Worker call is attempted.
+		Functions\when( 'get_transient' )->justReturn( 1 );
+
+		$mock_settings = $this->createMock( ProviderSettings::class );
+		$mock_settings->expects( $this->once() )
+			->method( 'set_api_key' )
+			->with( 'openai', 'sk-test' );
+
+		$ctrl        = new class extends OnboardingRestController {
+			public static ProviderSettings $mock;
+			protected static function make_provider_settings(): ProviderSettings {
+				return self::$mock;
+			}
+		};
+		$ctrl::$mock = $mock_settings;
 
 		$request = new \WP_REST_Request( 'POST' );
 		$request->set_param( 'api_keys', [ 'openai' => 'sk-test' ] );
 
-		$response = OnboardingRestController::save( $request );
+		$response = $ctrl::save( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
-		$this->assertSame( 'rest_plan_required', $response->get_error_code() );
-		$this->assertSame( 403, $response->get_error_data( 'rest_plan_required' )['status'] );
+		$this->assertInstanceOf( \WP_REST_Response::class, $response );
+		$this->assertSame( 200, $response->get_status() );
 	}
 
 	// ── save() — response ────────────────────────────────────────────────────

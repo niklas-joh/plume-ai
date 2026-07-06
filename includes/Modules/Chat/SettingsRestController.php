@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
 use Plume\Tiers\TierManager;
 
@@ -102,28 +103,16 @@ class SettingsRestController {
 		$json_params       = $request->get_json_params();
 		$params            = ! empty( $json_params ) ? $json_params : [];
 
-		// Scalar options.
+		// Scalar options. Provider/model choice and API keys are deliberately
+		// not tier-gated (WP.org Guideline 5) — the managed proxy enforces which
+		// models each plan may use, service-side.
 		$default_provider = $request->get_param( 'default_provider' );
 		if ( null !== $default_provider ) {
-			if ( ! TierManager::user_can( 'model_selection' ) ) {
-				return new \WP_Error(
-					'rest_plan_required',
-					__( 'Model selection requires the Pro Managed or Pro BYOK plan.', 'plume' ),
-					[ 'status' => 403 ]
-				);
-			}
 			update_option( 'plume_default_provider', sanitize_text_field( (string) $default_provider ) );
 		}
 
 		$image_provider = $request->get_param( 'image_provider' );
 		if ( null !== $image_provider ) {
-			if ( ! TierManager::user_can( 'model_selection' ) ) {
-				return new \WP_Error(
-					'rest_plan_required',
-					__( 'Model selection requires the Pro Managed or Pro BYOK plan.', 'plume' ),
-					[ 'status' => 403 ]
-				);
-			}
 			update_option( 'plume_image_provider', sanitize_text_field( (string) $image_provider ) );
 		}
 
@@ -147,15 +136,7 @@ class SettingsRestController {
 		// API keys — skip any that are the mask placeholder (i.e. unchanged).
 		$api_keys = $request->get_param( 'api_keys' );
 		if ( is_array( $api_keys ) ) {
-			if ( ! TierManager::user_can( 'own_api_key' ) ) {
-				return new \WP_Error(
-					'rest_plan_required',
-					__( 'API key management requires the Pro BYOK plan.', 'plume' ),
-					[ 'status' => 403 ]
-				);
-			}
-
-			$provider_map = [ 'claude', 'openai', 'gemini' ];
+			$provider_map = ProviderFactory::PROXY_CAPABLE;
 
 			foreach ( $provider_map as $provider ) {
 				if ( isset( $api_keys[ $provider ] ) && '••••••' !== $api_keys[ $provider ] ) {

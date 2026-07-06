@@ -64,16 +64,6 @@ class SiteRegistration {
 	}
 
 	/**
-	 * Return the checkout URL for the Pro BYOK One-time plan.
-	 *
-	 * @since 1.2.0
-	 * @return string Fully-formed checkout URL.
-	 */
-	public static function checkout_url_pro_byok_onetime(): string {
-		return self::checkout_url( self::plan_id( 'byok' ) );
-	}
-
-	/**
 	 * Return the stored site token, or an empty string if not yet registered.
 	 *
 	 * @since 1.2.0
@@ -288,12 +278,14 @@ class SiteRegistration {
 	/**
 	 * Return the LemonSqueezy variant ID for a plan, with wp-config.php override support.
 	 *
-	 * Defaults match the live store. Override via PLUME_LS_MONTHLY_ID,
-	 * PLUME_LS_ANNUAL_ID, or PLUME_LS_BYOK_ID in wp-config.php to
-	 * change variant IDs without a plugin release (e.g. after a store migration).
+	 * Defaults match the live store. Override via PLUME_LS_MONTHLY_ID or
+	 * PLUME_LS_ANNUAL_ID in wp-config.php to change variant IDs without a
+	 * plugin release (e.g. after a store migration).
 	 *
 	 * @since 1.2.0
-	 * @param string $plan One of 'monthly', 'annual', 'byok'.
+	 * @since NEXT_VERSION Dropped the 'byok' plan — bringing your own key is
+	 *                      free on every tier, so it has no checkout.
+	 * @param string $plan One of 'monthly', 'annual'.
 	 * @return string LemonSqueezy variant ID.
 	 * @throws \InvalidArgumentException When an unrecognised plan key is passed.
 	 */
@@ -301,7 +293,6 @@ class SiteRegistration {
 		$map = [
 			'monthly' => defined( 'PLUME_LS_MONTHLY_ID' ) ? PLUME_LS_MONTHLY_ID : '1550505',
 			'annual'  => defined( 'PLUME_LS_ANNUAL_ID' ) ? PLUME_LS_ANNUAL_ID : '1550477',
-			'byok'    => defined( 'PLUME_LS_BYOK_ID' ) ? PLUME_LS_BYOK_ID : '1550517',
 		];
 		if ( ! array_key_exists( $plan, $map ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal developer error, not user-facing output.

@@ -136,7 +136,9 @@ class TierStatusPageTest extends TestCase {
 		$this->assertStringContainsString( '1550477', $output );
 	}
 
-	public function test_render_includes_pro_byok_onetime_checkout_url_for_free_tier(): void {
+	public function test_render_offers_own_api_key_settings_link_instead_of_byok_checkout(): void {
+		// BYOK is free on every plan (WP.org Guideline 5), so the upgrade card
+		// links to Settings rather than a LemonSqueezy checkout.
 		$this->stub_display_functions();
 		$this->stub_tier_and_registration( 'free', true, 1000 );
 
@@ -144,7 +146,9 @@ class TierStatusPageTest extends TestCase {
 		TierStatusPage::render();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( '1550517', $output );
+		$this->assertStringContainsString( 'Use your own API key', $output );
+		$this->assertStringContainsString( 'page=plume-settings', $output );
+		$this->assertStringNotContainsString( '1550517', $output );
 	}
 
 	public function test_render_omits_upgrade_section_for_pro_managed_tier(): void {
@@ -235,7 +239,7 @@ class TierStatusPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'Manage your API keys', $output );
 	}
 
-	public function test_render_omits_api_keys_link_for_pro_managed_tier(): void {
+	public function test_render_shows_api_keys_link_for_pro_managed_tier(): void {
 		$this->stub_display_functions();
 		$this->stub_tier_and_registration( 'pro_managed', true );
 
@@ -243,6 +247,7 @@ class TierStatusPageTest extends TestCase {
 		TierStatusPage::render();
 		$output = ob_get_clean();
 
-		$this->assertStringNotContainsString( 'Manage your API keys', $output );
+		$this->assertStringContainsString( 'Manage your API keys', $output );
+		$this->assertStringContainsString( 'plume-settings', $output );
 	}
 }

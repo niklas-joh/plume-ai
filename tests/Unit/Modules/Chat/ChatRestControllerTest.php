@@ -747,10 +747,9 @@ class ChatRestControllerTest extends TestCase {
     /**
      * Helper: extend make_controller() for the unavailability branch.
      *
-     * Tier is no longer read via an overridable controller method — is_proxy_tier
-     * now calls TierManager::user_can('own_api_key') directly, which resolves the
-     * tier from the site option. Tests control the tier by stubbing get_option()
-     * for TierManager::SITE_OPTION before constructing the controller.
+     * The 503/422 split is decided by the provider slug alone: proxy-capable
+     * providers (claude/openai/gemini) get a 503 plus a scheduled registration,
+     * Ollama gets a 422 (needs a URL, has no proxy path).
      *
      * @param \Plume\DB\ConversationStore    $store
      * @param \Plume\Providers\ProviderFactory $factory
@@ -798,9 +797,9 @@ class ChatRestControllerTest extends TestCase {
     }
 
     /**
-     * A proxy-tier user whose provider is unavailable must receive a 503.
+     * A proxy-capable provider that is unavailable must produce a 503.
      */
-    public function test_send_message_returns_503_for_proxy_tier_when_provider_unavailable(): void {
+    public function test_send_message_returns_503_for_proxy_capable_provider_when_unavailable(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( '__' )->alias( fn( $s ) => $s );
@@ -844,17 +843,17 @@ class ChatRestControllerTest extends TestCase {
         $response = $controller->send_message( $request );
 
         $this->assertInstanceOf( \WP_REST_Response::class, $response );
-        $this->assertSame( 503, $response->get_status(), 'Proxy-tier users must receive 503 when the provider is unavailable.' );
+        $this->assertSame( 503, $response->get_status(), 'Proxy-capable providers must produce 503 when unavailable.' );
         $this->assertArrayHasKey( 'message', $response->data );
         $this->assertStringContainsString( 'Connecting this site', $response->data['message'] );
         $this->assertSame( 'not_registered', $response->data['code'], 'Client needs a stable code to distinguish this from a genuine failure and retry.' );
     }
 
     /**
-     * The re-registration shutdown hook must be scheduled exactly once when the
-     * provider is unavailable for a proxy-tier user.
+     * The re-registration shutdown hook must be scheduled exactly once when a
+     * proxy-capable provider is unavailable.
      */
-    public function test_send_message_schedules_registration_on_shutdown_for_proxy_tier(): void {
+    public function test_send_message_schedules_registration_on_shutdown_for_proxy_capable_provider(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( '__' )->alias( fn( $s ) => $s );
@@ -906,23 +905,14 @@ class ChatRestControllerTest extends TestCase {
     }
 
     /**
-     * A BYOK-tier user with an unavailable provider must still receive 422, not 503.
+     * Ollama has no proxy path, so an unavailable Ollama provider must receive
+     * 422 (configure a URL), not 503.
      */
-    public function test_send_message_returns_422_for_byok_tier_when_provider_unavailable(): void {
+    public function test_send_message_returns_422_for_ollama_when_provider_unavailable(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( '__' )->alias( fn( $s ) => $s );
-        Functions\when( 'get_option' )->alias(
-            function ( $key, $default = false ) {
-                if ( 'plume_site_tier' === $key ) {
-                    return 'pro_byok';
-                }
-                if ( \Plume\Payments\TierUpdateWebhookController::OPTION_SECRET === $key ) {
-                    return '';
-                }
-                return 'claude' === $default ? 'claude' : $default;
-            }
-        );
+        Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
 
         $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
@@ -942,12 +932,12 @@ class ChatRestControllerTest extends TestCase {
 
         $request = new \WP_REST_Request( 'POST' );
         $request->set_url_params( [ 'id' => '1' ] );
-        $request->set_body_params( [ 'content' => 'Hi', 'provider' => 'claude', 'model' => '' ] );
+        $request->set_body_params( [ 'content' => 'Hi', 'provider' => 'ollama', 'model' => '' ] );
 
         $response = $controller->send_message( $request );
 
         $this->assertInstanceOf( \WP_REST_Response::class, $response );
-        $this->assertSame( 422, $response->get_status(), 'BYOK-tier users must receive 422 (missing API key), not 503.' );
+        $this->assertSame( 422, $response->get_status(), 'Ollama must receive 422 (missing URL/key), not 503.' );
     }
 
     // ── context_post_id system-prompt injection ───────────────────────────────

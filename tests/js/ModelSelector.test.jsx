@@ -1,6 +1,10 @@
 /**
  * Unit tests for ModelSelector — provider/model dropdown in the right panel.
  *
+ * Model selection is never tier-gated (WP.org Guideline 5) — the managed
+ * proxy enforces each plan's model catalogue service-side, so the Advanced
+ * toggle must be usable on every tier.
+ *
  * @see src/admin/components/RightPanel/ModelSelector.jsx
  */
 import React from 'react';
@@ -33,7 +37,7 @@ describe( 'ModelSelector', () => {
 		document.body.removeChild( container );
 	} );
 
-	it( 'disables the Advanced toggle when modelSelection is false', async () => {
+	it( 'enables the Advanced toggle unconditionally', async () => {
 		await act( async () => {
 			root.render(
 				<ModelSelector
@@ -42,27 +46,6 @@ describe( 'ModelSelector', () => {
 					selectedModel=""
 					onProviderChange={ jest.fn() }
 					onModelChange={ jest.fn() }
-					modelSelection={ false }
-				/>
-			);
-		} );
-
-		const toggle = container.querySelector(
-			'.plume-model-advanced-toggle'
-		);
-		expect( toggle.disabled ).toBe( true );
-	} );
-
-	it( 'enables the Advanced toggle when modelSelection is true', async () => {
-		await act( async () => {
-			root.render(
-				<ModelSelector
-					providers={ PROVIDERS }
-					selectedProvider="claude"
-					selectedModel=""
-					onProviderChange={ jest.fn() }
-					onModelChange={ jest.fn() }
-					modelSelection={ true }
 				/>
 			);
 		} );
@@ -73,7 +56,7 @@ describe( 'ModelSelector', () => {
 		expect( toggle.disabled ).toBe( false );
 	} );
 
-	it( 'defaults modelSelection to false when the prop is omitted', async () => {
+	it( 'switches to advanced mode and lists providers when toggled', async () => {
 		await act( async () => {
 			root.render(
 				<ModelSelector
@@ -89,6 +72,16 @@ describe( 'ModelSelector', () => {
 		const toggle = container.querySelector(
 			'.plume-model-advanced-toggle'
 		);
-		expect( toggle.disabled ).toBe( true );
+		await act( async () => {
+			toggle.click();
+		} );
+
+		const providerSelect = container.querySelector(
+			'select[aria-label="AI provider"]'
+		);
+		expect( providerSelect ).not.toBeNull();
+		expect( providerSelect.querySelectorAll( 'option' ).length ).toBe(
+			PROVIDERS.length
+		);
 	} );
 } );

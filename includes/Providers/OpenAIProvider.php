@@ -14,14 +14,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use Plume\Proxy\ProxyClient;
 use Plume\Proxy\SiteRegistration;
-use Plume\Tiers\TierManager;
 use Plume\Tools\ToolRegistry;
 
 /**
  * Handles completions, streaming, and image generation for OpenAI models.
  *
- * Free and pro_managed tiers route through the NJ proxy client so that
- * usage is logged centrally. The pro_byok tier calls the OpenAI API directly.
+ * Sites without a configured key route through the managed proxy so that
+ * usage is logged centrally; a configured API key calls the OpenAI API
+ * directly, on any tier.
  *
  * @since 1.0.0
  */
@@ -108,39 +108,37 @@ class OpenAIProvider extends AbstractProvider {
 	/**
 	 * Return true if the provider can handle requests for the current user.
 	 *
-	 * Available when an API key is set, or when the site is registered and the
-	 * user's tier is eligible for proxy routing.
+	 * Available when an API key is set (direct calls), or when the site is
+	 * registered with the managed proxy. Never tier-dependent — any tier may
+	 * bring its own key (WP.org Guideline 5).
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Tier no longer consulted; key presence or proxy
+	 *                      registration alone decides availability.
 	 * @return bool
 	 */
 	public function is_available(): bool {
-		if ( '' !== $this->api_key ) {
-			return true;
-		}
-		$tier = TierManager::get_user_tier();
-		return in_array( $tier, [ 'free', 'pro_managed' ], true )
-			&& SiteRegistration::is_registered();
+		return '' !== $this->api_key || SiteRegistration::is_registered();
 	}
 
 	/**
-	 * Route completion by tier:
-	 *   - free / pro_managed → proxy (ProxyClient handles usage logging)
-	 *   - pro_byok           → direct OpenAI API call (AbstractProvider logs usage)
+	 * Route completion by key presence:
+	 *   - no API key  → managed proxy (ProxyClient handles usage logging)
+	 *   - own API key → direct OpenAI API call (AbstractProvider logs usage)
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Routes on the configured API key instead of the tier,
+	 *                      so every tier can use its own key.
 	 * @param CompletionRequest $request The completion request.
 	 * @return CompletionResponse
 	 * @throws ProviderException On API or proxy failure.
 	 */
 	protected function do_complete( CompletionRequest $request ): CompletionResponse {
-		$tier = TierManager::get_user_tier();
-
-		if ( in_array( $tier, [ 'free', 'pro_managed' ], true ) ) {
+		if ( '' === $this->api_key ) {
 			return $this->complete_via_proxy( $request );
 		}
 
-		// pro_byok — direct OpenAI API call; AbstractProvider::complete() will log usage.
+		// Own key configured — direct OpenAI API call; AbstractProvider::complete() will log usage.
 		$this->proxy_logged = false;
 		$messages           = $request->messages;
 		if ( '' !== $request->system ) {

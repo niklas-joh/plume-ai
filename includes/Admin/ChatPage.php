@@ -84,9 +84,6 @@ class ChatPage {
 				'siteTitle'         => get_bloginfo( 'name' ),
 				'defaultModelLabel' => esc_html( $default_model_label ),
 				'defaultProvider'   => $default_slug,
-				'features'          => [
-					'model_selection' => TierManager::user_can( 'model_selection' ),
-				],
 			]
 		);
 

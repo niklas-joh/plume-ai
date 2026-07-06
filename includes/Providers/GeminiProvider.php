@@ -108,7 +108,7 @@ class GeminiProvider extends AbstractProvider {
 	 * bring its own key (WP.org Guideline 5).
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Tier no longer consulted; key presence or proxy
+	 * @since 1.12.0 Tier no longer consulted; key presence or proxy
 	 *                      registration alone decides availability.
 	 * @return bool
 	 */
@@ -122,7 +122,7 @@ class GeminiProvider extends AbstractProvider {
 	 *   - own API key → direct Gemini API call (AbstractProvider logs usage)
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Routes on the configured API key instead of the tier,
+	 * @since 1.12.0 Routes on the configured API key instead of the tier,
 	 *                      so every tier can use its own key.
 	 * @param CompletionRequest $request The completion request.
 	 * @return CompletionResponse

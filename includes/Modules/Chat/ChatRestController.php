@@ -263,7 +263,7 @@ class ChatRestController {
 	 * itself; returns null and clears a stale pointer when the plan has been
 	 * executed, dismissed, or has expired.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.12.0
 	 * @param \WP_REST_Request $request Incoming REST request with conversation 'id'.
 	 * @return \WP_REST_Response Body is `{ pending_plan: object|null }`.
 	 */
@@ -295,7 +295,7 @@ class ChatRestController {
 	/**
 	 * Transient key recording the plan a conversation is awaiting approval on.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.12.0
 	 * @param int $user_id WordPress user ID who owns the conversation.
 	 * @param int $conv_id Conversation record ID.
 	 * @return string
@@ -825,7 +825,7 @@ class ChatRestController {
 	 * anything else. Mirrors strip_single_use_tools' per-provider shape handling, inverted
 	 * to an allowlist rather than a denylist.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.12.0
 	 * @param array<int, array<string, mixed>> $tools         Provider-formatted tool list.
 	 * @param string                           $provider_slug Provider slug ('claude', 'openai', 'gemini', 'proxy').
 	 * @param string[]                         $keep_names    Tool names to keep.

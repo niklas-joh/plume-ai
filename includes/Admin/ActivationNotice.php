@@ -47,7 +47,7 @@ class ActivationNotice {
 	 * has manage_options capability. Deletes the flag before rendering.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Rendering is limited to Plume admin screens so the
+	 * @since 1.12.0 Rendering is limited to Plume admin screens so the
 	 *                      notice never occupies unrelated wp-admin pages
 	 *                      (WP.org Guideline 11). The flag is only consumed
 	 *                      once the notice can actually render, so activating

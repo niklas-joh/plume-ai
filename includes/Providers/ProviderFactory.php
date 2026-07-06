@@ -26,7 +26,7 @@ class ProviderFactory {
 	 *
 	 * Ollama is excluded — it has no proxy path and requires a configured URL.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.12.0
 	 * @var string[]
 	 */
 	public const PROXY_CAPABLE = [ 'claude', 'openai', 'gemini' ];

@@ -1,3 +1,17 @@
+## [1.12.0](https://github.com/niklas-joh/plume-ai/compare/v1.11.0...v1.12.0) (2026-07-06)
+
+### New Features
+
+* **chat:** add review & comment drawer for AI post update plans ([#828](https://github.com/niklas-joh/plume-ai/issues/828)) ([949cbe9](https://github.com/niklas-joh/plume-ai/commit/949cbe9dce18e92d181c96f354a6e5df722956ff))
+
+### Bug Fixes
+
+* **admin:** scope activation notice to Plume admin screens ([#912](https://github.com/niklas-joh/plume-ai/issues/912)) ([53c3ada](https://github.com/niklas-joh/plume-ai/commit/53c3ada80da6185c7bbbe79115a3ba5c4714ef1d))
+* **core:** align plugin header name with readme display name ([#911](https://github.com/niklas-joh/plume-ai/issues/911)) ([b83cd8e](https://github.com/niklas-joh/plume-ai/commit/b83cd8e25b3b398b5329d11e6e70e8a53575f5e7))
+* **proxy:** defer site registration until first proxy-backed request ([#914](https://github.com/niklas-joh/plume-ai/issues/914)) ([fbe69c7](https://github.com/niklas-joh/plume-ai/commit/fbe69c701d80fbc8c07d1b632d29903531861f4a))
+* **tests:** match typographic apostrophe in out-of-credits message ([#915](https://github.com/niklas-joh/plume-ai/issues/915)) ([71b3233](https://github.com/niklas-joh/plume-ai/commit/71b323387d56ee050c73a9c027641c2b20382732))
+* **tiers:** remove remaining local tier gates on model selection and own API key ([#917](https://github.com/niklas-joh/plume-ai/issues/917)) ([efa3a01](https://github.com/niklas-joh/plume-ai/commit/efa3a011b9b0a6ac98a252cd63662c9de0b5b59d))
+
 ## [1.11.0](https://github.com/niklas-joh/plume-ai/compare/v1.10.3...v1.11.0) (2026-07-03)
 
 ### New Features

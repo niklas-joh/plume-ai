@@ -173,7 +173,7 @@ class PlansRestController {
 	 * the drawer is dismissed without applying. Deleting an already-expired or
 	 * unknown transient is a no-op, so this is safe to call idempotently.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.12.0
 	 * @param \WP_REST_Request $request Incoming REST request with plan ID in path.
 	 * @return \WP_REST_Response
 	 */

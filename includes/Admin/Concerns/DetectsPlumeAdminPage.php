@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * in a single location. Notice classes `use` this trait rather than depending on
  * one another's internals.
  *
- * @since NEXT_VERSION
+ * @since 1.12.0
  */
 trait DetectsPlumeAdminPage {
 
@@ -30,7 +30,7 @@ trait DetectsPlumeAdminPage {
 	 * Limits notices to Plume pages so WP.org Guideline 11 is satisfied — plugin
 	 * notices must not appear on unrelated admin screens.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.12.0
 	 * @return bool True when the URL carries a `page` param starting with 'plume'.
 	 */
 	private static function is_plume_admin_page(): bool {

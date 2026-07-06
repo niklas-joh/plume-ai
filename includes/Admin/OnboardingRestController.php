@@ -89,7 +89,7 @@ class OnboardingRestController {
 	 * client can set expectations before the user reaches Chat.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Removed the own_api_key tier gate.
+	 * @since 1.12.0 Removed the own_api_key tier gate.
 	 * @param WP_REST_Request $request Incoming REST request.
 	 * @return WP_REST_Response|\WP_Error 200 on success (with `registered` bool).
 	 */

@@ -318,7 +318,7 @@ class ToolExecutor {
 	 * completion (via submit_post_content, forced as the only available tool on
 	 * the next agentic-loop iteration) gives it the full budget to itself instead.
 	 *
-	 * @since NEXT_VERSION Removed new_content; stages a draft instead of the final plan.
+	 * @since 1.12.0 Removed new_content; stages a draft instead of the final plan.
 	 * @since 1.0.0
 	 * @param array $args    Tool arguments from the AI provider.
 	 * @param int   $user_id WordPress user ID performing the call.
@@ -371,7 +371,7 @@ class ToolExecutor {
 	/**
 	 * Complete a staged plan_update by attaching the full rewritten post body.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.12.0
 	 * @param array $args    Tool arguments from the AI provider.
 	 * @param int   $user_id WordPress user ID performing the call.
 	 * @return array
@@ -412,7 +412,7 @@ class ToolExecutor {
 	 * short TTL only needs to outlive the current request's remaining loop
 	 * iterations, not a full user-approval window like the final plan transient.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.12.0
 	 * @param int $user_id WordPress user ID who owns the draft.
 	 * @return string
 	 */

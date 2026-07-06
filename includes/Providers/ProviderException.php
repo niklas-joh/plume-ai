@@ -80,7 +80,7 @@ class ProviderException extends \RuntimeException {
 	/**
 	 * Get the stable machine-readable error code, if one was supplied.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.12.0
 	 * @return string
 	 */
 	public function get_error_code(): string {

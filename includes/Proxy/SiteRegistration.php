@@ -94,7 +94,7 @@ class SiteRegistration {
 	 * used an AI feature (WP.org Guideline 7 — no phoning home without consent).
 	 *
 	 * @since 1.2.0
-	 * @since NEXT_VERSION No longer hooked to admin_init; registration is lazy,
+	 * @since 1.12.0 No longer hooked to admin_init; registration is lazy,
 	 *                      scheduled on shutdown of the first proxy-backed request.
 	 * @return void
 	 */
@@ -283,7 +283,7 @@ class SiteRegistration {
 	 * plugin release (e.g. after a store migration).
 	 *
 	 * @since 1.2.0
-	 * @since NEXT_VERSION Dropped the 'byok' plan — bringing your own key is
+	 * @since 1.12.0 Dropped the 'byok' plan — bringing your own key is
 	 *                      free on every tier, so it has no checkout.
 	 * @param string $plan One of 'monthly', 'annual'.
 	 * @return string LemonSqueezy variant ID.

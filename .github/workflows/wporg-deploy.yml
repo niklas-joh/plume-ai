@@ -11,8 +11,8 @@ name: WordPress.org Deploy
 #        (generate at https://profiles.wordpress.org/<username>/profile/applications/)
 #
 # The workflow downloads the release ZIP built by release.yml, extracts it, then
-# uses 10up/action-wordpress-org-deploy to push to /trunk and create /tags/<version>.
-# See https://github.com/10up/action-wordpress-org-deploy for input reference.
+# uses 10up/action-wordpress-plugin-deploy to push to /trunk and create /tags/<version>.
+# See https://github.com/10up/action-wordpress-plugin-deploy for env var reference.
 
 on:
   release:
@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Resolve tag and version
         id: vars
@@ -86,10 +86,11 @@ jobs:
           ls plume/
 
       - name: Deploy to WordPress.org
-        uses: 10up/action-wordpress-org-deploy@v1
-        with:
-          plugin-slug: plume
-          build-dir: ./plume
-          assets-dir: ./wp-org-assets
-          wordpress-username: ${{ secrets.WPORG_USERNAME }}
-          wordpress-password: ${{ secrets.WPORG_PASSWORD }}
+        uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2 # 2.3.0
+        env:
+          SVN_USERNAME: ${{ secrets.WPORG_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.WPORG_PASSWORD }}
+          SLUG: plume
+          VERSION: ${{ steps.vars.outputs.version }}
+          BUILD_DIR: ./plume
+          ASSETS_DIR: ./wp-org-assets

@@ -567,7 +567,7 @@ describe( 'handleChatProxy', () => {
 		const body = JSON.stringify( {
 			messages: [ { role: 'user', content: 'Hello' } ],
 			provider: 'gemini',
-			model: 'gemini-3.1-pro',
+			model: 'gemini-3.1-pro-preview',
 			feature: 'chat',
 		} );
 

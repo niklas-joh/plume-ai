@@ -43,12 +43,14 @@ class GeminiProviderTest extends TestCase {
 
 	public function test_get_models_matches_worker_pro_managed_allow_list(): void {
 		// Mirrors plume-proxy/src/index.ts DEFAULT_TIER_MODELS.gemini.pro_managed —
-		// keep these two lists in sync (see the class constant's docblock).
-		$worker_allow_list = [ 'gemini-3.1-pro-preview', 'gemini-3.5-flash' ];
+		// keep these two lists in sync (see the class constant's docblock). The
+		// Worker allow-list is membership-based (only allowed[0] is the fallback
+		// default), so this asserts parity of set, not order.
+		$worker_allow_list = [ 'gemini-3.5-flash', 'gemini-3.1-pro-preview' ];
 
 		$models = ( new GeminiProvider( 'AIza-test' ) )->get_models();
 
-		$this->assertSame( $worker_allow_list, array_keys( $models ) );
+		$this->assertEqualsCanonicalizing( $worker_allow_list, array_keys( $models ) );
 	}
 
 	public function test_get_models_does_not_offer_stale_model_ids(): void {

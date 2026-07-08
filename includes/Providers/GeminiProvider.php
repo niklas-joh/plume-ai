@@ -318,7 +318,7 @@ class GeminiProvider extends AbstractProvider {
 	 * POST a JSON body to the Gemini API and return the decoded response.
 	 *
 	 * @since 1.0.0
-	 * @param string $path API endpoint path (e.g. '/models/gemini-2.5-pro:generateContent').
+	 * @param string $path API endpoint path (e.g. '/models/gemini-3.1-pro-preview:generateContent').
 	 * @param array  $body Request payload.
 	 * @return array
 	 * @throws ProviderException On HTTP failure or non-2xx status.

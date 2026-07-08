@@ -1132,7 +1132,7 @@ class ChatRestControllerTest extends TestCase {
 
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: $raw_data,
@@ -1167,7 +1167,7 @@ class ChatRestControllerTest extends TestCase {
 
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: $raw_data,
@@ -1210,7 +1210,7 @@ class ChatRestControllerTest extends TestCase {
 
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: $raw_data,
@@ -1328,7 +1328,7 @@ class ChatRestControllerTest extends TestCase {
     public function test_extract_tool_calls_returns_all_gemini_function_calls(): void {
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: [
@@ -1362,7 +1362,7 @@ class ChatRestControllerTest extends TestCase {
     public function test_extract_tool_calls_falls_back_to_normalised_tool_call(): void {
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: [ 'call_id' => 'gemini_generated_1' ],
@@ -1465,7 +1465,7 @@ class ChatRestControllerTest extends TestCase {
         // Gemini requests two tools in one turn, omitting functionCall ids.
         $tool_response = new CompletionResponse(
             content:           '',
-            model:             'gemini-2.0-flash',
+            model:             'gemini-3.5-flash',
             prompt_tokens:     10,
             completion_tokens: 5,
             cost_usd:          0.0,
@@ -1487,7 +1487,7 @@ class ChatRestControllerTest extends TestCase {
 
         $final_response = new CompletionResponse(
             content:           'Here is your site overview.',
-            model:             'gemini-2.0-flash',
+            model:             'gemini-3.5-flash',
             prompt_tokens:     20,
             completion_tokens: 15,
             cost_usd:          0.0,

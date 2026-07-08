@@ -1,11 +1,16 @@
+import { __ } from '@wordpress/i18n';
+
 const STATUS_LABELS = {
-	publish: 'Published',
-	draft: 'Draft',
-	pending: 'Pending',
-	future: 'Scheduled',
-	private: 'Private',
+	publish: __( 'Published', 'plume' ),
+	draft: __( 'Draft', 'plume' ),
+	pending: __( 'Pending', 'plume' ),
+	future: __( 'Scheduled', 'plume' ),
+	private: __( 'Private', 'plume' ),
 };
 
+// Colours are intentionally reused from the SEO-completion badge vocabulary
+// (complete/partial/muted) to keep a single palette across the list table; the
+// mapping is semantic-per-status here, not a claim that a post is SEO-complete.
 const STATUS_VARIANTS = {
 	publish: 'complete',
 	pending: 'partial',
@@ -25,6 +30,9 @@ const STATUS_VARIANTS = {
  * <PostStatusBadge status={ post.status } />
  */
 export default function PostStatusBadge( { status } ) {
+	if ( ! status ) {
+		return null;
+	}
 	const variant = STATUS_VARIANTS[ status ] ?? 'muted';
 	return (
 		<span className={ `plume-badge plume-badge--${ variant }` }>

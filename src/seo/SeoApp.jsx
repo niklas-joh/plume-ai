@@ -1,4 +1,5 @@
 import PostListTable from '../shared/PostListTable';
+import PostStatusBadge from '../shared/PostStatusBadge';
 import SeoBadge, { getSeoStatus } from './SeoBadge';
 import SeoWorkArea from './SeoWorkArea';
 
@@ -22,6 +23,11 @@ const SEO_TABS = [
 ];
 
 const SEO_COLUMNS = [
+	{
+		label: 'Post Status',
+		width: 100,
+		render: ( post ) => <PostStatusBadge status={ post.status } />,
+	},
 	{
 		label: 'SEO Status',
 		width: 130,

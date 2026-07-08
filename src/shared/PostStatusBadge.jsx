@@ -1,0 +1,34 @@
+const STATUS_LABELS = {
+	publish: 'Published',
+	draft: 'Draft',
+	pending: 'Pending',
+	future: 'Scheduled',
+	private: 'Private',
+};
+
+const STATUS_VARIANTS = {
+	publish: 'complete',
+	pending: 'partial',
+	future: 'partial',
+	draft: 'muted',
+	private: 'muted',
+};
+
+/**
+ * Colour-coded badge showing a post's publish status.
+ *
+ * @param {Object} props
+ * @param {string} props.status  WordPress post status (`publish`, `draft`, `pending`, `future`, `private`, or any other core/custom status).
+ * @return {ReactElement}
+ *
+ * @example
+ * <PostStatusBadge status={ post.status } />
+ */
+export default function PostStatusBadge( { status } ) {
+	const variant = STATUS_VARIANTS[ status ] ?? 'muted';
+	return (
+		<span className={ `plume-badge plume-badge--${ variant }` }>
+			{ STATUS_LABELS[ status ] ?? status }
+		</span>
+	);
+}

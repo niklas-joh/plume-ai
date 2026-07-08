@@ -39,6 +39,31 @@ class GeminiProviderTest extends TestCase {
 		$this->assertSame( 'gemini', ( new GeminiProvider( 'AIza-test' ) )->get_slug() );
 	}
 
+	// ── Model list (#906: must match the Worker's allow-list) ─────────────────
+
+	public function test_get_models_matches_worker_pro_managed_allow_list(): void {
+		// Mirrors plume-proxy/src/index.ts DEFAULT_TIER_MODELS.gemini.pro_managed —
+		// keep these two lists in sync (see the class constant's docblock).
+		$worker_allow_list = [ 'gemini-3.1-pro-preview', 'gemini-3.5-flash' ];
+
+		$models = ( new GeminiProvider( 'AIza-test' ) )->get_models();
+
+		$this->assertSame( $worker_allow_list, array_keys( $models ) );
+	}
+
+	public function test_get_models_does_not_offer_stale_model_ids(): void {
+		$models = ( new GeminiProvider( 'AIza-test' ) )->get_models();
+
+		foreach ( [ 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.1-pro' ] as $stale_id ) {
+			$this->assertArrayNotHasKey( $stale_id, $models, "Stale/invalid model ID '{$stale_id}' must not be offered." );
+		}
+	}
+
+	public function test_get_default_model_is_a_currently_offered_model(): void {
+		$provider = new GeminiProvider( 'AIza-test' );
+		$this->assertArrayHasKey( $provider->get_default_model(), $provider->get_models() );
+	}
+
 	public function test_is_available_false_without_key(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );

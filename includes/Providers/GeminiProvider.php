@@ -27,27 +27,27 @@ use Plume\Tools\ToolRegistry;
 class GeminiProvider extends AbstractProvider {
 
 	private const API_BASE      = 'https://generativelanguage.googleapis.com/v1beta';
-	private const DEFAULT_MODEL = 'gemini-2.5-pro';
+	private const DEFAULT_MODEL = 'gemini-3.1-pro-preview';
 	private const IMAGE_MODEL   = 'imagen-3.0-generate-001';
 
+	/**
+	 * Mirrors the Worker's DEFAULT_TIER_MODELS.gemini.pro_managed
+	 * (plume-proxy/src/index.ts) so the dropdown never offers a model the
+	 * Worker will reject for proxy-routed (non-BYOK) requests — see #906.
+	 */
 	private const MODELS = [
-		'gemini-2.5-pro'   => 'Gemini 2.5 Pro',
-		'gemini-2.5-flash' => 'Gemini 2.5 Flash',
-		'gemini-2.0-flash' => 'Gemini 2.0 Flash',
+		'gemini-3.1-pro-preview' => 'Gemini 3.1 Pro',
+		'gemini-3.5-flash'       => 'Gemini 3.5 Flash',
 	];
 
 	private const PRICING = [
-		'gemini-2.5-pro'   => [
-			'in'  => 1.25,
-			'out' => 10.0,
+		'gemini-3.1-pro-preview' => [
+			'in'  => 2.0,
+			'out' => 12.0,
 		],
-		'gemini-2.5-flash' => [
-			'in'  => 0.075,
-			'out' => 0.30,
-		],
-		'gemini-2.0-flash' => [
-			'in'  => 0.10,
-			'out' => 0.40,
+		'gemini-3.5-flash'       => [
+			'in'  => 1.50,
+			'out' => 9.0,
 		],
 	];
 

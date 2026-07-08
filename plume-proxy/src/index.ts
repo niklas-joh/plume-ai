@@ -49,7 +49,7 @@ const DEFAULT_TIER_MODELS: Record< Provider, Record< ProxyTier, string[] > > = {
 	},
 	gemini: {
 		free: [],
-		pro_managed: [ 'gemini-3.5-flash', 'gemini-3.1-pro' ],
+		pro_managed: [ 'gemini-3.5-flash', 'gemini-3.1-pro-preview' ],
 	},
 };
 
@@ -61,7 +61,7 @@ const DEFAULT_MODEL_TOKEN_WEIGHT: Record< string, number > = {
 	'claude-opus-4-6': 5,
 	'gpt-4.1': 2,
 	'gemini-3.5-flash': 2,
-	'gemini-3.1-pro': 2,
+	'gemini-3.1-pro-preview': 2,
 };
 
 /**

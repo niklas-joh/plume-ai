@@ -210,6 +210,44 @@ class ToolRegistryTest extends TestCase {
 	}
 
 	// -------------------------------------------------------------------------
+	// No-default-links guidance on content-producing tool descriptions (#919)
+	// -------------------------------------------------------------------------
+
+	public function test_plan_post_content_description_warns_against_default_links(): void {
+		$this->stub_write_tools( true );
+		$this->stub_apply_filters_passthrough();
+
+		$registry = new ToolRegistry();
+		$tools    = $registry->get_for_provider( 'claude' );
+
+		$by_name = [];
+		foreach ( $tools as $tool ) {
+			$by_name[ $tool['name'] ] = $tool;
+		}
+
+		$description = $by_name['plan_post']['input_schema']['properties']['content']['description'];
+		$this->assertStringContainsString( 'hyperlinks', $description );
+		$this->assertStringContainsString( 'explicitly', $description );
+	}
+
+	public function test_submit_post_content_description_warns_against_default_links(): void {
+		$this->stub_write_tools( true );
+		$this->stub_apply_filters_passthrough();
+
+		$registry = new ToolRegistry();
+		$tools    = $registry->get_for_provider( 'claude' );
+
+		$by_name = [];
+		foreach ( $tools as $tool ) {
+			$by_name[ $tool['name'] ] = $tool;
+		}
+
+		$description = $by_name['submit_post_content']['input_schema']['properties']['content']['description'];
+		$this->assertStringContainsString( 'hyperlinks', $description );
+		$this->assertStringContainsString( 'explicitly', $description );
+	}
+
+	// -------------------------------------------------------------------------
 	// allowed_post_types()
 	// -------------------------------------------------------------------------
 

@@ -36,7 +36,7 @@ class VoiceInjector {
 	 * @since 1.0.0
 	 * @param string $feature_instruction Optional feature-specific instruction appended after the voice rules.
 	 * @param int    $user_id             User ID whose meta overrides site-level values; 0 means no user override.
-	 * @return string System prompt string, or empty string if no voice rules are configured.
+	 * @return string System prompt string; always non-empty because the no-links guidance is always appended.
 	 */
 	public function build_system_prompt( string $feature_instruction = '', int $user_id = 0 ): string {
 		$voice = $this->get_merged_voice( $user_id );

@@ -18,6 +18,13 @@ import { chatCredits, GENERATOR_CREDITS, SEO_CREDITS, IMAGE_CREDITS } from './cr
 
 const MAX_BODY_BYTES = 1_048_576; // 1 MB
 
+// The chat-ending tool. The agentic loop forces tool use, so every turn-ending
+// chat response carries a chat_response call — a batch is only an intermediate
+// (unbilled) tool-use step when NONE of its tool_calls is this one. Kept at
+// module scope so the #927 follow-up (plan_post/plan_update/submit_post_content
+// terminators) can reference the same string.
+const CHAT_RESPONSE_TOOL_NAME = 'chat_response';
+
 // Flat per-call credit cost for non-chat features. Chat is special-cased
 // (token-weighted) in handleChatProxy; everything else is a fixed lookup.
 const FLAT_FEATURE_CREDITS: Record<
@@ -821,7 +828,6 @@ async function handleChatProxy(
 		// be billed like any other final response, even though it also has
 		// tool_calls. Previously ANY tool_calls-bearing response was treated as
 		// intermediate, so effectively every chat exchange was billed 0 (#905).
-		const CHAT_RESPONSE_TOOL_NAME = 'chat_response';
 		const isToolUseStep =
 			feature === 'chat' &&
 			( normalized.tool_calls?.length ?? 0 ) > 0 &&

@@ -970,6 +970,15 @@ describe( 'handleChatProxy', () => {
 		const expected = chatCredits( 500, 500, 1 );
 		expect( json.credits_charged ).toBe( expected );
 		expect( await getStoredUsage( env ) ).toBe( expected );
+		// tool_calls surfacing is decoupled from billing: a now-billed
+		// chat_response response must still carry tool_calls so the WP-side
+		// ChatRestController can extract the message.
+		expect( json.tool_calls ).toBeDefined();
+		expect(
+			( json.tool_calls as Array< { name: string } > ).some(
+				( tc ) => tc.name === 'chat_response'
+			)
+		).toBe( true );
 	} );
 
 	it( 'regression #905: an intermediate tool call alongside chat_response in the same batch is still billed', async () => {

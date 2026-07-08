@@ -236,4 +236,23 @@ class UsageTrackerTest extends TestCase {
 
 		$this->assertSame( UsageTracker::FREE_CREDITS, UsageTracker::get_cached_credit_limit( 'free' ) );
 	}
+
+	public function test_get_cached_credit_limit_falls_back_when_worker_returns_non_200(): void {
+		Functions\expect( 'get_transient' )
+			->once()->with( 'plume_credit_limit_free' )->andReturn( false );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => 'plume_site_token' === $key ? 'sometoken' : $default
+		);
+		// Worker responds 500 with a body — the non-200 branch must fall back to the constant.
+		Functions\expect( 'wp_remote_get' )->once()->andReturn( [ 'response' => [ 'code' => 500 ] ] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 500 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( 'Internal Server Error' );
+		Functions\expect( 'set_transient' )
+			->once()
+			->with( 'plume_credit_limit_free', UsageTracker::FREE_CREDITS, \DAY_IN_SECONDS )
+			->andReturn( true );
+
+		$this->assertSame( UsageTracker::FREE_CREDITS, UsageTracker::get_cached_credit_limit( 'free' ) );
+	}
 }

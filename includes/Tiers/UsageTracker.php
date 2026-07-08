@@ -25,7 +25,7 @@ class UsageTracker {
 	/**
 	 * Monthly credit allowance for the free tier.
 	 *
-	 * Mirrors MONTHLY_CREDIT_LIMITS.free in plume-proxy/src/index.ts.
+	 * Mirrors MONTHLY_CREDIT_LIMITS.free in plume-proxy/src/credits.ts.
 	 *
 	 * @since 1.11.0
 	 */
@@ -34,7 +34,7 @@ class UsageTracker {
 	/**
 	 * Monthly credit allowance for the pro_managed tier.
 	 *
-	 * Mirrors MONTHLY_CREDIT_LIMITS.pro_managed in plume-proxy/src/index.ts.
+	 * Mirrors MONTHLY_CREDIT_LIMITS.pro_managed in plume-proxy/src/credits.ts.
 	 *
 	 * @since 1.11.0
 	 */
@@ -47,6 +47,17 @@ class UsageTracker {
 	 * @deprecated Use FREE_CREDITS or PRO_MANAGED_CREDITS directly.
 	 */
 	public const FALLBACK_LIMIT = self::FREE_CREDITS;
+
+	/**
+	 * HTTP timeout, in seconds, for the hot-path live credit-limit fetch.
+	 *
+	 * Deliberately short: this runs on a cache miss while resolving a user's
+	 * usage summary, so a slow/unreachable Worker must not stall the request —
+	 * on timeout we fall back to the hardcoded constants above.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	private const CONFIG_FETCH_TIMEOUT = 3;
 
 	/**
 	 * Returns the wp_usermeta key for the current calendar month's token counter.
@@ -165,7 +176,7 @@ class UsageTracker {
 			TierConfig::get_proxy_url() . '/v1/config',
 			[
 				'headers' => [ 'Authorization' => 'Bearer ' . $token ],
-				'timeout' => 3,
+				'timeout' => self::CONFIG_FETCH_TIMEOUT,
 			]
 		);
 

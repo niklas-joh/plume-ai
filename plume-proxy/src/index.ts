@@ -815,13 +815,19 @@ async function handleChatProxy(
 			);
 		}
 
-		// Intermediate tool-use steps are not billed; only the final response is.
-		// The final call's usage.input_tokens naturally encompasses all prior context,
-		// so total token cost is captured without needing cross-request accumulation.
-		// Scoped to 'chat' so flat-rate features are never silently zeroed if they
-		// ever gain tool support in future.
+		// A batch is a purely intermediate tool-use step (unbilled) only when NONE
+		// of its tool_calls is chat_response — the agentic loop always forces tool
+		// use, so every turn-ending response carries a chat_response call and must
+		// be billed like any other final response, even though it also has
+		// tool_calls. Previously ANY tool_calls-bearing response was treated as
+		// intermediate, so effectively every chat exchange was billed 0 (#905).
+		const CHAT_RESPONSE_TOOL_NAME = 'chat_response';
 		const isToolUseStep =
-			feature === 'chat' && ( normalized.tool_calls?.length ?? 0 ) > 0;
+			feature === 'chat' &&
+			( normalized.tool_calls?.length ?? 0 ) > 0 &&
+			! normalized.tool_calls?.some(
+				( tc ) => tc.name === CHAT_RESPONSE_TOOL_NAME
+			);
 
 		let creditsCharged: number;
 		if ( isToolUseStep ) {
@@ -847,7 +853,9 @@ async function handleChatProxy(
 			credits_charged: creditsCharged,
 			model: selectedModel,
 		};
-		if ( isToolUseStep ) {
+		// tool_calls surfacing is independent of the billing decision above — a
+		// billed (non-intermediate) response can still carry tool_calls.
+		if ( normalized.tool_calls && normalized.tool_calls.length > 0 ) {
 			responseData.tool_calls = normalized.tool_calls;
 		}
 		return jsonResponse( responseData );

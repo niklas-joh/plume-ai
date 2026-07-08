@@ -263,7 +263,7 @@ describe( 'handleChatProxy', () => {
 			},
 		] );
 		expect( json.usage ).toEqual( { input_tokens: 20, output_tokens: 10 } );
-		// Intermediate tool-use steps must not be billed.
+		// Intermediate tool-use steps (no chat_response in the batch) must not be billed.
 		expect( json.credits_charged ).toBe( 0 );
 		expect( await getStoredUsage( env ) ).toBe( 0 );
 	} );
@@ -922,5 +922,98 @@ describe( 'handleChatProxy', () => {
 		// used=100 is no longer < limit=100 — blocked.
 		const second = await worker.fetch( makeChatRequest(), env );
 		expect( second.status ).toBe( 429 );
+	} );
+
+	it( 'regression #905: a chat_response tool call (the chat-ending tool) is billed, not treated as an intermediate tool-use step', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [
+							{
+								type: 'tool_use',
+								id: 'toolu_chat_response',
+								name: 'chat_response',
+								input: { message: 'Here is your answer.' },
+							},
+						],
+						usage: { input_tokens: 500, output_tokens: 500 },
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Hello' } ],
+			provider: 'claude',
+			tools: [
+				{
+					name: 'chat_response',
+					description: 'Reply to the user',
+					parameters: { type: 'object', properties: {} },
+				},
+			],
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const json = ( await response.json() ) as {
+			credits_charged: number;
+			tool_calls?: unknown;
+		};
+		const expected = chatCredits( 500, 500, 1 );
+		expect( json.credits_charged ).toBe( expected );
+		expect( await getStoredUsage( env ) ).toBe( expected );
+	} );
+
+	it( 'regression #905: an intermediate tool call alongside chat_response in the same batch is still billed', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [
+							{
+								type: 'tool_use',
+								id: 'toolu_01',
+								name: 'get_post_content',
+								input: { post_id: 42 },
+							},
+							{
+								type: 'tool_use',
+								id: 'toolu_chat_response',
+								name: 'chat_response',
+								input: { message: 'Done.' },
+							},
+						],
+						usage: { input_tokens: 300, output_tokens: 100 },
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Summarise post 42' } ],
+			provider: 'claude',
+			tools: [ mockTool ],
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const json = ( await response.json() ) as { credits_charged: number };
+		const expected = chatCredits( 300, 100, 1 );
+		expect( json.credits_charged ).toBe( expected );
+		expect( await getStoredUsage( env ) ).toBe( expected );
 	} );
 } );

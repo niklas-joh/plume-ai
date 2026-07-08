@@ -75,6 +75,11 @@
 	color: #dc2626;
 }
 
+.plume-badge--muted {
+	background: rgba(100, 116, 139, 0.12);
+	color: #64748b;
+}
+
 /* Type badge (post / page) */
 .plume-type-badge {
 	display: inline-block;

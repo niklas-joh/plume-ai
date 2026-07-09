@@ -52,6 +52,15 @@ describe( 'PostStatusBadge', () => {
 		} );
 	} );
 
+	it( 'renders nothing when status is empty or undefined', () => {
+		[ '', undefined ].forEach( ( status ) => {
+			act( () => {
+				root.render( <PostStatusBadge status={ status } /> );
+			} );
+			expect( container.querySelector( 'span.plume-badge' ) ).toBeNull();
+		} );
+	} );
+
 	it( 'falls back to a muted badge with the raw status text for an unknown status', () => {
 		act( () => {
 			root.render( <PostStatusBadge status="unknown-status" /> );

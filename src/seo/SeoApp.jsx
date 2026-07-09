@@ -5,20 +5,20 @@ import SeoBadge, { getSeoStatus } from './SeoBadge';
 import SeoWorkArea from './SeoWorkArea';
 
 const SEO_TABS = [
-	{ id: 'all', label: 'All', filter: () => true },
+	{ id: 'all', label: __( 'All', 'plume' ), filter: () => true },
 	{
 		id: 'missing',
-		label: 'Missing',
+		label: __( 'Missing', 'plume' ),
 		filter: ( p ) => getSeoStatus( p ) === 'missing',
 	},
 	{
 		id: 'partial',
-		label: 'Partial',
+		label: __( 'Partial', 'plume' ),
 		filter: ( p ) => getSeoStatus( p ) === 'partial',
 	},
 	{
 		id: 'complete',
-		label: 'Complete',
+		label: __( 'Complete', 'plume' ),
 		filter: ( p ) => getSeoStatus( p ) === 'complete',
 	},
 ];
@@ -30,7 +30,7 @@ const SEO_COLUMNS = [
 		render: ( post ) => <PostStatusBadge status={ post.status } />,
 	},
 	{
-		label: 'SEO Status',
+		label: __( 'SEO Status', 'plume' ),
 		width: 130,
 		render: ( post ) => <SeoBadge status={ getSeoStatus( post ) } />,
 	},

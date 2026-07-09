@@ -1,3 +1,5 @@
+import Badge from '../shared/Badge';
+
 const STATUS_LABELS = {
 	complete: 'Complete',
 	partial: 'Partial',
@@ -36,8 +38,6 @@ export function getSeoStatus( post ) {
  */
 export default function SeoBadge( { status } ) {
 	return (
-		<span className={ `plume-badge plume-badge--${ status }` }>
-			{ STATUS_LABELS[ status ] ?? status }
-		</span>
+		<Badge variant={ status }>{ STATUS_LABELS[ status ] ?? status }</Badge>
 	);
 }

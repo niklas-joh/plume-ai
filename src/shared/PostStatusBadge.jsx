@@ -1,4 +1,5 @@
 import { __ } from '@wordpress/i18n';
+import Badge from './Badge';
 
 const STATUS_LABELS = {
 	publish: __( 'Published', 'plume' ),
@@ -35,8 +36,6 @@ export default function PostStatusBadge( { status } ) {
 	}
 	const variant = STATUS_VARIANTS[ status ] ?? 'muted';
 	return (
-		<span className={ `plume-badge plume-badge--${ variant }` }>
-			{ STATUS_LABELS[ status ] ?? status }
-		</span>
+		<Badge variant={ variant }>{ STATUS_LABELS[ status ] ?? status }</Badge>
 	);
 }

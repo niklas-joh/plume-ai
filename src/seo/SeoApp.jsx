@@ -1,29 +1,36 @@
+import { __ } from '@wordpress/i18n';
 import PostListTable from '../shared/PostListTable';
+import PostStatusBadge from '../shared/PostStatusBadge';
 import SeoBadge, { getSeoStatus } from './SeoBadge';
 import SeoWorkArea from './SeoWorkArea';
 
 const SEO_TABS = [
-	{ id: 'all', label: 'All', filter: () => true },
+	{ id: 'all', label: __( 'All', 'plume' ), filter: () => true },
 	{
 		id: 'missing',
-		label: 'Missing',
+		label: __( 'Missing', 'plume' ),
 		filter: ( p ) => getSeoStatus( p ) === 'missing',
 	},
 	{
 		id: 'partial',
-		label: 'Partial',
+		label: __( 'Partial', 'plume' ),
 		filter: ( p ) => getSeoStatus( p ) === 'partial',
 	},
 	{
 		id: 'complete',
-		label: 'Complete',
+		label: __( 'Complete', 'plume' ),
 		filter: ( p ) => getSeoStatus( p ) === 'complete',
 	},
 ];
 
 const SEO_COLUMNS = [
 	{
-		label: 'SEO Status',
+		label: __( 'Post Status', 'plume' ),
+		width: 100,
+		render: ( post ) => <PostStatusBadge status={ post.status } />,
+	},
+	{
+		label: __( 'SEO Status', 'plume' ),
 		width: 130,
 		render: ( post ) => <SeoBadge status={ getSeoStatus( post ) } />,
 	},

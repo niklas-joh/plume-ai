@@ -1,3 +1,5 @@
+import Badge from '../shared/Badge';
+
 /**
  * Status badge showing whether a post has a featured image.
  *
@@ -17,10 +19,10 @@ export default function ImagesBadge( { post } ) {
 		return (
 			<span className="plume-image-badge-cell">
 				<img src={ thumbUrl } alt="" className="plume-list-thumb" />
-				<span className="plume-badge plume-badge--has">Has image</span>
+				<Badge variant="has">Has image</Badge>
 			</span>
 		);
 	}
 
-	return <span className="plume-badge plume-badge--none">No image</span>;
+	return <Badge variant="none">No image</Badge>;
 }

@@ -852,8 +852,18 @@ async function handleChatProxy(
 		}
 		return jsonResponse( responseData );
 	} catch ( error ) {
+		// Errors from callClaude/callOpenAI/callGemini carry `status`/`body` from the
+		// upstream provider's response (see e.g. callGemini's Object.assign throw);
+		// console.error on a bare Error only prints its message/stack, silently
+		// dropping those extra properties — log them explicitly so `wrangler tail`
+		// actually shows *why* an upstream call failed (bad key, bad model id, etc.),
+		// since the client-facing response below never includes this detail.
+		const upstream = error as { status?: number; body?: unknown };
 		// eslint-disable-next-line no-console
-		console.error( 'Proxy error:', error );
+		console.error( 'Proxy error:', error, {
+			status: upstream?.status,
+			body: upstream?.body,
+		} );
 		// Only honour our own tagged validation error (the typed 400 from
 		// getModelForTier). Upstream provider errors also carry a `status`
 		// (e.g. a 429/401 from our Anthropic/OpenAI account) but must never be

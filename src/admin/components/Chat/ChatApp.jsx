@@ -81,6 +81,16 @@ export default function ChatApp() {
 		);
 	}, [ activeConvId ] );
 
+	// Persist the selected provider/model so a reload restores the user's choice
+	// instead of loadProviders() silently resetting it to the plugin default.
+	useEffect( () => {
+		storageSet( 'plume-selected-provider', selectedProvider );
+	}, [ selectedProvider ] );
+
+	useEffect( () => {
+		storageSet( 'plume-selected-model', selectedModel );
+	}, [ selectedModel ] );
+
 	useEffect( () => {
 		// Re-hydrate the review drawer for whichever conversation is now active.
 		// The server holds the source of truth (a still-live update plan), so a
@@ -136,11 +146,28 @@ export default function ChatApp() {
 		try {
 			const data = await apiFetch( { path: '/plume/v1/providers' } );
 			setProviders( data );
-			if ( data.length > 0 ) {
-				const storedDefault = window.plumeData?.defaultProvider;
-				const match = data.find( ( p ) => p.slug === storedDefault );
-				setSelectedProvider( ( match ?? data[ 0 ] ).slug );
+			if ( data.length === 0 ) {
+				return;
 			}
+
+			// Prefer the last provider/model the user picked in this browser over the
+			// plugin's configured default, but only if that provider still exists and
+			// (for the model) is still offered by it — a stale/removed id falls back
+			// to the provider's own default rather than being sent as-is.
+			const storedProvider = storageGet( 'plume-selected-provider' );
+			const storedMatch = data.find( ( p ) => p.slug === storedProvider );
+			if ( storedMatch ) {
+				setSelectedProvider( storedMatch.slug );
+				const storedModel = storageGet( 'plume-selected-model' );
+				if ( storedModel && storedMatch.models?.[ storedModel ] ) {
+					setSelectedModel( storedModel );
+				}
+				return;
+			}
+
+			const storedDefault = window.plumeData?.defaultProvider;
+			const match = data.find( ( p ) => p.slug === storedDefault );
+			setSelectedProvider( ( match ?? data[ 0 ] ).slug );
 		} catch ( e ) {
 			// Provider list is best-effort — don't crash if unavailable.
 		}

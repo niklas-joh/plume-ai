@@ -3,9 +3,11 @@
 import { describe, it, expect } from 'vitest';
 import {
 	chatCredits,
+	getCreditLimit,
 	GENERATOR_CREDITS,
 	SEO_CREDITS,
 	IMAGE_CREDITS,
+	MONTHLY_CREDIT_LIMITS,
 } from '../src/credits';
 
 describe( 'chatCredits', () => {
@@ -67,5 +69,21 @@ describe( 'chatCredits', () => {
 			expect( Number.isInteger( value ) ).toBe( true );
 			expect( value ).toBeGreaterThan( 0 );
 		}
+	} );
+} );
+
+describe( 'getCreditLimit', () => {
+	it( 'returns the free tier limit', () => {
+		expect( getCreditLimit( 'free' ) ).toBe( MONTHLY_CREDIT_LIMITS.free );
+	} );
+
+	it( 'returns the pro_managed tier limit', () => {
+		expect( getCreditLimit( 'pro_managed' ) ).toBe(
+			MONTHLY_CREDIT_LIMITS.pro_managed
+		);
+	} );
+
+	it( 'returns null for the unmetered pro_byok tier', () => {
+		expect( getCreditLimit( 'pro_byok' ) ).toBeNull();
 	} );
 } );

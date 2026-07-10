@@ -75,6 +75,11 @@
 	color: #dc2626;
 }
 
+.plume-badge--muted {
+	background: rgba(100, 116, 139, 0.12);
+	color: #64748b;
+}
+
 /* Type badge (post / page) */
 .plume-type-badge {
 	display: inline-block;
@@ -131,6 +136,17 @@
 	color: var(--color-text-primary);
 	background: #fff;
 	min-width: 220px;
+}
+
+/* Post title link */
+.plume-post-title-link {
+	color: var(--color-text-primary);
+	text-decoration: none;
+}
+
+.plume-post-title-link:hover {
+	color: var(--wp-admin-theme-color);
+	text-decoration: underline;
 }
 
 /* Table: expanded row */

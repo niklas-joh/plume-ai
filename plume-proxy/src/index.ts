@@ -14,7 +14,14 @@ import { authenticateRequest, generateToken } from './auth';
 import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
 import { verifyHmac } from './signature';
-import { chatCredits, GENERATOR_CREDITS, SEO_CREDITS, IMAGE_CREDITS } from './credits';
+import {
+	chatCredits,
+	getCreditLimit,
+	GENERATOR_CREDITS,
+	SEO_CREDITS,
+	IMAGE_CREDITS,
+	MONTHLY_CREDIT_LIMITS,
+} from './credits';
 
 const MAX_BODY_BYTES = 1_048_576; // 1 MB
 
@@ -459,6 +466,13 @@ export default {
 			return handleChatProxy( request, env );
 		}
 
+		if ( pathname === '/v1/config' ) {
+			if ( request.method !== 'GET' ) {
+				return jsonResponse( { error: 'Method not allowed' }, 405 );
+			}
+			return handleConfig( request, env );
+		}
+
 		return jsonResponse( { error: 'Not found' }, 404 );
 	},
 };
@@ -496,6 +510,32 @@ async function handleRotateSecret(
 	return jsonResponse( {
 		tier_sync_secret: newSecret,
 		tier: updated.tier,
+	} );
+}
+
+/**
+ * Return the requesting site's monthly credit limit and current tier.
+ *
+ * Read-only — unlike /rotate-secret this never mutates the SiteRecord, so
+ * it is safe for the plugin to call on every credit-limit cache miss
+ * (see UsageTracker::get_cached_credit_limit() on the PHP side).
+ *
+ * @param {Request} request Incoming Worker request.
+ * @param {Env}     env     Worker environment bindings.
+ * @return {Promise<Response>} JSON response with credit_limit and tier, or an auth error.
+ */
+async function handleConfig(
+	request: Request,
+	env: Env
+): Promise< Response > {
+	const auth = await authenticateRequest( request, env );
+	if ( ! auth.authenticated || ! auth.tier ) {
+		return jsonResponse( { error: 'Unauthorised' }, 401 );
+	}
+
+	return jsonResponse( {
+		credit_limit: getCreditLimit( auth.tier ),
+		tier: auth.tier,
 	} );
 }
 
@@ -881,14 +921,6 @@ async function handleChatProxy(
 		return jsonResponse( { error: message }, status );
 	}
 }
-
-// Worker is now authoritative for monthly allowances, expressed in credits
-// (not raw tokens). PR 2 will have the plugin fetch this from the Worker at
-// runtime rather than re-declaring it in PHP — see plan §3.3.
-const MONTHLY_CREDIT_LIMITS: Record< ProxyTier, number > = {
-	free: 100,
-	pro_managed: 500,
-};
 
 const MAX_TOKENS: Record< ProxyTier, number > = {
 	free: 6_000,

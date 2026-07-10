@@ -39,6 +39,7 @@ const FIXTURE_POSTS = [
 		status: 'publish',
 		modified: new Date().toISOString(),
 		plume_seo_status: null,
+		link: 'https://example.com/hello-world/',
 	},
 	{
 		id: 2,
@@ -47,6 +48,7 @@ const FIXTURE_POSTS = [
 		status: 'publish',
 		modified: new Date().toISOString(),
 		plume_seo_status: null,
+		link: 'https://example.com/about/',
 	},
 ];
 
@@ -168,6 +170,19 @@ describe( 'PostListTable', () => {
 			args.path && args.path.includes( '/wp/v2/posts' )
 		)?.[ 0 ]?.path ?? '';
 		expect( postFetchPath ).toContain( 'status=publish,draft,pending,future,private' );
+	} );
+
+	it( 'renders the post title as a link to the live post', async () => {
+		await act( async () => {
+			root.render( <PostListTable tabs={ STUB_TABS } WorkArea={ StubWorkArea } /> );
+		} );
+
+		// Title cell wraps the sanitised title in an <a> (PostListTable.jsx PostRow).
+		const link = container.querySelector( 'tbody tr td a' );
+		expect( link ).not.toBeNull();
+		expect( link.getAttribute( 'href' ) ).toBe( FIXTURE_POSTS[ 0 ].link );
+		expect( link.getAttribute( 'target' ) ).toBe( '_blank' );
+		expect( link.getAttribute( 'rel' ) ).toBe( 'noopener noreferrer' );
 	} );
 
 	it( 'renders the search input', async () => {

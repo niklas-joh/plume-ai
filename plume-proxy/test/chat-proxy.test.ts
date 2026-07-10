@@ -561,8 +561,30 @@ describe( 'handleChatProxy', () => {
 		expect( response.status ).toBe( 400 );
 	} );
 
-	it( 'returns 200 when a higher-tier Gemini model is requested by a free site — falls back to default', async () => {
+	it( 'falls back to the free-tier default when a pro-only Gemini model is requested by a free site', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
+
+		let capturedUrl: string | null = null;
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockImplementation( async ( url: string ) => {
+					capturedUrl = url as string;
+					return new Response(
+						JSON.stringify( {
+							candidates: [
+								{ content: { parts: [ { text: 'Gemini reply' } ] } },
+							],
+							usageMetadata: {
+								promptTokenCount: 6,
+								candidatesTokenCount: 3,
+							},
+						} ),
+						{ status: 200 }
+					);
+				} )
+		);
 
 		const body = JSON.stringify( {
 			messages: [ { role: 'user', content: 'Hello' } ],
@@ -571,9 +593,11 @@ describe( 'handleChatProxy', () => {
 			feature: 'chat',
 		} );
 
-		// Free tier has no gemini models at all — getModelForTier throws a typed 400.
+		// gemini-3.1-pro-preview isn't in free's allow-list — getModelForTier
+		// falls back to allowed[0] (gemini-3.1-flash-lite) rather than rejecting.
 		const response = await worker.fetch( makeChatRequest( body ), env );
-		expect( response.status ).toBe( 400 );
+		expect( response.status ).toBe( 200 );
+		expect( capturedUrl ).toContain( 'gemini-3.1-flash-lite' );
 	} );
 
 	it( 'uses KV model config override when config:models is set in USAGE_KV', async () => {

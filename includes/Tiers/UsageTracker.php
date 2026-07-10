@@ -143,7 +143,7 @@ class UsageTracker {
 			return (int) $cached;
 		}
 
-		$limit = self::fetch_live_credit_limit();
+		$limit = self::fetch_live_credit_limit( $tier );
 		if ( null === $limit ) {
 			$tier_limits = [
 				'free'        => self::FREE_CREDITS,
@@ -159,14 +159,23 @@ class UsageTracker {
 	/**
 	 * Fetch this site's live credit limit from the Worker's GET /v1/config endpoint.
 	 *
-	 * Bearer-authenticated with the site's own token, so the Worker resolves
-	 * the tier itself — the caller does not need to pass one. Read-only:
+	 * Bearer-authenticated with the site's own token; the Worker resolves the
+	 * tier from the token itself rather than trusting a caller-supplied value.
+	 * That resolved tier can disagree with $tier — e.g. TierManager::get_user_tier()
+	 * locally downgrades an unverified pro site to 'free' while the Worker's
+	 * SiteRecord still says 'pro_managed' — so the response's `tier` is checked
+	 * against $tier before use; a mismatch is treated like any other failure and
+	 * falls back to the hardcoded constant for $tier. Without this check the
+	 * limit would get cached under the wrong tier's transient key. Read-only:
 	 * unlike /rotate-secret, this never mutates the site's Worker-side record.
 	 *
 	 * @since NEXT_VERSION
-	 * @return int|null Live limit from the Worker, or null on any failure so the caller falls back.
+	 * @param string $tier Tier slug the result will be cached under; validated against
+	 *                     the Worker's own view of the tier before the limit is trusted.
+	 * @return int|null Live limit from the Worker, or null on any failure (including a
+	 *                  tier mismatch) so the caller falls back.
 	 */
-	private static function fetch_live_credit_limit(): ?int {
+	private static function fetch_live_credit_limit( string $tier ): ?int {
 		$token = SiteRegistration::get_site_token();
 		if ( '' === $token ) {
 			return null;
@@ -186,6 +195,10 @@ class UsageTracker {
 
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( ! is_array( $body ) || ! isset( $body['credit_limit'] ) || ! is_numeric( $body['credit_limit'] ) ) {
+			return null;
+		}
+
+		if ( ! isset( $body['tier'] ) || $tier !== $body['tier'] ) {
 			return null;
 		}
 

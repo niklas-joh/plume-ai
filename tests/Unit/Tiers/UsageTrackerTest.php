@@ -237,6 +237,28 @@ class UsageTrackerTest extends TestCase {
 		$this->assertSame( UsageTracker::FREE_CREDITS, UsageTracker::get_cached_credit_limit( 'free' ) );
 	}
 
+	public function test_get_cached_credit_limit_falls_back_when_worker_tier_disagrees_with_requested_tier(): void {
+		// TierManager::get_user_tier() can downgrade an unverified pro site to 'free'
+		// locally while the Worker's SiteRecord still says 'pro_managed' (issue #932).
+		// The mismatch must be rejected so the wrong-tier value is never cached under
+		// the 'free' key.
+		Functions\expect( 'get_transient' )
+			->once()->with( 'plume_credit_limit_free' )->andReturn( false );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => 'plume_site_token' === $key ? 'sometoken' : $default
+		);
+		Functions\expect( 'wp_remote_get' )->once()->andReturn( [ 'response' => [ 'code' => 200 ] ] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( json_encode( [ 'credit_limit' => 500, 'tier' => 'pro_managed' ] ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+		Functions\expect( 'set_transient' )
+			->once()
+			->with( 'plume_credit_limit_free', UsageTracker::FREE_CREDITS, \DAY_IN_SECONDS )
+			->andReturn( true );
+
+		$this->assertSame( UsageTracker::FREE_CREDITS, UsageTracker::get_cached_credit_limit( 'free' ) );
+	}
+
 	public function test_get_cached_credit_limit_falls_back_when_worker_returns_non_200(): void {
 		Functions\expect( 'get_transient' )
 			->once()->with( 'plume_credit_limit_free' )->andReturn( false );

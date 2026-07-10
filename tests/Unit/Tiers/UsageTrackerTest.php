@@ -145,15 +145,6 @@ class UsageTrackerTest extends TestCase {
 	}
 
 	// ── get_cached_credit_limit() ──────────────────────────────────────────────
-	//
-	// Interim limitation (tracked as a follow-up GitHub issue — see the method's
-	// own PHPDoc): the Worker's /register and /rotate-secret responses do not yet
-	// expose a credit-limit field, so there is nothing to fetch on a cache miss.
-	// The fetch path is stubbed to always fall through to FALLBACK_LIMIT until a
-	// small Worker-side follow-up PR adds a config endpoint. The transient cache
-	// plumbing (read-through, TTL, pro_byok null-for-unlimited) is built now so
-	// swapping in the real fetch later is a one-line change inside this method,
-	// not a call-site migration.
 
 	public function test_get_cached_credit_limit_returns_cached_transient_value_on_hit(): void {
 		Functions\expect( 'get_transient' )
@@ -161,15 +152,28 @@ class UsageTrackerTest extends TestCase {
 			->with( 'plume_credit_limit_free' )
 			->andReturn( 100 );
 		Functions\expect( 'set_transient' )->never();
+		// No fetch attempted on a cache hit.
+		Functions\expect( 'wp_remote_get' )->never();
 
 		$this->assertSame( 100, UsageTracker::get_cached_credit_limit( 'free' ) );
 	}
 
-	public function test_get_cached_credit_limit_caches_per_tier_limit_on_cache_miss(): void {
+	public function test_get_cached_credit_limit_returns_null_for_pro_byok(): void {
+		Functions\expect( 'get_transient' )->never();
+		Functions\expect( 'set_transient' )->never();
+		Functions\expect( 'wp_remote_get' )->never();
+
+		$this->assertNull( UsageTracker::get_cached_credit_limit( 'pro_byok' ) );
+	}
+
+	public function test_get_cached_credit_limit_falls_back_to_hardcoded_value_when_site_is_unregistered(): void {
 		Functions\expect( 'get_transient' )
-			->once()
-			->with( 'plume_credit_limit_pro_managed' )
-			->andReturn( false );
+			->once()->with( 'plume_credit_limit_pro_managed' )->andReturn( false );
+		// SiteRegistration::get_site_token() reads this option; empty means unregistered.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => 'plume_site_token' === $key ? '' : $default
+		);
+		Functions\expect( 'wp_remote_get' )->never();
 		Functions\expect( 'set_transient' )
 			->once()
 			->with( 'plume_credit_limit_pro_managed', UsageTracker::PRO_MANAGED_CREDITS, \DAY_IN_SECONDS )
@@ -178,10 +182,99 @@ class UsageTrackerTest extends TestCase {
 		$this->assertSame( UsageTracker::PRO_MANAGED_CREDITS, UsageTracker::get_cached_credit_limit( 'pro_managed' ) );
 	}
 
-	public function test_get_cached_credit_limit_returns_null_for_pro_byok(): void {
-		Functions\expect( 'get_transient' )->never();
-		Functions\expect( 'set_transient' )->never();
+	public function test_get_cached_credit_limit_uses_live_worker_value_on_success(): void {
+		Functions\expect( 'get_transient' )
+			->once()->with( 'plume_credit_limit_pro_managed' )->andReturn( false );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => 'plume_site_token' === $key ? 'sometoken' : $default
+		);
+		Functions\expect( 'wp_remote_get' )
+			->once()
+			->andReturn( [ 'response' => [ 'code' => 200 ] ] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( json_encode( [ 'credit_limit' => 1_000_000, 'tier' => 'pro_managed' ] ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+		Functions\expect( 'set_transient' )
+			->once()
+			->with( 'plume_credit_limit_pro_managed', 1_000_000, \DAY_IN_SECONDS )
+			->andReturn( true );
 
-		$this->assertNull( UsageTracker::get_cached_credit_limit( 'pro_byok' ) );
+		$this->assertSame( 1_000_000, UsageTracker::get_cached_credit_limit( 'pro_managed' ) );
+	}
+
+	public function test_get_cached_credit_limit_falls_back_when_worker_call_fails(): void {
+		Functions\expect( 'get_transient' )
+			->once()->with( 'plume_credit_limit_free' )->andReturn( false );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => 'plume_site_token' === $key ? 'sometoken' : $default
+		);
+		Functions\expect( 'wp_remote_get' )->once()->andReturn( new \WP_Error( 'http_request_failed', 'timeout' ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\expect( 'set_transient' )
+			->once()
+			->with( 'plume_credit_limit_free', UsageTracker::FREE_CREDITS, \DAY_IN_SECONDS )
+			->andReturn( true );
+
+		$this->assertSame( UsageTracker::FREE_CREDITS, UsageTracker::get_cached_credit_limit( 'free' ) );
+	}
+
+	public function test_get_cached_credit_limit_falls_back_when_worker_response_is_malformed(): void {
+		Functions\expect( 'get_transient' )
+			->once()->with( 'plume_credit_limit_free' )->andReturn( false );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => 'plume_site_token' === $key ? 'sometoken' : $default
+		);
+		Functions\expect( 'wp_remote_get' )->once()->andReturn( [ 'response' => [ 'code' => 200 ] ] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		// Body has no credit_limit field at all.
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( json_encode( [ 'tier' => 'free' ] ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+		Functions\expect( 'set_transient' )
+			->once()
+			->with( 'plume_credit_limit_free', UsageTracker::FREE_CREDITS, \DAY_IN_SECONDS )
+			->andReturn( true );
+
+		$this->assertSame( UsageTracker::FREE_CREDITS, UsageTracker::get_cached_credit_limit( 'free' ) );
+	}
+
+	public function test_get_cached_credit_limit_falls_back_when_worker_tier_disagrees_with_requested_tier(): void {
+		// TierManager::get_user_tier() can downgrade an unverified pro site to 'free'
+		// locally while the Worker's SiteRecord still says 'pro_managed' (issue #932).
+		// The mismatch must be rejected so the wrong-tier value is never cached under
+		// the 'free' key.
+		Functions\expect( 'get_transient' )
+			->once()->with( 'plume_credit_limit_free' )->andReturn( false );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => 'plume_site_token' === $key ? 'sometoken' : $default
+		);
+		Functions\expect( 'wp_remote_get' )->once()->andReturn( [ 'response' => [ 'code' => 200 ] ] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( json_encode( [ 'credit_limit' => 500, 'tier' => 'pro_managed' ] ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+		Functions\expect( 'set_transient' )
+			->once()
+			->with( 'plume_credit_limit_free', UsageTracker::FREE_CREDITS, \DAY_IN_SECONDS )
+			->andReturn( true );
+
+		$this->assertSame( UsageTracker::FREE_CREDITS, UsageTracker::get_cached_credit_limit( 'free' ) );
+	}
+
+	public function test_get_cached_credit_limit_falls_back_when_worker_returns_non_200(): void {
+		Functions\expect( 'get_transient' )
+			->once()->with( 'plume_credit_limit_free' )->andReturn( false );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => 'plume_site_token' === $key ? 'sometoken' : $default
+		);
+		// Worker responds 500 with a body — the non-200 branch must fall back to the constant.
+		Functions\expect( 'wp_remote_get' )->once()->andReturn( [ 'response' => [ 'code' => 500 ] ] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 500 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( 'Internal Server Error' );
+		Functions\expect( 'set_transient' )
+			->once()
+			->with( 'plume_credit_limit_free', UsageTracker::FREE_CREDITS, \DAY_IN_SECONDS )
+			->andReturn( true );
+
+		$this->assertSame( UsageTracker::FREE_CREDITS, UsageTracker::get_cached_credit_limit( 'free' ) );
 	}
 }

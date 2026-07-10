@@ -40,6 +40,12 @@ class TierStatusPageTest extends TestCase {
 	/**
 	 * Stub get_option and get_user_meta for a given tier and registration state.
 	 *
+	 * On a credit-limit cache miss for a registered, limited tier, render() reaches
+	 * UsageTracker::get_cached_credit_limit(), which fetches the live limit from the
+	 * Worker via wp_remote_get(). That network call is stubbed to a WP_Error here so
+	 * the fetch falls back to the hardcoded constants these assertions expect, without
+	 * hitting the network during unit tests.
+	 *
 	 * @param string $tier       One of: free, pro_managed, pro_byok.
 	 * @param bool   $registered Whether the site has a stored token.
 	 * @param int    $used       Credits used this month (ignored for unlimited tiers).
@@ -60,6 +66,8 @@ class TierStatusPageTest extends TestCase {
 		);
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'wp_remote_get' )->justReturn( new \WP_Error( 'http_request_failed', 'stubbed' ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, $default = null ) use ( $token, $tier ) {
 				if ( 'plume_site_token' === $key ) {

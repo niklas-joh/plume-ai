@@ -1,3 +1,9 @@
+## [1.13.0](https://github.com/niklas-joh/plume-ai/compare/v1.12.0...v1.13.0) (2026-07-10)
+
+### New Features
+
+* **seo:** show post status column in page list ([#928](https://github.com/niklas-joh/plume-ai/issues/928)) ([9850231](https://github.com/niklas-joh/plume-ai/commit/98502311d2465f8a673e6572fa827b1b2b615d02)), closes [#897](https://github.com/niklas-joh/plume-ai/issues/897)
+
 ## [1.12.0](https://github.com/niklas-joh/plume-ai/compare/v1.11.0...v1.12.0) (2026-07-06)
 
 ### New Features

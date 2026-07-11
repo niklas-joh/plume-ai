@@ -302,16 +302,28 @@ class GeminiProvider extends AbstractProvider {
 	/**
 	 * Convert OpenAI-style message array to Gemini contents format.
 	 *
+	 * Tool-exchange turns built by ChatRestController::append_tool_exchange()'s
+	 * 'gemini' case already carry Gemini-native `role`/`parts` (functionCall/
+	 * functionResponse), not `content` — passed through verbatim here instead of
+	 * being re-wrapped as `{text: null}`, which Gemini rejects (a Part must have
+	 * exactly one of its oneof fields — text, functionCall, functionResponse, etc. —
+	 * initialized; a missing `content` produces an empty, invalid Part otherwise).
+	 *
 	 * @since 1.0.0
-	 * @param array $messages Array of messages with 'role' and 'content' keys.
+	 * @param array $messages Array of messages with 'role' + either 'content' or 'parts'.
 	 * @return array
 	 */
 	private function messages_to_contents( array $messages ): array {
 		return array_map(
-			fn( $m ) => [
-				'role'  => 'assistant' === $m['role'] ? 'model' : 'user',
-				'parts' => [ [ 'text' => $m['content'] ] ],
-			],
+			fn( $m ) => isset( $m['parts'] )
+				? [
+					'role'  => $m['role'],
+					'parts' => $m['parts'],
+				]
+				: [
+					'role'  => 'assistant' === $m['role'] ? 'model' : 'user',
+					'parts' => [ [ 'text' => $m['content'] ] ],
+				],
 			$messages
 		);
 	}

@@ -80,8 +80,16 @@ export interface ProxyRequest {
 }
 
 export interface MessageParam {
-	role: 'user' | 'assistant';
-	content: string;
+	role: 'user' | 'assistant' | 'model';
+	content?: string;
+	/**
+	 * Pre-built Gemini-native parts (functionCall/functionResponse) for tool-exchange
+	 * turns — set by ChatRestController::append_tool_exchange()'s 'gemini' case
+	 * instead of `content`. callGemini() must forward these verbatim rather than
+	 * re-wrapping `content`, since Gemini rejects a Part with none of its oneof
+	 * fields (text/functionCall/functionResponse/...) initialized.
+	 */
+	parts?: Array< Record< string, unknown > >;
 }
 
 /**

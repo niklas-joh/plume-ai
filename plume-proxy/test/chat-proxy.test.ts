@@ -521,6 +521,106 @@ describe( 'handleChatProxy', () => {
 		);
 	} );
 
+	it( 'Gemini adapter: forwards pre-built functionCall/functionResponse parts verbatim on a tool-exchange follow-up turn', async () => {
+		// ChatRestController::append_tool_exchange()'s 'gemini' case sends messages
+		// shaped as { role, parts } (Gemini-native functionCall/functionResponse),
+		// not { role, content } — callGemini() must not re-wrap these as {text: ...},
+		// which would produce an empty, invalid Part (see plume-proxy/src/index.ts).
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
+
+		let capturedBody: Record< string, unknown > | null = null;
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockImplementation(
+					async ( _url: string, init: RequestInit ) => {
+						capturedBody = JSON.parse( init.body as string );
+						return new Response(
+							JSON.stringify( {
+								candidates: [
+									{
+										content: {
+											parts: [
+												{ text: 'Here is the update.' },
+											],
+										},
+									},
+								],
+								usageMetadata: {
+									promptTokenCount: 6,
+									candidatesTokenCount: 3,
+								},
+							} ),
+							{ status: 200 }
+						);
+					}
+				)
+		);
+
+		const body = JSON.stringify( {
+			messages: [
+				{ role: 'user', content: 'Fetch post 7 and review it' },
+				{
+					role: 'model',
+					parts: [
+						{
+							functionCall: {
+								id: 'call_1',
+								name: 'get_post_content',
+								args: { post_id: 7 },
+							},
+						},
+					],
+				},
+				{
+					role: 'user',
+					parts: [
+						{
+							functionResponse: {
+								id: 'call_1',
+								name: 'get_post_content',
+								response: { content: 'Post body text' },
+							},
+						},
+					],
+				},
+			],
+			provider: 'gemini',
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const contents = ( capturedBody as Record< string, unknown > )
+			.contents as Array< { role: string; parts: unknown[] } >;
+		expect( contents[ 1 ] ).toEqual( {
+			role: 'model',
+			parts: [
+				{
+					functionCall: {
+						id: 'call_1',
+						name: 'get_post_content',
+						args: { post_id: 7 },
+					},
+				},
+			],
+		} );
+		expect( contents[ 2 ] ).toEqual( {
+			role: 'user',
+			parts: [
+				{
+					functionResponse: {
+						id: 'call_1',
+						name: 'get_post_content',
+						response: { content: 'Post body text' },
+					},
+				},
+			],
+		} );
+	} );
+
 	it( 'returns a UUID-format tool_call id in tool_calls[0] when Gemini functionCall part is returned', async () => {
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
 

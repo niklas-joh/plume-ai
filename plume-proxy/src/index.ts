@@ -358,7 +358,7 @@ async function callGemini(
 ): Promise< NormalizedResponse > {
 	const contents = body.messages.map( ( m ) => ( {
 		role: m.role,
-		parts: [ { text: m.content } ],
+		parts: m.parts ?? [ { text: m.content ?? '' } ],
 	} ) );
 	const geminiBody: Record< string, unknown > = {
 		contents,

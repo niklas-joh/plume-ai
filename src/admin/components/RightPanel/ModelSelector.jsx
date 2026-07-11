@@ -26,6 +26,7 @@ const PROVIDER_LABELS = {
  * @param {string}   props.selectedModel     Currently selected model ID, or empty for the provider default.
  * @param {Function} props.onProviderChange  Called with the new provider slug when changed.
  * @param {Function} props.onModelChange     Called with the new model ID when changed.
+ * @param {boolean}  props.justSaved         True briefly after a provider/model change is persisted.
  * @return {ReactElement}
  */
 export default function ModelSelector( {
@@ -34,6 +35,7 @@ export default function ModelSelector( {
 	selectedModel,
 	onProviderChange,
 	onModelChange,
+	justSaved = false,
 } ) {
 	const { defaultModelLabel = 'AI' } = window.plumeData || {};
 
@@ -73,6 +75,9 @@ export default function ModelSelector( {
 						Advanced{ ' ' }
 						<ChevronRight size={ 11 } strokeWidth={ 1.5 } />
 					</button>
+					{ justSaved && (
+						<span className="plume-model-saved">Saved</span>
+					) }
 				</div>
 			) : (
 				<div className="plume-model-selector">
@@ -126,6 +131,9 @@ export default function ModelSelector( {
 					>
 						<ChevronLeft size={ 11 } strokeWidth={ 1.5 } /> Simple
 					</button>
+					{ justSaved && (
+						<span className="plume-model-saved">Saved</span>
+					) }
 				</div>
 			) }
 		</div>

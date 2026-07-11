@@ -56,6 +56,8 @@ export default function ChatApp() {
 	const [ deletingIds, setDeletingIds ] = useState( new Set() );
 	const [ deleteErrors, setDeleteErrors ] = useState( {} );
 	const [ drawerPlan, setDrawerPlan ] = useState( null );
+	const [ modelJustSaved, setModelJustSaved ] = useState( false );
+	const savedFlashTimeoutRef = useRef( null );
 	const skipLoadRef = useRef( false );
 	// Tracks which conversation IDs have already had a title PATCH dispatched,
 	// preventing a second send if the user types quickly before state settles.
@@ -90,6 +92,10 @@ export default function ChatApp() {
 	useEffect( () => {
 		storageSet( 'plume-selected-model', selectedModel );
 	}, [ selectedModel ] );
+
+	useEffect( () => {
+		return () => clearTimeout( savedFlashTimeoutRef.current );
+	}, [] );
 
 	useEffect( () => {
 		// Re-hydrate the review drawer for whichever conversation is now active.
@@ -410,6 +416,27 @@ export default function ChatApp() {
 		setPendingQuickAction( null );
 	}
 
+	// Briefly flashes a "Saved" hint next to the model selector so a persisted
+	// choice (silent localStorage write) has some visible confirmation.
+	function flashModelSaved() {
+		setModelJustSaved( true );
+		clearTimeout( savedFlashTimeoutRef.current );
+		savedFlashTimeoutRef.current = setTimeout(
+			() => setModelJustSaved( false ),
+			1500
+		);
+	}
+
+	function handleProviderChange( provider ) {
+		setSelectedProvider( provider );
+		flashModelSaved();
+	}
+
+	function handleModelChange( model ) {
+		setSelectedModel( model );
+		flashModelSaved();
+	}
+
 	const toggleLabel = isSidebarCollapsed
 		? __( 'Expand sidebar', 'plume' )
 		: __( 'Collapse sidebar', 'plume' );
@@ -508,8 +535,9 @@ export default function ChatApp() {
 					providers={ providers }
 					selectedProvider={ selectedProvider }
 					selectedModel={ selectedModel }
-					onProviderChange={ setSelectedProvider }
-					onModelChange={ setSelectedModel }
+					onProviderChange={ handleProviderChange }
+					onModelChange={ handleModelChange }
+					justSaved={ modelJustSaved }
 				/>
 				<QuickActions
 					onAction={ sendMessage }

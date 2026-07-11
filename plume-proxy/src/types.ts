@@ -55,6 +55,12 @@ export interface NormalizedResponse {
 		id: string;
 		name: string;
 		arguments: Record< string, unknown >;
+		/**
+		 * Gemini-only. Must be echoed back verbatim on the functionCall part when this
+		 * tool-use turn is replayed on the next request — Gemini 3.x rejects a
+		 * functionCall part that omits it ("required thought_signature").
+		 */
+		thoughtSignature?: string;
 	} >;
 }
 

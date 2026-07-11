@@ -471,6 +471,12 @@
 	color: var(--color-text-secondary);
 }
 
+.plume-model-saved {
+	font-size: var(--text-xs);
+	color: var(--color-success);
+	margin-left: var(--space-1);
+}
+
 .plume-model-no-key {
 	font-size: var(--text-xs);
 	color: var(--color-warning);

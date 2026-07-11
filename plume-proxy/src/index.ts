@@ -398,6 +398,7 @@ async function callGemini(
 					name: string;
 					args?: Record< string, unknown >;
 				};
+				thoughtSignature?: string;
 			} >;
 		};
 	} >;
@@ -422,6 +423,9 @@ async function callGemini(
 				id: `gemini_${ crypto.randomUUID() }`,
 				name: part.functionCall!.name,
 				arguments: part.functionCall!.args ?? {},
+				...( part.thoughtSignature
+					? { thoughtSignature: part.thoughtSignature }
+					: {} ),
 			} ) ),
 		};
 	}

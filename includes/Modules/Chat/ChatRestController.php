@@ -919,11 +919,17 @@ class ChatRestController {
 				$all_tool_calls = [ $response->tool_call ];
 			}
 			foreach ( $all_tool_calls as $tc ) {
-				$tool_uses[] = [
+				$normalised_call = [
 					'id'    => $tc['id'] ?? '',
 					'name'  => $tc['name'] ?? '',
 					'input' => $tc['arguments'] ?? [],
 				];
+				// Gemini-only: carried through so append_tool_exchange() can replay it on the
+				// functionCall part; Gemini 3.x rejects a replay that omits it.
+				if ( ! empty( $tc['thoughtSignature'] ) ) {
+					$normalised_call['thoughtSignature'] = $tc['thoughtSignature'];
+				}
+				$tool_uses[] = $normalised_call;
 			}
 		}
 
@@ -1077,18 +1083,28 @@ class ChatRestController {
 				// Collect all functionCall parts from the raw Gemini response.
 				$raw_parts      = $tool_response->raw['data']['candidates'][0]['content']['parts'] ?? [];
 				$function_calls = array_values( array_filter( $raw_parts, fn( $p ) => isset( $p['functionCall'] ) ) );
-				// Fall back to the single normalised tool_call when raw parts are unavailable.
+				// Proxy responses carry no raw candidates (raw is the Worker's normalised
+				// shape) — rebuild one functionCall part per executed call from
+				// $all_tool_calls (mirrors the Claude branch's #898 multi-call fix),
+				// forwarding thoughtSignature when the Worker captured one; Gemini 3.x
+				// rejects a replayed functionCall part that omits it.
 				if ( empty( $function_calls ) ) {
-					$call_id        = $tool_response->raw['call_id'] ?? $tool_call['id'];
-					$function_calls = [
-						[
-							'functionCall' => [
-								'id'   => $call_id,
-								'name' => $tool_call['name'],
-								'args' => $tool_call['arguments'],
-							],
-						],
-					];
+					$function_calls = array_map(
+						static function ( array $tc ): array {
+							$part = [
+								'functionCall' => [
+									'id'   => $tc['id'],
+									'name' => $tc['name'],
+									'args' => $tc['input'],
+								],
+							];
+							if ( ! empty( $tc['thoughtSignature'] ) ) {
+								$part['thoughtSignature'] = $tc['thoughtSignature'];
+							}
+							return $part;
+						},
+						$all_tool_calls
+					);
 				}
 				$messages[]     = [
 					'role'  => 'model',

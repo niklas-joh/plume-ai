@@ -130,6 +130,30 @@ function toOpenAITools( tools: ToolParam[] ) {
 	} ) );
 }
 
+// Gemini's function-declaration Schema is a restricted OpenAPI subset — it
+// rejects unknown keywords with a 400 rather than ignoring them. Strips
+// `additionalProperties` (used elsewhere for open string-keyed maps like
+// meta_fields, valid JSON Schema that Claude/OpenAI accept) recursively, since
+// it can appear at any depth in a tool's nested parameter properties.
+function stripGeminiUnsupportedKeywords( schema: unknown ): unknown {
+	if ( Array.isArray( schema ) ) {
+		return schema.map( stripGeminiUnsupportedKeywords );
+	}
+	if ( schema && typeof schema === 'object' ) {
+		const { additionalProperties: _drop, ...rest } = schema as Record<
+			string,
+			unknown
+		>;
+		return Object.fromEntries(
+			Object.entries( rest ).map( ( [ key, value ] ) => [
+				key,
+				stripGeminiUnsupportedKeywords( value ),
+			] )
+		);
+	}
+	return schema;
+}
+
 function toGeminiTools( tools: ToolParam[] ) {
 	return [
 		{
@@ -140,7 +164,9 @@ function toGeminiTools( tools: ToolParam[] ) {
 				// additions to ToolParam.parameters do not accidentally bleed into the output.
 				parameters: {
 					type: 'OBJECT',
-					properties: t.parameters.properties,
+					properties: stripGeminiUnsupportedKeywords(
+						t.parameters.properties
+					),
 					required: t.parameters.required,
 				},
 			} ) ),

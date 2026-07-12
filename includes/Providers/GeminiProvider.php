@@ -407,7 +407,16 @@ class GeminiProvider extends AbstractProvider {
 			}
 		}
 
-		$content = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
+		// Gemini 3.x's thought-signature mechanism can prepend a signature-only part
+		// with no `text` before the actual answer — reading only parts[0] silently
+		// drops the reply, so every text part is concatenated in order instead.
+		$content = implode(
+			'',
+			array_map(
+				static fn( array $part ): string => $part['text'] ?? '',
+				$data['candidates'][0]['content']['parts'] ?? []
+			)
+		);
 		return new CompletionResponse( $content, $model, $in_tokens, $out_tokens, $cost, $data );
 	}
 }

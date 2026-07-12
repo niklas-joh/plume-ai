@@ -430,8 +430,15 @@ async function callGemini(
 		};
 	}
 
+	// Gemini 3.x's thought-signature mechanism can prepend a signature-only part
+	// with no `text` before the actual answer — reading only parts[0] silently
+	// drops the reply, so every text part is concatenated in order instead.
+	const textContent = ( candidates[ 0 ]?.content?.parts ?? [] )
+		.map( ( p ) => p.text ?? '' )
+		.join( '' );
+
 	return {
-		content: candidates[ 0 ]?.content?.parts[ 0 ]?.text ?? '',
+		content: textContent,
 		usage: normalizedUsage,
 	};
 }

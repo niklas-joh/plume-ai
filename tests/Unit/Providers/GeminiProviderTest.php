@@ -94,6 +94,37 @@ class GeminiProviderTest extends TestCase {
 		$this->assertSame( 5, $response->prompt_tokens );
 	}
 
+	public function test_complete_concatenates_all_text_parts(): void {
+		// Gemini 3.x can prepend a signature-only part (no `text`) ahead of the
+		// actual answer; reading only parts[0] previously produced an empty reply.
+		$this->mock_wpdb();
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'candidates'    => [ [
+					'content' => [
+						'parts' => [
+							[ 'thoughtSignature' => 'sig_xyz' ],
+							[ 'text' => 'Here is my ' ],
+							[ 'text' => 'full answer.' ],
+						],
+					],
+				] ],
+				'usageMetadata' => [ 'promptTokenCount' => 5, 'candidatesTokenCount' => 3 ],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( fn($v) => json_encode($v) );
+
+		$provider = new GeminiProvider( 'AIza-test' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+		$response = $provider->complete( $request );
+
+		$this->assertSame( 'Here is my full answer.', $response->content );
+	}
+
 	public function test_complete_throws_on_api_error(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_option' )->alias(

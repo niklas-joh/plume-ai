@@ -439,6 +439,50 @@ describe( 'handleChatProxy', () => {
 		expect( json.usage ).toEqual( { input_tokens: 6, output_tokens: 3 } );
 	} );
 
+	it( 'Gemini adapter: concatenates all text parts instead of only reading parts[0]', async () => {
+		// Gemini 3.x can prepend a signature-only part (no `text`) ahead of the
+		// actual answer; reading only parts[0] previously produced an empty reply.
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue(
+				new Response(
+					JSON.stringify( {
+						candidates: [
+							{
+								content: {
+									parts: [
+										{ thoughtSignature: 'sig_xyz' },
+										{ text: 'Here is my ' },
+										{ text: 'full answer.' },
+									],
+								},
+							},
+						],
+						usageMetadata: {
+							promptTokenCount: 6,
+							candidatesTokenCount: 3,
+						},
+					} ),
+					{ status: 200 }
+				)
+			)
+		);
+
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Hello Gemini' } ],
+			provider: 'gemini',
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const json = ( await response.json() ) as { content: string };
+		expect( json.content ).toBe( 'Here is my full answer.' );
+	} );
+
 	it( 'Gemini adapter: strips additionalProperties from nested tool parameter schemas', async () => {
 		// Gemini's function-declaration Schema is a restricted OpenAPI subset that
 		// 400s on unknown keywords — additionalProperties (valid JSON Schema, used

@@ -100,11 +100,12 @@ class ToolExecutor {
 		$posts = [];
 		foreach ( $query->posts as $post ) {
 			$posts[] = [
-				'id'      => $post->ID,
-				'title'   => \html_entity_decode( $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-				'status'  => $post->post_status,
-				'date'    => $post->post_date,
-				'excerpt' => \wp_trim_words( \wp_strip_all_tags( ! empty( $post->post_excerpt ) ? $post->post_excerpt : $post->post_content ), 100 ),
+				'id'        => $post->ID,
+				'title'     => \html_entity_decode( $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'status'    => $post->post_status,
+				'date'      => $post->post_date,
+				'excerpt'   => \wp_trim_words( \wp_strip_all_tags( ! empty( $post->post_excerpt ) ? $post->post_excerpt : $post->post_content ), 100 ),
+				'permalink' => \get_permalink( $post->ID ),
 			];
 		}
 		\wp_reset_postdata();
@@ -142,11 +143,12 @@ class ToolExecutor {
 		$content = \wp_strip_all_tags( \apply_filters( 'the_content', $post->post_content ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 
 		return [
-			'id'      => $post->ID,
-			'title'   => \html_entity_decode( $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-			'content' => $content,
-			'status'  => $post->post_status,
-			'date'    => $post->post_date,
+			'id'        => $post->ID,
+			'title'     => \html_entity_decode( $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+			'content'   => $content,
+			'status'    => $post->post_status,
+			'date'      => $post->post_date,
+			'permalink' => \get_permalink( $post->ID ),
 		];
 	}
 
@@ -187,10 +189,11 @@ class ToolExecutor {
 		$posts = [];
 		foreach ( $query->posts as $post ) {
 			$posts[] = [
-				'id'      => $post->ID,
-				'title'   => \html_entity_decode( $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-				'excerpt' => \wp_trim_words( \wp_strip_all_tags( ! empty( $post->post_excerpt ) ? $post->post_excerpt : $post->post_content ), 50 ),
-				'status'  => $post->post_status,
+				'id'        => $post->ID,
+				'title'     => \html_entity_decode( $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'excerpt'   => \wp_trim_words( \wp_strip_all_tags( ! empty( $post->post_excerpt ) ? $post->post_excerpt : $post->post_content ), 50 ),
+				'status'    => $post->post_status,
+				'permalink' => \get_permalink( $post->ID ),
 			];
 		}
 		\wp_reset_postdata();
@@ -225,10 +228,11 @@ class ToolExecutor {
 		$pages = [];
 		foreach ( $query->posts as $post ) {
 			$pages[] = [
-				'id'     => $post->ID,
-				'title'  => \html_entity_decode( $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-				'slug'   => $post->post_name,
-				'status' => $post->post_status,
+				'id'        => $post->ID,
+				'title'     => \html_entity_decode( $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'slug'      => $post->post_name,
+				'status'    => $post->post_status,
+				'permalink' => \get_permalink( $post->ID ),
 			];
 		}
 		\wp_reset_postdata();

@@ -27,27 +27,29 @@ use Plume\Tools\ToolRegistry;
 class GeminiProvider extends AbstractProvider {
 
 	private const API_BASE      = 'https://generativelanguage.googleapis.com/v1beta';
-	private const DEFAULT_MODEL = 'gemini-2.5-pro';
+	private const DEFAULT_MODEL = 'gemini-3.5-flash';
 	private const IMAGE_MODEL   = 'imagen-3.0-generate-001';
 
+	/**
+	 * Mirrors the union of the Worker's DEFAULT_TIER_MODELS.gemini.free and
+	 * .pro_managed allow-lists (plume-proxy/src/index.ts) so the dropdown
+	 * never offers a model the Worker will reject for proxy-routed (non-BYOK)
+	 * requests — see #906. free -> gemini-3.1-flash-lite, pro_managed ->
+	 * gemini-3.5-flash; the Worker alone decides which tier gets which.
+	 */
 	private const MODELS = [
-		'gemini-2.5-pro'   => 'Gemini 2.5 Pro',
-		'gemini-2.5-flash' => 'Gemini 2.5 Flash',
-		'gemini-2.0-flash' => 'Gemini 2.0 Flash',
+		'gemini-3.1-flash-lite' => 'Gemini 3.1 Flash Lite',
+		'gemini-3.5-flash'      => 'Gemini 3.5 Flash',
 	];
 
 	private const PRICING = [
-		'gemini-2.5-pro'   => [
-			'in'  => 1.25,
-			'out' => 10.0,
+		'gemini-3.1-flash-lite' => [
+			'in'  => 0.25,
+			'out' => 1.50,
 		],
-		'gemini-2.5-flash' => [
-			'in'  => 0.075,
-			'out' => 0.30,
-		],
-		'gemini-2.0-flash' => [
-			'in'  => 0.10,
-			'out' => 0.40,
+		'gemini-3.5-flash'      => [
+			'in'  => 1.50,
+			'out' => 9.0,
 		],
 	];
 
@@ -300,16 +302,28 @@ class GeminiProvider extends AbstractProvider {
 	/**
 	 * Convert OpenAI-style message array to Gemini contents format.
 	 *
+	 * Tool-exchange turns built by ChatRestController::append_tool_exchange()'s
+	 * 'gemini' case already carry Gemini-native `role`/`parts` (functionCall/
+	 * functionResponse), not `content` — passed through verbatim here instead of
+	 * being re-wrapped as `{text: null}`, which Gemini rejects (a Part must have
+	 * exactly one of its oneof fields — text, functionCall, functionResponse, etc. —
+	 * initialized; a missing `content` produces an empty, invalid Part otherwise).
+	 *
 	 * @since 1.0.0
-	 * @param array $messages Array of messages with 'role' and 'content' keys.
+	 * @param array $messages Array of messages with 'role' + either 'content' or 'parts'.
 	 * @return array
 	 */
 	private function messages_to_contents( array $messages ): array {
 		return array_map(
-			fn( $m ) => [
-				'role'  => 'assistant' === $m['role'] ? 'model' : 'user',
-				'parts' => [ [ 'text' => $m['content'] ] ],
-			],
+			fn( $m ) => isset( $m['parts'] )
+				? [
+					'role'  => $m['role'],
+					'parts' => $m['parts'],
+				]
+				: [
+					'role'  => 'assistant' === $m['role'] ? 'model' : 'user',
+					'parts' => [ [ 'text' => $m['content'] ] ],
+				],
 			$messages
 		);
 	}
@@ -318,7 +332,7 @@ class GeminiProvider extends AbstractProvider {
 	 * POST a JSON body to the Gemini API and return the decoded response.
 	 *
 	 * @since 1.0.0
-	 * @param string $path API endpoint path (e.g. '/models/gemini-2.5-pro:generateContent').
+	 * @param string $path API endpoint path (e.g. '/models/gemini-3.5-flash:generateContent').
 	 * @param array  $body Request payload.
 	 * @return array
 	 * @throws ProviderException On HTTP failure or non-2xx status.
@@ -393,7 +407,16 @@ class GeminiProvider extends AbstractProvider {
 			}
 		}
 
-		$content = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
+		// Gemini 3.x's thought-signature mechanism can prepend a signature-only part
+		// with no `text` before the actual answer — reading only parts[0] silently
+		// drops the reply, so every text part is concatenated in order instead.
+		$content = implode(
+			'',
+			array_map(
+				static fn( array $part ): string => $part['text'] ?? '',
+				$data['candidates'][0]['content']['parts'] ?? []
+			)
+		);
 		return new CompletionResponse( $content, $model, $in_tokens, $out_tokens, $cost, $data );
 	}
 }

@@ -55,8 +55,8 @@ const DEFAULT_TIER_MODELS: Record< Provider, Record< ProxyTier, string[] > > = {
 		pro_managed: [ 'gpt-4.1' ],
 	},
 	gemini: {
-		free: [],
-		pro_managed: [ 'gemini-3.5-flash', 'gemini-3.1-pro' ],
+		free: [ 'gemini-3.1-flash-lite' ],
+		pro_managed: [ 'gemini-3.5-flash' ],
 	},
 };
 
@@ -67,8 +67,8 @@ const DEFAULT_MODEL_TOKEN_WEIGHT: Record< string, number > = {
 	'claude-sonnet-4-6': 3,
 	'claude-opus-4-6': 5,
 	'gpt-4.1': 2,
+	'gemini-3.1-flash-lite': 1,
 	'gemini-3.5-flash': 2,
-	'gemini-3.1-pro': 2,
 };
 
 /**
@@ -130,6 +130,30 @@ function toOpenAITools( tools: ToolParam[] ) {
 	} ) );
 }
 
+// Gemini's function-declaration Schema is a restricted OpenAPI subset — it
+// rejects unknown keywords with a 400 rather than ignoring them. Strips
+// `additionalProperties` (used elsewhere for open string-keyed maps like
+// meta_fields, valid JSON Schema that Claude/OpenAI accept) recursively, since
+// it can appear at any depth in a tool's nested parameter properties.
+function stripGeminiUnsupportedKeywords( schema: unknown ): unknown {
+	if ( Array.isArray( schema ) ) {
+		return schema.map( stripGeminiUnsupportedKeywords );
+	}
+	if ( schema && typeof schema === 'object' ) {
+		const { additionalProperties: _drop, ...rest } = schema as Record<
+			string,
+			unknown
+		>;
+		return Object.fromEntries(
+			Object.entries( rest ).map( ( [ key, value ] ) => [
+				key,
+				stripGeminiUnsupportedKeywords( value ),
+			] )
+		);
+	}
+	return schema;
+}
+
 function toGeminiTools( tools: ToolParam[] ) {
 	return [
 		{
@@ -140,7 +164,9 @@ function toGeminiTools( tools: ToolParam[] ) {
 				// additions to ToolParam.parameters do not accidentally bleed into the output.
 				parameters: {
 					type: 'OBJECT',
-					properties: t.parameters.properties,
+					properties: stripGeminiUnsupportedKeywords(
+						t.parameters.properties
+					),
 					required: t.parameters.required,
 				},
 			} ) ),
@@ -332,7 +358,7 @@ async function callGemini(
 ): Promise< NormalizedResponse > {
 	const contents = body.messages.map( ( m ) => ( {
 		role: m.role,
-		parts: [ { text: m.content } ],
+		parts: m.parts ?? [ { text: m.content ?? '' } ],
 	} ) );
 	const geminiBody: Record< string, unknown > = {
 		contents,
@@ -372,6 +398,7 @@ async function callGemini(
 					name: string;
 					args?: Record< string, unknown >;
 				};
+				thoughtSignature?: string;
 			} >;
 		};
 	} >;
@@ -396,12 +423,22 @@ async function callGemini(
 				id: `gemini_${ crypto.randomUUID() }`,
 				name: part.functionCall!.name,
 				arguments: part.functionCall!.args ?? {},
+				...( part.thoughtSignature
+					? { thoughtSignature: part.thoughtSignature }
+					: {} ),
 			} ) ),
 		};
 	}
 
+	// Gemini 3.x's thought-signature mechanism can prepend a signature-only part
+	// with no `text` before the actual answer — reading only parts[0] silently
+	// drops the reply, so every text part is concatenated in order instead.
+	const textContent = ( candidates[ 0 ]?.content?.parts ?? [] )
+		.map( ( p ) => p.text ?? '' )
+		.join( '' );
+
 	return {
-		content: candidates[ 0 ]?.content?.parts[ 0 ]?.text ?? '',
+		content: textContent,
 		usage: normalizedUsage,
 	};
 }
@@ -892,8 +929,18 @@ async function handleChatProxy(
 		}
 		return jsonResponse( responseData );
 	} catch ( error ) {
+		// Errors from callClaude/callOpenAI/callGemini carry `status`/`body` from the
+		// upstream provider's response (see e.g. callGemini's Object.assign throw);
+		// console.error on a bare Error only prints its message/stack, silently
+		// dropping those extra properties — log them explicitly so `wrangler tail`
+		// actually shows *why* an upstream call failed (bad key, bad model id, etc.),
+		// since the client-facing response below never includes this detail.
+		const upstream = error as { status?: number; body?: unknown };
 		// eslint-disable-next-line no-console
-		console.error( 'Proxy error:', error );
+		console.error( 'Proxy error:', error, {
+			status: upstream?.status,
+			body: upstream?.body,
+		} );
 		// Only honour our own tagged validation error (the typed 400 from
 		// getModelForTier). Upstream provider errors also carry a `status`
 		// (e.g. a 429/401 from our Anthropic/OpenAI account) but must never be

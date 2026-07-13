@@ -1132,7 +1132,7 @@ class ChatRestControllerTest extends TestCase {
 
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: $raw_data,
@@ -1167,7 +1167,7 @@ class ChatRestControllerTest extends TestCase {
 
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: $raw_data,
@@ -1210,7 +1210,7 @@ class ChatRestControllerTest extends TestCase {
 
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: $raw_data,
@@ -1313,6 +1313,48 @@ class ChatRestControllerTest extends TestCase {
         $this->assertSame( \wp_json_encode( [ 'name' => 'Plume AI' ] ), $result_blocks[1]['content'] );
     }
 
+    public function test_gemini_proxy_append_tool_exchange_reconstructs_calls_with_thought_signature(): void {
+        // Proxy responses carry no raw candidates (raw is the Worker's normalised shape) —
+        // functionCall parts must be rebuilt from the plural tool_calls array, and any
+        // thoughtSignature the Worker captured must be replayed on the part or Gemini 3.x
+        // rejects the follow-up turn ("required thought_signature").
+        $response = new CompletionResponse(
+            content: '',
+            model: 'gemini-3.5-flash',
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            raw: [
+                'content'    => '',
+                'tool_calls' => [
+                    [
+                        'id'               => 'gemini_1',
+                        'name'             => 'get_recent_posts',
+                        'arguments'        => [ 'count' => 3 ],
+                        'thoughtSignature' => 'sig_abc123',
+                    ],
+                    [ 'id' => 'gemini_2', 'name' => 'get_site_info', 'arguments' => [] ],
+                ],
+            ],
+            tool_call: [ 'id' => 'gemini_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+        );
+
+        $messages = $this->call_append_tool_exchange( [], 'gemini', $response, [
+            'gemini_1' => [ 'posts' => [] ],
+            'gemini_2' => [ 'name' => 'Plume AI' ],
+        ] );
+
+        $model_parts = $messages[0]['parts'];
+        $this->assertCount( 2, $model_parts, 'Model turn must contain both functionCall parts' );
+        $this->assertSame( 'sig_abc123', $model_parts[0]['thoughtSignature'] );
+        $this->assertArrayNotHasKey(
+            'thoughtSignature',
+            $model_parts[1],
+            'A call with no captured signature must not synthesise one'
+        );
+        $this->assertSame( 'get_recent_posts', $model_parts[0]['functionCall']['name'] );
+        $this->assertSame( 'get_site_info', $model_parts[1]['functionCall']['name'] );
+    }
+
     // ── extract_tool_calls ─────────────────────────────────────────────────────
 
     /**
@@ -1328,7 +1370,7 @@ class ChatRestControllerTest extends TestCase {
     public function test_extract_tool_calls_returns_all_gemini_function_calls(): void {
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: [
@@ -1362,7 +1404,7 @@ class ChatRestControllerTest extends TestCase {
     public function test_extract_tool_calls_falls_back_to_normalised_tool_call(): void {
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: [ 'call_id' => 'gemini_generated_1' ],
@@ -1465,7 +1507,7 @@ class ChatRestControllerTest extends TestCase {
         // Gemini requests two tools in one turn, omitting functionCall ids.
         $tool_response = new CompletionResponse(
             content:           '',
-            model:             'gemini-2.0-flash',
+            model:             'gemini-3.5-flash',
             prompt_tokens:     10,
             completion_tokens: 5,
             cost_usd:          0.0,
@@ -1487,7 +1529,7 @@ class ChatRestControllerTest extends TestCase {
 
         $final_response = new CompletionResponse(
             content:           'Here is your site overview.',
-            model:             'gemini-2.0-flash',
+            model:             'gemini-3.5-flash',
             prompt_tokens:     20,
             completion_tokens: 15,
             cost_usd:          0.0,

@@ -318,6 +318,10 @@ class ChatRestController {
 	 *                           429 with a `Retry-After` header (seconds until next month UTC) on
 	 *                           provider rate-limit; 502 when the provider returns 401/403; 500 on
 	 *                           other provider errors or iteration-limit breach.
+	 * @throws ProviderException Re-thrown mid-loop when the Worker's quota is exhausted with no
+	 *                           prior successful iteration to gracefully finish with; caught by
+	 *                           the outer try/catch in this same method, which maps it to a
+	 *                           response rather than letting it escape.
 	 */
 	public function send_message( \WP_REST_Request $request ): \WP_REST_Response {
 		$conv_id        = (int) $request->get_param( 'id' );
@@ -536,9 +540,19 @@ class ChatRestController {
 			}
 
 			if ( null === $final_response ) {
+				if ( null === $last_successful_response ) {
+					// Unreachable in practice — MAX_TOOL_ITERATIONS > 0 guarantees at least one
+					// successful iteration completes before this fallback can be reached — but
+					// guards against a fatal error if that invariant is ever violated, and lets
+					// static analysis prove $last_successful_response is non-null below.
+					return new \WP_REST_Response(
+						[ 'message' => __( 'The assistant was unable to complete this request.', 'plume' ) ],
+						500
+					);
+				}
 				// Substitute a displayable message so the chat UI receives a 200 rather than crashing on 500.
 				$limit_message  = \__( 'The assistant reached the maximum number of steps without finishing. Please try rephrasing your request or breaking it into smaller tasks.', 'plume' );
-				$final_response = $response->with_text( $limit_message );
+				$final_response = $last_successful_response->with_text( $limit_message );
 			}
 
 			// Log the sum of the Worker's per-iteration charges exactly once per user message,

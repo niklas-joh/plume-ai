@@ -313,7 +313,6 @@ class ChatRestController {
 	 *
 	 * @since 1.0.0
 	 * @param \WP_REST_Request $request Incoming REST request.
-	 * @throws ProviderException On provider failure mid-loop; caught by this method's outer handler and mapped to an HTTP status.
 	 * @return \WP_REST_Response 201 on success; 403 if the conversation is not owned by the caller;
 	 *                           429 with a `Retry-After` header (seconds until next month UTC) on
 	 *                           provider rate-limit; 502 when the provider returns 401/403; 500 on

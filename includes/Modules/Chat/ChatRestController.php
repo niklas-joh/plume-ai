@@ -387,7 +387,7 @@ class ChatRestController {
 
 		$injector = $this->make_voice_injector();
 		$system   = $injector->build_system_prompt(
-			'Tool rule: when the user wants to edit or update a post, call plan_update directly after reading the post — never use chat_response to share your analysis or ask for permission first. Your analysis goes in the plan_update analysis field.',
+			'Tool rule: when the user wants to edit or update a post, call plan_update directly after reading the post — never use chat_response to share your analysis or ask for permission first. Your analysis goes in the plan_update analysis field. When linking to a post, use the exact `permalink` field returned by get_recent_posts/get_post_content verbatim — never construct, guess, or modify a post URL yourself.',
 			$user_id
 		);
 

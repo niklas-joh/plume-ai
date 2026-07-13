@@ -539,17 +539,10 @@ class ChatRestController {
 			}
 
 			if ( null === $final_response ) {
-				if ( null === $last_successful_response ) {
-					// Unreachable in practice — MAX_TOOL_ITERATIONS > 0 guarantees at least one
-					// successful iteration completes before this fallback can be reached — but
-					// guards against a fatal error if that invariant is ever violated, and lets
-					// static analysis prove $last_successful_response is non-null below.
-					return new \WP_REST_Response(
-						[ 'message' => __( 'The assistant was unable to complete this request.', 'plume' ) ],
-						500
-					);
-				}
-				// Substitute a displayable message so the chat UI receives a 200 rather than crashing on 500.
+				// $last_successful_response is guaranteed set here: MAX_TOOL_ITERATIONS > 0
+				// means the loop body always runs at least once, and reaching this fallback
+				// (final_response still null) means no break fired, so every iteration up to
+				// and including the last one completed the try block and reached line ~475.
 				$limit_message  = \__( 'The assistant reached the maximum number of steps without finishing. Please try rephrasing your request or breaking it into smaller tasks.', 'plume' );
 				$final_response = $last_successful_response->with_text( $limit_message );
 			}

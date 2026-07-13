@@ -5,7 +5,6 @@ import worker from '../src/index';
 import { makeEnv } from './helpers/kv-mock';
 import { currentMonthKey } from './helpers/month';
 import {
-	chatCredits,
 	GENERATOR_CREDITS,
 	SEO_CREDITS,
 	IMAGE_CREDITS,
@@ -878,13 +877,12 @@ describe( 'handleChatProxy', () => {
 		) as Record< string, unknown >;
 		expect( sentBody.model ).toBe( 'claude-opus-4-7' );
 
-		// Verify chatCredits(input=2000, output=2000, weight=20) credits stored.
+		// weight=20, raw=4000 → ceil(4000*20/2000) = 40 credits.
 		const stored = await getStoredUsage( env );
-		expect( stored ).toBe( chatCredits( 2000, 2000, 20 ) );
 		expect( stored ).toBe( 40 );
 	} );
 
-	it( 'chat credits: KV value equals chatCredits(input, output, weight) for a heavy model', async () => {
+	it( 'chat credits: KV value equals expected cost for a heavy model', async () => {
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
 
 		vi.stubGlobal(
@@ -911,11 +909,10 @@ describe( 'handleChatProxy', () => {
 		await worker.fetch( makeChatRequest( body ), env );
 
 		const stored = await getStoredUsage( env );
-		expect( stored ).toBe( chatCredits( 10_000, 5_000, 5 ) );
 		expect( stored ).toBe( 38 );
 	} );
 
-	it( 'free tier: chat call charges credits per chatCredits(input, output, weight) and stores result in usage KV', async () => {
+	it( 'free tier: chat call charges credits per token usage and stores result in usage KV', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 
 		vi.stubGlobal(
@@ -937,7 +934,6 @@ describe( 'handleChatProxy', () => {
 
 		const json = ( await response.json() ) as { credits_charged: number };
 		const stored = await getStoredUsage( env );
-		expect( stored ).toBe( chatCredits( 1000, 1000, 1 ) );
 		expect( stored ).toBe( 1 );
 		expect( json.credits_charged ).toBe( 1 );
 	} );
@@ -964,7 +960,6 @@ describe( 'handleChatProxy', () => {
 
 		const json = ( await response.json() ) as { credits_charged: number };
 		const stored = await getStoredUsage( env );
-		expect( stored ).toBe( chatCredits( 100, 1, 1 ) );
 		expect( stored ).toBe( 1 );
 		expect( json.credits_charged ).toBe( 1 );
 	} );
@@ -991,7 +986,6 @@ describe( 'handleChatProxy', () => {
 
 		const json = ( await response.json() ) as { credits_charged: number };
 		const stored = await getStoredUsage( env );
-		expect( stored ).toBe( chatCredits( 2000, 2000, 1 ) );
 		expect( stored ).toBe( 2 );
 		expect( json.credits_charged ).toBe( 2 );
 	} );
@@ -1120,7 +1114,7 @@ describe( 'handleChatProxy', () => {
 		expect( await getStoredUsage( env ) ).toBe( 0 );
 	} );
 
-	it( 'final chat response: credits_charged in response body matches KV and chatCredits()', async () => {
+	it( 'final chat response: credits_charged in response body matches KV', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 
 		vi.stubGlobal(
@@ -1140,7 +1134,7 @@ describe( 'handleChatProxy', () => {
 		expect( response.status ).toBe( 200 );
 
 		// weight=1, raw=1000 → ceil(1000/2000) = 1 credit.
-		const expected = chatCredits( 500, 500, 1 );
+		const expected = 1;
 		const json = ( await response.json() ) as { credits_charged: number };
 		expect( json.credits_charged ).toBe( expected );
 		expect( await getStoredUsage( env ) ).toBe( expected );

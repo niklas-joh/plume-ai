@@ -15,12 +15,12 @@ import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
 import { verifyHmac } from './signature';
 import {
-	chatCredits,
 	getCreditLimit,
 	GENERATOR_CREDITS,
 	SEO_CREDITS,
 	IMAGE_CREDITS,
 	MONTHLY_CREDIT_LIMITS,
+	TOKENS_PER_CREDIT,
 } from './credits';
 
 const MAX_BODY_BYTES = 1_048_576; // 1 MB
@@ -905,10 +905,9 @@ async function handleChatProxy(
 			creditsCharged = 0;
 		} else if ( feature === 'chat' ) {
 			const weight = tokenWeights[ selectedModel ] ?? 1;
-			creditsCharged = chatCredits(
-				normalized.usage.input_tokens,
-				normalized.usage.output_tokens,
-				weight
+			creditsCharged = Math.ceil(
+				( ( normalized.usage.input_tokens + normalized.usage.output_tokens ) * weight ) /
+					TOKENS_PER_CREDIT
 			);
 		} else {
 			creditsCharged = FLAT_FEATURE_CREDITS[ feature ];

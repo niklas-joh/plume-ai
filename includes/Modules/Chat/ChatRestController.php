@@ -878,7 +878,7 @@ class ChatRestController {
 	 * @since 1.9.0
 	 * @param CompletionResponse $response      Provider response flagged as a tool call.
 	 * @param string             $provider_slug Provider identifier.
-	 * @return array<int, array{id: string, name: string, input: array}> Normalised tool calls.
+	 * @return array<int, array{id: string, name: string, input: array, thoughtSignature?: string}> Normalised tool calls.
 	 */
 	private function extract_tool_calls( CompletionResponse $response, string $provider_slug ): array {
 		$tool_uses = [];

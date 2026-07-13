@@ -406,13 +406,15 @@ class ChatRestController {
 				? $this->tool_registry->get_for_provider( $provider_slug )
 				: [];
 
-			$max_iterations       = self::MAX_TOOL_ITERATIONS;
-			$iteration            = 0;
-			$final_response       = null;
-			$pending_plan         = null;
-			$pending_plan_message = '';
-			$tools_called         = [];
-			$force_submit_content = false;
+			$max_iterations           = self::MAX_TOOL_ITERATIONS;
+			$iteration                = 0;
+			$final_response           = null;
+			$pending_plan             = null;
+			$pending_plan_message     = '';
+			$tools_called             = [];
+			$force_submit_content     = false;
+			$credits_accumulated      = 0;
+			$last_successful_response = null;
 
 			while ( $iteration < $max_iterations ) {
 				++$iteration;
@@ -439,14 +441,34 @@ class ChatRestController {
 					max_tokens:     8192,
 				);
 
-				$response = $provider->complete( $req );
-
-				if ( \is_wp_error( $response ) ) {
-					return new \WP_REST_Response(
-						[ 'message' => $response->get_error_message() ],
-						502
-					);
+				try {
+					$response = $provider->complete( $req );
+				} catch ( ProviderException $e ) {
+					// The Worker's monthly credit quota was exhausted mid-loop (surfaces as a
+					// ProviderException carrying ProxyClient's 'rate_limit_exceeded' WP_Error
+					// code — complete()'s return type is CompletionResponse only, so this can
+					// never come back as is_wp_error( $response ) instead). If at least one
+					// earlier iteration this turn already succeeded (and was billed), don't hard
+					// error — finish gracefully with what's already been done, the same way the
+					// MAX_TOOL_ITERATIONS-exhaustion fallback below handles running out of steps.
+					// The iteration cap already bounds worst-case cost per turn, so this is purely
+					// about how the loop exits, not a new spending allowance: no further (billed)
+					// call is made. On the very first iteration there's nothing to gracefully wrap
+					// up, or for any other exception, rethrow so the existing outer catch block
+					// (status mapping, Retry-After, etc.) handles it exactly as before.
+					if ( 'rate_limit_exceeded' === $e->get_error_code() && null !== $last_successful_response ) {
+						$limit_message  = __( "I've reached this turn's usage limit while working on your request. Here's what I was able to complete before stopping.", 'plume' );
+						$final_response = $last_successful_response->with_text( $limit_message );
+						break;
+					}
+					throw $e;
 				}
+
+				// Every successful call this turn is billed by the Worker on its own usage
+				// (see plume-proxy/src/index.ts::handleChatProxy) — sum across all iterations
+				// so the total logged below matches what was actually charged.
+				$credits_accumulated     += $response->credits_charged;
+				$last_successful_response = $response;
 
 				// Bare text response — happens when tools are not supported by the provider.
 				if ( ! $response->is_tool_call() ) {
@@ -518,10 +540,14 @@ class ChatRestController {
 				$final_response = $response->with_text( $limit_message );
 			}
 
-			// Log the Worker's reported credit cost exactly once per user message, after all
-			// tool-call iterations are complete. ProxyClient skips logging for 'chat' to
-			// prevent per-iteration double-counting in the agentic loop.
-			UsageTracker::log_usage( $final_response->credits_charged, $user_id );
+			// Log the sum of the Worker's per-iteration charges exactly once per user message,
+			// after all tool-call iterations are complete. Every iteration was already billed
+			// individually by the Worker (see plume-proxy/src/index.ts::handleChatProxy); this
+			// keeps WordPress's local dashboard-mirror counter (UsageTracker — purely cosmetic,
+			// the Worker's KV ledger remains the sole authoritative source) in sync with the
+			// real total. ProxyClient::chat() skips logging for 'chat' so this is the only
+			// place that writes it.
+			UsageTracker::log_usage( $credits_accumulated, $user_id );
 
 			$store->add_message( $conv_id, 'assistant', $final_response->content, $final_response->model, $final_response->total_tokens );
 
@@ -541,7 +567,7 @@ class ChatRestController {
 				[
 					'content'           => $final_response->content,
 					'model'             => $final_response->model,
-					'credits'           => $final_response->credits_charged,
+					'credits'           => $credits_accumulated,
 					'cost_usd'          => $final_response->cost_usd,
 					'prompt_tokens'     => $final_response->prompt_tokens,
 					'completion_tokens' => $final_response->completion_tokens,

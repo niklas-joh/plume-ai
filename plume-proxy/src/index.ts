@@ -15,7 +15,7 @@ import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
 import { verifyHmac } from './signature';
 import {
-	chatCredits,
+	rawChatCreditUnits,
 	getCreditLimit,
 	GENERATOR_CREDITS,
 	SEO_CREDITS,
@@ -849,7 +849,9 @@ async function handleChatProxy(
 			return jsonResponse(
 				{
 					error: 'Rate limit exceeded',
-					used: rateLimitCheck.used,
+					// used is the raw (unrounded) running total internally; round up
+					// for display so this doesn't surface a fractional credit count.
+					used: Math.ceil( rateLimitCheck.used ),
 					limit: rateLimitCheck.limit,
 				},
 				429
@@ -892,31 +894,30 @@ async function handleChatProxy(
 			);
 		}
 
-		// Intermediate tool-use steps are not billed; only the final response is.
-		// The final call's usage.input_tokens naturally encompasses all prior context,
-		// so total token cost is captured without needing cross-request accumulation.
-		// Scoped to 'chat' so flat-rate features are never silently zeroed if they
-		// ever gain tool support in future.
-		const isToolUseStep =
-			feature === 'chat' && ( normalized.tool_calls?.length ?? 0 ) > 0;
+		// Every successful call is billed on its own real usage — there is no more
+		// "intermediate vs final" classification (previously hardcoded against
+		// specific tool names, which needed a new exception every time a new
+		// terminal tool was added — see #927). tool_calls surfacing below stays
+		// fully decoupled from billing: a billed response can still carry tool_calls.
+		const rawContribution =
+			feature === 'chat'
+				? rawChatCreditUnits(
+						normalized.usage.input_tokens,
+						normalized.usage.output_tokens,
+						tokenWeights[ selectedModel ] ?? 1
+				  )
+				: FLAT_FEATURE_CREDITS[ feature ];
 
-		let creditsCharged: number;
-		if ( isToolUseStep ) {
-			creditsCharged = 0;
-		} else if ( feature === 'chat' ) {
-			const weight = tokenWeights[ selectedModel ] ?? 1;
-			creditsCharged = chatCredits(
-				normalized.usage.input_tokens,
-				normalized.usage.output_tokens,
-				weight
-			);
-		} else {
-			creditsCharged = FLAT_FEATURE_CREDITS[ feature ];
-		}
+		// Delta-of-cumulative-ceiling: bills this call only what pushes the site's
+		// real running total over the next whole-credit boundary, so N calls within
+		// one agentic-loop turn summing to X tokens cost the same as one call for X
+		// tokens — never more, regardless of how many pieces the loop split the work
+		// into. (Deltas telescope: sum(ceil(Tn) - ceil(Tn-1)) === ceil(final) - ceil(start).)
+		const previousRawTotal = rateLimitCheck.used; // already read by the rate-limit check above
+		const creditsCharged =
+			Math.ceil( previousRawTotal + rawContribution ) - Math.ceil( previousRawTotal );
 
-		if ( ! isToolUseStep ) {
-			await updateUsage( siteToken, creditsCharged, env );
-		}
+		await updateUsage( siteToken, rawContribution, env );
 
 		const responseData: Record< string, unknown > = {
 			content: normalized.content,
@@ -924,7 +925,7 @@ async function handleChatProxy(
 			credits_charged: creditsCharged,
 			model: selectedModel,
 		};
-		if ( isToolUseStep ) {
+		if ( ( normalized.tool_calls?.length ?? 0 ) > 0 ) {
 			responseData.tool_calls = normalized.tool_calls;
 		}
 		return jsonResponse( responseData );
@@ -971,7 +972,10 @@ async function checkRateLimit(
 ): Promise< { allowed: boolean; used: number; limit: number } > {
 	const limit = MONTHLY_CREDIT_LIMITS[ tier ];
 	const key = `usage:${ siteToken }:${ getCurrentMonth() }`;
-	const used = parseInt( ( await env.USAGE_KV.get( key ) ) ?? '0', 10 );
+	// Stored (and read here) as a float, not a rounded integer — see updateUsage()'s
+	// comment. `used` is the precise raw running total, reused by handleChatProxy()'s
+	// delta-of-cumulative-ceiling billing so it doesn't need a second KV read.
+	const used = parseFloat( ( await env.USAGE_KV.get( key ) ) ?? '0' );
 	return { allowed: used < limit, used, limit };
 }
 
@@ -981,11 +985,19 @@ async function updateUsage(
 	env: Env
 ): Promise< void > {
 	const key = `usage:${ siteToken }:${ getCurrentMonth() }`;
+	// Stored as a float (raw weighted-token-credit units), not a rounded integer.
+	// handleChatProxy() bills each call only the delta between consecutive whole-credit
+	// roundings of this running total (see #927), so the total itself must stay
+	// unrounded, or fractional remainders would be wastefully rounded away on every
+	// call instead of carrying forward to the next one.
+	//
 	// KV does not support atomic increments, so concurrent requests perform a
 	// non-atomic read-modify-write. Under burst load this can under-count credits.
 	// Replace with a Durable Object counter (tracked in issue #312) to make
-	// enforcement fully atomic. NOT fixed by this migration — see risk list.
-	const current = parseInt( ( await env.USAGE_KV.get( key ) ) ?? '0', 10 );
+	// enforcement fully atomic. NOT fixed by this migration — and this migration bills
+	// every agentic-loop iteration instead of just the turn's final call, so this path
+	// now runs more often per turn, marginally raising the race's likelihood.
+	const current = parseFloat( ( await env.USAGE_KV.get( key ) ) ?? '0' );
 	await env.USAGE_KV.put( key, String( current + credits ), {
 		expirationTtl: getSecondsUntilNextMonth(),
 	} );

@@ -6,6 +6,7 @@ import { makeEnv } from './helpers/kv-mock';
 import { currentMonthKey } from './helpers/month';
 import {
 	chatCredits,
+	rawChatCreditUnits,
 	GENERATOR_CREDITS,
 	SEO_CREDITS,
 	IMAGE_CREDITS,
@@ -263,7 +264,133 @@ describe( 'handleChatProxy', () => {
 			},
 		] );
 		expect( json.usage ).toEqual( { input_tokens: 20, output_tokens: 10 } );
-		// Intermediate tool-use steps must not be billed.
+		// A tool-carrying response is billed like any other successful call, on its
+		// own real usage — there is no more "intermediate step" free pass (#927).
+		// First call from a fresh balance: delta === ceil(raw) === chatCredits().
+		expect( json.credits_charged ).toBe( chatCredits( 20, 10, 1 ) );
+		expect( await getStoredUsage( env ) ).toBe( rawChatCreditUnits( 20, 10, 1 ) );
+	} );
+
+	it( 'regression #927: two small agentic-loop calls bill their combined real usage, not double the naive per-call rounding', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		const smallUsage = { input_tokens: 150, output_tokens: 50 }; // raw = 200/2000 = 0.1 each
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [
+							{
+								type: 'tool_use',
+								id: 'toolu_01',
+								name: 'get_post_content',
+								input: { post_id: 1 },
+							},
+						],
+						usage: smallUsage,
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Look something up' } ],
+			provider: 'claude',
+			tools: [ mockTool ],
+			feature: 'chat',
+		} );
+
+		// Naively rounding each 0.1-raw-credit call up independently (the bug caught
+		// in review) would bill ceil(0.1)=1 twice, i.e. 2 credits for 400 combined
+		// tokens — the same as a single 2000-token call. The fair delta-of-cumulative-
+		// ceiling accounting must instead bill this pair the same as one equivalent
+		// combined-size call: ceil(0.1 + 0.1) = 1, not 2.
+		const first = await worker.fetch( makeChatRequest( body ), env );
+		const firstJson = ( await first.json() ) as { credits_charged: number };
+		expect( firstJson.credits_charged ).toBe( 1 ); // ceil(0.1) - ceil(0)
+
+		const second = await worker.fetch( makeChatRequest( body ), env );
+		const secondJson = ( await second.json() ) as { credits_charged: number };
+		expect( secondJson.credits_charged ).toBe( 0 ); // ceil(0.2) - ceil(0.1) = 1 - 1
+
+		const combined = firstJson.credits_charged + secondJson.credits_charged;
+		expect( combined ).toBe( 1 );
+		expect( combined ).toBe(
+			Math.ceil( rawChatCreditUnits( 300, 100, 1 ) ) // one equivalent 400-token call
+		);
+		expect( await getStoredUsage( env ) ).toBeCloseTo(
+			rawChatCreditUnits( 150, 50, 1 ) * 2,
+			10
+		);
+	} );
+
+	it( 'regression #927: a call that crosses a whole-credit boundary bills the crossing, calls that stay within a window bill 0', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		const usageKey = `usage:${ TEST_TOKEN }:${ currentMonthKey() }`;
+		// Seed a raw running total already partway through a credit window.
+		await env.USAGE_KV.put( usageKey, '0.5' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [ { type: 'text', text: 'ok' } ],
+						usage: { input_tokens: 600, output_tokens: 0 }, // raw = 600/2000 = 0.3
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+
+		// 0.5 -> 0.8: still under the next whole-credit boundary (ceil(0.8) === ceil(0.5) === 1) — bills 0.
+		const first = await worker.fetch( makeChatRequest(), env );
+		expect( ( ( await first.json() ) as { credits_charged: number } ).credits_charged ).toBe( 0 );
+
+		// 0.8 -> 1.1: crosses the boundary (ceil(1.1)=2, ceil(0.8)=1) — bills 1.
+		const second = await worker.fetch( makeChatRequest(), env );
+		expect( ( ( await second.json() ) as { credits_charged: number } ).credits_charged ).toBe( 1 );
+
+		// 1.1 -> 1.4: back under the next boundary (ceil(1.4)=2=ceil(1.1)) — bills 0 again.
+		const third = await worker.fetch( makeChatRequest(), env );
+		expect( ( ( await third.json() ) as { credits_charged: number } ).credits_charged ).toBe( 0 );
+
+		expect( await getStoredUsage( env ) ).toBeCloseTo( 1.4, 10 );
+	} );
+
+	it( 'zero-token tool-use response bills 0 credits (usage-driven, not a hardcoded free pass)', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [
+							{
+								type: 'tool_use',
+								id: 'toolu_01',
+								name: 'get_post_content',
+								input: { post_id: 1 },
+							},
+						],
+						usage: { input_tokens: 0, output_tokens: 0 },
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'x' } ],
+			provider: 'claude',
+			tools: [ mockTool ],
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+		const json = ( await response.json() ) as { credits_charged: number };
 		expect( json.credits_charged ).toBe( 0 );
 		expect( await getStoredUsage( env ) ).toBe( 0 );
 	} );
@@ -908,11 +1035,18 @@ describe( 'handleChatProxy', () => {
 			feature: 'chat',
 		} );
 
-		await worker.fetch( makeChatRequest( body ), env );
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		const json = ( await response.json() ) as { credits_charged: number };
 
+		// KV now stores the raw (unrounded) running total, not chatCredits()'s rounded
+		// value — 15,000 * 5 / 2,000 = 37.5, not a whole number. The billed amount
+		// (credits_charged), which for a first call from a fresh balance equals
+		// ceil(raw) === chatCredits(), is the one that still matches the rounded figure.
 		const stored = await getStoredUsage( env );
-		expect( stored ).toBe( chatCredits( 10_000, 5_000, 5 ) );
-		expect( stored ).toBe( 38 );
+		expect( stored ).toBe( rawChatCreditUnits( 10_000, 5_000, 5 ) );
+		expect( stored ).toBe( 37.5 );
+		expect( json.credits_charged ).toBe( chatCredits( 10_000, 5_000, 5 ) );
+		expect( json.credits_charged ).toBe( 38 );
 	} );
 
 	it( 'free tier: chat call charges credits per chatCredits(input, output, weight) and stores result in usage KV', async () => {
@@ -958,14 +1092,17 @@ describe( 'handleChatProxy', () => {
 			} )
 		);
 
-		// weight=1, raw=101 → ceil(101/2000) = 1, not a clean division.
+		// weight=1, raw=101/2000=0.0505 → ceil(0.0505) = 1, not a clean division.
 		const response = await worker.fetch( makeChatRequest(), env );
 		expect( response.status ).toBe( 200 );
 
 		const json = ( await response.json() ) as { credits_charged: number };
+		// KV stores the raw total (0.0505), not the rounded chatCredits() value;
+		// credits_charged is what's actually billed and still equals chatCredits()
+		// for this first call from a fresh balance.
 		const stored = await getStoredUsage( env );
-		expect( stored ).toBe( chatCredits( 100, 1, 1 ) );
-		expect( stored ).toBe( 1 );
+		expect( stored ).toBe( rawChatCreditUnits( 100, 1, 1 ) );
+		expect( json.credits_charged ).toBe( chatCredits( 100, 1, 1 ) );
 		expect( json.credits_charged ).toBe( 1 );
 	} );
 
@@ -1078,7 +1215,7 @@ describe( 'handleChatProxy', () => {
 		} );
 	} );
 
-	it( 'tool-use step: credits_charged is 0 in response and KV is not updated', async () => {
+	it( 'tool-use step is billed on its own real usage like any other successful call', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 
 		vi.stubGlobal(
@@ -1115,12 +1252,13 @@ describe( 'handleChatProxy', () => {
 		const response = await worker.fetch( makeChatRequest( body ), env );
 		expect( response.status ).toBe( 200 );
 
+		// First call from a fresh balance: delta === ceil(raw) === chatCredits().
 		const json = ( await response.json() ) as { credits_charged: number };
-		expect( json.credits_charged ).toBe( 0 );
-		expect( await getStoredUsage( env ) ).toBe( 0 );
+		expect( json.credits_charged ).toBe( chatCredits( 200, 50, 1 ) );
+		expect( await getStoredUsage( env ) ).toBe( rawChatCreditUnits( 200, 50, 1 ) );
 	} );
 
-	it( 'final chat response: credits_charged in response body matches KV and chatCredits()', async () => {
+	it( 'final chat response: credits_charged in response body matches chatCredits(); KV holds the raw total', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 
 		vi.stubGlobal(
@@ -1139,11 +1277,11 @@ describe( 'handleChatProxy', () => {
 		const response = await worker.fetch( makeChatRequest(), env );
 		expect( response.status ).toBe( 200 );
 
-		// weight=1, raw=1000 → ceil(1000/2000) = 1 credit.
-		const expected = chatCredits( 500, 500, 1 );
+		// weight=1, raw=1000/2000=0.5 → ceil(0.5) = 1 credit billed.
 		const json = ( await response.json() ) as { credits_charged: number };
-		expect( json.credits_charged ).toBe( expected );
-		expect( await getStoredUsage( env ) ).toBe( expected );
+		expect( json.credits_charged ).toBe( chatCredits( 500, 500, 1 ) );
+		// KV stores the raw (unrounded) total, not the rounded billed amount.
+		expect( await getStoredUsage( env ) ).toBe( rawChatCreditUnits( 500, 500, 1 ) );
 	} );
 
 	it( 'allows a request at used = limit-1, then blocks the next one at used = limit', async () => {
@@ -1157,14 +1295,16 @@ describe( 'handleChatProxy', () => {
 				return new Response(
 					JSON.stringify( {
 						content: [ { type: 'text', text: 'ok' } ],
-						usage: { input_tokens: 1, output_tokens: 0 },
+						// weight=1, raw = 2000/2000 = 1.0 exactly, so the running total
+						// lands precisely on the limit after this call.
+						usage: { input_tokens: 2000, output_tokens: 0 },
 					} ),
 					{ status: 200 }
 				);
 			} )
 		);
 
-		// used=99 < limit=100 — allowed, charges 1 credit, used becomes 100.
+		// used=99 < limit=100 — allowed, bills ceil(100)-ceil(99)=1 credit, raw total becomes 100.
 		const first = await worker.fetch( makeChatRequest(), env );
 		expect( first.status ).toBe( 200 );
 		expect( Number( await env.USAGE_KV.get( usageKey ) ) ).toBe( 100 );

@@ -35,11 +35,37 @@ export function getCreditLimit( tier: SiteTier ): number | null {
 export const TOKENS_PER_CREDIT = 2000;
 
 /**
+ * Raw (unrounded) chat cost in credit units — the building block chatCredits()
+ * rounds. Used directly by handleChatProxy()'s per-call billing so that N calls
+ * within one agentic-loop turn are billed on their real combined token volume
+ * (via a delta-of-cumulative-ceiling against the running KV total) rather than
+ * each call independently rounding up to its own whole credit, which would
+ * overcharge multi-step turns relative to a single equivalent-sized call.
+ *
+ * @since NEXT_VERSION
+ * @param {number} inputTokens  Actual input token count returned by the provider for this call.
+ * @param {number} outputTokens Actual output token count returned by the provider for this call.
+ * @param {number} weight       Resolved per-model weight (DEFAULT_MODEL_TOKEN_WEIGHT, possibly KV-overridden).
+ * @return {number} Unrounded credit units for this call.
+ */
+export function rawChatCreditUnits(
+	inputTokens: number,
+	outputTokens: number,
+	weight: number
+): number {
+	return ( ( inputTokens + outputTokens ) * weight ) / TOKENS_PER_CREDIT;
+}
+
+/**
  * Computes the credit cost of a single chat completion, scaled by total token
  * volume and the model's relative weight (the existing per-model weight table
  * resolved by index.ts's getModelConfig(), not redefined here).
  *
  * Formula: ceil((inputTokens + outputTokens) * weight / TOKENS_PER_CREDIT).
+ *
+ * Not used by handleChatProxy()'s per-call billing path (see rawChatCreditUnits()
+ * above) — kept for tests and any caller that wants a single call's cost in
+ * isolation, rounded up.
  *
  * @since NEXT_VERSION
  * @param {number} inputTokens  Actual input token count returned by the provider for this call.
@@ -52,7 +78,5 @@ export function chatCredits(
 	outputTokens: number,
 	weight: number
 ): number {
-	return Math.ceil(
-		( ( inputTokens + outputTokens ) * weight ) / TOKENS_PER_CREDIT
-	);
+	return Math.ceil( rawChatCreditUnits( inputTokens, outputTokens, weight ) );
 }

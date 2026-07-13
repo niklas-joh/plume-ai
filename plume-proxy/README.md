@@ -53,14 +53,17 @@ curl -s http://localhost:8787/v1/chat | jq .
 # {"error":"Method not allowed"}
 ```
 
-## Tier limits (mirrors TierConfig::MONTHLY_LIMITS)
+## Tier limits (mirrors UsageTracker::FREE_CREDITS / PRO_MANAGED_CREDITS)
 
-| Tier | Tokens/month | Models |
+| Tier | Credits/month | Models |
 |------|-------------|--------|
-| free | 50,000 | Haiku only |
-| trial | 300,000 | Haiku only |
-| pro_managed | 2,000,000 | Haiku, Sonnet, Opus |
+| free | 100 | Claude Haiku 4.5, Gemini 3.1 Flash-Lite |
+| pro_managed | 500 | Claude Haiku 4.5 / Sonnet 4.6 / Opus 4.6, GPT-4.1, Gemini 3.5 Flash |
 | pro_byok | — | bypasses proxy entirely |
+
+Source of truth is `DEFAULT_TIER_MODELS` / `MONTHLY_CREDIT_LIMITS` in
+`plume-proxy/src/index.ts` (overridable at runtime via the `config:models`
+KV key) — this table is a snapshot, not authoritative.
 
 ## KV hotfix procedure (model weights)
 

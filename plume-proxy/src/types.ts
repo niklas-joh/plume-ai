@@ -55,6 +55,12 @@ export interface NormalizedResponse {
 		id: string;
 		name: string;
 		arguments: Record< string, unknown >;
+		/**
+		 * Gemini-only. Must be echoed back verbatim on the functionCall part when this
+		 * tool-use turn is replayed on the next request — Gemini 3.x rejects a
+		 * functionCall part that omits it ("required thought_signature").
+		 */
+		thoughtSignature?: string;
 	} >;
 }
 
@@ -80,8 +86,16 @@ export interface ProxyRequest {
 }
 
 export interface MessageParam {
-	role: 'user' | 'assistant';
-	content: string;
+	role: 'user' | 'assistant' | 'model';
+	content?: string;
+	/**
+	 * Pre-built Gemini-native parts (functionCall/functionResponse) for tool-exchange
+	 * turns — set by ChatRestController::append_tool_exchange()'s 'gemini' case
+	 * instead of `content`. callGemini() must forward these verbatim rather than
+	 * re-wrapping `content`, since Gemini rejects a Part with none of its oneof
+	 * fields (text/functionCall/functionResponse/...) initialized.
+	 */
+	parts?: Array< Record< string, unknown > >;
 }
 
 /**

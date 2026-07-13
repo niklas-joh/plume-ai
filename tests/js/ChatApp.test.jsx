@@ -248,4 +248,105 @@ describe( 'ChatApp', () => {
 			).toBe( 1 );
 		} );
 	} );
+
+	describe( 'provider/model persistence', () => {
+		const PROVIDERS = [
+			{
+				slug: 'claude',
+				is_available: true,
+				models: { 'claude-sonnet-4-6': 'Sonnet' },
+			},
+			{
+				slug: 'gemini',
+				is_available: true,
+				models: { 'gemini-3.5-flash': 'Gemini 3.5 Flash' },
+			},
+		];
+
+		afterEach( () => {
+			const { storageGet } = require( '../../src/admin/utils/storage' );
+			storageGet.mockReset().mockReturnValue( null );
+		} );
+
+		it( 'restores the last-selected provider/model from storage instead of the plugin default', async () => {
+			const apiFetch = require( '@wordpress/api-fetch' );
+			apiFetch.mockImplementation( ( { path } ) =>
+				path === '/plume/v1/providers'
+					? Promise.resolve( PROVIDERS )
+					: Promise.resolve( [] )
+			);
+			const { storageGet } = require( '../../src/admin/utils/storage' );
+			storageGet.mockImplementation( ( key ) => {
+				if ( 'plume-selected-provider' === key ) {
+					return 'gemini';
+				}
+				if ( 'plume-selected-model' === key ) {
+					return 'gemini-3.5-flash';
+				}
+				return null;
+			} );
+
+			await act( async () => {
+				root.render( <ChatApp /> );
+			} );
+
+			const toggle = container.querySelector(
+				'.plume-model-advanced-toggle'
+			);
+			await act( async () => {
+				toggle.click();
+			} );
+
+			const providerSelect = container.querySelector(
+				'select[aria-label="AI provider"]'
+			);
+			const modelSelect = container.querySelector(
+				'select[aria-label="Model"]'
+			);
+			// window.plumeData.defaultProvider is 'claude' (see beforeAll above) —
+			// this asserts the stored 'gemini' choice wins over that default.
+			expect( providerSelect.value ).toBe( 'gemini' );
+			expect( modelSelect.value ).toBe( 'gemini-3.5-flash' );
+		} );
+
+		it( 'persists the provider to storage when changed via the selector', async () => {
+			const apiFetch = require( '@wordpress/api-fetch' );
+			apiFetch.mockImplementation( ( { path } ) =>
+				path === '/plume/v1/providers'
+					? Promise.resolve( PROVIDERS )
+					: Promise.resolve( [] )
+			);
+			const { storageSet } = require( '../../src/admin/utils/storage' );
+
+			await act( async () => {
+				root.render( <ChatApp /> );
+			} );
+
+			const toggle = container.querySelector(
+				'.plume-model-advanced-toggle'
+			);
+			await act( async () => {
+				toggle.click();
+			} );
+
+			const providerSelect = container.querySelector(
+				'select[aria-label="AI provider"]'
+			);
+			const setter = Object.getOwnPropertyDescriptor(
+				window.HTMLSelectElement.prototype,
+				'value'
+			).set;
+			await act( async () => {
+				setter.call( providerSelect, 'gemini' );
+				providerSelect.dispatchEvent(
+					new Event( 'change', { bubbles: true } )
+				);
+			} );
+
+			expect( storageSet ).toHaveBeenCalledWith(
+				'plume-selected-provider',
+				'gemini'
+			);
+		} );
+	} );
 } );

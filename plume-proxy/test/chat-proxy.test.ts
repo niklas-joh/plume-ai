@@ -439,6 +439,232 @@ describe( 'handleChatProxy', () => {
 		expect( json.usage ).toEqual( { input_tokens: 6, output_tokens: 3 } );
 	} );
 
+	it( 'Gemini adapter: concatenates all text parts instead of only reading parts[0]', async () => {
+		// Gemini 3.x can prepend a signature-only part (no `text`) ahead of the
+		// actual answer; reading only parts[0] previously produced an empty reply.
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue(
+				new Response(
+					JSON.stringify( {
+						candidates: [
+							{
+								content: {
+									parts: [
+										{ thoughtSignature: 'sig_xyz' },
+										{ text: 'Here is my ' },
+										{ text: 'full answer.' },
+									],
+								},
+							},
+						],
+						usageMetadata: {
+							promptTokenCount: 6,
+							candidatesTokenCount: 3,
+						},
+					} ),
+					{ status: 200 }
+				)
+			)
+		);
+
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Hello Gemini' } ],
+			provider: 'gemini',
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const json = ( await response.json() ) as { content: string };
+		expect( json.content ).toBe( 'Here is my full answer.' );
+	} );
+
+	it( 'Gemini adapter: strips additionalProperties from nested tool parameter schemas', async () => {
+		// Gemini's function-declaration Schema is a restricted OpenAPI subset that
+		// 400s on unknown keywords — additionalProperties (valid JSON Schema, used
+		// by e.g. the meta_fields param in ToolRegistry.php for an open string map)
+		// must be stripped recursively before the request reaches Gemini.
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
+
+		const toolWithOpenMap: ToolParam = {
+			name: 'update_post',
+			description: 'Update a post',
+			parameters: {
+				type: 'object',
+				properties: {
+					post_id: { type: 'integer' },
+					meta_fields: {
+						type: 'object',
+						description: 'Optional post meta key/value pairs.',
+						additionalProperties: { type: 'string' },
+					},
+				},
+				required: [ 'post_id' ],
+			},
+		};
+
+		let capturedBody: Record< string, unknown > | null = null;
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockImplementation(
+					async ( _url: string, init: RequestInit ) => {
+						capturedBody = JSON.parse( init.body as string );
+						return new Response(
+							JSON.stringify( {
+								candidates: [
+									{
+										content: {
+											parts: [ { text: 'Gemini reply' } ],
+										},
+									},
+								],
+								usageMetadata: {
+									promptTokenCount: 6,
+									candidatesTokenCount: 3,
+								},
+							} ),
+							{ status: 200 }
+						);
+					}
+				)
+		);
+
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Update post 7' } ],
+			provider: 'gemini',
+			tools: [ toolWithOpenMap ],
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const sentTools = ( capturedBody as Record< string, unknown > )
+			.tools as Array< Record< string, unknown > >;
+		const decls = (
+			sentTools[ 0 ] as {
+				functionDeclarations: Array< Record< string, unknown > >;
+			}
+		 ).functionDeclarations;
+		const metaFieldsSchema = (
+			(
+				decls[ 0 ].parameters as {
+					properties: Record< string, unknown >;
+				}
+			 ).properties.meta_fields as Record< string, unknown >
+		 );
+		expect( metaFieldsSchema ).not.toHaveProperty( 'additionalProperties' );
+		expect( metaFieldsSchema.description ).toBe(
+			'Optional post meta key/value pairs.'
+		);
+	} );
+
+	it( 'Gemini adapter: forwards pre-built functionCall/functionResponse parts verbatim on a tool-exchange follow-up turn', async () => {
+		// ChatRestController::append_tool_exchange()'s 'gemini' case sends messages
+		// shaped as { role, parts } (Gemini-native functionCall/functionResponse),
+		// not { role, content } — callGemini() must not re-wrap these as {text: ...},
+		// which would produce an empty, invalid Part (see plume-proxy/src/index.ts).
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
+
+		let capturedBody: Record< string, unknown > | null = null;
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockImplementation(
+					async ( _url: string, init: RequestInit ) => {
+						capturedBody = JSON.parse( init.body as string );
+						return new Response(
+							JSON.stringify( {
+								candidates: [
+									{
+										content: {
+											parts: [
+												{ text: 'Here is the update.' },
+											],
+										},
+									},
+								],
+								usageMetadata: {
+									promptTokenCount: 6,
+									candidatesTokenCount: 3,
+								},
+							} ),
+							{ status: 200 }
+						);
+					}
+				)
+		);
+
+		const body = JSON.stringify( {
+			messages: [
+				{ role: 'user', content: 'Fetch post 7 and review it' },
+				{
+					role: 'model',
+					parts: [
+						{
+							functionCall: {
+								id: 'call_1',
+								name: 'get_post_content',
+								args: { post_id: 7 },
+							},
+						},
+					],
+				},
+				{
+					role: 'user',
+					parts: [
+						{
+							functionResponse: {
+								id: 'call_1',
+								name: 'get_post_content',
+								response: { content: 'Post body text' },
+							},
+						},
+					],
+				},
+			],
+			provider: 'gemini',
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const contents = ( capturedBody as Record< string, unknown > )
+			.contents as Array< { role: string; parts: unknown[] } >;
+		expect( contents[ 1 ] ).toEqual( {
+			role: 'model',
+			parts: [
+				{
+					functionCall: {
+						id: 'call_1',
+						name: 'get_post_content',
+						args: { post_id: 7 },
+					},
+				},
+			],
+		} );
+		expect( contents[ 2 ] ).toEqual( {
+			role: 'user',
+			parts: [
+				{
+					functionResponse: {
+						id: 'call_1',
+						name: 'get_post_content',
+						response: { content: 'Post body text' },
+					},
+				},
+			],
+		} );
+	} );
+
 	it( 'returns a UUID-format tool_call id in tool_calls[0] when Gemini functionCall part is returned', async () => {
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
 
@@ -561,19 +787,43 @@ describe( 'handleChatProxy', () => {
 		expect( response.status ).toBe( 400 );
 	} );
 
-	it( 'returns 200 when a higher-tier Gemini model is requested by a free site — falls back to default', async () => {
+	it( 'falls back to the free-tier default when a pro-only Gemini model is requested by a free site', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
+
+		let capturedUrl: string | null = null;
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockImplementation( async ( url: string ) => {
+					capturedUrl = url as string;
+					return new Response(
+						JSON.stringify( {
+							candidates: [
+								{ content: { parts: [ { text: 'Gemini reply' } ] } },
+							],
+							usageMetadata: {
+								promptTokenCount: 6,
+								candidatesTokenCount: 3,
+							},
+						} ),
+						{ status: 200 }
+					);
+				} )
+		);
 
 		const body = JSON.stringify( {
 			messages: [ { role: 'user', content: 'Hello' } ],
 			provider: 'gemini',
-			model: 'gemini-3.1-pro',
+			model: 'gemini-3.1-pro-preview',
 			feature: 'chat',
 		} );
 
-		// Free tier has no gemini models at all — getModelForTier throws a typed 400.
+		// gemini-3.1-pro-preview isn't in free's allow-list — getModelForTier
+		// falls back to allowed[0] (gemini-3.1-flash-lite) rather than rejecting.
 		const response = await worker.fetch( makeChatRequest( body ), env );
-		expect( response.status ).toBe( 400 );
+		expect( response.status ).toBe( 200 );
+		expect( capturedUrl ).toContain( 'gemini-3.1-flash-lite' );
 	} );
 
 	it( 'uses KV model config override when config:models is set in USAGE_KV', async () => {

@@ -1173,6 +1173,58 @@ describe( 'handleChatProxy', () => {
 		}
 	);
 
+	it.each( [
+		[ 'generator', GENERATOR_CREDITS ],
+		[ 'seo', SEO_CREDITS ],
+		[ 'images', IMAGE_CREDITS ],
+	] as const )(
+		'%s feature bills exactly its flat amount (%i) even when the running KV total is fractional',
+		async ( feature, expectedCredits ) => {
+			const env = await makeEnvWithSiteToken( 'pro_managed' );
+
+			// A prior chat turn leaves the shared usage KV holding a fractional
+			// raw total; the flat feature must still bill exactly N credits and
+			// advance the total by exactly N (relies on ceil(x+N) === ceil(x)+N
+			// for integer N — see #944).
+			const fractionalSeed = 0.5;
+			await env.USAGE_KV.put(
+				`usage:${ TEST_TOKEN }:${ currentMonthKey() }`,
+				String( fractionalSeed )
+			);
+
+			vi.stubGlobal(
+				'fetch',
+				vi.fn().mockImplementation( async () => {
+					return new Response(
+						JSON.stringify( {
+							content: [ { type: 'text', text: 'response' } ],
+							usage: {
+								input_tokens: 9999,
+								output_tokens: 9999,
+							},
+						} ),
+						{ status: 200 }
+					);
+				} )
+			);
+
+			const body = JSON.stringify( {
+				messages: [ { role: 'user', content: 'Hello' } ],
+				provider: 'claude',
+				feature,
+			} );
+
+			const response = await worker.fetch( makeChatRequest( body ), env );
+			expect( response.status ).toBe( 200 );
+
+			const json = ( await response.json() ) as { credits_charged: number };
+			expect( json.credits_charged ).toBe( expectedCredits );
+			expect( await getStoredUsage( env ) ).toBe(
+				fractionalSeed + expectedCredits
+			);
+		}
+	);
+
 	it( 'returns 429 once monthly credit allowance is exhausted for a free-tier site', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 		await env.USAGE_KV.put(

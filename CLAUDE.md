@@ -49,7 +49,7 @@ Role definitions: `.claude/agents/{task-orchestrator,wordpress-planner,wordpress
 | `wp-env` (this repo) | `localhost:8888` | Production Worker by default; override via `.wp-env.override.json` (gitignored) — see `CONTRIBUTING.md` | Plugin unit/integration tests, quick manual checks, isolated from the blog |
 | `blog.njohansson.eu` Docker (companion repo) | `localhost:8080` | `https://plume-proxy-dev.plumewp.workers.dev` (deployed dev Worker, hardcoded in that repo's `docker-compose.yml`) | Full-site testing as actually installed. That repo bind-mounts this one directly (`../wp-ai-mind:/var/www/html/wp-content/plugins/wp-ai-mind` in its `docker-compose.yml`) — edits here are live there immediately, no git/submodule step needed for local iteration. How it reaches `staging4.blog.njohansson.eu` / `blog.njohansson.eu` production is owned by that repo, not documented here. |
 
-See `CONTRIBUTING.md` → "Pointing wp-env at a local proxy Worker" for full `wp-env` + `wrangler dev` setup steps.
+See `CONTRIBUTING.md` → "Local WordPress Environment (wp-env)" for full `wp-env` setup steps.
 
 ### Gotchas (discovered debugging PR #943's billing)
 

@@ -123,8 +123,10 @@ class ProxyClient {
 			return new WP_Error( 'service_error', $body['error'] ?? sprintf( __( 'Plume AI - Write and Design returned HTTP %d', 'plume' ), $code ) );
 		}
 
-		// Chat credits are logged once by ChatRestController after the full agentic loop
-		// completes, so the per-iteration ProxyClient call must not double-count them.
+		// Chat credits are logged once, as an accumulated sum across all agentic-loop
+		// iterations, by ChatRestController::send_message() after the loop completes
+		// (each iteration is billed individually by the Worker; PHP sums what it reports).
+		// The per-iteration ProxyClient call must not additionally log them here.
 		if ( isset( $body['credits_charged'] ) && 'chat' !== $feature ) {
 			UsageTracker::log_usage( (int) $body['credits_charged'], $user_id );
 		}

@@ -125,7 +125,7 @@ class DevToolsPage {
 
 		wp_localize_script(
 			'plume-dev-tools',
-			'njDevTools',
+			'plumeDevTools',
 			[
 				'restUrl' => esc_url_raw( rest_url( 'plume/v1/dev/' ) ),
 				'nonce'   => wp_create_nonce( 'wp_rest' ),

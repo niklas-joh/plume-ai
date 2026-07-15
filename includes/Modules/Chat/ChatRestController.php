@@ -258,7 +258,7 @@ class ChatRestController {
 
 		$conv = $store->get_conversation( $conv_id );
 		if ( ! $conv || $user_id !== (int) $conv['user_id'] ) {
-			return new \WP_REST_Response( [ 'message' => 'Forbidden.' ], 403 );
+			return new \WP_REST_Response( [ 'message' => __( 'Forbidden.', 'plume' ) ], 403 );
 		}
 
 		return rest_ensure_response( $store->get_messages( $conv_id ) );
@@ -344,7 +344,7 @@ class ChatRestController {
 		// Ownership guard.
 		$conv = $store->get_conversation( $conv_id );
 		if ( ! $conv || $user_id !== (int) $conv['user_id'] ) {
-			return new \WP_REST_Response( [ 'message' => 'Forbidden.' ], 403 );
+			return new \WP_REST_Response( [ 'message' => __( 'Forbidden.', 'plume' ) ], 403 );
 		}
 
 		$factory  = $this->make_provider_factory();

@@ -3,6 +3,13 @@
 # Skip in CI — dev deps (phpcs/phpstan) are absent in --no-dev installs; CI checks run separately in pr-checks.yml.
 [ "${CI}" = "true" ] && exit 0
 
+# Skip gracefully if dev deps aren't installed (e.g. `composer install` couldn't
+# run, or was run with --no-dev) — CI runs the same checks in pr-checks.yml.
+if [ ! -x ./vendor/bin/phpcs ] || [ ! -x ./vendor/bin/phpstan ]; then
+  echo "PHPCS/PHPStan not found (composer dev deps not installed) — skipping local pre-push checks; CI will still run them."
+  exit 0
+fi
+
 echo "Running pre-push checks..."
 
 ./vendor/bin/phpcs --standard=phpcs.xml.dist --warning-severity=0 || {

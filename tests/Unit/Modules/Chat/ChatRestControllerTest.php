@@ -455,6 +455,7 @@ class ChatRestControllerTest extends TestCase {
 
     public function test_send_message_returns_403_when_conversation_not_owned(): void {
         // Arrange: conversation belongs to user 999, but current user is 1.
+        Functions\when( '__' )->alias( fn( $s ) => $s );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->justReturn( 'claude' );
@@ -487,6 +488,45 @@ class ChatRestControllerTest extends TestCase {
 
         $this->assertInstanceOf( \WP_REST_Response::class, $response );
         $this->assertSame( 403, $response->get_status() );
+    }
+
+    public function test_get_messages_returns_403_when_conversation_not_owned(): void {
+        // Arrange: conversation belongs to user 999, but current user is 1.
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 999 ] );
+        $store_mock->expects( $this->never() )->method( 'get_messages' );
+
+        $controller = $this->make_controller_with_store( $store_mock );
+
+        $request = new \WP_REST_Request( 'GET' );
+        $request->set_url_params( [ 'id' => '42' ] );
+
+        $response = $controller->get_messages( $request );
+
+        $this->assertInstanceOf( \WP_REST_Response::class, $response );
+        $this->assertSame( 403, $response->get_status() );
+    }
+
+    public function test_get_messages_returns_messages_when_owned(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [ [ 'content' => 'Hi' ] ] );
+
+        $controller = $this->make_controller_with_store( $store_mock );
+
+        $request = new \WP_REST_Request( 'GET' );
+        $request->set_url_params( [ 'id' => '42' ] );
+
+        $response = $controller->get_messages( $request );
+
+        $this->assertInstanceOf( \WP_REST_Response::class, $response );
+        $this->assertSame( 200, $response->get_status() );
+        $this->assertSame( [ [ 'content' => 'Hi' ] ], $response->data );
     }
 
     // ── Tool loop ──────────────────────────────────────────────────────────────

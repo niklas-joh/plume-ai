@@ -104,7 +104,7 @@ class ImagesModule {
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_generate' ],
 				'permission_callback' => function () {
-					return \current_user_can( 'edit_posts' );
+					return \current_user_can( 'upload_files' );
 				},
 				'args'                => [
 					'prompt'       => [

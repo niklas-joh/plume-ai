@@ -248,11 +248,20 @@ class ChatRestController {
 	 *
 	 * @since 1.0.0
 	 * @param \WP_REST_Request $request Incoming REST request; must contain 'id' route parameter.
-	 * @return \WP_REST_Response
+	 * @return \WP_REST_Response 200 with the conversation's messages; 403 if the conversation
+	 *                           is not owned by the caller.
 	 */
 	public function get_messages( \WP_REST_Request $request ): \WP_REST_Response {
-		$store = $this->make_store();
-		return rest_ensure_response( $store->get_messages( (int) $request->get_param( 'id' ) ) );
+		$conv_id = (int) $request->get_param( 'id' );
+		$user_id = \get_current_user_id();
+		$store   = $this->make_store();
+
+		$conv = $store->get_conversation( $conv_id );
+		if ( ! $conv || $user_id !== (int) $conv['user_id'] ) {
+			return new \WP_REST_Response( [ 'message' => __( 'Forbidden.', 'plume' ) ], 403 );
+		}
+
+		return rest_ensure_response( $store->get_messages( $conv_id ) );
 	}
 
 	/**
@@ -335,7 +344,7 @@ class ChatRestController {
 		// Ownership guard.
 		$conv = $store->get_conversation( $conv_id );
 		if ( ! $conv || $user_id !== (int) $conv['user_id'] ) {
-			return new \WP_REST_Response( [ 'message' => 'Forbidden.' ], 403 );
+			return new \WP_REST_Response( [ 'message' => __( 'Forbidden.', 'plume' ) ], 403 );
 		}
 
 		$factory  = $this->make_provider_factory();

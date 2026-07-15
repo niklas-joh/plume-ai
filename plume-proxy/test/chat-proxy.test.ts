@@ -6,6 +6,7 @@ import { makeEnv } from './helpers/kv-mock';
 import { currentMonthKey } from './helpers/month';
 import {
 	chatCredits,
+	rawChatCreditUnits,
 	GENERATOR_CREDITS,
 	SEO_CREDITS,
 	IMAGE_CREDITS,
@@ -263,7 +264,133 @@ describe( 'handleChatProxy', () => {
 			},
 		] );
 		expect( json.usage ).toEqual( { input_tokens: 20, output_tokens: 10 } );
-		// Intermediate tool-use steps must not be billed.
+		// A tool-carrying response is billed like any other successful call, on its
+		// own real usage — there is no more "intermediate step" free pass (#927).
+		// First call from a fresh balance: delta === ceil(raw) === chatCredits().
+		expect( json.credits_charged ).toBe( chatCredits( 20, 10, 1 ) );
+		expect( await getStoredUsage( env ) ).toBe( rawChatCreditUnits( 20, 10, 1 ) );
+	} );
+
+	it( 'regression #927: two small agentic-loop calls bill their combined real usage, not double the naive per-call rounding', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		const smallUsage = { input_tokens: 150, output_tokens: 50 }; // raw = 200/2000 = 0.1 each
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [
+							{
+								type: 'tool_use',
+								id: 'toolu_01',
+								name: 'get_post_content',
+								input: { post_id: 1 },
+							},
+						],
+						usage: smallUsage,
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Look something up' } ],
+			provider: 'claude',
+			tools: [ mockTool ],
+			feature: 'chat',
+		} );
+
+		// Naively rounding each 0.1-raw-credit call up independently (the bug caught
+		// in review) would bill ceil(0.1)=1 twice, i.e. 2 credits for 400 combined
+		// tokens — the same as a single 2000-token call. The fair delta-of-cumulative-
+		// ceiling accounting must instead bill this pair the same as one equivalent
+		// combined-size call: ceil(0.1 + 0.1) = 1, not 2.
+		const first = await worker.fetch( makeChatRequest( body ), env );
+		const firstJson = ( await first.json() ) as { credits_charged: number };
+		expect( firstJson.credits_charged ).toBe( 1 ); // ceil(0.1) - ceil(0)
+
+		const second = await worker.fetch( makeChatRequest( body ), env );
+		const secondJson = ( await second.json() ) as { credits_charged: number };
+		expect( secondJson.credits_charged ).toBe( 0 ); // ceil(0.2) - ceil(0.1) = 1 - 1
+
+		const combined = firstJson.credits_charged + secondJson.credits_charged;
+		expect( combined ).toBe( 1 );
+		expect( combined ).toBe(
+			Math.ceil( rawChatCreditUnits( 300, 100, 1 ) ) // one equivalent 400-token call
+		);
+		expect( await getStoredUsage( env ) ).toBeCloseTo(
+			rawChatCreditUnits( 150, 50, 1 ) * 2,
+			10
+		);
+	} );
+
+	it( 'regression #927: a call that crosses a whole-credit boundary bills the crossing, calls that stay within a window bill 0', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		const usageKey = `usage:${ TEST_TOKEN }:${ currentMonthKey() }`;
+		// Seed a raw running total already partway through a credit window.
+		await env.USAGE_KV.put( usageKey, '0.5' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [ { type: 'text', text: 'ok' } ],
+						usage: { input_tokens: 600, output_tokens: 0 }, // raw = 600/2000 = 0.3
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+
+		// 0.5 -> 0.8: still under the next whole-credit boundary (ceil(0.8) === ceil(0.5) === 1) — bills 0.
+		const first = await worker.fetch( makeChatRequest(), env );
+		expect( ( ( await first.json() ) as { credits_charged: number } ).credits_charged ).toBe( 0 );
+
+		// 0.8 -> 1.1: crosses the boundary (ceil(1.1)=2, ceil(0.8)=1) — bills 1.
+		const second = await worker.fetch( makeChatRequest(), env );
+		expect( ( ( await second.json() ) as { credits_charged: number } ).credits_charged ).toBe( 1 );
+
+		// 1.1 -> 1.4: back under the next boundary (ceil(1.4)=2=ceil(1.1)) — bills 0 again.
+		const third = await worker.fetch( makeChatRequest(), env );
+		expect( ( ( await third.json() ) as { credits_charged: number } ).credits_charged ).toBe( 0 );
+
+		expect( await getStoredUsage( env ) ).toBeCloseTo( 1.4, 10 );
+	} );
+
+	it( 'zero-token tool-use response bills 0 credits (usage-driven, not a hardcoded free pass)', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						content: [
+							{
+								type: 'tool_use',
+								id: 'toolu_01',
+								name: 'get_post_content',
+								input: { post_id: 1 },
+							},
+						],
+						usage: { input_tokens: 0, output_tokens: 0 },
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'x' } ],
+			provider: 'claude',
+			tools: [ mockTool ],
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+		const json = ( await response.json() ) as { credits_charged: number };
 		expect( json.credits_charged ).toBe( 0 );
 		expect( await getStoredUsage( env ) ).toBe( 0 );
 	} );
@@ -439,6 +566,232 @@ describe( 'handleChatProxy', () => {
 		expect( json.usage ).toEqual( { input_tokens: 6, output_tokens: 3 } );
 	} );
 
+	it( 'Gemini adapter: concatenates all text parts instead of only reading parts[0]', async () => {
+		// Gemini 3.x can prepend a signature-only part (no `text`) ahead of the
+		// actual answer; reading only parts[0] previously produced an empty reply.
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue(
+				new Response(
+					JSON.stringify( {
+						candidates: [
+							{
+								content: {
+									parts: [
+										{ thoughtSignature: 'sig_xyz' },
+										{ text: 'Here is my ' },
+										{ text: 'full answer.' },
+									],
+								},
+							},
+						],
+						usageMetadata: {
+							promptTokenCount: 6,
+							candidatesTokenCount: 3,
+						},
+					} ),
+					{ status: 200 }
+				)
+			)
+		);
+
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Hello Gemini' } ],
+			provider: 'gemini',
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const json = ( await response.json() ) as { content: string };
+		expect( json.content ).toBe( 'Here is my full answer.' );
+	} );
+
+	it( 'Gemini adapter: strips additionalProperties from nested tool parameter schemas', async () => {
+		// Gemini's function-declaration Schema is a restricted OpenAPI subset that
+		// 400s on unknown keywords — additionalProperties (valid JSON Schema, used
+		// by e.g. the meta_fields param in ToolRegistry.php for an open string map)
+		// must be stripped recursively before the request reaches Gemini.
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
+
+		const toolWithOpenMap: ToolParam = {
+			name: 'update_post',
+			description: 'Update a post',
+			parameters: {
+				type: 'object',
+				properties: {
+					post_id: { type: 'integer' },
+					meta_fields: {
+						type: 'object',
+						description: 'Optional post meta key/value pairs.',
+						additionalProperties: { type: 'string' },
+					},
+				},
+				required: [ 'post_id' ],
+			},
+		};
+
+		let capturedBody: Record< string, unknown > | null = null;
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockImplementation(
+					async ( _url: string, init: RequestInit ) => {
+						capturedBody = JSON.parse( init.body as string );
+						return new Response(
+							JSON.stringify( {
+								candidates: [
+									{
+										content: {
+											parts: [ { text: 'Gemini reply' } ],
+										},
+									},
+								],
+								usageMetadata: {
+									promptTokenCount: 6,
+									candidatesTokenCount: 3,
+								},
+							} ),
+							{ status: 200 }
+						);
+					}
+				)
+		);
+
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: 'Update post 7' } ],
+			provider: 'gemini',
+			tools: [ toolWithOpenMap ],
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const sentTools = ( capturedBody as Record< string, unknown > )
+			.tools as Array< Record< string, unknown > >;
+		const decls = (
+			sentTools[ 0 ] as {
+				functionDeclarations: Array< Record< string, unknown > >;
+			}
+		 ).functionDeclarations;
+		const metaFieldsSchema = (
+			(
+				decls[ 0 ].parameters as {
+					properties: Record< string, unknown >;
+				}
+			 ).properties.meta_fields as Record< string, unknown >
+		 );
+		expect( metaFieldsSchema ).not.toHaveProperty( 'additionalProperties' );
+		expect( metaFieldsSchema.description ).toBe(
+			'Optional post meta key/value pairs.'
+		);
+	} );
+
+	it( 'Gemini adapter: forwards pre-built functionCall/functionResponse parts verbatim on a tool-exchange follow-up turn', async () => {
+		// ChatRestController::append_tool_exchange()'s 'gemini' case sends messages
+		// shaped as { role, parts } (Gemini-native functionCall/functionResponse),
+		// not { role, content } — callGemini() must not re-wrap these as {text: ...},
+		// which would produce an empty, invalid Part (see plume-proxy/src/index.ts).
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
+
+		let capturedBody: Record< string, unknown > | null = null;
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockImplementation(
+					async ( _url: string, init: RequestInit ) => {
+						capturedBody = JSON.parse( init.body as string );
+						return new Response(
+							JSON.stringify( {
+								candidates: [
+									{
+										content: {
+											parts: [
+												{ text: 'Here is the update.' },
+											],
+										},
+									},
+								],
+								usageMetadata: {
+									promptTokenCount: 6,
+									candidatesTokenCount: 3,
+								},
+							} ),
+							{ status: 200 }
+						);
+					}
+				)
+		);
+
+		const body = JSON.stringify( {
+			messages: [
+				{ role: 'user', content: 'Fetch post 7 and review it' },
+				{
+					role: 'model',
+					parts: [
+						{
+							functionCall: {
+								id: 'call_1',
+								name: 'get_post_content',
+								args: { post_id: 7 },
+							},
+						},
+					],
+				},
+				{
+					role: 'user',
+					parts: [
+						{
+							functionResponse: {
+								id: 'call_1',
+								name: 'get_post_content',
+								response: { content: 'Post body text' },
+							},
+						},
+					],
+				},
+			],
+			provider: 'gemini',
+			feature: 'chat',
+		} );
+
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		expect( response.status ).toBe( 200 );
+
+		const contents = ( capturedBody as Record< string, unknown > )
+			.contents as Array< { role: string; parts: unknown[] } >;
+		expect( contents[ 1 ] ).toEqual( {
+			role: 'model',
+			parts: [
+				{
+					functionCall: {
+						id: 'call_1',
+						name: 'get_post_content',
+						args: { post_id: 7 },
+					},
+				},
+			],
+		} );
+		expect( contents[ 2 ] ).toEqual( {
+			role: 'user',
+			parts: [
+				{
+					functionResponse: {
+						id: 'call_1',
+						name: 'get_post_content',
+						response: { content: 'Post body text' },
+					},
+				},
+			],
+		} );
+	} );
+
 	it( 'returns a UUID-format tool_call id in tool_calls[0] when Gemini functionCall part is returned', async () => {
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
 
@@ -561,19 +914,43 @@ describe( 'handleChatProxy', () => {
 		expect( response.status ).toBe( 400 );
 	} );
 
-	it( 'returns 200 when a higher-tier Gemini model is requested by a free site — falls back to default', async () => {
+	it( 'falls back to the free-tier default when a pro-only Gemini model is requested by a free site', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
+
+		let capturedUrl: string | null = null;
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockImplementation( async ( url: string ) => {
+					capturedUrl = url as string;
+					return new Response(
+						JSON.stringify( {
+							candidates: [
+								{ content: { parts: [ { text: 'Gemini reply' } ] } },
+							],
+							usageMetadata: {
+								promptTokenCount: 6,
+								candidatesTokenCount: 3,
+							},
+						} ),
+						{ status: 200 }
+					);
+				} )
+		);
 
 		const body = JSON.stringify( {
 			messages: [ { role: 'user', content: 'Hello' } ],
 			provider: 'gemini',
-			model: 'gemini-3.1-pro',
+			model: 'gemini-3.1-pro-preview',
 			feature: 'chat',
 		} );
 
-		// Free tier has no gemini models at all — getModelForTier throws a typed 400.
+		// gemini-3.1-pro-preview isn't in free's allow-list — getModelForTier
+		// falls back to allowed[0] (gemini-3.1-flash-lite) rather than rejecting.
 		const response = await worker.fetch( makeChatRequest( body ), env );
-		expect( response.status ).toBe( 400 );
+		expect( response.status ).toBe( 200 );
+		expect( capturedUrl ).toContain( 'gemini-3.1-flash-lite' );
 	} );
 
 	it( 'uses KV model config override when config:models is set in USAGE_KV', async () => {
@@ -658,11 +1035,18 @@ describe( 'handleChatProxy', () => {
 			feature: 'chat',
 		} );
 
-		await worker.fetch( makeChatRequest( body ), env );
+		const response = await worker.fetch( makeChatRequest( body ), env );
+		const json = ( await response.json() ) as { credits_charged: number };
 
+		// KV now stores the raw (unrounded) running total, not chatCredits()'s rounded
+		// value — 15,000 * 5 / 2,000 = 37.5, not a whole number. The billed amount
+		// (credits_charged), which for a first call from a fresh balance equals
+		// ceil(raw) === chatCredits(), is the one that still matches the rounded figure.
 		const stored = await getStoredUsage( env );
-		expect( stored ).toBe( chatCredits( 10_000, 5_000, 5 ) );
-		expect( stored ).toBe( 38 );
+		expect( stored ).toBe( rawChatCreditUnits( 10_000, 5_000, 5 ) );
+		expect( stored ).toBe( 37.5 );
+		expect( json.credits_charged ).toBe( chatCredits( 10_000, 5_000, 5 ) );
+		expect( json.credits_charged ).toBe( 38 );
 	} );
 
 	it( 'free tier: chat call charges credits per chatCredits(input, output, weight) and stores result in usage KV', async () => {
@@ -708,14 +1092,17 @@ describe( 'handleChatProxy', () => {
 			} )
 		);
 
-		// weight=1, raw=101 → ceil(101/2000) = 1, not a clean division.
+		// weight=1, raw=101/2000=0.0505 → ceil(0.0505) = 1, not a clean division.
 		const response = await worker.fetch( makeChatRequest(), env );
 		expect( response.status ).toBe( 200 );
 
 		const json = ( await response.json() ) as { credits_charged: number };
+		// KV stores the raw total (0.0505), not the rounded chatCredits() value;
+		// credits_charged is what's actually billed and still equals chatCredits()
+		// for this first call from a fresh balance.
 		const stored = await getStoredUsage( env );
-		expect( stored ).toBe( chatCredits( 100, 1, 1 ) );
-		expect( stored ).toBe( 1 );
+		expect( stored ).toBe( rawChatCreditUnits( 100, 1, 1 ) );
+		expect( json.credits_charged ).toBe( chatCredits( 100, 1, 1 ) );
 		expect( json.credits_charged ).toBe( 1 );
 	} );
 
@@ -786,6 +1173,58 @@ describe( 'handleChatProxy', () => {
 		}
 	);
 
+	it.each( [
+		[ 'generator', GENERATOR_CREDITS ],
+		[ 'seo', SEO_CREDITS ],
+		[ 'images', IMAGE_CREDITS ],
+	] as const )(
+		'%s feature bills exactly its flat amount (%i) even when the running KV total is fractional',
+		async ( feature, expectedCredits ) => {
+			const env = await makeEnvWithSiteToken( 'pro_managed' );
+
+			// A prior chat turn leaves the shared usage KV holding a fractional
+			// raw total; the flat feature must still bill exactly N credits and
+			// advance the total by exactly N (relies on ceil(x+N) === ceil(x)+N
+			// for integer N — see #944).
+			const fractionalSeed = 0.5;
+			await env.USAGE_KV.put(
+				`usage:${ TEST_TOKEN }:${ currentMonthKey() }`,
+				String( fractionalSeed )
+			);
+
+			vi.stubGlobal(
+				'fetch',
+				vi.fn().mockImplementation( async () => {
+					return new Response(
+						JSON.stringify( {
+							content: [ { type: 'text', text: 'response' } ],
+							usage: {
+								input_tokens: 9999,
+								output_tokens: 9999,
+							},
+						} ),
+						{ status: 200 }
+					);
+				} )
+			);
+
+			const body = JSON.stringify( {
+				messages: [ { role: 'user', content: 'Hello' } ],
+				provider: 'claude',
+				feature,
+			} );
+
+			const response = await worker.fetch( makeChatRequest( body ), env );
+			expect( response.status ).toBe( 200 );
+
+			const json = ( await response.json() ) as { credits_charged: number };
+			expect( json.credits_charged ).toBe( expectedCredits );
+			expect( await getStoredUsage( env ) ).toBe(
+				fractionalSeed + expectedCredits
+			);
+		}
+	);
+
 	it( 'returns 429 once monthly credit allowance is exhausted for a free-tier site', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 		await env.USAGE_KV.put(
@@ -828,7 +1267,7 @@ describe( 'handleChatProxy', () => {
 		} );
 	} );
 
-	it( 'tool-use step: credits_charged is 0 in response and KV is not updated', async () => {
+	it( 'tool-use step is billed on its own real usage like any other successful call', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 
 		vi.stubGlobal(
@@ -865,12 +1304,13 @@ describe( 'handleChatProxy', () => {
 		const response = await worker.fetch( makeChatRequest( body ), env );
 		expect( response.status ).toBe( 200 );
 
+		// First call from a fresh balance: delta === ceil(raw) === chatCredits().
 		const json = ( await response.json() ) as { credits_charged: number };
-		expect( json.credits_charged ).toBe( 0 );
-		expect( await getStoredUsage( env ) ).toBe( 0 );
+		expect( json.credits_charged ).toBe( chatCredits( 200, 50, 1 ) );
+		expect( await getStoredUsage( env ) ).toBe( rawChatCreditUnits( 200, 50, 1 ) );
 	} );
 
-	it( 'final chat response: credits_charged in response body matches KV and chatCredits()', async () => {
+	it( 'final chat response: credits_charged in response body matches chatCredits(); KV holds the raw total', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 
 		vi.stubGlobal(
@@ -889,11 +1329,11 @@ describe( 'handleChatProxy', () => {
 		const response = await worker.fetch( makeChatRequest(), env );
 		expect( response.status ).toBe( 200 );
 
-		// weight=1, raw=1000 → ceil(1000/2000) = 1 credit.
-		const expected = chatCredits( 500, 500, 1 );
+		// weight=1, raw=1000/2000=0.5 → ceil(0.5) = 1 credit billed.
 		const json = ( await response.json() ) as { credits_charged: number };
-		expect( json.credits_charged ).toBe( expected );
-		expect( await getStoredUsage( env ) ).toBe( expected );
+		expect( json.credits_charged ).toBe( chatCredits( 500, 500, 1 ) );
+		// KV stores the raw (unrounded) total, not the rounded billed amount.
+		expect( await getStoredUsage( env ) ).toBe( rawChatCreditUnits( 500, 500, 1 ) );
 	} );
 
 	it( 'allows a request at used = limit-1, then blocks the next one at used = limit', async () => {
@@ -907,14 +1347,16 @@ describe( 'handleChatProxy', () => {
 				return new Response(
 					JSON.stringify( {
 						content: [ { type: 'text', text: 'ok' } ],
-						usage: { input_tokens: 1, output_tokens: 0 },
+						// weight=1, raw = 2000/2000 = 1.0 exactly, so the running total
+						// lands precisely on the limit after this call.
+						usage: { input_tokens: 2000, output_tokens: 0 },
 					} ),
 					{ status: 200 }
 				);
 			} )
 		);
 
-		// used=99 < limit=100 — allowed, charges 1 credit, used becomes 100.
+		// used=99 < limit=100 — allowed, bills ceil(100)-ceil(99)=1 credit, raw total becomes 100.
 		const first = await worker.fetch( makeChatRequest(), env );
 		expect( first.status ).toBe( 200 );
 		expect( Number( await env.USAGE_KV.get( usageKey ) ) ).toBe( 100 );

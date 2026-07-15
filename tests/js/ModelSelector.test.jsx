@@ -84,4 +84,36 @@ describe( 'ModelSelector', () => {
 			PROVIDERS.length
 		);
 	} );
+
+	it( 'shows a "Saved" hint only when justSaved is true', async () => {
+		await act( async () => {
+			root.render(
+				<ModelSelector
+					providers={ PROVIDERS }
+					selectedProvider="claude"
+					selectedModel=""
+					onProviderChange={ jest.fn() }
+					onModelChange={ jest.fn() }
+					justSaved={ false }
+				/>
+			);
+		} );
+		expect( container.querySelector( '.plume-model-saved' ) ).toBeNull();
+
+		await act( async () => {
+			root.render(
+				<ModelSelector
+					providers={ PROVIDERS }
+					selectedProvider="claude"
+					selectedModel=""
+					onProviderChange={ jest.fn() }
+					onModelChange={ jest.fn() }
+					justSaved={ true }
+				/>
+			);
+		} );
+		expect(
+			container.querySelector( '.plume-model-saved' )
+		).not.toBeNull();
+	} );
 } );

@@ -9,6 +9,8 @@ declare( strict_types=1 );
 
 namespace Plume\Tiers;
 
+use Plume\Proxy\SiteRegistration;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -23,7 +25,7 @@ class UsageTracker {
 	/**
 	 * Monthly credit allowance for the free tier.
 	 *
-	 * Mirrors MONTHLY_CREDIT_LIMITS.free in plume-proxy/src/index.ts.
+	 * Mirrors MONTHLY_CREDIT_LIMITS.free in plume-proxy/src/credits.ts.
 	 *
 	 * @since 1.11.0
 	 */
@@ -32,7 +34,7 @@ class UsageTracker {
 	/**
 	 * Monthly credit allowance for the pro_managed tier.
 	 *
-	 * Mirrors MONTHLY_CREDIT_LIMITS.pro_managed in plume-proxy/src/index.ts.
+	 * Mirrors MONTHLY_CREDIT_LIMITS.pro_managed in plume-proxy/src/credits.ts.
 	 *
 	 * @since 1.11.0
 	 */
@@ -45,6 +47,17 @@ class UsageTracker {
 	 * @deprecated Use FREE_CREDITS or PRO_MANAGED_CREDITS directly.
 	 */
 	public const FALLBACK_LIMIT = self::FREE_CREDITS;
+
+	/**
+	 * HTTP timeout, in seconds, for the hot-path live credit-limit fetch.
+	 *
+	 * Deliberately short: this runs on a cache miss while resolving a user's
+	 * usage summary, so a slow/unreachable Worker must not stall the request —
+	 * on timeout we fall back to the hardcoded constants above.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	private const CONFIG_FETCH_TIMEOUT = 3;
 
 	/**
 	 * Returns the wp_usermeta key for the current calendar month's token counter.
@@ -104,23 +117,18 @@ class UsageTracker {
 	/**
 	 * Returns the monthly credit limit for a tier, cached in a transient.
 	 *
-	 * Known interim limitation (tracked as a follow-up GitHub issue — a minimal
-	 * Worker endpoint such as `GET /v1/config` returning
-	 * `{ credit_limits: { free: 100, pro_managed: 500 } }`): the Worker's
-	 * `/register` and `/rotate-secret` responses do not yet expose a credit-limit
-	 * field, so there is currently nothing to fetch on a cache miss. The real
-	 * per-tier limit (defined Worker-side in `MONTHLY_CREDIT_LIMITS`) cannot be
-	 * read from PHP until that follow-up ships, so every cache miss falls
-	 * through to FALLBACK_LIMIT and caches that value. This method still owns
-	 * the transient read-through/TTL/pro_byok-null plumbing so that wiring in
-	 * the real Worker fetch later is a one-line change inside this method, not
-	 * a call-site migration across the plugin.
-	 *
-	 * The transient is deliberately on the hot path's "miss" side only — never
-	 * blocking a real request on an HTTP round trip is more important than a
-	 * dashboard figure being briefly stale or wrong by a fallback margin.
+	 * On a cache miss, fetches the live value from the Worker's `GET /v1/config`
+	 * endpoint (the Worker's `MONTHLY_CREDIT_LIMITS` is authoritative — this
+	 * avoids drift between the two). This adds a short, timeout-bounded HTTP
+	 * round trip on a cache miss only (at most once per tier per day, per the
+	 * transient TTL); on any failure (unregistered site, network error,
+	 * non-200, malformed body) this falls back to the hardcoded constants
+	 * below and still caches that fallback, so a slow/unreachable Worker never
+	 * causes a miss on every subsequent call.
 	 *
 	 * @since 1.11.0
+	 * @since NEXT_VERSION Fetches the live limit from the Worker on a cache miss
+	 *                      instead of always falling through to a hardcoded value.
 	 * @param string $tier Tier slug.
 	 * @return int|null Monthly credit limit, or null for the unlimited pro_byok tier.
 	 */
@@ -135,14 +143,66 @@ class UsageTracker {
 			return (int) $cached;
 		}
 
-		// TODO: fetch the real limit from the Worker once it exposes one (see PHPDoc above).
-		$tier_limits = [
-			'free'        => self::FREE_CREDITS,
-			'pro_managed' => self::PRO_MANAGED_CREDITS,
-		];
-		$limit       = $tier_limits[ $tier ] ?? self::FALLBACK_LIMIT;
+		$limit = self::fetch_live_credit_limit( $tier );
+		if ( null === $limit ) {
+			$tier_limits = [
+				'free'        => self::FREE_CREDITS,
+				'pro_managed' => self::PRO_MANAGED_CREDITS,
+			];
+			$limit       = $tier_limits[ $tier ] ?? self::FALLBACK_LIMIT;
+		}
+
 		set_transient( $transient_key, $limit, DAY_IN_SECONDS );
 		return $limit;
+	}
+
+	/**
+	 * Fetch this site's live credit limit from the Worker's GET /v1/config endpoint.
+	 *
+	 * Bearer-authenticated with the site's own token; the Worker resolves the
+	 * tier from the token itself rather than trusting a caller-supplied value.
+	 * That resolved tier can disagree with $tier — e.g. TierManager::get_user_tier()
+	 * locally downgrades an unverified pro site to 'free' while the Worker's
+	 * SiteRecord still says 'pro_managed' — so the response's `tier` is checked
+	 * against $tier before use; a mismatch is treated like any other failure and
+	 * falls back to the hardcoded constant for $tier. Without this check the
+	 * limit would get cached under the wrong tier's transient key. Read-only:
+	 * unlike /rotate-secret, this never mutates the site's Worker-side record.
+	 *
+	 * @since NEXT_VERSION
+	 * @param string $tier Tier slug the result will be cached under; validated against
+	 *                     the Worker's own view of the tier before the limit is trusted.
+	 * @return int|null Live limit from the Worker, or null on any failure (including a
+	 *                  tier mismatch) so the caller falls back.
+	 */
+	private static function fetch_live_credit_limit( string $tier ): ?int {
+		$token = SiteRegistration::get_site_token();
+		if ( '' === $token ) {
+			return null;
+		}
+
+		$response = wp_remote_get(
+			TierConfig::get_proxy_url() . '/v1/config',
+			[
+				'headers' => [ 'Authorization' => 'Bearer ' . $token ],
+				'timeout' => self::CONFIG_FETCH_TIMEOUT,
+			]
+		);
+
+		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+			return null;
+		}
+
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( ! is_array( $body ) || ! isset( $body['credit_limit'] ) || ! is_numeric( $body['credit_limit'] ) ) {
+			return null;
+		}
+
+		if ( ! isset( $body['tier'] ) || $tier !== $body['tier'] ) {
+			return null;
+		}
+
+		return (int) $body['credit_limit'];
 	}
 
 	/**

@@ -1132,7 +1132,7 @@ class ChatRestControllerTest extends TestCase {
 
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: $raw_data,
@@ -1167,7 +1167,7 @@ class ChatRestControllerTest extends TestCase {
 
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: $raw_data,
@@ -1210,7 +1210,7 @@ class ChatRestControllerTest extends TestCase {
 
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: $raw_data,
@@ -1313,6 +1313,48 @@ class ChatRestControllerTest extends TestCase {
         $this->assertSame( \wp_json_encode( [ 'name' => 'Plume AI' ] ), $result_blocks[1]['content'] );
     }
 
+    public function test_gemini_proxy_append_tool_exchange_reconstructs_calls_with_thought_signature(): void {
+        // Proxy responses carry no raw candidates (raw is the Worker's normalised shape) —
+        // functionCall parts must be rebuilt from the plural tool_calls array, and any
+        // thoughtSignature the Worker captured must be replayed on the part or Gemini 3.x
+        // rejects the follow-up turn ("required thought_signature").
+        $response = new CompletionResponse(
+            content: '',
+            model: 'gemini-3.5-flash',
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            raw: [
+                'content'    => '',
+                'tool_calls' => [
+                    [
+                        'id'               => 'gemini_1',
+                        'name'             => 'get_recent_posts',
+                        'arguments'        => [ 'count' => 3 ],
+                        'thoughtSignature' => 'sig_abc123',
+                    ],
+                    [ 'id' => 'gemini_2', 'name' => 'get_site_info', 'arguments' => [] ],
+                ],
+            ],
+            tool_call: [ 'id' => 'gemini_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+        );
+
+        $messages = $this->call_append_tool_exchange( [], 'gemini', $response, [
+            'gemini_1' => [ 'posts' => [] ],
+            'gemini_2' => [ 'name' => 'Plume AI' ],
+        ] );
+
+        $model_parts = $messages[0]['parts'];
+        $this->assertCount( 2, $model_parts, 'Model turn must contain both functionCall parts' );
+        $this->assertSame( 'sig_abc123', $model_parts[0]['thoughtSignature'] );
+        $this->assertArrayNotHasKey(
+            'thoughtSignature',
+            $model_parts[1],
+            'A call with no captured signature must not synthesise one'
+        );
+        $this->assertSame( 'get_recent_posts', $model_parts[0]['functionCall']['name'] );
+        $this->assertSame( 'get_site_info', $model_parts[1]['functionCall']['name'] );
+    }
+
     // ── extract_tool_calls ─────────────────────────────────────────────────────
 
     /**
@@ -1328,7 +1370,7 @@ class ChatRestControllerTest extends TestCase {
     public function test_extract_tool_calls_returns_all_gemini_function_calls(): void {
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: [
@@ -1362,7 +1404,7 @@ class ChatRestControllerTest extends TestCase {
     public function test_extract_tool_calls_falls_back_to_normalised_tool_call(): void {
         $response = new CompletionResponse(
             content: '',
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             prompt_tokens: 10,
             completion_tokens: 5,
             raw: [ 'call_id' => 'gemini_generated_1' ],
@@ -1465,7 +1507,7 @@ class ChatRestControllerTest extends TestCase {
         // Gemini requests two tools in one turn, omitting functionCall ids.
         $tool_response = new CompletionResponse(
             content:           '',
-            model:             'gemini-2.0-flash',
+            model:             'gemini-3.5-flash',
             prompt_tokens:     10,
             completion_tokens: 5,
             cost_usd:          0.0,
@@ -1487,7 +1529,7 @@ class ChatRestControllerTest extends TestCase {
 
         $final_response = new CompletionResponse(
             content:           'Here is your site overview.',
-            model:             'gemini-2.0-flash',
+            model:             'gemini-3.5-flash',
             prompt_tokens:     20,
             completion_tokens: 15,
             cost_usd:          0.0,
@@ -1850,7 +1892,10 @@ class ChatRestControllerTest extends TestCase {
     public function test_send_message_logs_credits_once_after_loop(): void {
         // Verifies the single UsageTracker::log_usage() call added after the while loop.
         // A two-iteration exchange (tool call → final answer) must produce exactly one
-        // DB write for credits, reflecting the final response's credits_charged value.
+        // DB write for credits, reflecting the SUM of every iteration's credits_charged —
+        // every successful Worker call this turn is billed on its own usage (#927), so
+        // the local dashboard-mirror counter must match the real total, not just the
+        // final call's amount.
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->alias( fn( $key, $default = '' ) => match ( $key ) {
@@ -1927,14 +1972,16 @@ class ChatRestControllerTest extends TestCase {
         $wpdb = $original_wpdb; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 
         $this->assertSame( 200, $response->get_status() );
-        $this->assertSame( 3, $response->data['credits'], 'credits field must reflect final_response->credits_charged.' );
-        $this->assertSame( 3, $captured_credits, 'log_usage must write final_response->credits_charged (3) to usermeta.' );
+        $this->assertSame( 6, $response->data['credits'], 'credits field must reflect the sum of every iteration\'s credits_charged (3 + 3).' );
+        $this->assertSame( 6, $captured_credits, 'log_usage must write the summed total (6) to usermeta, not just the final iteration\'s 3.' );
     }
 
-    public function test_send_message_logs_only_final_iteration_credits_when_amounts_differ(): void {
-        // Locks down the accounting rule (relates to #880): when intermediate and final
-        // iterations charge different amounts, the controller must log exactly the final
-        // response's credits_charged once — never the intermediate value, a sum, or 0.
+    public function test_send_message_logs_sum_of_all_iteration_credits_when_amounts_differ(): void {
+        // Locks down the accounting rule (relates to #880, revised for #927): every
+        // successful iteration is billed by the Worker on its own usage, so when
+        // intermediate and final iterations charge different amounts, the controller
+        // must log their SUM once — never just the final value, the intermediate
+        // value alone, or 0.
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_option' )->alias( fn( $key, $default = '' ) => match ( $key ) {
@@ -1960,7 +2007,7 @@ class ChatRestControllerTest extends TestCase {
             credits_charged:   3,
         );
 
-        // Iteration 2: final answer charging a DIFFERENT amount (7) — only this is logged.
+        // Iteration 2: final answer charging a DIFFERENT amount (7) — the two amounts sum to 10.
         $final_response = new CompletionResponse(
             content:           'Final answer',
             model:             'claude-3-5-sonnet',
@@ -2008,8 +2055,317 @@ class ChatRestControllerTest extends TestCase {
         $wpdb = $original_wpdb; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 
         $this->assertSame( 200, $response->get_status() );
-        $this->assertSame( 7, $response->data['credits'], 'credits field must reflect the final iteration, not the intermediate 3.' );
-        $this->assertSame( 7, $logged_credits, 'usermeta must record the final iteration amount (7), not the intermediate 3, their sum (10), or 0.' );
+        $this->assertSame( 10, $response->data['credits'], 'credits field must reflect the sum of all iterations (3 + 7), not just the final 7.' );
+        $this->assertSame( 10, $logged_credits, 'usermeta must record the summed total (10), not just the final iteration (7), the intermediate alone (3), or 0.' );
+    }
+
+    public function test_send_message_sums_credits_across_three_or_more_iterations(): void {
+        // Extends the two-iteration coverage above to three, confirming the accumulator
+        // isn't accidentally limited to a single addition.
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->alias( fn( $key, $default = '' ) => match ( $key ) {
+            'plume_default_provider' => 'claude',
+            default                  => $default,
+        } );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [
+            [ 'role' => 'user', 'content' => 'Hello' ],
+        ] );
+
+        $response_1 = new CompletionResponse(
+            content:           '',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     10,
+            completion_tokens: 5,
+            raw:               [ 'content' => [] ],
+            tool_call:         [ 'id' => 'tc_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+            credits_charged:   2,
+        );
+        $response_2 = new CompletionResponse(
+            content:           '',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     15,
+            completion_tokens: 8,
+            raw:               [ 'content' => [] ],
+            tool_call:         [ 'id' => 'tc_2', 'name' => 'get_post_content', 'arguments' => [ 'post_id' => 1 ] ],
+            credits_charged:   4,
+        );
+        $final_response = new CompletionResponse(
+            content:           'Final answer',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     20,
+            completion_tokens: 15,
+            credits_charged:   1,
+        );
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+        $this->tool_executor->method( 'execute' )->willReturn( [ 'posts' => [] ] );
+
+        $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( true );
+        $provider_mock->method( 'complete' )->willReturnOnConsecutiveCalls( $response_1, $response_2, $final_response );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        global $wpdb;
+        $original_wpdb       = $wpdb;
+        $logged_credits      = null;
+        $wpdb                = \Mockery::mock( 'wpdb' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+        $wpdb->usermeta      = 'wp_usermeta';
+        $wpdb->rows_affected = 1;
+        $wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+            function ( $sql, $credits = null ) use ( &$logged_credits ) {
+                $logged_credits = $credits;
+                return $sql;
+            }
+        );
+        $wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '42' ] );
+        $request->set_body_params( [ 'content' => 'Hello', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $wpdb = $original_wpdb; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+
+        $this->assertSame( 200, $response->get_status() );
+        $this->assertSame( 7, $response->data['credits'], '2 + 4 + 1 across three iterations, not just the final 1.' );
+        $this->assertSame( 7, $logged_credits );
+    }
+
+    public function test_send_message_sums_credits_across_all_iterations_when_max_iterations_exhausted(): void {
+        // The MAX_TOOL_ITERATIONS-exhaustion fallback (loop never gets a clean exit) still
+        // must not lose any iteration's billed credits — each of the 5 forced Worker calls
+        // was already billed individually, so the accumulator must include all of them,
+        // not just the last one reused for the fallback message.
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->alias( fn( $key, $default = '' ) => match ( $key ) {
+            'plume_default_provider' => 'claude',
+            default                  => $default,
+        } );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        // __() is called to build the limit message; pass strings through untranslated in unit tests.
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'update_user_meta' )->justReturn( true );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [
+            [ 'role' => 'user', 'content' => 'Hi' ],
+        ] );
+        $store_mock->method( 'add_message' )->willReturn( 99 );
+
+        $tool_response = new CompletionResponse(
+            content:           '',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     10,
+            completion_tokens: 5,
+            cost_usd:          0.0,
+            raw:               [ 'content' => [] ],
+            tool_call:         [ 'id' => 'tc_x', 'name' => 'get_site_info', 'arguments' => [] ],
+            credits_charged:   2,
+        );
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+        $this->tool_executor->method( 'execute' )->willReturn( [ 'name' => 'Test Site' ] );
+
+        $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( true );
+        // Always returns a (billed) tool-call response — loop exhausts MAX_TOOL_ITERATIONS (5).
+        $provider_mock->method( 'complete' )->willReturn( $tool_response );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        global $wpdb;
+        $original_wpdb       = $wpdb;
+        $logged_credits      = null;
+        $wpdb                = \Mockery::mock( 'wpdb' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+        $wpdb->usermeta      = 'wp_usermeta';
+        $wpdb->rows_affected = 1;
+        $wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+            function ( $sql, $credits = null ) use ( &$logged_credits ) {
+                $logged_credits = $credits;
+                return $sql;
+            }
+        );
+        $wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '99' ] );
+        $request->set_body_params( [ 'content' => 'Hi', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $wpdb = $original_wpdb; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+
+        $this->assertSame( 200, $response->get_status() );
+        $this->assertStringContainsString( 'maximum number of steps', $response->data['content'] );
+        // 5 iterations (MAX_TOOL_ITERATIONS) x 2 credits each = 10, not just the last call's 2.
+        $this->assertSame( 10, $response->data['credits'] );
+        $this->assertSame( 10, $logged_credits );
+    }
+
+    public function test_send_message_finishes_gracefully_when_rate_limit_hit_mid_loop_after_prior_success(): void {
+        // #927 design decision: a Worker 429 (monthly credit quota exhausted) mid-loop,
+        // after at least one earlier iteration already succeeded, must not surface as a
+        // hard error — the turn finishes gracefully with what was already done, and the
+        // already-billed partial total is still logged (not silently dropped).
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->alias( fn( $key, $default = '' ) => match ( $key ) {
+            'plume_default_provider' => 'claude',
+            default                  => $default,
+        } );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        Functions\when( '__' )->returnArg();
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [
+            [ 'role' => 'user', 'content' => 'Hello' ],
+        ] );
+
+        // Iteration 1 succeeds and is billed 3 credits.
+        $tool_response = new CompletionResponse(
+            content:           '',
+            model:             'claude-3-5-sonnet',
+            prompt_tokens:     10,
+            completion_tokens: 5,
+            raw:               [ 'content' => [] ],
+            tool_call:         [ 'id' => 'tc_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
+            credits_charged:   3,
+        );
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+        $this->tool_executor->method( 'execute' )->willReturn( [ 'posts' => [] ] );
+
+        // Iteration 2 hits the Worker's exhausted quota — propagates as a ProviderException
+        // carrying ProxyClient's 'rate_limit_exceeded' code (complete()'s CompletionResponse
+        // return type means this can never come back as is_wp_error() instead).
+        $call_count    = 0;
+        $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( true );
+        $provider_mock->method( 'complete' )->willReturnCallback(
+            function () use ( &$call_count, $tool_response ) {
+                ++$call_count;
+                if ( 1 === $call_count ) {
+                    return $tool_response;
+                }
+                throw new \Plume\Providers\ProviderException(
+                    'Monthly usage limit reached.',
+                    'claude',
+                    0,
+                    [],
+                    null,
+                    'rate_limit_exceeded'
+                );
+            }
+        );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        global $wpdb;
+        $original_wpdb       = $wpdb;
+        $logged_credits      = null;
+        $wpdb                = \Mockery::mock( 'wpdb' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+        $wpdb->usermeta      = 'wp_usermeta';
+        $wpdb->rows_affected = 1;
+        $wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+            function ( $sql, $credits = null ) use ( &$logged_credits ) {
+                $logged_credits = $credits;
+                return $sql;
+            }
+        );
+        $wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '42' ] );
+        $request->set_body_params( [ 'content' => 'Hello', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $wpdb = $original_wpdb; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+
+        // Normal 200 with a graceful message, not a 502.
+        $this->assertSame( 200, $response->get_status() );
+        $this->assertStringContainsString( "usage limit", $response->data['content'] );
+        // Only iteration 1's already-billed 3 credits — no charge for the rejected iteration 2.
+        $this->assertSame( 3, $response->data['credits'] );
+        $this->assertSame( 3, $logged_credits, 'the partial-turn total must still be logged, not dropped, on the graceful mid-loop exit.' );
+    }
+
+    public function test_send_message_returns_hard_error_when_rate_limit_hit_on_first_iteration(): void {
+        // With no prior progress this turn, there is nothing to gracefully finish with —
+        // the existing hard-error behavior (mapped through the outer ProviderException
+        // catch block, unchanged by #927) is still correct.
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [] );
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+
+        $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( false );
+        $provider_mock->method( 'complete' )->willThrowException(
+            new \Plume\Providers\ProviderException(
+                'Monthly usage limit reached.',
+                'claude',
+                0,
+                [],
+                null,
+                'rate_limit_exceeded'
+            )
+        );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '12' ] );
+        $request->set_body_params( [ 'content' => 'Hi', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $this->assertInstanceOf( \WP_REST_Response::class, $response );
+        $this->assertSame( 502, $response->get_status() );
+        $this->assertSame( 'rate_limit_exceeded', $response->data['code'] );
     }
 
     // ── search_posts ──────────────────────────────────────────────────────────

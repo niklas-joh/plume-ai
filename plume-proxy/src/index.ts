@@ -14,7 +14,14 @@ import { authenticateRequest, generateToken } from './auth';
 import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
 import { verifyHmac } from './signature';
-import { chatCredits, GENERATOR_CREDITS, SEO_CREDITS, IMAGE_CREDITS } from './credits';
+import {
+	rawChatCreditUnits,
+	getCreditLimit,
+	GENERATOR_CREDITS,
+	SEO_CREDITS,
+	IMAGE_CREDITS,
+	MONTHLY_CREDIT_LIMITS,
+} from './credits';
 
 const MAX_BODY_BYTES = 1_048_576; // 1 MB
 
@@ -48,8 +55,8 @@ const DEFAULT_TIER_MODELS: Record< Provider, Record< ProxyTier, string[] > > = {
 		pro_managed: [ 'gpt-4.1' ],
 	},
 	gemini: {
-		free: [],
-		pro_managed: [ 'gemini-3.5-flash', 'gemini-3.1-pro' ],
+		free: [ 'gemini-3.1-flash-lite' ],
+		pro_managed: [ 'gemini-3.5-flash' ],
 	},
 };
 
@@ -60,8 +67,8 @@ const DEFAULT_MODEL_TOKEN_WEIGHT: Record< string, number > = {
 	'claude-sonnet-4-6': 3,
 	'claude-opus-4-6': 5,
 	'gpt-4.1': 2,
+	'gemini-3.1-flash-lite': 1,
 	'gemini-3.5-flash': 2,
-	'gemini-3.1-pro': 2,
 };
 
 /**
@@ -123,6 +130,30 @@ function toOpenAITools( tools: ToolParam[] ) {
 	} ) );
 }
 
+// Gemini's function-declaration Schema is a restricted OpenAPI subset — it
+// rejects unknown keywords with a 400 rather than ignoring them. Strips
+// `additionalProperties` (used elsewhere for open string-keyed maps like
+// meta_fields, valid JSON Schema that Claude/OpenAI accept) recursively, since
+// it can appear at any depth in a tool's nested parameter properties.
+function stripGeminiUnsupportedKeywords( schema: unknown ): unknown {
+	if ( Array.isArray( schema ) ) {
+		return schema.map( stripGeminiUnsupportedKeywords );
+	}
+	if ( schema && typeof schema === 'object' ) {
+		const { additionalProperties: _drop, ...rest } = schema as Record<
+			string,
+			unknown
+		>;
+		return Object.fromEntries(
+			Object.entries( rest ).map( ( [ key, value ] ) => [
+				key,
+				stripGeminiUnsupportedKeywords( value ),
+			] )
+		);
+	}
+	return schema;
+}
+
 function toGeminiTools( tools: ToolParam[] ) {
 	return [
 		{
@@ -133,7 +164,9 @@ function toGeminiTools( tools: ToolParam[] ) {
 				// additions to ToolParam.parameters do not accidentally bleed into the output.
 				parameters: {
 					type: 'OBJECT',
-					properties: t.parameters.properties,
+					properties: stripGeminiUnsupportedKeywords(
+						t.parameters.properties
+					),
 					required: t.parameters.required,
 				},
 			} ) ),
@@ -325,7 +358,7 @@ async function callGemini(
 ): Promise< NormalizedResponse > {
 	const contents = body.messages.map( ( m ) => ( {
 		role: m.role,
-		parts: [ { text: m.content } ],
+		parts: m.parts ?? [ { text: m.content ?? '' } ],
 	} ) );
 	const geminiBody: Record< string, unknown > = {
 		contents,
@@ -365,6 +398,7 @@ async function callGemini(
 					name: string;
 					args?: Record< string, unknown >;
 				};
+				thoughtSignature?: string;
 			} >;
 		};
 	} >;
@@ -389,12 +423,22 @@ async function callGemini(
 				id: `gemini_${ crypto.randomUUID() }`,
 				name: part.functionCall!.name,
 				arguments: part.functionCall!.args ?? {},
+				...( part.thoughtSignature
+					? { thoughtSignature: part.thoughtSignature }
+					: {} ),
 			} ) ),
 		};
 	}
 
+	// Gemini 3.x's thought-signature mechanism can prepend a signature-only part
+	// with no `text` before the actual answer — reading only parts[0] silently
+	// drops the reply, so every text part is concatenated in order instead.
+	const textContent = ( candidates[ 0 ]?.content?.parts ?? [] )
+		.map( ( p ) => p.text ?? '' )
+		.join( '' );
+
 	return {
-		content: candidates[ 0 ]?.content?.parts[ 0 ]?.text ?? '',
+		content: textContent,
 		usage: normalizedUsage,
 	};
 }
@@ -459,6 +503,13 @@ export default {
 			return handleChatProxy( request, env );
 		}
 
+		if ( pathname === '/v1/config' ) {
+			if ( request.method !== 'GET' ) {
+				return jsonResponse( { error: 'Method not allowed' }, 405 );
+			}
+			return handleConfig( request, env );
+		}
+
 		return jsonResponse( { error: 'Not found' }, 404 );
 	},
 };
@@ -496,6 +547,32 @@ async function handleRotateSecret(
 	return jsonResponse( {
 		tier_sync_secret: newSecret,
 		tier: updated.tier,
+	} );
+}
+
+/**
+ * Return the requesting site's monthly credit limit and current tier.
+ *
+ * Read-only — unlike /rotate-secret this never mutates the SiteRecord, so
+ * it is safe for the plugin to call on every credit-limit cache miss
+ * (see UsageTracker::get_cached_credit_limit() on the PHP side).
+ *
+ * @param {Request} request Incoming Worker request.
+ * @param {Env}     env     Worker environment bindings.
+ * @return {Promise<Response>} JSON response with credit_limit and tier, or an auth error.
+ */
+async function handleConfig(
+	request: Request,
+	env: Env
+): Promise< Response > {
+	const auth = await authenticateRequest( request, env );
+	if ( ! auth.authenticated || ! auth.tier ) {
+		return jsonResponse( { error: 'Unauthorised' }, 401 );
+	}
+
+	return jsonResponse( {
+		credit_limit: getCreditLimit( auth.tier ),
+		tier: auth.tier,
 	} );
 }
 
@@ -772,7 +849,9 @@ async function handleChatProxy(
 			return jsonResponse(
 				{
 					error: 'Rate limit exceeded',
-					used: rateLimitCheck.used,
+					// used is the raw (unrounded) running total internally; round up
+					// for display so this doesn't surface a fractional credit count.
+					used: Math.ceil( rateLimitCheck.used ),
 					limit: rateLimitCheck.limit,
 				},
 				429
@@ -815,31 +894,30 @@ async function handleChatProxy(
 			);
 		}
 
-		// Intermediate tool-use steps are not billed; only the final response is.
-		// The final call's usage.input_tokens naturally encompasses all prior context,
-		// so total token cost is captured without needing cross-request accumulation.
-		// Scoped to 'chat' so flat-rate features are never silently zeroed if they
-		// ever gain tool support in future.
-		const isToolUseStep =
-			feature === 'chat' && ( normalized.tool_calls?.length ?? 0 ) > 0;
+		// Every successful call is billed on its own real usage — there is no more
+		// "intermediate vs final" classification (previously hardcoded against
+		// specific tool names, which needed a new exception every time a new
+		// terminal tool was added — see #927). tool_calls surfacing below stays
+		// fully decoupled from billing: a billed response can still carry tool_calls.
+		const rawContribution =
+			feature === 'chat'
+				? rawChatCreditUnits(
+						normalized.usage.input_tokens,
+						normalized.usage.output_tokens,
+						tokenWeights[ selectedModel ] ?? 1
+				  )
+				: FLAT_FEATURE_CREDITS[ feature ];
 
-		let creditsCharged: number;
-		if ( isToolUseStep ) {
-			creditsCharged = 0;
-		} else if ( feature === 'chat' ) {
-			const weight = tokenWeights[ selectedModel ] ?? 1;
-			creditsCharged = chatCredits(
-				normalized.usage.input_tokens,
-				normalized.usage.output_tokens,
-				weight
-			);
-		} else {
-			creditsCharged = FLAT_FEATURE_CREDITS[ feature ];
-		}
+		// Delta-of-cumulative-ceiling: bills this call only what pushes the site's
+		// real running total over the next whole-credit boundary, so N calls within
+		// one agentic-loop turn summing to X tokens cost the same as one call for X
+		// tokens — never more, regardless of how many pieces the loop split the work
+		// into. (Deltas telescope: sum(ceil(Tn) - ceil(Tn-1)) === ceil(final) - ceil(start).)
+		const previousRawTotal = rateLimitCheck.used; // already read by the rate-limit check above
+		const creditsCharged =
+			Math.ceil( previousRawTotal + rawContribution ) - Math.ceil( previousRawTotal );
 
-		if ( ! isToolUseStep ) {
-			await updateUsage( siteToken, creditsCharged, env );
-		}
+		await updateUsage( siteToken, rawContribution, env );
 
 		const responseData: Record< string, unknown > = {
 			content: normalized.content,
@@ -847,13 +925,23 @@ async function handleChatProxy(
 			credits_charged: creditsCharged,
 			model: selectedModel,
 		};
-		if ( isToolUseStep ) {
+		if ( ( normalized.tool_calls?.length ?? 0 ) > 0 ) {
 			responseData.tool_calls = normalized.tool_calls;
 		}
 		return jsonResponse( responseData );
 	} catch ( error ) {
+		// Errors from callClaude/callOpenAI/callGemini carry `status`/`body` from the
+		// upstream provider's response (see e.g. callGemini's Object.assign throw);
+		// console.error on a bare Error only prints its message/stack, silently
+		// dropping those extra properties — log them explicitly so `wrangler tail`
+		// actually shows *why* an upstream call failed (bad key, bad model id, etc.),
+		// since the client-facing response below never includes this detail.
+		const upstream = error as { status?: number; body?: unknown };
 		// eslint-disable-next-line no-console
-		console.error( 'Proxy error:', error );
+		console.error( 'Proxy error:', error, {
+			status: upstream?.status,
+			body: upstream?.body,
+		} );
 		// Only honour our own tagged validation error (the typed 400 from
 		// getModelForTier). Upstream provider errors also carry a `status`
 		// (e.g. a 429/401 from our Anthropic/OpenAI account) but must never be
@@ -872,14 +960,6 @@ async function handleChatProxy(
 	}
 }
 
-// Worker is now authoritative for monthly allowances, expressed in credits
-// (not raw tokens). PR 2 will have the plugin fetch this from the Worker at
-// runtime rather than re-declaring it in PHP — see plan §3.3.
-const MONTHLY_CREDIT_LIMITS: Record< ProxyTier, number > = {
-	free: 100,
-	pro_managed: 500,
-};
-
 const MAX_TOKENS: Record< ProxyTier, number > = {
 	free: 6_000,
 	pro_managed: 8_000,
@@ -892,7 +972,10 @@ async function checkRateLimit(
 ): Promise< { allowed: boolean; used: number; limit: number } > {
 	const limit = MONTHLY_CREDIT_LIMITS[ tier ];
 	const key = `usage:${ siteToken }:${ getCurrentMonth() }`;
-	const used = parseInt( ( await env.USAGE_KV.get( key ) ) ?? '0', 10 );
+	// Stored (and read here) as a float, not a rounded integer — see updateUsage()'s
+	// comment. `used` is the precise raw running total, reused by handleChatProxy()'s
+	// delta-of-cumulative-ceiling billing so it doesn't need a second KV read.
+	const used = parseFloat( ( await env.USAGE_KV.get( key ) ) ?? '0' );
 	return { allowed: used < limit, used, limit };
 }
 
@@ -902,11 +985,19 @@ async function updateUsage(
 	env: Env
 ): Promise< void > {
 	const key = `usage:${ siteToken }:${ getCurrentMonth() }`;
+	// Stored as a float (raw weighted-token-credit units), not a rounded integer.
+	// handleChatProxy() bills each call only the delta between consecutive whole-credit
+	// roundings of this running total (see #927), so the total itself must stay
+	// unrounded, or fractional remainders would be wastefully rounded away on every
+	// call instead of carrying forward to the next one.
+	//
 	// KV does not support atomic increments, so concurrent requests perform a
 	// non-atomic read-modify-write. Under burst load this can under-count credits.
 	// Replace with a Durable Object counter (tracked in issue #312) to make
-	// enforcement fully atomic. NOT fixed by this migration — see risk list.
-	const current = parseInt( ( await env.USAGE_KV.get( key ) ) ?? '0', 10 );
+	// enforcement fully atomic. NOT fixed by this migration — and this migration bills
+	// every agentic-loop iteration instead of just the turn's final call, so this path
+	// now runs more often per turn, marginally raising the race's likelihood.
+	const current = parseFloat( ( await env.USAGE_KV.get( key ) ) ?? '0' );
 	await env.USAGE_KV.put( key, String( current + credits ), {
 		expirationTtl: getSecondsUntilNextMonth(),
 	} );

@@ -39,6 +39,33 @@ class GeminiProviderTest extends TestCase {
 		$this->assertSame( 'gemini', ( new GeminiProvider( 'AIza-test' ) )->get_slug() );
 	}
 
+	// ── Model list (#906: must match the Worker's allow-list) ─────────────────
+
+	public function test_get_models_matches_worker_allow_lists(): void {
+		// Mirrors the union of plume-proxy/src/index.ts DEFAULT_TIER_MODELS.gemini.free
+		// and .pro_managed — keep these in sync (see the class constant's docblock).
+		// Each tier currently carries exactly one model, so this asserts parity of
+		// the combined set, not order or per-tier membership.
+		$worker_allow_list = [ 'gemini-3.1-flash-lite', 'gemini-3.5-flash' ];
+
+		$models = ( new GeminiProvider( 'AIza-test' ) )->get_models();
+
+		$this->assertEqualsCanonicalizing( $worker_allow_list, array_keys( $models ) );
+	}
+
+	public function test_get_models_does_not_offer_stale_model_ids(): void {
+		$models = ( new GeminiProvider( 'AIza-test' ) )->get_models();
+
+		foreach ( [ 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.1-pro', 'gemini-3.1-pro-preview' ] as $stale_id ) {
+			$this->assertArrayNotHasKey( $stale_id, $models, "Stale/invalid model ID '{$stale_id}' must not be offered." );
+		}
+	}
+
+	public function test_get_default_model_is_a_currently_offered_model(): void {
+		$provider = new GeminiProvider( 'AIza-test' );
+		$this->assertArrayHasKey( $provider->get_default_model(), $provider->get_models() );
+	}
+
 	public function test_is_available_false_without_key(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_meta' )->justReturn( 'pro_byok' );
@@ -65,6 +92,37 @@ class GeminiProviderTest extends TestCase {
 
 		$this->assertSame( 'Gemini says hi', $response->content );
 		$this->assertSame( 5, $response->prompt_tokens );
+	}
+
+	public function test_complete_concatenates_all_text_parts(): void {
+		// Gemini 3.x can prepend a signature-only part (no `text`) ahead of the
+		// actual answer; reading only parts[0] previously produced an empty reply.
+		$this->mock_wpdb();
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'candidates'    => [ [
+					'content' => [
+						'parts' => [
+							[ 'thoughtSignature' => 'sig_xyz' ],
+							[ 'text' => 'Here is my ' ],
+							[ 'text' => 'full answer.' ],
+						],
+					],
+				] ],
+				'usageMetadata' => [ 'promptTokenCount' => 5, 'candidatesTokenCount' => 3 ],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( fn($v) => json_encode($v) );
+
+		$provider = new GeminiProvider( 'AIza-test' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+		$response = $provider->complete( $request );
+
+		$this->assertSame( 'Here is my full answer.', $response->content );
 	}
 
 	public function test_complete_throws_on_api_error(): void {

@@ -126,7 +126,7 @@ class ToolRegistry {
 
 		$this->tools[] = new ToolDefinition(
 			name: 'get_recent_posts',
-			description: 'Get a list of recent posts from the WordPress site',
+			description: 'Get a list of recent posts from the WordPress site. Each post includes its real `permalink` — use that verbatim when linking to a post; never construct or guess the URL.',
 			parameters: [
 				'properties' => [
 					'post_type' => [
@@ -155,7 +155,7 @@ class ToolRegistry {
 
 		$this->tools[] = new ToolDefinition(
 			name: 'get_post_content',
-			description: 'Get the full content of a specific WordPress post or page by ID',
+			description: 'Get the full content of a specific WordPress post or page by ID. The response includes the real `permalink` — use that verbatim when linking to the post; never construct or guess the URL.',
 			parameters: [
 				'properties' => [
 					'post_id' => [
@@ -171,7 +171,7 @@ class ToolRegistry {
 
 		$this->tools[] = new ToolDefinition(
 			name: 'search_posts',
-			description: 'Search for posts or pages matching a keyword query',
+			description: 'Search for posts or pages matching a keyword query. Each result includes its real `permalink` — use that verbatim when linking to it; never construct or guess the URL.',
 			parameters: [
 				'properties' => [
 					'query'     => [
@@ -300,7 +300,7 @@ class ToolRegistry {
 
 		$this->tools[] = new ToolDefinition(
 			name: 'get_pages',
-			description: 'Get a list of pages on the WordPress site',
+			description: 'Get a list of pages on the WordPress site. Each page includes its real `permalink` — use that verbatim when linking to it; never construct or guess the URL.',
 			parameters: [
 				'properties' => [
 					'count' => [

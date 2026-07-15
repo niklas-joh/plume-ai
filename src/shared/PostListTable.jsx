@@ -262,11 +262,17 @@ function PostRow( {
 	return (
 		<>
 			<tr className={ expanded ? 'is-expanded' : '' }>
-				<td
-					dangerouslySetInnerHTML={ {
-						__html: DOMPurify.sanitize( post.title.rendered ),
-					} }
-				/>
+				<td>
+					<a
+						className="plume-post-title-link"
+						href={ post.link }
+						target="_blank"
+						rel="noopener noreferrer"
+						dangerouslySetInnerHTML={ {
+							__html: DOMPurify.sanitize( post.title.rendered ),
+						} }
+					/>
+				</td>
 				<td>
 					<span className="plume-type-badge">{ post.type }</span>
 				</td>

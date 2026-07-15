@@ -31,6 +31,19 @@ class ToolRegistry {
 	public const SINGLE_USE_TOOLS = [ 'plan_post', 'plan_update', 'submit_post_content' ];
 
 	/**
+	 * Shared lead sentence steering content tools away from unrequested hyperlinks.
+	 *
+	 * Kept as one constant so the plan_post and submit_post_content schemas stay
+	 * phrased identically; submit_post_content appends its own "keep existing
+	 * links" nuance after this sentence. Mirrors VoiceInjector's system-prompt
+	 * guidance, see #919.
+	 *
+	 * @since NEXT_VERSION
+	 * @var string
+	 */
+	private const NO_LINKS_CONTENT_HINT = 'Do not add hyperlinks unless the user explicitly requested them.';
+
+	/**
 	 * All registered tool definitions.
 	 *
 	 * @var ToolDefinition[]
@@ -207,7 +220,7 @@ class ToolRegistry {
 					],
 					'content'     => [
 						'type'        => 'string',
-						'description' => 'The complete post body to publish when the user approves. Must be the full content, not an outline or summary. Write it in Markdown; it is converted to WordPress blocks automatically when applied.',
+						'description' => 'The complete post body to publish when the user approves. Must be the full content, not an outline or summary. Write it in Markdown; it is converted to WordPress blocks automatically when applied. ' . self::NO_LINKS_CONTENT_HINT,
 					],
 					'post_type'   => [
 						'type'        => 'string',
@@ -276,7 +289,7 @@ class ToolRegistry {
 					],
 					'content' => [
 						'type'        => 'string',
-						'description' => 'The complete updated post content. Must be the full post body, not a diff or partial snippet. Write it in Markdown; it is converted to WordPress blocks automatically when applied.',
+						'description' => 'The complete updated post content. Must be the full post body, not a diff or partial snippet. Write it in Markdown; it is converted to WordPress blocks automatically when applied. ' . self::NO_LINKS_CONTENT_HINT . ' If links already exist in the post, keep them unless asked to remove or change them.',
 					],
 				],
 				'required'   => [ 'post_id', 'content' ],

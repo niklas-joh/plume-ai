@@ -51,11 +51,39 @@ class VoiceInjectorTest extends TestCase {
         $this->assertStringContainsString( 'SEO expert', $prompt );
     }
 
-    public function test_empty_voice_returns_feature_instruction_only(): void {
+    public function test_empty_voice_still_appends_feature_instruction_and_no_links_guidance(): void {
         Functions\when( 'get_option' )->justReturn( [] );
         Functions\when( 'get_user_meta' )->justReturn( [] );
 
         $injector = new VoiceInjector();
-        $this->assertSame( 'Rewrite the text.', $injector->build_system_prompt( 'Rewrite the text.', 0 ) );
+        $prompt   = $injector->build_system_prompt( 'Rewrite the text.', 0 );
+
+        $this->assertStringContainsString( 'Rewrite the text.', $prompt );
+        $this->assertStringContainsString( 'Do not insert hyperlinks', $prompt );
+    }
+
+    public function test_no_links_guidance_present_even_with_no_voice_and_no_feature_instruction(): void {
+        Functions\when( 'get_option' )->justReturn( [] );
+        Functions\when( 'get_user_meta' )->justReturn( [] );
+
+        $injector = new VoiceInjector();
+        $prompt   = $injector->build_system_prompt( '', 0 );
+
+        $this->assertStringContainsString( 'Do not insert hyperlinks', $prompt );
+    }
+
+    public function test_no_links_guidance_present_alongside_configured_voice(): void {
+        Functions\when( 'get_option' )->alias( fn( $k, $d = null ) =>
+            $k === 'plume_site_voice' ? [ 'tone' => 'Conversational' ] : ( $d ?? null )
+        );
+        Functions\when( 'get_user_meta' )->justReturn( [] );
+        Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn($v) => $v );
+
+        $injector = new VoiceInjector();
+        $prompt   = $injector->build_system_prompt( '', 0 );
+
+        $this->assertStringContainsString( 'Conversational', $prompt );
+        $this->assertStringContainsString( 'Do not insert hyperlinks', $prompt );
     }
 }

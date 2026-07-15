@@ -23,12 +23,20 @@ class VoiceInjector {
 	private const USER_META   = 'plume_voice';
 
 	/**
+	 * Standing instruction against inserting unrequested hyperlinks.
+	 *
+	 * Models occasionally invent internal permalinks (instant 404s) or cite stale
+	 * external URLs when none were asked for — always appended, see #919.
+	 */
+	private const NO_LINKS_GUIDANCE = 'Do not insert hyperlinks or URLs in generated content unless the user explicitly asks for one, or a tool result provides one. Never invent internal permalinks.';
+
+	/**
 	 * Build a system prompt combining voice preferences and a feature-specific instruction.
 	 *
 	 * @since 1.0.0
 	 * @param string $feature_instruction Optional feature-specific instruction appended after the voice rules.
 	 * @param int    $user_id             User ID whose meta overrides site-level values; 0 means no user override.
-	 * @return string System prompt string, or empty string if no voice rules are configured.
+	 * @return string System prompt string; always non-empty because the no-links guidance is always appended.
 	 */
 	public function build_system_prompt( string $feature_instruction = '', int $user_id = 0 ): string {
 		$voice = $this->get_merged_voice( $user_id );
@@ -53,9 +61,9 @@ class VoiceInjector {
 			$parts[] = sanitize_textarea_field( $voice['extra'] );
 		}
 
-		$base = empty( $parts )
-			? ''
-			: "You are an AI writing assistant. Follow these guidelines:\n" . implode( "\n", $parts );
+		$parts[] = self::NO_LINKS_GUIDANCE;
+
+		$base = "You are an AI writing assistant. Follow these guidelines:\n" . implode( "\n", $parts );
 
 		if ( '' !== $feature_instruction ) {
 			$base = trim( $base . "\n\n" . $feature_instruction );

@@ -524,7 +524,7 @@ class ChatRestControllerTest extends TestCase {
 
         $this->assertInstanceOf( \WP_REST_Response::class, $response );
         $this->assertSame( 200, $response->get_status() );
-        $this->assertSame( [ [ 'content' => 'Hi' ] ], $response->get_data() );
+        $this->assertSame( [ [ 'content' => 'Hi' ] ], $response->data );
     }
 
     // ── Tool loop ──────────────────────────────────────────────────────────────

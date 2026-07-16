@@ -1,7 +1,7 @@
-/* global njDevTools */
+/* global plumeDevTools */
 ( function () {
-	const restUrl = njDevTools.restUrl;
-	const nonce = njDevTools.nonce;
+	const restUrl = plumeDevTools.restUrl;
+	const nonce = plumeDevTools.nonce;
 
 	function post( endpoint, body ) {
 		return fetch( restUrl + endpoint, {

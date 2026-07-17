@@ -38,7 +38,7 @@ class ToolRegistry {
 	 * links" nuance after this sentence. Mirrors VoiceInjector's system-prompt
 	 * guidance, see #919.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.1
 	 * @var string
 	 */
 	private const NO_LINKS_CONTENT_HINT = 'Do not add hyperlinks unless the user explicitly requested them.';

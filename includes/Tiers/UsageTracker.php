@@ -55,7 +55,7 @@ class UsageTracker {
 	 * usage summary, so a slow/unreachable Worker must not stall the request —
 	 * on timeout we fall back to the hardcoded constants above.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.1
 	 */
 	private const CONFIG_FETCH_TIMEOUT = 3;
 
@@ -127,7 +127,7 @@ class UsageTracker {
 	 * causes a miss on every subsequent call.
 	 *
 	 * @since 1.11.0
-	 * @since NEXT_VERSION Fetches the live limit from the Worker on a cache miss
+	 * @since 1.13.1 Fetches the live limit from the Worker on a cache miss
 	 *                      instead of always falling through to a hardcoded value.
 	 * @param string $tier Tier slug.
 	 * @return int|null Monthly credit limit, or null for the unlimited pro_byok tier.
@@ -169,7 +169,7 @@ class UsageTracker {
 	 * limit would get cached under the wrong tier's transient key. Read-only:
 	 * unlike /rotate-secret, this never mutates the site's Worker-side record.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.1
 	 * @param string $tier Tier slug the result will be cached under; validated against
 	 *                     the Worker's own view of the tier before the limit is trusted.
 	 * @return int|null Live limit from the Worker, or null on any failure (including a

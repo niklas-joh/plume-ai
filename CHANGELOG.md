@@ -1,3 +1,19 @@
+## [1.13.1](https://github.com/niklas-joh/plume-ai/compare/v1.13.0...v1.13.1) (2026-07-17)
+
+### Bug Fixes
+
+* **admin:** rename njDevTools global to plumeDevTools per wporg review ([#951](https://github.com/niklas-joh/plume-ai/issues/951)) ([511b439](https://github.com/niklas-joh/plume-ai/commit/511b439caaadcbb219c36438000f9cd1f507c8a5))
+* **chat:** default to no hyperlinks unless requested (closes [#919](https://github.com/niklas-joh/plume-ai/issues/919)) ([#935](https://github.com/niklas-joh/plume-ai/issues/935)) ([20e095e](https://github.com/niklas-joh/plume-ai/commit/20e095e1f76b19460346145b1f37129225175c45)), closes [#917](https://github.com/niklas-joh/plume-ai/issues/917)
+* **chat:** reconcile Gemini model list with Worker's allow-list (closes [#906](https://github.com/niklas-joh/plume-ai/issues/906)) ([#934](https://github.com/niklas-joh/plume-ai/issues/934)) ([5f1adbe](https://github.com/niklas-joh/plume-ai/commit/5f1adbe5e5a1a45d604571fb42c09ba547097526)), closes [#867](https://github.com/niklas-joh/plume-ai/issues/867) [#936](https://github.com/niklas-joh/plume-ai/issues/936) [#936](https://github.com/niklas-joh/plume-ai/issues/936) [#917](https://github.com/niklas-joh/plume-ai/issues/917)
+* **credits:** bill every successful agentic-loop call on real usage (closes [#927](https://github.com/niklas-joh/plume-ai/issues/927), closes [#905](https://github.com/niklas-joh/plume-ai/issues/905)) ([#943](https://github.com/niklas-joh/plume-ai/issues/943)) ([dbc04c1](https://github.com/niklas-joh/plume-ai/commit/dbc04c142853e4ed31b642c93e64ec19405a4dc2))
+* **credits:** source credit limits from the Worker instead of hardcoding in PHP ([#931](https://github.com/niklas-joh/plume-ai/issues/931)) ([3e9ff62](https://github.com/niklas-joh/plume-ai/commit/3e9ff628eedb59c967f67fe9050805d7f3e74994)), closes [#869](https://github.com/niklas-joh/plume-ai/issues/869) [#932](https://github.com/niklas-joh/plume-ai/issues/932) [#917](https://github.com/niklas-joh/plume-ai/issues/917)
+* **hooks:** skip pre-push PHPCS/PHPStan gate when dev deps aren't installed ([#952](https://github.com/niklas-joh/plume-ai/issues/952)) ([4738bc8](https://github.com/niklas-joh/plume-ai/commit/4738bc844c02a89fcf51f7f71c7fab3c36faaa63))
+* **rest:** resolve wporg review findings — conversation ownership and image-upload capability ([#949](https://github.com/niklas-joh/plume-ai/issues/949)) ([137eff1](https://github.com/niklas-joh/plume-ai/commit/137eff16caf5b821fb5337526f6ebf4f7904c11b))
+
+### Documentation
+
+* **claude:** rewrite CLAUDE.md for plume-ai, not blog.njohansson.eu ([#947](https://github.com/niklas-joh/plume-ai/issues/947)) ([45aa9cc](https://github.com/niklas-joh/plume-ai/commit/45aa9ccfd707746ce1b91a182ac67ad2f743403a))
+
 ## [1.13.0](https://github.com/niklas-joh/plume-ai/compare/v1.12.0...v1.13.0) (2026-07-10)
 
 ### New Features

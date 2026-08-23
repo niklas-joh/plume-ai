@@ -401,6 +401,31 @@ class PlansRestControllerTest extends TestCase {
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 
+	public function test_check_execute_permission_refuses_a_publish_override_on_an_update_plan(): void {
+		$this->stub_post_types();
+		Functions\when( 'get_post' )->alias(
+			static fn( int $id ): object => (object) [ 'ID' => $id, 'post_type' => 'post' ]
+		);
+		Functions\when( 'get_transient' )->justReturn( [
+			'plan_type'   => 'update',
+			'post_id'     => 55,
+			'post_type'   => 'post',
+			'post_status' => '',
+		] );
+		// May edit the target post, but may not make it public.
+		$this->grant_capabilities( [ 'edit_posts', 'edit_post' ] );
+
+		$request = $this->make_request( 'abc12345' );
+		$request->set_param( 'status', 'publish' );
+
+		$controller = new PlansRestController( $this->post_writer );
+		$result     = $controller->check_execute_permission( $request );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'rest_cannot_publish', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+	}
+
 	public function test_check_execute_permission_defers_to_the_handler_when_the_plan_is_missing(): void {
 		$this->stub_post_types();
 		$this->grant_capabilities( [ 'edit_posts' ] );

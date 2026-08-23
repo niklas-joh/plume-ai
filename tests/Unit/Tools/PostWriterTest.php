@@ -25,9 +25,14 @@ class PostWriterTest extends TestCase {
 		Functions\when( 'get_post' )->alias(
 			static fn( int $id ): object => (object) [ 'ID' => $id, 'post_type' => 'post' ]
 		);
-		// Mirrors core: keys prefixed with an underscore are protected.
+		// Mirrors core: keys prefixed with an underscore are protected. The second
+		// argument is a meta *object* type ('post', 'term', ...), never a post-type
+		// slug — asserted here so a regression on that argument fails loudly.
 		Functions\when( 'is_protected_meta' )->alias(
-			static fn( string $key ): bool => str_starts_with( $key, '_' )
+			static function ( string $key, string $meta_type = '' ): bool {
+				self::assertSame( 'post', $meta_type, 'is_protected_meta() must receive a meta object type.' );
+				return str_starts_with( $key, '_' );
+			}
 		);
 	}
 

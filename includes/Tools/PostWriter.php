@@ -266,7 +266,9 @@ class PostWriter {
 
 		$permitted = [];
 		foreach ( $meta as $key => $value ) {
-			if ( \is_protected_meta( $key, $post_type ) && ! \in_array( $key, $allowed, true ) ) {
+			// is_protected_meta() expects a meta object type ('post', 'term', ...), not a
+			// post-type slug; every writable type here is a post object, so pass 'post'.
+			if ( \is_protected_meta( $key, 'post' ) && ! \in_array( $key, $allowed, true ) ) {
 				continue;
 			}
 			$permitted[ $key ] = $value;

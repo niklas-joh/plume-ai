@@ -100,7 +100,7 @@ class TierManager {
 			// No-op when no secret is registered: is_site_tier_verified() returns true
 			// for unregistered installs, so the tier resolves without a signature.
 			// On a registered staging site that already has a secret, calling
-			// set_site_tier() directly (e.g. via the dev-tools REST endpoint) will
+			// set_site_tier() directly, bypassing the Worker handshake, will
 			// store an unsigned paid tier — needs_tier_verification_resync() will
 			// return true and TierSyncBackfillNotice will appear. Re-register via the
 			// settings page to obtain a properly signed tier from the Worker.

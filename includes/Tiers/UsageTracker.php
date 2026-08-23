@@ -62,9 +62,11 @@ class UsageTracker {
 	/**
 	 * Returns the wp_usermeta key for the current calendar month's token counter.
 	 *
-	 * Centralises the key format so all consumers (get_usage, log_usage, dev-tools
-	 * REST endpoints) derive it from a single place. If the format ever changes,
-	 * only this method needs updating.
+	 * Centralises the key format so all consumers derive it from a single place —
+	 * get_usage() and log_usage() here, plus the separate private developer-tools
+	 * plugin, which writes this counter directly. Public for that reason: if the
+	 * format ever changes, only this method needs updating, but external callers
+	 * must resolve the key through it rather than rebuilding the string.
 	 *
 	 * @since 1.11.0
 	 * @return string Meta key in the form plume_credits_YYYY_MM.

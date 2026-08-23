@@ -34,6 +34,19 @@ class ToolExecutorTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
+		Functions\when( 'get_post_type_object' )->alias(
+			static fn( string $post_type ): ?object => in_array( $post_type, [ 'post', 'page' ], true )
+				? (object) [
+					'cap' => (object) [
+						'create_posts'  => 'post' === $post_type ? 'edit_posts' : 'edit_pages',
+						'publish_posts' => 'post' === $post_type ? 'publish_posts' : 'publish_pages',
+					],
+				]
+				: null
+		);
+		Functions\when( 'get_post' )->alias(
+			static fn( int $id ): object => (object) [ 'ID' => $id, 'post_type' => 'post' ]
+		);
 	}
 
 	protected function tearDown(): void {
@@ -275,6 +288,7 @@ class ToolExecutorTest extends TestCase {
 				[
 					'plan_type'   => 'update',
 					'post_id'     => 5,
+					'post_type'   => 'post',
 					'changes'     => 'Made the intro punchier',
 					'post_status' => '',
 					'new_title'   => 'Improved Title',
@@ -384,5 +398,90 @@ class ToolExecutorTest extends TestCase {
 
 		$this->assertArrayNotHasKey( 'analysis', $result );
 		$this->assertSame( 'pending_approval', $result['status'] );
+	}
+
+	// -------------------------------------------------------------------------
+	// Capability-aware planning
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Stub user_can() so only the listed capabilities are granted.
+	 *
+	 * @param string[] $capabilities Capabilities the test user holds.
+	 */
+	private function grant_capabilities( array $capabilities ): void {
+		Functions\when( 'user_can' )->alias(
+			static fn( int $user_id, string $capability ): bool => in_array( $capability, $capabilities, true )
+		);
+	}
+
+	public function test_plan_post_downgrades_publish_to_pending_without_publish_capability(): void {
+		// A Contributor: edit_posts but no publish_posts. Proposing 'publish' would only
+		// be refused on confirmation, so the plan is staged as 'pending' instead.
+		$this->grant_capabilities( [ 'edit_posts' ] );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_generate_uuid4' )->justReturn( 'abcd1234-5678-90ab-cdef-000000000000' );
+
+		$stored = null;
+		Functions\when( 'set_transient' )->alias(
+			static function ( string $key, $value ) use ( &$stored ): bool {
+				$stored = $value;
+				return true;
+			}
+		);
+
+		$this->make_executor()->execute(
+			'plan_post',
+			[ 'title' => 'Widgets', 'content' => 'Full body.', 'status' => 'publish' ],
+			1
+		);
+
+		$this->assertSame( 'pending', $stored['post_status'] );
+	}
+
+	public function test_plan_post_keeps_publish_with_publish_capability(): void {
+		$this->grant_capabilities( [ 'edit_posts', 'publish_posts' ] );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_generate_uuid4' )->justReturn( 'abcd1234-5678-90ab-cdef-000000000000' );
+
+		$stored = null;
+		Functions\when( 'set_transient' )->alias(
+			static function ( string $key, $value ) use ( &$stored ): bool {
+				$stored = $value;
+				return true;
+			}
+		);
+
+		$this->make_executor()->execute(
+			'plan_post',
+			[ 'title' => 'Widgets', 'content' => 'Full body.', 'status' => 'publish' ],
+			1
+		);
+
+		$this->assertSame( 'publish', $stored['post_status'] );
+	}
+
+	public function test_plan_post_refuses_a_page_without_the_page_capability(): void {
+		$this->grant_capabilities( [ 'edit_posts', 'publish_posts' ] );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => $v );
+		Functions\expect( 'set_transient' )->never();
+
+		$result = $this->make_executor()->execute(
+			'plan_post',
+			[ 'title' => 'About', 'content' => 'Full body.', 'post_type' => 'page' ],
+			1
+		);
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertStringContainsString( 'permissions', strtolower( $result['error'] ) );
 	}
 }

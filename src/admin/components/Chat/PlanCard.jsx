@@ -37,6 +37,11 @@ const STATUS_LABELS = {
 export default function PlanCard( { plan, onDismiss } ) {
 	const isUpdate = plan.plan_type === 'update';
 
+	// A Contributor holds edit_posts but not publish_posts, so the server would
+	// reject a publish they were allowed to pick here. Offer only what they can do.
+	const canPublish =
+		window.plumeData?.publishCaps?.[ plan.post_type ?? 'post' ] !== false;
+
 	const [ isEditing, setIsEditing ] = useState( false );
 	const [ editTitle, setEditTitle ] = useState(
 		isUpdate ? plan.new_title ?? '' : plan.title ?? ''
@@ -186,9 +191,11 @@ export default function PlanCard( { plan, onDismiss } ) {
 								<option value="draft">
 									{ __( 'Draft', 'plume' ) }
 								</option>
-								<option value="publish">
-									{ __( 'Published', 'plume' ) }
-								</option>
+								{ canPublish && (
+									<option value="publish">
+										{ __( 'Published', 'plume' ) }
+									</option>
+								) }
 								<option value="pending">
 									{ __( 'Pending review', 'plume' ) }
 								</option>

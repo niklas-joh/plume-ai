@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
 use Plume\Tiers\TierManager;
+use Plume\Tools\ToolRegistry;
 
 /**
  * Renders the Plume chat admin page.
@@ -84,6 +85,7 @@ class ChatPage {
 				'siteTitle'         => get_bloginfo( 'name' ),
 				'defaultModelLabel' => esc_html( $default_model_label ),
 				'defaultProvider'   => $default_slug,
+				'publishCaps'       => self::publish_caps(),
 			]
 		);
 
@@ -93,5 +95,29 @@ class ChatPage {
 			[],
 			$asset['version']
 		);
+	}
+
+	/**
+	 * Map each writable post type to whether the current user may publish it.
+	 *
+	 * The plan review card uses this to offer only the statuses the user can act on:
+	 * a Contributor holds edit_posts but not publish_posts, so offering them
+	 * "Published" would only produce a 403 when they confirmed the plan.
+	 *
+	 * @since NEXT_VERSION
+	 * @return array<string, bool> Post type slug => whether publishing is permitted.
+	 */
+	private static function publish_caps(): array {
+		$caps = [];
+
+		foreach ( ( new ToolRegistry() )->allowed_post_types() as $post_type ) {
+			$post_type_object = get_post_type_object( (string) $post_type );
+			if ( null === $post_type_object ) {
+				continue;
+			}
+			$caps[ (string) $post_type ] = current_user_can( $post_type_object->cap->publish_posts );
+		}
+
+		return $caps;
 	}
 }

@@ -58,6 +58,10 @@ class TierSyncBackfillNoticeTest extends TestCase {
 		return [
 			'plume'           => [ 'plume' ],
 			'plume-seo'       => [ 'plume-seo' ],
+			// plume-dev-tools is no longer registered by this plugin — the page moved to
+			// the separate private developer-tools plugin. Kept here because matching is
+			// by 'plume' prefix, so this asserts the notice stays suppressed on that
+			// external page too.
 			'plume-dev-tools' => [ 'plume-dev-tools' ],
 		];
 	}

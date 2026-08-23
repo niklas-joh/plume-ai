@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
 use Plume\Tiers\TierManager;
+use Plume\Tools\PostTypeCaps;
 use Plume\Tools\ToolRegistry;
 
 /**
@@ -111,11 +112,11 @@ class ChatPage {
 		$caps = [];
 
 		foreach ( ( new ToolRegistry() )->allowed_post_types() as $post_type ) {
-			$post_type_object = get_post_type_object( (string) $post_type );
-			if ( null === $post_type_object ) {
+			$type_caps = PostTypeCaps::resolve( (string) $post_type );
+			if ( null === $type_caps ) {
 				continue;
 			}
-			$caps[ (string) $post_type ] = current_user_can( $post_type_object->cap->publish_posts );
+			$caps[ (string) $post_type ] = current_user_can( $type_caps['publish'] );
 		}
 
 		return $caps;

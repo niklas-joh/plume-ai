@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use Plume\Core\RestApi;
+use Plume\Tools\PostTypeCaps;
 use Plume\Tools\PostWriter;
 use Plume\Tools\ToolExecutor;
 
@@ -236,6 +237,7 @@ class PlansRestController {
 		$status_override = $request->get_param( 'status' );
 		$status          = null !== $status_override ? $status_override : ( $plan['post_status'] ?? 'draft' );
 
+		$caps = null;
 		if ( 'update' === ( $plan['plan_type'] ?? 'create' ) ) {
 			$post_id = \absint( $plan['post_id'] ?? 0 );
 			$post    = 0 !== $post_id ? \get_post( $post_id ) : null;
@@ -249,20 +251,21 @@ class PlansRestController {
 
 			$post_type = $post->post_type;
 		} else {
-			$post_type        = \sanitize_key( $plan['post_type'] ?? 'post' );
-			$post_type_object = \get_post_type_object( $post_type );
-			if ( null === $post_type_object ) {
+			$post_type = \sanitize_key( $plan['post_type'] ?? 'post' );
+			$caps      = PostTypeCaps::resolve( $post_type );
+			if ( null === $caps ) {
 				return $this->forbidden( 'rest_forbidden', \__( 'Sorry, you are not allowed to create content of this type.', 'plume' ) );
 			}
 
-			if ( ! \current_user_can( $post_type_object->cap->create_posts ) ) {
+			if ( ! \current_user_can( $caps['create'] ) ) {
 				return $this->forbidden( 'rest_forbidden', \__( 'Sorry, you are not allowed to create content of this type.', 'plume' ) );
 			}
 		}
 
 		if ( 'publish' === $status ) {
-			$post_type_object = \get_post_type_object( $post_type );
-			if ( null === $post_type_object || ! \current_user_can( $post_type_object->cap->publish_posts ) ) {
+			// Reuse the create branch's lookup; only the update branch still needs to resolve.
+			$caps ??= PostTypeCaps::resolve( $post_type );
+			if ( null === $caps || ! \current_user_can( $caps['publish'] ) ) {
 				return $this->forbidden( 'rest_cannot_publish', \__( 'Sorry, you are not allowed to publish this content.', 'plume' ) );
 			}
 		}

@@ -284,12 +284,12 @@ class ToolExecutor {
 			return [ 'error' => 'Post type not permitted.' ];
 		}
 
-		$post_type_object = \get_post_type_object( $post_type );
-		if ( null === $post_type_object ) {
+		$caps = PostTypeCaps::resolve( $post_type );
+		if ( null === $caps ) {
 			return [ 'error' => 'Post type not permitted.' ];
 		}
 
-		if ( ! \user_can( $user_id, $post_type_object->cap->create_posts ) ) {
+		if ( ! \user_can( $user_id, $caps['create'] ) ) {
 			return [ 'error' => 'Insufficient permissions.' ];
 		}
 
@@ -447,8 +447,8 @@ class ToolExecutor {
 			return $status;
 		}
 
-		$post_type_object = \get_post_type_object( $post_type );
-		if ( null !== $post_type_object && \user_can( $user_id, $post_type_object->cap->publish_posts ) ) {
+		$caps = PostTypeCaps::resolve( $post_type );
+		if ( null !== $caps && \user_can( $user_id, $caps['publish'] ) ) {
 			return 'publish';
 		}
 

@@ -59,14 +59,14 @@ class PostWriter {
 			return [ 'error' => 'Post type not permitted.' ];
 		}
 
-		$post_type_object = \get_post_type_object( $post_type );
-		if ( null === $post_type_object ) {
+		$caps = PostTypeCaps::resolve( $post_type );
+		if ( null === $caps ) {
 			return [ 'error' => 'Post type not permitted.' ];
 		}
 
 		// 'edit_posts' is the capability of the 'post' post type alone — a user who may
 		// write posts is not thereby allowed to create pages or any custom post type.
-		if ( ! \user_can( $user_id, $post_type_object->cap->create_posts ) ) {
+		if ( ! \user_can( $user_id, $caps['create'] ) ) {
 			return [ 'error' => 'Insufficient permissions.' ];
 		}
 
@@ -82,7 +82,7 @@ class PostWriter {
 
 		// Checked against the resolved status, not the raw argument, so an unknown
 		// status that falls back to 'draft' is never treated as a publish attempt.
-		if ( 'publish' === $status && ! \user_can( $user_id, $post_type_object->cap->publish_posts ) ) {
+		if ( 'publish' === $status && ! \user_can( $user_id, $caps['publish'] ) ) {
 			return [ 'error' => 'You are not allowed to publish this content.' ];
 		}
 
@@ -147,8 +147,8 @@ class PostWriter {
 			return [ 'error' => 'Insufficient permissions.' ];
 		}
 
-		$post_type_object = \get_post_type_object( $post->post_type );
-		if ( null === $post_type_object ) {
+		$caps = PostTypeCaps::resolve( $post->post_type );
+		if ( null === $caps ) {
 			return [ 'error' => 'Post type not permitted.' ];
 		}
 
@@ -169,7 +169,7 @@ class PostWriter {
 
 			// 'edit_post' authorises editing the post, not making it publicly visible.
 			if ( \in_array( $status, [ 'publish', 'private' ], true )
-				&& ! \user_can( $user_id, $post_type_object->cap->publish_posts ) ) {
+				&& ! \user_can( $user_id, $caps['publish'] ) ) {
 				return [ 'error' => 'You are not allowed to publish this content.' ];
 			}
 

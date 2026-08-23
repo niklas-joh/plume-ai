@@ -102,9 +102,7 @@ class SeoModule {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_generate' ],
-				'permission_callback' => function () {
-					return \current_user_can( 'edit_posts' );
-				},
+				'permission_callback' => [ self::class, 'check_post_permission' ],
 				'args'                => [
 					'post_id' => [
 						'required'          => true,
@@ -121,9 +119,7 @@ class SeoModule {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ self::class, 'handle_apply' ],
-				'permission_callback' => function () {
-					return \current_user_can( 'edit_posts' );
-				},
+				'permission_callback' => [ self::class, 'check_post_permission' ],
 				'args'                => [
 					'post_id'        => [
 						'required'          => true,
@@ -156,6 +152,37 @@ class SeoModule {
 	}
 
 	/**
+	 * Authorise an SEO request against the specific post it targets.
+	 *
+	 * Both routes read and write post data, so a generic `edit_posts` check is not
+	 * enough — it would let any contributor act on another author's post. The
+	 * capability is resolved against the requested post ID instead. Requests for a
+	 * post that does not exist are allowed through so the handlers can return their
+	 * existing 404 rather than a misleading 403.
+	 *
+	 * @since NEXT_VERSION
+	 * @param \WP_REST_Request $request Incoming REST request carrying post_id.
+	 * @return bool|\WP_Error True when permitted; WP_Error with 403 status otherwise.
+	 */
+	public static function check_post_permission( \WP_REST_Request $request ): bool|\WP_Error {
+		$post_id = \absint( $request->get_param( 'post_id' ) );
+
+		if ( 0 !== $post_id && null === \get_post( $post_id ) ) {
+			return true;
+		}
+
+		if ( ! \current_user_can( 'edit_post', $post_id ) ) {
+			return new \WP_Error(
+				'rest_forbidden',
+				\__( 'Sorry, you are not allowed to edit this content.', 'plume' ),
+				[ 'status' => 403 ]
+			);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Generate SEO metadata for a post using the default AI provider.
 	 *
 	 * Returns an associative array with keys meta_title, og_description, excerpt,
@@ -163,9 +190,9 @@ class SeoModule {
 	 *
 	 * **Authorization:** This method performs a post-level capability check.
 	 * It verifies that $user_id holds 'edit_post' for $post_id and returns a
-	 * 'forbidden' WP_Error if not. The REST path enforces 'edit_posts' via the
-	 * route permission_callback; any future caller should supply its own guard
-	 * at minimum.
+	 * 'forbidden' WP_Error if not. The REST path enforces the same post-level
+	 * capability up front via check_post_permission(); any future caller should
+	 * supply its own guard at minimum.
 	 *
 	 * **Side effects:** On success this method fires a live AI provider request.
 	 * Credit usage is logged by the proxy layer for the pro_managed tier; BYOK

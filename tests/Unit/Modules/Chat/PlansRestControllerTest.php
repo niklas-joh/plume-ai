@@ -274,6 +274,180 @@ class PlansRestControllerTest extends TestCase {
 		$this->assertSame( 204, $response->get_status() );
 	}
 
+	// ── check_execute_permission ──────────────────────────────────────────────
+
+	/**
+	 * Stub current_user_can() so only the listed capabilities are granted.
+	 *
+	 * @param string[] $capabilities Capabilities the test user holds.
+	 */
+	private function grant_capabilities( array $capabilities ): void {
+		Functions\when( 'current_user_can' )->alias(
+			static fn( string $capability ): bool => in_array( $capability, $capabilities, true )
+		);
+	}
+
+	private function stub_post_types(): void {
+		Functions\when( 'get_post_type_object' )->alias(
+			static fn( string $post_type ): ?object => in_array( $post_type, [ 'post', 'page' ], true )
+				? (object) [
+					'cap' => (object) [
+						'create_posts'  => 'post' === $post_type ? 'edit_posts' : 'edit_pages',
+						'publish_posts' => 'post' === $post_type ? 'publish_posts' : 'publish_pages',
+					],
+				]
+				: null
+		);
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( (int) $v ) );
+		Functions\when( '__' )->alias( static fn( string $text ) => $text );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+	}
+
+	public function test_check_execute_permission_allows_an_editor(): void {
+		$this->stub_post_types();
+		$this->grant_capabilities( [ 'edit_posts', 'publish_posts' ] );
+		Functions\when( 'get_transient' )->justReturn( [
+			'plan_type'   => 'create',
+			'post_type'   => 'post',
+			'post_status' => 'publish',
+		] );
+
+		$controller = new PlansRestController( $this->post_writer );
+
+		$this->assertTrue( $controller->check_execute_permission( $this->make_request( 'abc12345' ) ) );
+	}
+
+	public function test_check_execute_permission_refuses_publish_without_publish_capability(): void {
+		$this->stub_post_types();
+		// A Contributor holds edit_posts but not publish_posts.
+		$this->grant_capabilities( [ 'edit_posts' ] );
+		Functions\when( 'get_transient' )->justReturn( [
+			'plan_type'   => 'create',
+			'post_type'   => 'post',
+			'post_status' => 'publish',
+		] );
+
+		$controller = new PlansRestController( $this->post_writer );
+		$result     = $controller->check_execute_permission( $this->make_request( 'abc12345' ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'rest_cannot_publish', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+	}
+
+	public function test_check_execute_permission_refuses_a_publish_override_on_a_draft_plan(): void {
+		$this->stub_post_types();
+		$this->grant_capabilities( [ 'edit_posts' ] );
+		Functions\when( 'get_transient' )->justReturn( [
+			'plan_type'   => 'create',
+			'post_type'   => 'post',
+			'post_status' => 'draft',
+		] );
+
+		$request = $this->make_request( 'abc12345' );
+		$request->set_param( 'status', 'publish' );
+
+		$controller = new PlansRestController( $this->post_writer );
+		$result     = $controller->check_execute_permission( $request );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'rest_cannot_publish', $result->get_error_code() );
+	}
+
+	public function test_check_execute_permission_refuses_a_page_plan_without_page_capability(): void {
+		$this->stub_post_types();
+		// edit_posts is the 'post' capability — it must not unlock pages.
+		$this->grant_capabilities( [ 'edit_posts', 'publish_posts' ] );
+		Functions\when( 'get_transient' )->justReturn( [
+			'plan_type'   => 'create',
+			'post_type'   => 'page',
+			'post_status' => 'draft',
+		] );
+
+		$controller = new PlansRestController( $this->post_writer );
+		$result     = $controller->check_execute_permission( $this->make_request( 'abc12345' ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'rest_forbidden', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+	}
+
+	public function test_check_execute_permission_checks_the_target_post_on_update_plans(): void {
+		$this->stub_post_types();
+		Functions\when( 'get_post' )->alias(
+			static fn( int $id ): object => (object) [ 'ID' => $id, 'post_type' => 'post' ]
+		);
+		Functions\when( 'get_transient' )->justReturn( [
+			'plan_type'   => 'update',
+			'post_id'     => 55,
+			'post_type'   => 'post',
+			'post_status' => '',
+		] );
+
+		$checked = [];
+		Functions\when( 'current_user_can' )->alias(
+			static function ( string $capability, ...$args ) use ( &$checked ): bool {
+				$checked[] = [ $capability, $args[0] ?? null ];
+				return 'edit_post' !== $capability;
+			}
+		);
+
+		$controller = new PlansRestController( $this->post_writer );
+		$result     = $controller->check_execute_permission( $this->make_request( 'abc12345' ) );
+
+		$this->assertContains( [ 'edit_post', 55 ], $checked );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+	}
+
+	public function test_check_execute_permission_refuses_a_publish_override_on_an_update_plan(): void {
+		$this->stub_post_types();
+		Functions\when( 'get_post' )->alias(
+			static fn( int $id ): object => (object) [ 'ID' => $id, 'post_type' => 'post' ]
+		);
+		Functions\when( 'get_transient' )->justReturn( [
+			'plan_type'   => 'update',
+			'post_id'     => 55,
+			'post_type'   => 'post',
+			'post_status' => '',
+		] );
+		// May edit the target post, but may not make it public.
+		$this->grant_capabilities( [ 'edit_posts', 'edit_post' ] );
+
+		$request = $this->make_request( 'abc12345' );
+		$request->set_param( 'status', 'publish' );
+
+		$controller = new PlansRestController( $this->post_writer );
+		$result     = $controller->check_execute_permission( $request );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'rest_cannot_publish', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+	}
+
+	public function test_check_execute_permission_defers_to_the_handler_when_the_plan_is_missing(): void {
+		$this->stub_post_types();
+		$this->grant_capabilities( [ 'edit_posts' ] );
+		Functions\when( 'get_transient' )->justReturn( false );
+
+		$controller = new PlansRestController( $this->post_writer );
+
+		$this->assertTrue( $controller->check_execute_permission( $this->make_request( 'gone1234' ) ) );
+	}
+
+	public function test_check_execute_permission_refuses_without_edit_posts(): void {
+		$this->stub_post_types();
+		$this->grant_capabilities( [] );
+		Functions\expect( 'get_transient' )->never();
+
+		$controller = new PlansRestController( $this->post_writer );
+		$result     = $controller->check_execute_permission( $this->make_request( 'abc12345' ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+	}
+
 	// ── helper ────────────────────────────────────────────────────────────────
 
 	private function make_request( string $plan_id ): \WP_REST_Request {

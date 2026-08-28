@@ -42,7 +42,7 @@ class PostWriter {
 	 * Create a new post or page.
 	 *
 	 * @since 1.9.0
-	 * @since NEXT_VERSION Capabilities are resolved from the target post type
+	 * @since 1.13.2 Capabilities are resolved from the target post type
 	 *                     (create_posts/publish_posts) instead of a flat edit_posts
 	 *                     check, and protected meta keys are rejected by default.
 	 * @param array $args    Keyed: title (string), content (string), status (string), post_type (string), meta_fields (array).
@@ -121,7 +121,7 @@ class PostWriter {
 	 * Update an existing post or page.
 	 *
 	 * @since 1.9.0
-	 * @since NEXT_VERSION Status transitions to publish/private require the post type's
+	 * @since 1.13.2 Status transitions to publish/private require the post type's
 	 *                     publish_posts capability, trashing requires delete_post, and
 	 *                     protected meta keys are rejected by default.
 	 * @param array $args    Keyed: post_id (int), title (string?), content (string?), status (string?), meta_fields (array?).
@@ -245,7 +245,7 @@ class PostWriter {
 	 * plugin's private state) on the strength of `edit_post` alone. Protected keys are
 	 * therefore opt-in: add them to the `plume_allowed_protected_meta` filter.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.2
 	 * @param array<string, string> $meta      Sanitised meta key/value pairs.
 	 * @param string                $post_type Post type the meta will be written to.
 	 * @return array<string, string> Meta pairs the current write is allowed to persist.
@@ -258,7 +258,7 @@ class PostWriter {
 		 * prefixed with an underscore) are rejected by default. Return the keys your site
 		 * wants Plume to be able to set, for example WooCommerce's `_price`.
 		 *
-		 * @since NEXT_VERSION
+		 * @since 1.13.2
 		 * @param string[] $allowed   Protected meta keys Plume may write. Default empty.
 		 * @param string   $post_type Post type the meta will be written to.
 		 */

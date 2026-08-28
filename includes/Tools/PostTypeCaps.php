@@ -20,14 +20,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * repeated the same `get_post_type_object()` + null guard + `->cap->*` lookup.
  * Centralising it here keeps the null-handling and capability names in one spot.
  *
- * @since NEXT_VERSION
+ * @since 1.13.2
  */
 final class PostTypeCaps {
 
 	/**
 	 * Resolve the create/publish capability strings for a post type.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.2
 	 * @param string $post_type Post type slug.
 	 * @return array{create: string, publish: string}|null Capability strings, or null for an unregistered post type.
 	 */

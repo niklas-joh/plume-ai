@@ -166,13 +166,26 @@ class SiteUnreachableNotice {
 			return;
 		}
 
-		// The failure branch never echoes the Worker's raw text — get_permanent_failure()
-		// (populated by the retry attempt below) already carries the plugin's own canned
-		// message, and maybe_display() above will render it on this same page load.
+		// The failure branch never echoes the Worker's raw text. A *permanent*
+		// failure leaves a diagnostic on record that maybe_display() renders on
+		// this same page load, so the copy can point at it. A *transient* failure
+		// (timeout, Worker outage) clears that diagnostic via
+		// record_registration_outcome(), leaving nothing below to reference — so
+		// the copy must be self-contained in that case.
+		if ( null !== SiteRegistration::get_permanent_failure() ) {
+			?>
+			<div class="notice notice-error is-dismissible">
+				<p>
+				<?php \esc_html_e( 'Plume AI - Write and Design — Verification failed again. See the message below for details.', 'plume' ); ?>
+				</p>
+			</div>
+			<?php
+			return;
+		}
 		?>
 		<div class="notice notice-error is-dismissible">
 			<p>
-			<?php \esc_html_e( 'Plume AI - Write and Design — Verification failed again. See the message below for details.', 'plume' ); ?>
+			<?php \esc_html_e( 'Plume AI - Write and Design — Verification failed again. Please try again later.', 'plume' ); ?>
 			</p>
 		</div>
 		<?php

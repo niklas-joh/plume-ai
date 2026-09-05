@@ -71,10 +71,25 @@ class SiteUnreachableNotice {
 	 * Reuses the existing `.nj-backfill-form` class shared with
 	 * TierSyncBackfillNotice — no new styles needed.
 	 *
+	 * Gated on the exact conditions under which maybe_display() renders the
+	 * form, so the inline rule is never injected on admin pages where the
+	 * notice will not appear (wrong capability, non-Plume page, registered, or
+	 * no permanent failure on record). On Plume pages where TierSyncBackfillNotice
+	 * also registers this rule, the shared `common` handle de-duplicates it.
+	 *
 	 * @since NEXT_VERSION
 	 * @return void
 	 */
 	public static function enqueue_styles(): void {
+		if ( ! self::current_user_can_see_notice() ) {
+			return;
+		}
+		if ( SiteRegistration::is_registered() ) {
+			return;
+		}
+		if ( null === SiteRegistration::get_permanent_failure() ) {
+			return;
+		}
 		\wp_add_inline_style( 'common', '.nj-backfill-form { display: inline; }' );
 	}
 
@@ -121,7 +136,7 @@ class SiteUnreachableNotice {
 			<strong><?php \esc_html_e( 'Plume AI - Write and Design — This site could not be connected', 'plume' ); ?></strong>
 			</p>
 			<p><?php echo \esc_html( $failure['message'] ); ?></p>
-			<p>
+			<div class="nj-backfill-form-wrap">
 				<form method="post" action="<?php echo \esc_url( $action_url ); ?>" class="nj-backfill-form">
 					<?php \wp_nonce_field( self::NONCE ); ?>
 					<input type="hidden" name="action" value="<?php echo \esc_attr( self::ACTION ); ?>" />
@@ -129,7 +144,7 @@ class SiteUnreachableNotice {
 					<?php \esc_html_e( 'Retry verification now', 'plume' ); ?>
 					</button>
 				</form>
-			</p>
+			</div>
 		</div>
 		<?php
 	}

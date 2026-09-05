@@ -106,3 +106,23 @@ export interface ModelConfig {
 	tier_models?: Record< string, Record< string, string[] > >;
 	model_token_weight?: Record< string, number >;
 }
+
+/**
+ * Classification of why the /register activation-verify callback to the
+ * site's `/wp-json/plume/v1/activation-verify` endpoint failed.
+ *
+ * `timeout` and `http_error` are treated as **transient** by the plugin
+ * (SiteRegistration::PERMANENT_VERIFICATION_REASONS excludes them) — the
+ * plugin's existing 5-minute backoff-and-retry behaviour is unchanged for
+ * these. The other four reasons are treated as **permanent**: retrying will
+ * never succeed (local-only install, invalid TLS certificate, a login wall,
+ * or a firewall/VPN/IP-allowlist block), so the plugin stops silently
+ * retrying and surfaces a conclusive message to the admin instead.
+ */
+export type VerificationFailureReason =
+	| 'timeout'
+	| 'tls_error'
+	| 'network_error'
+	| 'http_unauthorized'
+	| 'http_forbidden'
+	| 'http_error';

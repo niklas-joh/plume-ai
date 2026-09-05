@@ -1,6 +1,6 @@
 // src/registration.ts
 
-import { Env, SiteRecord } from './types';
+import { Env, SiteRecord, VerificationFailureReason } from './types';
 import { generateToken } from './auth';
 
 export const REGISTRATION_RATE_LIMIT = 5; // max new registrations per IP per hour
@@ -109,17 +109,18 @@ export async function handleRegistration(
 		'/wp-json/plume/v1/activation-verify' +
 		'?challenge=' +
 		encodeURIComponent( challengeToken );
-	let siteVerified = false;
-	try {
-		const cbRes = await fetch( verifyUrl, {
-			signal: AbortSignal.timeout( 10_000 ),
-		} );
-		siteVerified = cbRes.ok;
-	} catch {
-		siteVerified = false;
-	}
-	if ( ! siteVerified ) {
-		return jsonResponse( { error: 'Site verification failed' }, 403 );
+	const failure = await verifySite( verifyUrl );
+	if ( failure ) {
+		return jsonResponse(
+			{
+				error: 'Site verification failed',
+				reason: failure.reason,
+				...( failure.status !== undefined && {
+					status: failure.status,
+				} ),
+			},
+			403
+		);
 	}
 	// Consume the challenge only after a successful callback so a transient
 	// network failure does not permanently invalidate the token.
@@ -176,6 +177,74 @@ export async function handleRegistration(
 		{ token, tier: 'free', tier_sync_secret: tierSyncSecret },
 		201
 	);
+}
+
+/**
+ * Result of a failed verifySite() call.
+ */
+interface VerificationFailure {
+	reason: VerificationFailureReason;
+	status?: number;
+}
+
+/**
+ * Call back to the site's `/wp-json/plume/v1/activation-verify` endpoint and
+ * classify the outcome.
+ *
+ * @param {string} verifyUrl Fully-formed callback URL, including the challenge query arg.
+ * @return {Promise<VerificationFailure|null>} `null` on a 2xx response; a classified
+ *         failure otherwise.
+ */
+async function verifySite(
+	verifyUrl: string
+): Promise< VerificationFailure | null > {
+	try {
+		const cbRes = await fetch( verifyUrl, {
+			signal: AbortSignal.timeout( 10_000 ),
+		} );
+		if ( cbRes.ok ) {
+			return null;
+		}
+		if ( cbRes.status === 401 ) {
+			return { reason: 'http_unauthorized', status: cbRes.status };
+		}
+		if ( cbRes.status === 403 ) {
+			return { reason: 'http_forbidden', status: cbRes.status };
+		}
+		return { reason: 'http_error', status: cbRes.status };
+	} catch ( err ) {
+		return classifyFetchError( err );
+	}
+}
+
+/**
+ * Classify a thrown fetch() error into a VerificationFailure.
+ *
+ * Deliberately conservative default: an edge fetch that throws for an
+ * unrecognized reason is far more likely to indicate a structurally
+ * unreachable site (e.g. no public DNS, connection refused) than a
+ * transient blip, so anything not matched below is treated as
+ * `network_error` — one of the plugin's PERMANENT_VERIFICATION_REASONS.
+ *
+ * @param {unknown} err The error thrown by fetch().
+ * @return {VerificationFailure} Classified failure (no `status` — the request never got a response).
+ */
+function classifyFetchError( err: unknown ): VerificationFailure {
+	if (
+		err instanceof DOMException &&
+		( err.name === 'TimeoutError' || err.name === 'AbortError' )
+	) {
+		return { reason: 'timeout' };
+	}
+	const message = err instanceof Error ? err.message.toLowerCase() : '';
+	if (
+		message.includes( 'certificate' ) ||
+		message.includes( 'tls' ) ||
+		message.includes( 'ssl' )
+	) {
+		return { reason: 'tls_error' };
+	}
+	return { reason: 'network_error' };
 }
 
 function getCurrentHour(): string {

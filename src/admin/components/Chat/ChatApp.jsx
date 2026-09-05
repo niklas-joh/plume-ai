@@ -16,6 +16,10 @@ const NEW_CONVERSATION_TITLE = __( 'New conversation', 'plume' );
 // Site registration completing async (scheduled on the failed request's `shutdown`) usually
 // finishes within a couple of seconds — one silent retry avoids surfacing a raw error for it.
 // Keep in sync with the WP_Error codes raised in includes/Proxy/ProxyClient.php.
+// 'site_unreachable' is deliberately NOT included: it means SiteRegistration has a permanent
+// verification failure on record (e.g. localhost-only install, invalid TLS, a login wall, or a
+// firewall/VPN/IP-allowlist block) that will never resolve by retrying, so it must surface
+// immediately as an error bubble instead of being silently retried like a transient blip.
 const REGISTRATION_RETRY_CODES = new Set( [ 'not_registered', 'auth_failed' ] );
 const REGISTRATION_RETRY_DELAY_MS = 3000;
 

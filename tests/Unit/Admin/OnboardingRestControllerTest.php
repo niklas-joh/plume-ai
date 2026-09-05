@@ -239,6 +239,9 @@ class OnboardingRestControllerTest extends TestCase {
 		// No backoff in effect, so maybe_register() proceeds to register().
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
+		// record_registration_outcome() clears any stale permanent-failure diagnostic
+		// on every non-permanent outcome (success or transient failure alike).
+		Functions\when( 'delete_option' )->justReturn( true );
 		Functions\when( 'wp_remote_get' )->justReturn(
 			new \WP_Error( 'http_request_failed', 'Connection refused' )
 		);

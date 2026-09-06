@@ -51,9 +51,13 @@ class ProxyClient {
 			if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 				add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 			}
-			// This code is one of REGISTRATION_RETRY_CODES in src/admin/components/Chat/ChatApp.jsx,
-			// which silently retries the request instead of surfacing this to the user immediately.
-			return new WP_Error( 'not_registered', __( 'Connecting this site to Plume AI - Write and Design. Please try sending your message again in a moment.', 'plume' ) );
+			// Routed through SiteRegistration so a permanent verification failure on
+			// record (site_unreachable) takes precedence over the generic "still
+			// connecting" not_registered message — the two call sites can't drift.
+			// This code (or 'not_registered') is one of REGISTRATION_RETRY_CODES in
+			// src/admin/components/Chat/ChatApp.jsx; site_unreachable is deliberately
+			// NOT in that set, so it surfaces immediately instead of being retried.
+			return SiteRegistration::get_unavailable_error();
 		}
 
 		$user_id = get_current_user_id();

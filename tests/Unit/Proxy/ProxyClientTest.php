@@ -26,9 +26,12 @@ class ProxyClientTest extends TestCase {
 	}
 
 	public function test_chat_returns_error_when_not_registered(): void {
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( '' );
+		// SiteRegistration::get_unavailable_error() makes a second, differently-keyed
+		// get_option() call (OPTION_PERMANENT_FAILURE) — Functions\when()->alias() tolerates
+		// that extra call, unlike a strict Functions\expect()->with() expectation.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => SiteRegistration::OPTION_TOKEN === $key ? '' : $default
+		);
 		Functions\when( 'has_action' )->justReturn( false );
 		Functions\when( 'add_action' )->justReturn( null );
 		Functions\when( '__' )->alias( fn( $s ) => $s );
@@ -40,9 +43,9 @@ class ProxyClientTest extends TestCase {
 	}
 
 	public function test_chat_schedules_shutdown_hook_when_not_registered_and_no_existing_action(): void {
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( '' );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => SiteRegistration::OPTION_TOKEN === $key ? '' : $default
+		);
 		Functions\expect( 'has_action' )
 			->once()
 			->with( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] )
@@ -59,9 +62,9 @@ class ProxyClientTest extends TestCase {
 	}
 
 	public function test_chat_does_not_schedule_duplicate_shutdown_hook_when_already_registered(): void {
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( '' );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => SiteRegistration::OPTION_TOKEN === $key ? '' : $default
+		);
 		Functions\expect( 'has_action' )
 			->once()
 			->with( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] )

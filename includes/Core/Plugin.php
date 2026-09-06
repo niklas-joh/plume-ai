@@ -112,6 +112,7 @@ class Plugin {
 		\Plume\Admin\UsageWidget::register_hooks();
 		\Plume\Admin\ActivationNotice::register();
 		\Plume\Admin\TierSyncBackfillNotice::register();
+		\Plume\Admin\SiteUnreachableNotice::register();
 		if ( defined( 'PLUME_DEV_KEY' ) ) {
 			\Plume\Admin\DevToolsPage::register_hooks();
 			add_action( 'plume_register_rest_routes', [ \Plume\Admin\DevToolsRestController::class, 'register_routes' ] );

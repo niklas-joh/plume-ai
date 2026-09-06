@@ -274,10 +274,6 @@ class ToolExecutor {
 	 * @return array
 	 */
 	private function plan_post( array $args, int $user_id ): array {
-		if ( ! \user_can( $user_id, 'edit_posts' ) ) {
-			return [ 'error' => 'Insufficient permissions.' ];
-		}
-
 		$title = \sanitize_text_field( $args['title'] ?? '' );
 		if ( '' === $title ) {
 			return [ 'error' => 'A post title is required.' ];
@@ -286,6 +282,15 @@ class ToolExecutor {
 		$post_type = \sanitize_key( $args['post_type'] ?? 'post' );
 		if ( ! \in_array( $post_type, $this->registry->allowed_post_types(), true ) ) {
 			return [ 'error' => 'Post type not permitted.' ];
+		}
+
+		$caps = PostTypeCaps::resolve( $post_type );
+		if ( null === $caps ) {
+			return [ 'error' => 'Post type not permitted.' ];
+		}
+
+		if ( ! \user_can( $user_id, $caps['create'] ) ) {
+			return [ 'error' => 'Insufficient permissions.' ];
 		}
 
 		$content = \wp_kses_post( $args['content'] ?? '' );
@@ -299,9 +304,13 @@ class ToolExecutor {
 			'outline'     => \sanitize_textarea_field( $args['outline'] ?? '' ),
 			'content'     => $content,
 			'post_type'   => $post_type,
-			'post_status' => \in_array( $args['status'] ?? 'draft', [ 'draft', 'publish', 'pending' ], true )
-				? $args['status'] ?? 'draft'
-				: 'draft',
+			'post_status' => $this->clamp_plan_status(
+				\in_array( $args['status'] ?? 'draft', [ 'draft', 'publish', 'pending' ], true )
+					? $args['status'] ?? 'draft'
+					: 'draft',
+				$post_type,
+				$user_id
+			),
 		];
 
 		if ( ! empty( $args['meta_fields'] ) && is_array( $args['meta_fields'] ) ) {
@@ -342,6 +351,11 @@ class ToolExecutor {
 			return [ 'error' => 'Insufficient permissions to edit this post.' ];
 		}
 
+		$post = \get_post( $post_id );
+		if ( null === $post ) {
+			return [ 'error' => 'Post not found.' ];
+		}
+
 		$changes = \sanitize_textarea_field( $args['changes'] ?? '' );
 		if ( '' === $changes ) {
 			return [ 'error' => 'A description of changes is required.' ];
@@ -350,10 +364,15 @@ class ToolExecutor {
 		$plan_data = [
 			'plan_type'   => 'update',
 			'post_id'     => $post_id,
+			'post_type'   => $post->post_type,
 			'changes'     => $changes,
-			'post_status' => \in_array( $args['status'] ?? '', [ 'draft', 'publish', 'pending' ], true )
-				? $args['status']
-				: '',
+			'post_status' => $this->clamp_plan_status(
+				\in_array( $args['status'] ?? '', [ 'draft', 'publish', 'pending' ], true )
+					? $args['status']
+					: '',
+				$post->post_type,
+				$user_id
+			),
 		];
 
 		if ( ! empty( $args['new_title'] ) ) {
@@ -406,6 +425,34 @@ class ToolExecutor {
 		$plan_data['new_content'] = $new_content;
 
 		return $this->store_plan( $plan_data, $user_id );
+	}
+
+	/**
+	 * Reduce a proposed publish status to 'pending' for users who cannot publish.
+	 *
+	 * Keeps the AI from proposing a plan the user would only be refused on when they
+	 * confirm it: a Contributor holds edit_posts but not publish_posts, so the plan is
+	 * staged as 'pending' (pending review) instead. PostWriter and the plan-execution
+	 * permission callback still refuse an unauthorised publish outright — this only
+	 * shapes what gets proposed.
+	 *
+	 * @since 1.13.2
+	 * @param string $status    Requested status: draft, publish, pending, or '' (unchanged).
+	 * @param string $post_type Post type the plan targets.
+	 * @param int    $user_id   WordPress user ID the plan is staged for.
+	 * @return string Status the user is actually allowed to request.
+	 */
+	private function clamp_plan_status( string $status, string $post_type, int $user_id ): string {
+		if ( 'publish' !== $status ) {
+			return $status;
+		}
+
+		$caps = PostTypeCaps::resolve( $post_type );
+		if ( null !== $caps && \user_can( $user_id, $caps['publish'] ) ) {
+			return 'publish';
+		}
+
+		return 'pending';
 	}
 
 	/**

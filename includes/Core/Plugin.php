@@ -112,6 +112,7 @@ class Plugin {
 		\Plume\Admin\UsageWidget::register_hooks();
 		\Plume\Admin\ActivationNotice::register();
 		\Plume\Admin\TierSyncBackfillNotice::register();
+		\Plume\Admin\SiteUnreachableNotice::register();
 		if ( defined( 'PLUME_DEV_KEY' ) ) {
 			\Plume\Admin\DevToolsPage::register_hooks();
 			add_action( 'plume_register_rest_routes', [ \Plume\Admin\DevToolsRestController::class, 'register_routes' ] );
@@ -198,7 +199,8 @@ class Plugin {
 
 		// One-time migration: 'number' => 1 caps the scan to a single row; the plume_backfill_done
 		// option guard above ensures this never runs again after the first activation.
-		$users = get_users( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+		// phpcs:disable WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- One-time migration capped at a single row and guarded by plume_backfill_done.
+		$users = get_users(
 			[
 				'meta_key'   => TierManager::META_KEY,
 				'meta_value' => [ 'pro_managed', 'pro_byok' ],
@@ -206,6 +208,7 @@ class Plugin {
 				'number'     => 1,
 			]
 		);
+		// phpcs:enable WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 		if ( empty( $users ) ) {
 			update_option( 'plume_backfill_done', true, false );
 			return;

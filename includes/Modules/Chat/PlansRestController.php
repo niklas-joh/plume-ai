@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use Plume\Core\RestApi;
+use Plume\Tools\PostTypeCaps;
 use Plume\Tools\PostWriter;
 use Plume\Tools\ToolExecutor;
 
@@ -53,7 +54,7 @@ class PlansRestController {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 'execute_plan' ],
-				'permission_callback' => [ $this, 'check_permission' ],
+				'permission_callback' => [ $this, 'check_execute_permission' ],
 				'args'                => [
 					'id'          => [
 						'required'          => true,
@@ -187,7 +188,10 @@ class PlansRestController {
 	}
 
 	/**
-	 * Require edit_posts capability to execute plans.
+	 * Require the edit_posts capability to reach the plan routes at all.
+	 *
+	 * This is the coarse gate only. Executing a plan additionally requires the
+	 * capabilities of the post type the plan targets — see check_execute_permission().
 	 *
 	 * @since 1.8.0
 	 * @return bool|\WP_Error
@@ -203,9 +207,87 @@ class PlansRestController {
 		return true;
 	}
 
+	/**
+	 * Authorise execution against the post type and status the plan actually targets.
+	 *
+	 * `edit_posts` is the 'post' post type's edit capability, so on its own it would
+	 * let a Contributor create a page or publish content. The plan's post type and
+	 * post ID live in the transient rather than the request, so the plan is loaded
+	 * here and the real capabilities checked before the handler runs.
+	 *
+	 * A missing or expired plan returns true so that execute_plan() can emit its
+	 * existing 404 — a plan the caller cannot see must not become a 403.
+	 *
+	 * @since 1.13.2
+	 * @param \WP_REST_Request $request Incoming REST request with plan ID in path.
+	 * @return bool|\WP_Error True when permitted; WP_Error with 403 status otherwise.
+	 */
+	public function check_execute_permission( \WP_REST_Request $request ): bool|\WP_Error {
+		$coarse = $this->check_permission();
+		if ( true !== $coarse ) {
+			return $coarse;
+		}
+
+		$user_id = \get_current_user_id();
+		$plan    = \get_transient( ToolExecutor::plan_transient_key( $user_id, (string) $request->get_param( 'id' ) ) );
+		if ( ! is_array( $plan ) ) {
+			return true;
+		}
+
+		$status_override = $request->get_param( 'status' );
+		$status          = null !== $status_override ? $status_override : ( $plan['post_status'] ?? 'draft' );
+
+		$caps = null;
+		if ( 'update' === ( $plan['plan_type'] ?? 'create' ) ) {
+			$post_id = \absint( $plan['post_id'] ?? 0 );
+			$post    = 0 !== $post_id ? \get_post( $post_id ) : null;
+			if ( null === $post ) {
+				return true;
+			}
+
+			if ( ! \current_user_can( 'edit_post', $post_id ) ) {
+				return $this->forbidden( 'rest_forbidden', \__( 'Sorry, you are not allowed to edit this content.', 'plume' ) );
+			}
+
+			$post_type = $post->post_type;
+		} else {
+			$post_type = \sanitize_key( $plan['post_type'] ?? 'post' );
+			$caps      = PostTypeCaps::resolve( $post_type );
+			if ( null === $caps ) {
+				return $this->forbidden( 'rest_forbidden', \__( 'Sorry, you are not allowed to create content of this type.', 'plume' ) );
+			}
+
+			if ( ! \current_user_can( $caps['create'] ) ) {
+				return $this->forbidden( 'rest_forbidden', \__( 'Sorry, you are not allowed to create content of this type.', 'plume' ) );
+			}
+		}
+
+		if ( 'publish' === $status ) {
+			// Reuse the create branch's lookup; only the update branch still needs to resolve.
+			$caps ??= PostTypeCaps::resolve( $post_type );
+			if ( null === $caps || ! \current_user_can( $caps['publish'] ) ) {
+				return $this->forbidden( 'rest_cannot_publish', \__( 'Sorry, you are not allowed to publish this content.', 'plume' ) );
+			}
+		}
+
+		return true;
+	}
+
 	// -------------------------------------------------------------------------
 	// Private helpers
 	// -------------------------------------------------------------------------
+
+	/**
+	 * Build a 403 WP_Error, mirroring core's REST error codes.
+	 *
+	 * @since 1.13.2
+	 * @param string $code    Error code, e.g. rest_forbidden or rest_cannot_publish.
+	 * @param string $message Translated, user-facing message.
+	 * @return \WP_Error
+	 */
+	private function forbidden( string $code, string $message ): \WP_Error {
+		return new \WP_Error( $code, $message, [ 'status' => 403 ] );
+	}
 
 	/**
 	 * Convert a stored plan array into tool-executor arguments.

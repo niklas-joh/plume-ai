@@ -165,6 +165,241 @@ class SiteRegistrationTest extends TestCase {
 		$this->assertSame( 'registration_failed', $result->get_error_code() );
 	}
 
+	// ── register() — permanent verification failures ─────────────────────────────
+
+	/**
+	 * Data provider: reason => expected substring unique to that reason's canned message.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function permanent_verification_reasons(): array {
+		return [
+			'network_error'      => [ 'network_error', 'locally' ],
+			'tls_error'          => [ 'tls_error', 'certificate' ],
+			'http_unauthorized'  => [ 'http_unauthorized', 'login wall' ],
+			'http_forbidden'     => [ 'http_forbidden', 'firewall' ],
+		];
+	}
+
+	/**
+	 * @dataProvider permanent_verification_reasons
+	 */
+	public function test_register_returns_site_unreachable_for_permanent_verification_reasons( string $reason, string $expected_substring ): void {
+		$challenge = str_repeat( 'a', 64 );
+
+		Functions\when( 'wp_remote_get' )->justReturn( [] );
+		Functions\when( 'wp_remote_post' )->justReturn( [] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_body' )->alias(
+			( function () use ( $challenge, $reason ) {
+				$calls = 0;
+				return function () use ( $challenge, $reason, &$calls ): string {
+					++$calls;
+					return 1 === $calls
+						? '{"challenge":"' . $challenge . '"}'
+						: '{"error":"Site verification failed","reason":"' . $reason . '","status":403}';
+				};
+			} )()
+		);
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'home_url' )->justReturn( 'https://mysite.example.com' );
+		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
+		Functions\when( '__' )->returnArg();
+
+		$callNum = 0;
+		Functions\when( 'wp_remote_retrieve_response_code' )->alias(
+			function () use ( &$callNum ): int {
+				++$callNum;
+				return 1 === $callNum ? 200 : 403;
+			}
+		);
+
+		$result = SiteRegistration::register();
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'site_unreachable', $result->get_error_code() );
+		$data = $result->get_error_data();
+		$this->assertTrue( $data['permanent'] );
+		$this->assertSame( $reason, $data['reason'] );
+		$this->assertStringContainsString( $expected_substring, $result->get_error_message() );
+	}
+
+	/**
+	 * Data provider: reason values that must NOT be treated as permanent.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function non_permanent_verification_reasons(): array {
+		return [
+			'no reason at all' => [ '' ],
+			'timeout'          => [ 'timeout' ],
+			'http_error'       => [ 'http_error' ],
+		];
+	}
+
+	/**
+	 * @dataProvider non_permanent_verification_reasons
+	 */
+	public function test_register_returns_generic_error_for_non_permanent_reasons( string $reason ): void {
+		$challenge = str_repeat( 'b', 64 );
+
+		Functions\when( 'wp_remote_get' )->justReturn( [] );
+		Functions\when( 'wp_remote_post' )->justReturn( [] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_body' )->alias(
+			( function () use ( $challenge, $reason ) {
+				$calls = 0;
+				return function () use ( $challenge, $reason, &$calls ): string {
+					++$calls;
+					if ( 1 === $calls ) {
+						return '{"challenge":"' . $challenge . '"}';
+					}
+					return '' !== $reason
+						? '{"error":"Site verification failed","reason":"' . $reason . '"}'
+						: '{"error":"Site verification failed"}';
+				};
+			} )()
+		);
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'home_url' )->justReturn( 'https://mysite.example.com' );
+		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
+
+		$callNum = 0;
+		Functions\when( 'wp_remote_retrieve_response_code' )->alias(
+			function () use ( &$callNum ): int {
+				++$callNum;
+				return 1 === $callNum ? 200 : 403;
+			}
+		);
+
+		$result = SiteRegistration::register();
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'registration_failed', $result->get_error_code() );
+	}
+
+	// ── permanent_failure_message() ───────────────────────────────────────────────
+
+	public function test_permanent_failure_message_returns_fallback_for_unrecognised_reason(): void {
+		Functions\when( '__' )->returnArg();
+
+		$message = SiteRegistration::permanent_failure_message( 'something_unexpected' );
+
+		$this->assertNotSame( '', $message );
+	}
+
+	// ── get_permanent_failure() / get_unavailable_error() ─────────────────────────
+
+	public function test_get_permanent_failure_returns_null_when_none_stored(): void {
+		Functions\when( 'get_option' )->justReturn( null );
+
+		$this->assertNull( SiteRegistration::get_permanent_failure() );
+	}
+
+	public function test_get_permanent_failure_returns_null_when_stored_value_is_malformed(): void {
+		Functions\when( 'get_option' )->justReturn( [ 'reason' => 'network_error' ] ); // missing 'message'.
+
+		$this->assertNull( SiteRegistration::get_permanent_failure() );
+	}
+
+	public function test_get_permanent_failure_returns_stored_diagnostic(): void {
+		Functions\when( 'get_option' )->justReturn(
+			[
+				'reason'  => 'tls_error',
+				'message' => 'Certificate problem.',
+			]
+		);
+
+		$failure = SiteRegistration::get_permanent_failure();
+
+		$this->assertSame( 'tls_error', $failure['reason'] );
+		$this->assertSame( 'Certificate problem.', $failure['message'] );
+	}
+
+	public function test_get_unavailable_error_returns_site_unreachable_when_permanent_failure_stored(): void {
+		Functions\when( 'get_option' )->justReturn(
+			[
+				'reason'  => 'http_forbidden',
+				'message' => 'Blocked by a firewall.',
+			]
+		);
+		Functions\when( '__' )->returnArg();
+
+		$error = SiteRegistration::get_unavailable_error();
+
+		$this->assertSame( 'site_unreachable', $error->get_error_code() );
+		$this->assertSame( 'Blocked by a firewall.', $error->get_error_message() );
+		$this->assertSame( 'http_forbidden', $error->get_error_data()['reason'] );
+	}
+
+	public function test_get_unavailable_error_returns_not_registered_when_no_permanent_failure_stored(): void {
+		Functions\when( 'get_option' )->justReturn( null );
+		Functions\when( '__' )->returnArg();
+
+		$error = SiteRegistration::get_unavailable_error();
+
+		$this->assertSame( 'not_registered', $error->get_error_code() );
+	}
+
+	// ── record_registration_outcome() ─────────────────────────────────────────────
+
+	public function test_record_registration_outcome_clears_permanent_failure_and_sets_short_backoff_on_success(): void {
+		Functions\expect( 'delete_option' )
+			->once()
+			->with( SiteRegistration::OPTION_PERMANENT_FAILURE );
+		Functions\expect( 'set_transient' )
+			->once()
+			->with( 'plume_reg_backoff', 1, 5 * MINUTE_IN_SECONDS );
+
+		SiteRegistration::record_registration_outcome( 'a-token' );
+
+		$this->addToAssertionCount( 1 );
+	}
+
+	public function test_record_registration_outcome_clears_permanent_failure_and_sets_short_backoff_on_transient_failure(): void {
+		Functions\expect( 'delete_option' )
+			->once()
+			->with( SiteRegistration::OPTION_PERMANENT_FAILURE );
+		Functions\expect( 'set_transient' )
+			->once()
+			->with( 'plume_reg_backoff', 1, 5 * MINUTE_IN_SECONDS );
+
+		$transient_error = new \WP_Error( 'challenge_failed', 'Could not obtain activation challenge.' );
+
+		SiteRegistration::record_registration_outcome( $transient_error );
+
+		$this->addToAssertionCount( 1 );
+	}
+
+	public function test_record_registration_outcome_stores_diagnostic_and_sets_long_backoff_on_permanent_failure(): void {
+		Functions\expect( 'update_option' )
+			->once()
+			->with(
+				SiteRegistration::OPTION_PERMANENT_FAILURE,
+				[
+					'reason'  => 'network_error',
+					'message' => 'Could not reach this site.',
+				],
+				false
+			);
+		Functions\expect( 'set_transient' )
+			->once()
+			->with( 'plume_reg_backoff', 1, SiteRegistration::PERMANENT_BACKOFF );
+		Functions\expect( 'delete_option' )->never();
+
+		$permanent_error = new \WP_Error(
+			'site_unreachable',
+			'Could not reach this site.',
+			[ 'permanent' => true, 'reason' => 'network_error' ]
+		);
+
+		SiteRegistration::record_registration_outcome( $permanent_error );
+
+		$this->addToAssertionCount( 1 );
+	}
+
 	// ── register() — happy path ─────────────────────────────────────────────────
 
 	public function test_register_stores_token_and_returns_it_on_success(): void {

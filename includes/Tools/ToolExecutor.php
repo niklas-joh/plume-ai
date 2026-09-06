@@ -436,7 +436,7 @@ class ToolExecutor {
 	 * permission callback still refuse an unauthorised publish outright — this only
 	 * shapes what gets proposed.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.2
 	 * @param string $status    Requested status: draft, publish, pending, or '' (unchanged).
 	 * @param string $post_type Post type the plan targets.
 	 * @param int    $user_id   WordPress user ID the plan is staged for.

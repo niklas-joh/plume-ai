@@ -36,6 +36,45 @@ async function makeEnvWithChallenge(
 	return env;
 }
 
+/**
+ * Seed a valid challenge in KV and stub fetch to resolve with a specific
+ * status code, for exercising verifySite()'s per-status classification.
+ *
+ * @param {string} challenge The challenge token to seed into KV.
+ * @param {number} status    The HTTP status the simulated site callback should return.
+ * @return {Promise<ReturnType<typeof makeEnv>>} Env fixture with challenge pre-seeded.
+ */
+async function makeEnvWithChallengeAndStatus(
+	challenge: string,
+	status: number
+): Promise< ReturnType< typeof makeEnv > > {
+	const env = makeEnv();
+	await env.USAGE_KV.put( `challenge:${ challenge }`, '1' );
+	vi.stubGlobal(
+		'fetch',
+		vi.fn().mockResolvedValue( new Response( '{}', { status } ) )
+	);
+	return env;
+}
+
+/**
+ * Seed a valid challenge in KV and stub fetch to throw, for exercising
+ * classifyFetchError()'s handling of a thrown error.
+ *
+ * @param {string} challenge The challenge token to seed into KV.
+ * @param {unknown} error    The error fetch() should reject/throw with.
+ * @return {Promise<ReturnType<typeof makeEnv>>} Env fixture with challenge pre-seeded.
+ */
+async function makeEnvWithChallengeThrowing(
+	challenge: string,
+	error: unknown
+): Promise< ReturnType< typeof makeEnv > > {
+	const env = makeEnv();
+	await env.USAGE_KV.put( `challenge:${ challenge }`, '1' );
+	vi.stubGlobal( 'fetch', vi.fn().mockRejectedValue( error ) );
+	return env;
+}
+
 function makeRequest(
 	opts: {
 		method?: string;
@@ -163,6 +202,108 @@ describe( 'handleRegistration', () => {
 		expect( res.status ).toBe( 403 );
 		const data = ( await res.json() ) as { error: string };
 		expect( data.error ).toMatch( /site verification failed/i );
+	} );
+
+	// ── verification-failure classification ────────────────────────────────
+
+	it( 'classifies a 401 callback as http_unauthorized with status 401', async () => {
+		const challenge = 'd1'.repeat( 32 );
+		const env = await makeEnvWithChallengeAndStatus( challenge, 401 );
+		const res = await handleRegistration(
+			makeRequest( {
+				body: { site_url: 'https://example.com', challenge_token: challenge },
+			} ),
+			env
+		);
+		expect( res.status ).toBe( 403 );
+		const data = ( await res.json() ) as { reason: string; status: number };
+		expect( data.reason ).toBe( 'http_unauthorized' );
+		expect( data.status ).toBe( 401 );
+	} );
+
+	it( 'classifies a 403 callback as http_forbidden with status 403', async () => {
+		const challenge = 'd2'.repeat( 32 );
+		const env = await makeEnvWithChallengeAndStatus( challenge, 403 );
+		const res = await handleRegistration(
+			makeRequest( {
+				body: { site_url: 'https://example.com', challenge_token: challenge },
+			} ),
+			env
+		);
+		expect( res.status ).toBe( 403 );
+		const data = ( await res.json() ) as { reason: string; status: number };
+		expect( data.reason ).toBe( 'http_forbidden' );
+		expect( data.status ).toBe( 403 );
+	} );
+
+	it( 'classifies a 500 callback as http_error with status 500', async () => {
+		const challenge = 'd3'.repeat( 32 );
+		const env = await makeEnvWithChallengeAndStatus( challenge, 500 );
+		const res = await handleRegistration(
+			makeRequest( {
+				body: { site_url: 'https://example.com', challenge_token: challenge },
+			} ),
+			env
+		);
+		expect( res.status ).toBe( 403 );
+		const data = ( await res.json() ) as { reason: string; status: number };
+		expect( data.reason ).toBe( 'http_error' );
+		expect( data.status ).toBe( 500 );
+	} );
+
+	it( 'classifies a thrown DOMException("TimeoutError") as timeout with no status', async () => {
+		const challenge = 'd4'.repeat( 32 );
+		const env = await makeEnvWithChallengeThrowing(
+			challenge,
+			new DOMException( 'The operation timed out.', 'TimeoutError' )
+		);
+		const res = await handleRegistration(
+			makeRequest( {
+				body: { site_url: 'https://example.com', challenge_token: challenge },
+			} ),
+			env
+		);
+		expect( res.status ).toBe( 403 );
+		const data = ( await res.json() ) as {
+			reason: string;
+			status?: number;
+		};
+		expect( data.reason ).toBe( 'timeout' );
+		expect( data.status ).toBeUndefined();
+	} );
+
+	it( 'classifies a thrown generic TypeError as network_error', async () => {
+		const challenge = 'd5'.repeat( 32 );
+		const env = await makeEnvWithChallengeThrowing(
+			challenge,
+			new TypeError( 'fetch failed' )
+		);
+		const res = await handleRegistration(
+			makeRequest( {
+				body: { site_url: 'https://example.com', challenge_token: challenge },
+			} ),
+			env
+		);
+		expect( res.status ).toBe( 403 );
+		const data = ( await res.json() ) as { reason: string };
+		expect( data.reason ).toBe( 'network_error' );
+	} );
+
+	it( 'classifies a thrown error mentioning "certificate" as tls_error', async () => {
+		const challenge = 'd6'.repeat( 32 );
+		const env = await makeEnvWithChallengeThrowing(
+			challenge,
+			new Error( 'unable to verify the first certificate' )
+		);
+		const res = await handleRegistration(
+			makeRequest( {
+				body: { site_url: 'https://example.com', challenge_token: challenge },
+			} ),
+			env
+		);
+		expect( res.status ).toBe( 403 );
+		const data = ( await res.json() ) as { reason: string };
+		expect( data.reason ).toBe( 'tls_error' );
 	} );
 
 	it( 'returns 201 and tier=free for a valid new registration', async () => {

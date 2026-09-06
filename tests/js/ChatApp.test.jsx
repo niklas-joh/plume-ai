@@ -247,6 +247,56 @@ describe( 'ChatApp', () => {
 				container.querySelectorAll( '.plume-bubble--error' ).length
 			).toBe( 1 );
 		} );
+
+		it( 'shows exactly one error bubble immediately for a site_unreachable error, without retrying', async () => {
+			jest.useFakeTimers();
+			const apiFetch = require( '@wordpress/api-fetch' );
+			let messageCalls = 0;
+			apiFetch.mockImplementation( ( { path, method } ) => {
+				if ( path === '/plume/v1/conversations' && method === 'POST' ) {
+					return Promise.resolve( {
+						id: 1,
+						title: 'New conversation',
+					} );
+				}
+				if (
+					path === '/plume/v1/conversations/1/messages' &&
+					method === 'POST'
+				) {
+					messageCalls += 1;
+					// Contrast with 'not_registered': this code is a permanent
+					// verification failure and must never be silently retried.
+					return Promise.reject( {
+						code: 'site_unreachable',
+						message: 'Could not reach this site from the internet.',
+					} );
+				}
+				return Promise.resolve( [] );
+			} );
+
+			await act( async () => {
+				root.render( <ChatApp /> );
+			} );
+
+			await act( async () => {
+				typeAndSubmit( container, 'Hi there' );
+			} );
+
+			// Advance well past the retry delay to confirm no retry ever fires.
+			await act( async () => {
+				jest.advanceTimersByTime( 3000 );
+				await Promise.resolve();
+				await Promise.resolve();
+			} );
+
+			expect( messageCalls ).toBe( 1 );
+			expect(
+				container.querySelectorAll( '.plume-bubble--error' ).length
+			).toBe( 1 );
+			expect( container.textContent ).toContain(
+				'Could not reach this site from the internet.'
+			);
+		} );
 	} );
 
 	describe( 'provider/model persistence', () => {

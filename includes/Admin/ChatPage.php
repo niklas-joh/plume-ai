@@ -105,7 +105,7 @@ class ChatPage {
 	 * a Contributor holds edit_posts but not publish_posts, so offering them
 	 * "Published" would only produce a 403 when they confirmed the plan.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.2
 	 * @return array<string, bool> Post type slug => whether publishing is permitted.
 	 */
 	private static function publish_caps(): array {

@@ -321,11 +321,16 @@ class ChatRestController {
 	 * a plugin auth failure from a provider auth failure.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Returns 422 with code 'site_unreachable' instead of the generic
+	 *                      503 'not_registered' when a permanent site-verification failure
+	 *                      is on record (see SiteRegistration::get_unavailable_error()).
 	 * @param \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response 201 on success; 403 if the conversation is not owned by the caller;
-	 *                           429 with a `Retry-After` header (seconds until next month UTC) on
-	 *                           provider rate-limit; 502 when the provider returns 401/403; 500 on
-	 *                           other provider errors or iteration-limit breach.
+	 *                           422 with code 'site_unreachable' when a permanent site-verification
+	 *                           failure is on record; 429 with a `Retry-After` header (seconds until
+	 *                           next month UTC) on provider rate-limit; 502 when the provider returns
+	 *                           401/403; 503 with code 'not_registered' while registration is still
+	 *                           completing; 500 on other provider errors or iteration-limit breach.
 	 * @throws ProviderException Re-thrown mid-loop when the Worker's quota is exhausted with no
 	 *                           prior successful iteration to gracefully finish with; caught by
 	 *                           the outer try/catch in this same method, which maps it to a
@@ -366,9 +371,28 @@ class ChatRestController {
 				if ( ! has_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] ) ) {
 					add_action( 'shutdown', [ SiteRegistration::class, 'maybe_register' ] );
 				}
+
+				// Routed through SiteRegistration so a permanent verification failure on
+				// record wins over the generic "still connecting" message. 422 (not 503)
+				// for site_unreachable: 503 conventionally implies "temporary, retry
+				// later" — the opposite of what a permanent failure represents. 'code' is
+				// load-bearing: ChatApp.jsx's REGISTRATION_RETRY_CODES matches on it, and
+				// deliberately excludes 'site_unreachable' so it surfaces immediately
+				// instead of being silently retried.
+				$error = SiteRegistration::get_unavailable_error();
+				if ( 'site_unreachable' === $error->get_error_code() ) {
+					return new \WP_REST_Response(
+						[
+							'message' => $error->get_error_message(),
+							'code'    => 'site_unreachable',
+						],
+						422
+					);
+				}
+
 				return new \WP_REST_Response(
 					[
-						'message' => __( 'Connecting this site to Plume AI - Write and Design. Please try sending your message again in a moment.', 'plume' ),
+						'message' => $error->get_error_message(),
 						'code'    => 'not_registered',
 					],
 					503
@@ -436,7 +460,7 @@ class ChatRestController {
 				// restrict this iteration to submit_post_content only, so the model's full
 				// output-token budget goes to the post body instead of being shared with
 				// anything else. force_tool_use then guarantees it is what gets called.
-				$tools = $force_submit_content
+				$tools                = $force_submit_content
 					? $this->restrict_tools_to( $tools_full, $provider_slug, [ 'submit_post_content' ] )
 					: $this->strip_single_use_tools( $tools_full, $provider_slug, $tools_called );
 				$force_submit_content = false;

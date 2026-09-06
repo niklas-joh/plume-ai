@@ -218,7 +218,7 @@ class PlansRestController {
 	 * A missing or expired plan returns true so that execute_plan() can emit its
 	 * existing 404 — a plan the caller cannot see must not become a 403.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.2
 	 * @param \WP_REST_Request $request Incoming REST request with plan ID in path.
 	 * @return bool|\WP_Error True when permitted; WP_Error with 403 status otherwise.
 	 */
@@ -280,7 +280,7 @@ class PlansRestController {
 	/**
 	 * Build a 403 WP_Error, mirroring core's REST error codes.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.2
 	 * @param string $code    Error code, e.g. rest_forbidden or rest_cannot_publish.
 	 * @param string $message Translated, user-facing message.
 	 * @return \WP_Error

@@ -945,6 +945,65 @@ class ChatRestControllerTest extends TestCase {
     }
 
     /**
+     * A proxy-capable provider that is unavailable AND has a permanent
+     * site-verification failure on record must produce a 422 with code
+     * 'site_unreachable' instead of the generic 503 'not_registered' — 503
+     * conventionally implies "temporary, retry later", the opposite of what
+     * a permanent failure represents.
+     */
+    public function test_send_message_returns_422_site_unreachable_when_permanent_failure_stored(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( '__' )->alias( fn( $s ) => $s );
+        Functions\when( 'has_action' )->justReturn( false );
+        Functions\when( 'add_action' )->justReturn( null );
+        Functions\when( 'get_option' )->alias(
+            function ( $key, $default = false ) {
+                if ( 'plume_site_tier' === $key ) {
+                    return 'free';
+                }
+                if ( \Plume\Payments\TierUpdateWebhookController::OPTION_SECRET === $key ) {
+                    return ''; // No sync secret — is_site_tier_verified() short-circuits to true.
+                }
+                if ( \Plume\Proxy\SiteRegistration::OPTION_PERMANENT_FAILURE === $key ) {
+                    return [
+                        'reason'  => 'network_error',
+                        'message' => 'Could not reach this site from the internet.',
+                    ];
+                }
+                return 'claude' === $default ? 'claude' : $default;
+            }
+        );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [] );
+        $store_mock->expects( $this->never() )->method( 'add_message' );
+
+        $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( false );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller_with_tier( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '1' ] );
+        $request->set_body_params( [ 'content' => 'Hi', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $this->assertInstanceOf( \WP_REST_Response::class, $response );
+        $this->assertSame( 422, $response->get_status(), 'A permanent verification failure must produce 422, not 503.' );
+        $this->assertSame( 'site_unreachable', $response->data['code'] );
+        $this->assertSame( 'Could not reach this site from the internet.', $response->data['message'] );
+    }
+
+    /**
      * Ollama has no proxy path, so an unavailable Ollama provider must receive
      * 422 (configure a URL), not 503.
      */

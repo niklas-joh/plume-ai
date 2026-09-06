@@ -1,3 +1,9 @@
+## [1.13.2](https://github.com/niklas-joh/plume-ai/compare/v1.13.1...v1.13.2) (2026-08-28)
+
+### Bug Fixes
+
+* **rest:** enforce post-type and publish capabilities on plan execution ([#955](https://github.com/niklas-joh/plume-ai/issues/955)) ([73037f0](https://github.com/niklas-joh/plume-ai/commit/73037f031ad309778979e8cbf1e53f87a7f35efc))
+
 ## [1.13.1](https://github.com/niklas-joh/plume-ai/compare/v1.13.0...v1.13.1) (2026-07-17)
 
 ### Bug Fixes

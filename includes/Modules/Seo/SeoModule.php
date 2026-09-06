@@ -160,7 +160,7 @@ class SeoModule {
 	 * post that does not exist are allowed through so the handlers can return their
 	 * existing 404 rather than a misleading 403.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.2
 	 * @param \WP_REST_Request $request Incoming REST request carrying post_id.
 	 * @return bool|\WP_Error True when permitted; WP_Error with 403 status otherwise.
 	 */

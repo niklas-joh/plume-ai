@@ -41,6 +41,43 @@ class SiteRegistration {
 	 */
 	public const OPTION_SECRET = TierUpdateWebhookController::OPTION_SECRET;
 
+	/**
+	 * Option key storing diagnostic details of a permanent (non-retryable)
+	 * registration failure: `{ reason: string, message: string }`.
+	 *
+	 * Cleared automatically on the next successful (or merely transient-failing)
+	 * registration attempt — see record_registration_outcome().
+	 *
+	 * @since NEXT_VERSION
+	 */
+	public const OPTION_PERMANENT_FAILURE = 'plume_reg_permanent_failure';
+
+	/**
+	 * Backoff applied after a permanent verification failure — much longer than
+	 * TRANSIENT_BACKOFF because retrying a structurally broken install (e.g.
+	 * localhost, invalid TLS, a login wall) cannot succeed until the admin
+	 * changes something, so there is no value in re-attempting every 5 minutes.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	public const PERMANENT_BACKOFF = 6 * HOUR_IN_SECONDS;
+
+	/**
+	 * Worker-reported verification-failure reasons treated as permanent —
+	 * retrying will never succeed until the admin fixes the underlying
+	 * condition. Mirrors plume-proxy/src/types.ts::VerificationFailureReason
+	 * minus 'timeout' and 'http_error', which stay transient.
+	 *
+	 * @since NEXT_VERSION
+	 * @var string[]
+	 */
+	public const PERMANENT_VERIFICATION_REASONS = [
+		'network_error',
+		'tls_error',
+		'http_unauthorized',
+		'http_forbidden',
+	];
+
 	private const TRANSIENT_BACKOFF = 'plume_reg_backoff';
 
 	/**
@@ -96,6 +133,8 @@ class SiteRegistration {
 	 * @since 1.2.0
 	 * @since 1.12.0 No longer hooked to admin_init; registration is lazy,
 	 *                      scheduled on shutdown of the first proxy-backed request.
+	 * @since NEXT_VERSION Delegates outcome handling (backoff + permanent-failure
+	 *                      bookkeeping) to record_registration_outcome().
 	 * @return void
 	 */
 	public static function maybe_register(): void {
@@ -107,12 +146,7 @@ class SiteRegistration {
 			return;
 		}
 
-		$result = self::register();
-		if ( is_wp_error( $result ) ) {
-			set_transient( self::TRANSIENT_BACKOFF, 1, 5 * MINUTE_IN_SECONDS );
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( '[Plume] Site registration failed: ' . $result->get_error_message() );
-		}
+		self::record_registration_outcome( self::register() );
 	}
 
 	/**
@@ -174,6 +208,18 @@ class SiteRegistration {
 		$body = json_decode( wp_remote_retrieve_body( $response ), true ) ?? [];
 
 		if ( ( 200 !== $code && 201 !== $code ) || empty( $body['token'] ) ) {
+			$reason = $body['reason'] ?? '';
+			if ( 403 === $code && in_array( $reason, self::PERMANENT_VERIFICATION_REASONS, true ) ) {
+				return new WP_Error(
+					'site_unreachable',
+					self::permanent_failure_message( $reason ),
+					[
+						'permanent' => true,
+						'reason'    => $reason,
+						'status'    => $body['status'] ?? null,
+					]
+				);
+			}
 			return new WP_Error( 'registration_failed', "Proxy registration returned HTTP {$code}" );
 		}
 
@@ -183,6 +229,130 @@ class SiteRegistration {
 		self::store_worker_tier_state( $body );
 
 		return $token;
+	}
+
+	/**
+	 * Return the plugin's own fixed, translatable copy for a permanent
+	 * verification-failure reason.
+	 *
+	 * Deliberately never echoes the Worker's raw `reason`/error text — the
+	 * displayed message is always this plugin's own canned copy, so wording
+	 * stays under the plugin's control regardless of what the Worker sends.
+	 *
+	 * @since NEXT_VERSION
+	 * @param string $reason One of PERMANENT_VERIFICATION_REASONS, or an unrecognised value.
+	 * @return string Translatable, user-facing diagnostic message.
+	 */
+	public static function permanent_failure_message( string $reason ): string {
+		switch ( $reason ) {
+			case 'network_error':
+				return __( 'Plume AI - Write and Design could not reach this site from the internet. This usually means the site is only available locally (e.g. localhost or a development environment) and has no public address.', 'plume' );
+			case 'tls_error':
+				return __( 'Plume AI - Write and Design could not verify this site\'s security certificate. Please check that the site has a valid, trusted SSL/TLS certificate.', 'plume' );
+			case 'http_unauthorized':
+				return __( 'Plume AI - Write and Design could not reach this site because it is protected by a login wall (HTTP Basic Auth). Please allow public access to the verification endpoint, or remove the login wall.', 'plume' );
+			case 'http_forbidden':
+				return __( 'Plume AI - Write and Design could not reach this site because it appears to be blocked by a firewall, VPN, IP allow-list, or security plugin. Please allow outside access to the verification endpoint.', 'plume' );
+			default:
+				return __( 'Plume AI - Write and Design could not verify that this site is publicly reachable, and this issue is unlikely to resolve on its own.', 'plume' );
+		}
+	}
+
+	/**
+	 * Return the stored permanent-failure diagnostic, if one is on record.
+	 *
+	 * @since NEXT_VERSION
+	 * @return array{reason: string, message: string}|null The stored diagnostic, or null when none is recorded.
+	 */
+	public static function get_permanent_failure(): ?array {
+		$stored = get_option( self::OPTION_PERMANENT_FAILURE, null );
+		if ( ! is_array( $stored ) || empty( $stored['reason'] ) || empty( $stored['message'] ) ) {
+			return null;
+		}
+		return $stored;
+	}
+
+	/**
+	 * Clear any stored permanent-failure diagnostic.
+	 *
+	 * @since NEXT_VERSION
+	 * @return void
+	 */
+	public static function clear_permanent_failure(): void {
+		delete_option( self::OPTION_PERMANENT_FAILURE );
+	}
+
+	/**
+	 * Single source of truth for the "site not yet usable" error surfaced to
+	 * callers (ProxyClient::chat(), ChatRestController::send_message()) when
+	 * no site token is available.
+	 *
+	 * Both call sites use this so their error codes/messages cannot drift
+	 * apart: a permanent verification failure on record always wins over the
+	 * generic "still connecting" message.
+	 *
+	 * @since NEXT_VERSION
+	 * @return WP_Error `site_unreachable` when a permanent failure is stored; otherwise the
+	 *                   existing generic `not_registered` "connecting…" error.
+	 */
+	public static function get_unavailable_error(): WP_Error {
+		$permanent_failure = self::get_permanent_failure();
+		if ( null !== $permanent_failure ) {
+			return new WP_Error(
+				'site_unreachable',
+				$permanent_failure['message'],
+				[
+					'permanent' => true,
+					'reason'    => $permanent_failure['reason'],
+				]
+			);
+		}
+
+		// This code is one of REGISTRATION_RETRY_CODES in src/admin/components/Chat/ChatApp.jsx,
+		// which silently retries the request instead of surfacing this to the user immediately.
+		return new WP_Error( 'not_registered', __( 'Connecting this site to Plume AI - Write and Design. Please try sending your message again in a moment.', 'plume' ) );
+	}
+
+	/**
+	 * Record the outcome of a registration attempt and set the appropriate backoff.
+	 *
+	 * On success or a transient failure: clears any stored permanent-failure
+	 * diagnostic and sets the existing 5-minute backoff transient so
+	 * maybe_register() doesn't hammer the Worker on every request. On a
+	 * permanent failure: stores the diagnostic (so get_unavailable_error() and
+	 * the admin notice can surface it) and sets a much longer 6-hour backoff —
+	 * there's no value in retrying a structurally broken install every 5 minutes.
+	 *
+	 * @since NEXT_VERSION
+	 * @param string|WP_Error $result The return value of register().
+	 * @return void
+	 */
+	public static function record_registration_outcome( string|WP_Error $result ): void {
+		if ( is_wp_error( $result ) ) {
+			$data = $result->get_error_data();
+			if ( is_array( $data ) && ! empty( $data['permanent'] ) ) {
+				update_option(
+					self::OPTION_PERMANENT_FAILURE,
+					[
+						'reason'  => $data['reason'] ?? '',
+						'message' => $result->get_error_message(),
+					],
+					false
+				);
+				set_transient( self::TRANSIENT_BACKOFF, 1, self::PERMANENT_BACKOFF );
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( '[Plume] Site registration permanently failed: ' . $result->get_error_message() );
+				return;
+			}
+
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( '[Plume] Site registration failed: ' . $result->get_error_message() );
+		}
+
+		// Success, or a transient (non-permanent) failure: clear any stale
+		// permanent-failure diagnostic and fall back to the short backoff.
+		self::clear_permanent_failure();
+		set_transient( self::TRANSIENT_BACKOFF, 1, 5 * MINUTE_IN_SECONDS );
 	}
 
 	/**

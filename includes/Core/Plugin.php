@@ -112,6 +112,7 @@ class Plugin {
 		\Plume\Admin\UsageWidget::register_hooks();
 		\Plume\Admin\ActivationNotice::register();
 		\Plume\Admin\TierSyncBackfillNotice::register();
+		\Plume\Admin\SiteUnreachableNotice::register();
 		if ( $this->modules->is_enabled( 'chat' ) ) {
 			add_action( 'plugins_loaded', [ \Plume\Modules\Chat\ChatModule::class, 'register' ], 20 );
 			\Plume\Modules\Editor\EditorModule::register();

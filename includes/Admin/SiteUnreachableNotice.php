@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * admin page, matching TierSyncBackfillNotice's pattern, so the action and
  * its nonce never leak to lower-privileged roles or unrelated screens.
  *
- * @since NEXT_VERSION
+ * @since 1.13.3
  */
 class SiteUnreachableNotice {
 
@@ -40,7 +40,7 @@ class SiteUnreachableNotice {
 	 * Admin-post action slug used both for the form submission and the
 	 * `admin_post_{action}` hook name.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 */
 	private const ACTION = 'plume_retry_verification';
 
@@ -48,14 +48,14 @@ class SiteUnreachableNotice {
 	 * Nonce action name. Distinct from ACTION to keep nonce verification
 	 * explicit at the call site.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 */
 	private const NONCE = 'plume_retry_verification_nonce';
 
 	/**
 	 * Register WordPress hooks for the notice and its admin-post handler.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 * @return void
 	 */
 	public static function register(): void {
@@ -77,7 +77,7 @@ class SiteUnreachableNotice {
 	 * no permanent failure on record). On Plume pages where TierSyncBackfillNotice
 	 * also registers this rule, the shared `common` handle de-duplicates it.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 * @return void
 	 */
 	public static function enqueue_styles(): void {
@@ -96,7 +96,7 @@ class SiteUnreachableNotice {
 	/**
 	 * Returns true when the current user may view this notice.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 * @return bool True when the user has manage_options on a Plume admin page.
 	 */
 	private static function current_user_can_see_notice(): bool {
@@ -113,7 +113,7 @@ class SiteUnreachableNotice {
 	 * diagnostic left over from before a successful (re-)registration must
 	 * never keep showing once the site is actually connected.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 * @return void
 	 */
 	public static function maybe_display(): void {
@@ -157,7 +157,7 @@ class SiteUnreachableNotice {
 	 * no output. Capability check is repeated to avoid leaking outcomes via a
 	 * crafted URL share.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 * @return void
 	 */
 	public static function maybe_display_result(): void {
@@ -217,7 +217,7 @@ class SiteUnreachableNotice {
 	 * a tampered submission produces the canonical "Are you sure?" screen
 	 * rather than a silent redirect.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 * @return void
 	 */
 	public static function handle_retry(): void {

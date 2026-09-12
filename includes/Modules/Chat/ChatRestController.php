@@ -321,7 +321,7 @@ class ChatRestController {
 	 * a plugin auth failure from a provider auth failure.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Returns 422 with code 'site_unreachable' instead of the generic
+	 * @since 1.13.3 Returns 422 with code 'site_unreachable' instead of the generic
 	 *                      503 'not_registered' when a permanent site-verification failure
 	 *                      is on record (see SiteRegistration::get_unavailable_error()).
 	 * @param \WP_REST_Request $request Incoming REST request.

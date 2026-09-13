@@ -1,3 +1,13 @@
+## [1.13.3](https://github.com/niklas-joh/plume-ai/compare/v1.13.2...v1.13.3) (2026-09-11)
+
+### Bug Fixes
+
+* **proxy:** classify site-verification failures as permanent or transient ([#962](https://github.com/niklas-joh/plume-ai/issues/962)) ([48beb2a](https://github.com/niklas-joh/plume-ai/commit/48beb2a9b65a342b28be0d2b35c2667a6024ee4c)), closes [#963](https://github.com/niklas-joh/plume-ai/issues/963) [#964](https://github.com/niklas-joh/plume-ai/issues/964) [#965](https://github.com/niklas-joh/plume-ai/issues/965)
+
+### Code Refactors
+
+* **dev-tools:** remove in-plugin developer tools ahead of WP.org release ([#959](https://github.com/niklas-joh/plume-ai/issues/959)) ([9d75e67](https://github.com/niklas-joh/plume-ai/commit/9d75e670bc590bec3616cd0a14dcddc3fc4abeb6))
+
 ## [1.13.2](https://github.com/niklas-joh/plume-ai/compare/v1.13.1...v1.13.2) (2026-08-28)
 
 ### Bug Fixes

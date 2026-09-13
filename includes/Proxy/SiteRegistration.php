@@ -48,7 +48,7 @@ class SiteRegistration {
 	 * Cleared automatically on the next successful (or merely transient-failing)
 	 * registration attempt — see record_registration_outcome().
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 */
 	public const OPTION_PERMANENT_FAILURE = 'plume_reg_permanent_failure';
 
@@ -58,7 +58,7 @@ class SiteRegistration {
 	 * localhost, invalid TLS, a login wall) cannot succeed until the admin
 	 * changes something, so there is no value in re-attempting every 5 minutes.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 */
 	public const PERMANENT_BACKOFF = 6 * HOUR_IN_SECONDS;
 
@@ -68,7 +68,7 @@ class SiteRegistration {
 	 * condition. Mirrors plume-proxy/src/types.ts::VerificationFailureReason
 	 * minus 'timeout' and 'http_error', which stay transient.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 * @var string[]
 	 */
 	public const PERMANENT_VERIFICATION_REASONS = [
@@ -133,7 +133,7 @@ class SiteRegistration {
 	 * @since 1.2.0
 	 * @since 1.12.0 No longer hooked to admin_init; registration is lazy,
 	 *                      scheduled on shutdown of the first proxy-backed request.
-	 * @since NEXT_VERSION Delegates outcome handling (backoff + permanent-failure
+	 * @since 1.13.3 Delegates outcome handling (backoff + permanent-failure
 	 *                      bookkeeping) to record_registration_outcome().
 	 * @return void
 	 */
@@ -239,7 +239,7 @@ class SiteRegistration {
 	 * displayed message is always this plugin's own canned copy, so wording
 	 * stays under the plugin's control regardless of what the Worker sends.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 * @param string $reason One of PERMANENT_VERIFICATION_REASONS, or an unrecognised value.
 	 * @return string Translatable, user-facing diagnostic message.
 	 */
@@ -261,7 +261,7 @@ class SiteRegistration {
 	/**
 	 * Return the stored permanent-failure diagnostic, if one is on record.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 * @return array{reason: string, message: string}|null The stored diagnostic, or null when none is recorded.
 	 */
 	public static function get_permanent_failure(): ?array {
@@ -275,7 +275,7 @@ class SiteRegistration {
 	/**
 	 * Clear any stored permanent-failure diagnostic.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 * @return void
 	 */
 	public static function clear_permanent_failure(): void {
@@ -291,7 +291,7 @@ class SiteRegistration {
 	 * apart: a permanent verification failure on record always wins over the
 	 * generic "still connecting" message.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 * @return WP_Error `site_unreachable` when a permanent failure is stored; otherwise the
 	 *                   existing generic `not_registered` "connecting…" error.
 	 */
@@ -323,7 +323,7 @@ class SiteRegistration {
 	 * the admin notice can surface it) and sets a much longer 6-hour backoff —
 	 * there's no value in retrying a structurally broken install every 5 minutes.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.13.3
 	 * @param string|WP_Error $result The return value of register().
 	 * @return void
 	 */

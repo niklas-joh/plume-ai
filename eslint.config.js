@@ -34,11 +34,13 @@ module.exports = [
 	// the same plugin key is registered twice with different object instances, so
 	// that entry is filtered out here — its role (registering `jsdoc` + baseline
 	// severities) is filled instead by our own, newer, directly-installed
-	// `eslint-plugin-jsdoc` below, in the same array position. WP's own jsdoc
-	// rule-severity tuning (the entry immediately after it, which carries no
-	// `plugins` key) is untouched and still applies at the same precedence it had
-	// under the old `.eslintrc.js`'s `extends` order (WP's tuning, then our plugin's
-	// baseline, then our own overrides below — same three-layer stack as before).
+	// `eslint-plugin-jsdoc`, whose baseline is appended *after* the whole WP
+	// config block below (not spliced in at the removed entry's original index).
+	// WP's own jsdoc rule-severity tuning (the entry that carries no `plugins`
+	// key) still lives inside that spread and applies first. The net precedence
+	// is therefore: WP severity tuning → our v64 `recommended-error` baseline →
+	// our own overrides below — the same three-layer stack as the old
+	// `.eslintrc.js`'s `extends` order, just re-expressed as flat-config order.
 	...wordpress.configs.recommended.filter(
 		( config ) => ! ( config.plugins && config.plugins.jsdoc )
 	),

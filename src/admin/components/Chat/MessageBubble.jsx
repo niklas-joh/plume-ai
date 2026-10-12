@@ -59,8 +59,8 @@ export default function MessageBubble( { message } ) {
 						</p>
 						{ revision.comments.length > 0 && (
 							<ul className="plume-bubble__revision-list">
-								{ revision.comments.map( ( c, i ) => (
-									<li key={ i }>
+								{ revision.comments.map( ( c ) => (
+									<li key={ `${ c.anchor ?? '' }:${ c.text }` }>
 										{ c.anchor && (
 											<blockquote className="plume-bubble__revision-anchor">
 												{ c.anchor }
@@ -76,7 +76,7 @@ export default function MessageBubble( { message } ) {
 						{ revision.note && (
 							<p className="plume-bubble__revision-note">
 								<strong>
-									{ __( 'Overall note', 'plume' ) }:
+									{ __( 'Overall note:', 'plume' ) }
 								</strong>{ ' ' }
 								{ revision.note }
 							</p>

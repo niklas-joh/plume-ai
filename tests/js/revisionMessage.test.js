@@ -70,6 +70,19 @@ describe( 'revisionMessage', () => {
 		);
 	} );
 
+	it( 'mis-attributes a comment ending in a note line (known limitation)', () => {
+		const msg = buildRevisionMessage(
+			[ { selectedText: 'A', text: 'real comment\n\nOverall: inner line' } ],
+			''
+		);
+		// The inner "\n\nOverall: " inside the comment text is wrongly treated
+		// as the overall note delimiter, splitting the comment lossily.
+		expect( parseRevisionMessage( msg ) ).toEqual( {
+			comments: [ { anchor: 'A', text: 'real comment' } ],
+			note: 'inner line',
+		} );
+	} );
+
 	it( 'parses a stored (trimmed) string', () => {
 		const stored =
 			'Please revise your proposed changes.\n\nInline feedback:\n- On "x": y\n\nOverall: z';

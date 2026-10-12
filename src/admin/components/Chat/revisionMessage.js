@@ -46,6 +46,11 @@ export function buildRevisionMessage( comments, generalNote ) {
  * after the opening quote ends the anchor; messages that cannot be parsed
  * unambiguously return null so the caller falls back to plain text.
  *
+ * A third lossy case produces a plausible-but-wrong render rather than a
+ * plain-text fallback: a comment whose text contains a line `\n\nOverall: …`
+ * is mis-attributed as the overall note, because `lastIndexOf` finds that
+ * inner occurrence rather than the real trailing note delimiter.
+ *
  * @param {string} content Stored message content.
  * @return {?{comments: Array<{anchor: ?string, text: string}>, note: ?string}} Parsed message, or null.
  */

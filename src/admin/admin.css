@@ -254,7 +254,7 @@
 }
 
 .plume-bubble__revision-anchor {
-	margin: 0 0 2px;
+	margin: 0 0 var(--space-0-5);
 	padding-left: var(--space-2);
 	border-left: 3px solid rgba(var(--wp-admin-theme-color--rgb), 0.5);
 	font-style: italic;

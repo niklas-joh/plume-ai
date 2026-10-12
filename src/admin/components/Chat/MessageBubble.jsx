@@ -3,6 +3,7 @@ import { __ } from '@wordpress/i18n';
 import { Cpu } from 'lucide-react';
 import MarkdownContent from '../../../shared/MarkdownContent';
 import PlanCard from './PlanCard';
+import { parseRevisionMessage } from './revisionMessage';
 
 const TOOL_LABELS = {
 	get_recent_posts: __( 'Fetched recent posts', 'plume' ),
@@ -16,7 +17,9 @@ const TOOL_LABELS = {
 /**
  * Renders a single chat message bubble.
  *
- * AI messages are rendered as sanitised Markdown; user messages are plain text.
+ * AI messages are rendered as sanitised Markdown; user messages are plain text,
+ * except revision requests from the review drawer, which show each comment
+ * beneath the text it refers to.
  * Error messages receive an additional error modifier class. When an AI message
  * includes a pending plan, a PlanCard approval widget is rendered below the text.
  *
@@ -35,6 +38,7 @@ const TOOL_LABELS = {
 export default function MessageBubble( { message } ) {
 	const isAI = message.role === 'assistant';
 	const [ plan, setPlan ] = useState( message.pending_plan ?? null );
+	const revision = isAI ? null : parseRevisionMessage( message.content );
 
 	return (
 		<div
@@ -48,6 +52,36 @@ export default function MessageBubble( { message } ) {
 						content={ message.content }
 						className="plume-bubble__markdown"
 					/>
+				) : revision ? (
+					<div className="plume-bubble__revision">
+						<p className="plume-bubble__revision-title">
+							{ __( 'Revision requested', 'plume' ) }
+						</p>
+						{ revision.comments.length > 0 && (
+							<ul className="plume-bubble__revision-list">
+								{ revision.comments.map( ( c, i ) => (
+									<li key={ i }>
+										{ c.anchor && (
+											<blockquote className="plume-bubble__revision-anchor">
+												{ c.anchor }
+											</blockquote>
+										) }
+										<span className="plume-bubble__revision-text">
+											{ c.text }
+										</span>
+									</li>
+								) ) }
+							</ul>
+						) }
+						{ revision.note && (
+							<p className="plume-bubble__revision-note">
+								<strong>
+									{ __( 'Overall note', 'plume' ) }:
+								</strong>{ ' ' }
+								{ revision.note }
+							</p>
+						) }
+					</div>
 				) : (
 					<p>{ message.content }</p>
 				) }

@@ -136,12 +136,9 @@ class ToolExecutor {
 			return [ 'error' => 'Post not found.' ];
 		}
 
-		if ( 'publish' !== $post->post_status ) {
-			$is_author    = ( (int) $post->post_author === $user_id );
-			$can_edit_all = \user_can( $user_id, 'edit_others_posts' );
-			if ( ! $is_author && ! $can_edit_all ) {
-				return [ 'error' => 'Not authorised to read this post.' ];
-			}
+		if ( ! \user_can( $user_id, 'read_post', $post_id )
+			|| ( \post_password_required( $post ) && ! \user_can( $user_id, 'edit_post', $post_id ) ) ) {
+			return [ 'error' => 'Not authorised to read this post.' ];
 		}
 
 		$content = \wp_strip_all_tags( \apply_filters( 'the_content', $post->post_content ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound

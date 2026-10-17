@@ -99,6 +99,10 @@ class ToolExecutor {
 
 		$posts = [];
 		foreach ( $query->posts as $post ) {
+			// An explicit post_status bypasses WP_Query read checks, so filter per post.
+			if ( ! \user_can( $user_id, 'read_post', $post->ID ) ) {
+				continue;
+			}
 			$posts[] = [
 				'id'        => $post->ID,
 				'title'     => \html_entity_decode( $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),

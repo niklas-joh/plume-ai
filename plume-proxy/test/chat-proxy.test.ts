@@ -872,9 +872,11 @@ describe( 'handleChatProxy', () => {
 	it( 'returns 200 when a higher-tier OpenAI model is requested by a free site — falls back to default', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 
+		let capturedBody: Record< string, unknown > | null = null;
 		vi.stubGlobal(
 			'fetch',
-			vi.fn().mockImplementation( async () => {
+			vi.fn().mockImplementation( async ( _url: string, init: RequestInit ) => {
+				capturedBody = JSON.parse( init.body as string );
 				return new Response(
 					JSON.stringify( {
 						choices: [ { message: { content: 'ok' } } ],
@@ -892,14 +894,30 @@ describe( 'handleChatProxy', () => {
 			feature: 'chat',
 		} );
 
-		// Free tier has no openai models at all — getModelForTier throws a typed
-		// 400 (empty allowed-models array), not a fallback to a different model.
+		// gpt-4.1 is pro_managed only — a free site is routed to the free-tier
+		// default (gpt-4.1-nano) rather than rejected.
 		const response = await worker.fetch( makeChatRequest( body ), env );
-		expect( response.status ).toBe( 400 );
+		expect( response.status ).toBe( 200 );
+		expect( ( capturedBody as Record< string, unknown > | null )?.model ).toBe(
+			'gpt-4.1-nano'
+		);
 	} );
 
-	it( 'GPT-4.1 nano is not yet present in DEFAULT_TIER_MODELS.free for openai', async () => {
+	it( 'free tier: GPT-4.1 nano is allowed and billed at its fractional weight (0.1)', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async () => {
+				return new Response(
+					JSON.stringify( {
+						choices: [ { message: { content: 'ok' } } ],
+						usage: { prompt_tokens: 30000, completion_tokens: 10000 },
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
 
 		const body = JSON.stringify( {
 			messages: [ { role: 'user', content: 'Hello' } ],
@@ -908,10 +926,13 @@ describe( 'handleChatProxy', () => {
 			feature: 'chat',
 		} );
 
-		// free.openai is an empty array — issue #856 tracks adding gpt-4.1-nano,
-		// not resolved by this PR.
 		const response = await worker.fetch( makeChatRequest( body ), env );
-		expect( response.status ).toBe( 400 );
+		expect( response.status ).toBe( 200 );
+
+		// (30000 + 10000) * 0.1 / 2000 = 2 credits.
+		const stored = await getStoredUsage( env );
+		expect( stored ).toBe( chatCredits( 30000, 10000, 0.1 ) );
+		expect( stored ).toBe( 2 );
 	} );
 
 	it( 'falls back to the free-tier default when a pro-only Gemini model is requested by a free site', async () => {

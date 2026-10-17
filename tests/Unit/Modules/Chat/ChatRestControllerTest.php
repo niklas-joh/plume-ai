@@ -548,7 +548,12 @@ class ChatRestControllerTest extends TestCase {
         $store_mock->method( 'get_messages' )->willReturn( [
             [ 'role' => 'user', 'content' => 'Hello' ],
         ] );
-        $store_mock->expects( $this->exactly( 2 ) )->method( 'add_message' );
+        $saved_messages = [];
+        $store_mock->expects( $this->exactly( 2 ) )->method( 'add_message' )
+            ->willReturnCallback( function ( ...$args ) use ( &$saved_messages ) {
+                $saved_messages[] = $args;
+                return count( $saved_messages );
+            } );
 
         // Tool call response (iteration 1).
         $tool_response = new CompletionResponse(
@@ -604,8 +609,13 @@ class ChatRestControllerTest extends TestCase {
         $this->assertInstanceOf( \WP_REST_Response::class, $response );
         $this->assertSame( 200, $response->get_status() );
         $this->assertSame( 'Final answer', $response->data['content'] );
-        $this->assertSame( 20, $response->data['prompt_tokens'] );
-        $this->assertSame( 15, $response->data['completion_tokens'] );
+        // Usage is summed across both loop iterations (10+20, 5+15), not just the final call.
+        $this->assertSame( 30, $response->data['prompt_tokens'] );
+        $this->assertSame( 20, $response->data['completion_tokens'] );
+        $this->assertSame( 0.001, $response->data['cost_usd'] );
+        // The assistant message is persisted with the whole turn's token total (30 + 20).
+        $this->assertSame( 'assistant', $saved_messages[1][1] );
+        $this->assertSame( 50, $saved_messages[1][4] );
     }
 
     public function test_send_message_returns_429_with_retry_after_header_on_rate_limit(): void {

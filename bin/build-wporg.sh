@@ -42,6 +42,7 @@ fi
 
 # Copy only production files (allowlist — safe by default, new dev tooling never leaks in)
 rsync -a \
+    --exclude='.*' \
     --include='includes/***' \
     --include='languages/***' \
     --include='vendor/***' \

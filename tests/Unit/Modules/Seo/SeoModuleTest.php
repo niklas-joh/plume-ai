@@ -332,6 +332,8 @@ class SeoModuleTest extends TestCase {
 		Functions\when( 'wp_update_post' )->justReturn( 1 );
 		Functions\when( 'update_post_meta' )->justReturn( true );
 		Functions\when( 'get_post_thumbnail_id' )->justReturn( 42 );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'user_can' )->justReturn( true );
 
 		$fields = [
 			'meta_title'     => 'SEO Title',
@@ -347,6 +349,23 @@ class SeoModuleTest extends TestCase {
 		$this->assertContains( 'og_description', $result['updated'] );
 		$this->assertContains( 'excerpt', $result['updated'] );
 		$this->assertContains( 'alt_text', $result['updated'] );
+	}
+
+	public function test_apply_for_post_skips_alt_text_when_user_cannot_edit_the_attachment(): void {
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 42 );
+		$checked = [];
+		Functions\when( 'user_can' )->alias(
+			static function ( int $user_id, string $capability, int $object_id ) use ( &$checked ): bool {
+				$checked[] = [ $user_id, $capability, $object_id ];
+				return false;
+			}
+		);
+		Functions\expect( 'update_post_meta' )->never();
+
+		$result = SeoModule::apply_for_post( 1, [ 'alt_text' => 'Alt' ], 9 );
+
+		$this->assertSame( [ [ 9, 'edit_post', 42 ] ], $checked );
+		$this->assertSame( [], $result['updated'] );
 	}
 
 	public function test_apply_for_post_skips_null_and_empty_fields(): void {
@@ -498,6 +517,8 @@ class SeoModuleTest extends TestCase {
 		Functions\when( 'wp_update_post' )->justReturn( 1 );
 		Functions\when( 'update_post_meta' )->justReturn( true );
 		Functions\when( 'get_post_thumbnail_id' )->justReturn( 42 );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'sanitize_text_field' )->alias( fn( $s ) => $s );
 		Functions\when( 'sanitize_textarea_field' )->alias( fn( $s ) => $s );
 		Functions\when( '__' )->alias( fn( $s ) => $s );

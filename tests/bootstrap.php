@@ -53,10 +53,30 @@ if ( ! class_exists( 'WP_Error' ) ) {
 
 if ( ! class_exists( 'WP_Post' ) ) {
 	class WP_Post {
-		public int    $ID           = 0;
-		public string $post_title   = '';
-		public string $post_content = '';
-		public string $post_excerpt = '';
+		public int    $ID            = 0;
+		public string $post_title    = '';
+		public string $post_content  = '';
+		public string $post_excerpt  = '';
+		public string $post_status   = 'publish';
+		public string $post_author   = '0';
+		public string $post_date     = '';
+		public string $post_password = '';
+		public string $post_name     = '';
+		public string $post_type     = 'post';
+	}
+}
+
+if ( ! class_exists( 'WP_Query' ) ) {
+	/**
+	 * Minimal WP_Query stub. Tests set $stub_posts to simulate query results.
+	 */
+	class WP_Query {
+		/** Posts the next query returns. */
+		public static array $stub_posts = [];
+		public array $posts = [];
+		public function __construct( array $args ) {
+			$this->posts = self::$stub_posts;
+		}
 	}
 }
 

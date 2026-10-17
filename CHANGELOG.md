@@ -1,3 +1,13 @@
+## [1.14.0](https://github.com/niklas-joh/plume-ai/compare/v1.13.3...v1.14.0) (2026-10-17)
+
+### New Features
+
+* **admin:** show revision requests as structured chat bubble ([#972](https://github.com/niklas-joh/plume-ai/issues/972)) ([82d8b93](https://github.com/niklas-joh/plume-ai/commit/82d8b939c29f3dcf12223ac8978a7f60e8bb9882))
+
+### Bug Fixes
+
+* **security:** enforce read_post on chat read tools and tighten SEO alt-text writes ([#975](https://github.com/niklas-joh/plume-ai/issues/975)) ([c6cb115](https://github.com/niklas-joh/plume-ai/commit/c6cb115cba816bbf05f949b6fcd063395b220547)), closes [#976](https://github.com/niklas-joh/plume-ai/issues/976) [#979](https://github.com/niklas-joh/plume-ai/issues/979) [#976](https://github.com/niklas-joh/plume-ai/issues/976) [#977](https://github.com/niklas-joh/plume-ai/issues/977) [#978](https://github.com/niklas-joh/plume-ai/issues/978)
+
 ## [1.13.3](https://github.com/niklas-joh/plume-ai/compare/v1.13.2...v1.13.3) (2026-09-11)
 
 ### Bug Fixes

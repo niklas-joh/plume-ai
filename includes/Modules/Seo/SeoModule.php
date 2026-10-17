@@ -327,7 +327,7 @@ class SeoModule {
 	 * Returns an array with 'post_id' and 'updated' (list of applied field names).
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Added $user_id; alt text requires edit_post on the attachment.
+	 * @since 1.14.0 Added $user_id; alt text requires edit_post on the attachment.
 	 * @param int                  $post_id Post ID to apply metadata to.
 	 * @param array<string,string> $fields  Associative array of SEO field values. Callers are responsible
 	 *                                      for sanitising values before passing them in — this method writes

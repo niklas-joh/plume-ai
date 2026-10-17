@@ -70,7 +70,7 @@ class ToolExecutor {
 	 * Retrieve a list of recent posts.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Results are filtered per post with read_post.
+	 * @since 1.14.0 Results are filtered per post with read_post.
 	 * @param array $args    Tool arguments from the AI provider.
 	 * @param int   $user_id WordPress user ID performing the call.
 	 * @return array
@@ -121,7 +121,7 @@ class ToolExecutor {
 	 * Retrieve the full content of a single post or page.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Access is decided by read_post (and edit_post for password-protected posts).
+	 * @since 1.14.0 Access is decided by read_post (and edit_post for password-protected posts).
 	 * @param array $args    Tool arguments from the AI provider.
 	 * @param int   $user_id WordPress user ID performing the call.
 	 * @return array
@@ -157,7 +157,7 @@ class ToolExecutor {
 	 * Search for posts matching a keyword query.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Results are filtered per post with read_post.
+	 * @since 1.14.0 Results are filtered per post with read_post.
 	 * @param array $args    Tool arguments from the AI provider.
 	 * @param int   $user_id WordPress user ID performing the call.
 	 * @return array
@@ -469,7 +469,7 @@ class ToolExecutor {
 	 * per result. Password-protected content stays hidden from anyone who
 	 * could not edit the post, matching the REST API.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 1.14.0
 	 * @param int      $user_id WordPress user ID performing the call.
 	 * @param \WP_Post $post    Post to check.
 	 * @return bool

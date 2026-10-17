@@ -70,6 +70,7 @@ class ToolExecutor {
 	 * Retrieve a list of recent posts.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Results are filtered per post with read_post.
 	 * @param array $args    Tool arguments from the AI provider.
 	 * @param int   $user_id WordPress user ID performing the call.
 	 * @return array
@@ -99,6 +100,9 @@ class ToolExecutor {
 
 		$posts = [];
 		foreach ( $query->posts as $post ) {
+			if ( ! $this->user_can_read( $user_id, $post ) ) {
+				continue;
+			}
 			$posts[] = [
 				'id'        => $post->ID,
 				'title'     => \html_entity_decode( $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
@@ -117,6 +121,7 @@ class ToolExecutor {
 	 * Retrieve the full content of a single post or page.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Access is decided by read_post (and edit_post for password-protected posts).
 	 * @param array $args    Tool arguments from the AI provider.
 	 * @param int   $user_id WordPress user ID performing the call.
 	 * @return array
@@ -132,12 +137,8 @@ class ToolExecutor {
 			return [ 'error' => 'Post not found.' ];
 		}
 
-		if ( 'publish' !== $post->post_status ) {
-			$is_author    = ( (int) $post->post_author === $user_id );
-			$can_edit_all = \user_can( $user_id, 'edit_others_posts' );
-			if ( ! $is_author && ! $can_edit_all ) {
-				return [ 'error' => 'Not authorised to read this post.' ];
-			}
+		if ( ! $this->user_can_read( $user_id, $post ) ) {
+			return [ 'error' => 'Not authorised to read this post.' ];
 		}
 
 		$content = \wp_strip_all_tags( \apply_filters( 'the_content', $post->post_content ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
@@ -156,6 +157,7 @@ class ToolExecutor {
 	 * Search for posts matching a keyword query.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Results are filtered per post with read_post.
 	 * @param array $args    Tool arguments from the AI provider.
 	 * @param int   $user_id WordPress user ID performing the call.
 	 * @return array
@@ -188,6 +190,9 @@ class ToolExecutor {
 
 		$posts = [];
 		foreach ( $query->posts as $post ) {
+			if ( ! $this->user_can_read( $user_id, $post ) ) {
+				continue;
+			}
 			$posts[] = [
 				'id'        => $post->ID,
 				'title'     => \html_entity_decode( $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
@@ -456,6 +461,32 @@ class ToolExecutor {
 	}
 
 	/**
+	 * Whether a user may read a post's content through the chat tools.
+	 *
+	 * Delegates to core's read_post meta capability, which resolves the post
+	 * type's own capabilities for drafts, pending and private posts. An explicit
+	 * post_status in WP_Query skips those checks, so list tools must call this
+	 * per result. Password-protected content stays hidden from anyone who
+	 * could not edit the post, matching the REST API.
+	 *
+	 * @since NEXT_VERSION
+	 * @param int      $user_id WordPress user ID performing the call.
+	 * @param \WP_Post $post    Post to check.
+	 * @return bool
+	 */
+	private function user_can_read( int $user_id, \WP_Post $post ): bool {
+		if ( ! \user_can( $user_id, 'read_post', $post->ID ) ) {
+			return false;
+		}
+
+		if ( ! empty( $post->post_password ) && ! \user_can( $user_id, 'edit_post', $post->ID ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Returns the WordPress transient key for a user's in-flight plan_update draft.
 	 *
 	 * Single-slot per user — only one agentic loop runs per user request, so a
@@ -534,7 +565,7 @@ class ToolExecutor {
 		}
 
 		\Plume\Tiers\UsageTracker::log_usage( $seo_data['tokens_used'], $user_id );
-		$applied = \Plume\Modules\Seo\SeoModule::apply_for_post( $post_id, $seo_data );
+		$applied = \Plume\Modules\Seo\SeoModule::apply_for_post( $post_id, $seo_data, $user_id );
 
 		return [
 			'post_id'        => $post_id,

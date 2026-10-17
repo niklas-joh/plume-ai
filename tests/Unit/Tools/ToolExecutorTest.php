@@ -9,17 +9,6 @@ use Plume\Tools\ToolExecutor;
 use Plume\Tools\ToolRegistry;
 use PHPUnit\Framework\TestCase;
 
-/**
- * Minimal WP_Query stub for the test environment.
- * The real class is not available outside a WordPress bootstrap.
- */
-if ( ! class_exists( 'WP_Query' ) ) {
-	class WP_Query {
-		public array $posts = [];
-		public function __construct( array $args ) {}
-	}
-}
-
 if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 	define( 'HOUR_IN_SECONDS', 3600 );
 }
@@ -50,6 +39,7 @@ class ToolExecutorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\WP_Query::$stub_posts = [];
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -103,6 +93,96 @@ class ToolExecutorTest extends TestCase {
 		$this->assertStringContainsString( 'not permitted', $result['error'] );
 	}
 
+	/**
+	 * Build a minimal WP_Post-like object.
+	 */
+	private function make_post( int $id, string $status, int $author, string $password = '' ): \WP_Post {
+		$post                = new \WP_Post();
+		$post->ID            = $id;
+		$post->post_title    = "Post {$id}";
+		$post->post_content  = "Body of post {$id}.";
+		$post->post_excerpt  = '';
+		$post->post_status   = $status;
+		$post->post_author   = (string) $author;
+		$post->post_date     = '2026-01-01 12:00:00';
+		$post->post_password = $password;
+		return $post;
+	}
+
+	/**
+	 * Stub the WordPress helpers the list tools call while building results.
+	 */
+	private function stub_list_helpers(): void {
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $v ) => $v );
+		Functions\when( 'wp_trim_words' )->alias( static fn( $v ) => $v );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/p' );
+		Functions\when( 'wp_reset_postdata' )->justReturn( null );
+	}
+
+	/**
+	 * Stub user_can() as a Contributor (user 7): read_post/edit_post only on their own posts.
+	 *
+	 * @param object[] $posts Posts the capability check may be asked about.
+	 */
+	private function act_as_contributor( array $posts ): void {
+		$authors = [];
+		foreach ( $posts as $post ) {
+			$authors[ $post->ID ] = (int) $post->post_author;
+		}
+		Functions\when( 'user_can' )->alias(
+			static function ( int $user_id, string $capability, ...$args ) use ( $authors ): bool {
+				if ( 'edit_posts' === $capability ) {
+					return true;
+				}
+				if ( in_array( $capability, [ 'read_post', 'edit_post' ], true ) ) {
+					$post_id = (int) ( $args[0] ?? 0 );
+					return ( $authors[ $post_id ] ?? 0 ) === $user_id;
+				}
+				return false;
+			}
+		);
+	}
+
+	public function test_get_recent_posts_hides_other_users_drafts_and_private_posts(): void {
+		$this->stub_list_helpers();
+		$own_draft     = $this->make_post( 1, 'draft', 7 );
+		$other_draft   = $this->make_post( 2, 'draft', 3 );
+		$other_private = $this->make_post( 3, 'private', 3 );
+		\WP_Query::$stub_posts = [ $own_draft, $other_draft, $other_private ];
+		$this->act_as_contributor( \WP_Query::$stub_posts );
+
+		$result = $this->make_executor()->execute( 'get_recent_posts', [ 'status' => 'any' ], 7 );
+
+		$this->assertSame( [ 1 ], array_column( $result['posts'], 'id' ) );
+	}
+
+	public function test_get_recent_posts_hides_password_protected_posts_the_user_cannot_edit(): void {
+		$this->stub_list_helpers();
+		$protected = $this->make_post( 4, 'publish', 3, 'secret' );
+		\WP_Query::$stub_posts = [ $protected ];
+		Functions\when( 'user_can' )->alias(
+			static fn( int $user_id, string $capability ): bool => 'edit_post' !== $capability
+		);
+
+		$result = $this->make_executor()->execute( 'get_recent_posts', [], 7 );
+
+		$this->assertSame( [], $result['posts'] );
+	}
+
+	public function test_search_posts_hides_posts_the_user_cannot_read(): void {
+		$this->stub_list_helpers();
+		$own   = $this->make_post( 1, 'publish', 7 );
+		$other = $this->make_post( 2, 'private', 3 );
+		\WP_Query::$stub_posts = [ $own, $other ];
+		$this->act_as_contributor( \WP_Query::$stub_posts );
+
+		$result = $this->make_executor()->execute( 'search_posts', [ 'query' => 'post' ], 7 );
+
+		$this->assertSame( [ 1 ], array_column( $result['posts'], 'id' ) );
+	}
+
 	// -------------------------------------------------------------------------
 	// get_post_content
 	// -------------------------------------------------------------------------
@@ -110,17 +190,8 @@ class ToolExecutorTest extends TestCase {
 	public function test_get_post_content_blocks_private_post_for_other_user(): void {
 		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
 
-		// Build a minimal post object mimicking WP_Post.
-		$post               = new \stdClass();
-		$post->ID           = 42;
-		$post->post_title   = 'Secret Draft';
-		$post->post_content = 'Private content.';
-		$post->post_excerpt = '';
-		$post->post_status  = 'draft';
-		$post->post_author  = '10'; // Author is user 10.
-		$post->post_date    = '2026-01-01 12:00:00';
-
-		Functions\when( 'get_post' )->justReturn( $post );
+		// A draft by user 10.
+		Functions\when( 'get_post' )->justReturn( $this->make_post( 42, 'draft', 10 ) );
 
 		// user_can: return false for any capability check (not author, not editor).
 		Functions\when( 'user_can' )->justReturn( false );
@@ -128,6 +199,40 @@ class ToolExecutorTest extends TestCase {
 		$executor = $this->make_executor();
 		// User 99 is neither the author (10) nor has edit_others_posts.
 		$result = $executor->execute( 'get_post_content', [ 'post_id' => 42 ], 99 );
+
+		$this->assertArrayHasKey( 'error', $result );
+		$this->assertStringContainsString( 'authorised', strtolower( $result['error'] ) );
+	}
+
+	public function test_get_post_content_delegates_to_read_post(): void {
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'apply_filters' )->alias( static fn( $hook, $v ) => $v );
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $v ) => $v );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/p' );
+		Functions\when( 'get_post' )->justReturn( $this->make_post( 42, 'private', 3 ) );
+
+		$checked = [];
+		Functions\when( 'user_can' )->alias(
+			static function ( int $user_id, string $capability, ...$args ) use ( &$checked ): bool {
+				$checked[] = [ $capability, $args[0] ?? null ];
+				return true;
+			}
+		);
+
+		$result = $this->make_executor()->execute( 'get_post_content', [ 'post_id' => 42 ], 99 );
+
+		$this->assertContains( [ 'read_post', 42 ], $checked );
+		$this->assertSame( 42, $result['id'] );
+	}
+
+	public function test_get_post_content_blocks_password_protected_post_without_edit_post(): void {
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) abs( $v ) );
+		Functions\when( 'get_post' )->justReturn( $this->make_post( 42, 'publish', 3, 'secret' ) );
+		Functions\when( 'user_can' )->alias(
+			static fn( int $user_id, string $capability ): bool => 'edit_post' !== $capability
+		);
+
+		$result = $this->make_executor()->execute( 'get_post_content', [ 'post_id' => 42 ], 99 );
 
 		$this->assertArrayHasKey( 'error', $result );
 		$this->assertStringContainsString( 'authorised', strtolower( $result['error'] ) );

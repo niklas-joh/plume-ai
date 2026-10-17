@@ -327,6 +327,7 @@ class SeoModule {
 	 * Returns an array with 'post_id' and 'updated' (list of applied field names).
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Added $user_id; alt text requires edit_post on the attachment.
 	 * @param int                  $post_id Post ID to apply metadata to.
 	 * @param array<string,string> $fields  Associative array of SEO field values. Callers are responsible
 	 *                                      for sanitising values before passing them in — this method writes
@@ -334,9 +335,11 @@ class SeoModule {
 	 *                                      sanitisation. The REST path sanitises via register_rest_route() args;
 	 *                                      any future direct caller must apply sanitize_text_field() /
 	 *                                      sanitize_textarea_field() itself.
+	 * @param int                  $user_id Optional. User performing the change; defaults to the current user.
+	 *                                      Alt text is only written when this user may edit the attachment.
 	 * @return array<string,mixed>
 	 */
-	public static function apply_for_post( int $post_id, array $fields ): array {
+	public static function apply_for_post( int $post_id, array $fields, int $user_id = 0 ): array {
 		$updated = [];
 
 		$excerpt = $fields['excerpt'] ?? null;
@@ -367,7 +370,9 @@ class SeoModule {
 		$alt_text = $fields['alt_text'] ?? null;
 		if ( null !== $alt_text && '' !== $alt_text ) {
 			$thumb_id = \get_post_thumbnail_id( $post_id );
-			if ( $thumb_id ) {
+			$user_id  = 0 !== $user_id ? $user_id : \get_current_user_id();
+			// edit_post on the parent post does not grant rights over the attachment.
+			if ( $thumb_id && \user_can( $user_id, 'edit_post', $thumb_id ) ) {
 				\update_post_meta( $thumb_id, '_wp_attachment_image_alt', $alt_text );
 				$updated[] = 'alt_text';
 			}

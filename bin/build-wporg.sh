@@ -40,8 +40,10 @@ if [[ "$SKIP_BUILD" == "false" ]]; then
     cd "${PLUGIN_DIR}" && composer install --no-dev --optimize-autoloader --no-interaction
 fi
 
-# Copy only production files (allowlist — safe by default, new dev tooling never leaks in)
+# Copy only production files (allowlist — safe by default, new dev tooling never leaks in).
+# Dotfiles are excluded first so dependency metadata (.gitignore, .editorconfig, …) never ships.
 rsync -a \
+    --exclude='.*' \
     --include='includes/***' \
     --include='languages/***' \
     --include='vendor/***' \

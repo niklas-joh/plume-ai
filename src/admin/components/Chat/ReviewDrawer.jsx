@@ -13,6 +13,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { computeDiff } from '../../utils/computeDiff';
 import { storageGet, storageSet } from '../../utils/storage';
 import DiffView from './DiffView';
+import { buildRevisionMessage } from './revisionMessage';
 import MarkdownContent from '../../../shared/MarkdownContent';
 
 const DRAWER_WIDTH_KEY = 'plume_drawer_width';
@@ -300,24 +301,7 @@ export default function ReviewDrawer( {
 		setDrawerState( 'loading' );
 		setError( null );
 
-		const parts = [];
-		if ( savedComments.length > 0 ) {
-			const commentList = savedComments
-				.map( ( c ) =>
-					c.selectedText
-						? `- On "${ c.selectedText }": ${ c.text }`
-						: `- ${ c.text }`
-				)
-				.join( '\n' );
-			parts.push( `Inline feedback:\n${ commentList }` );
-		}
-		if ( generalNote.trim() ) {
-			parts.push( `Overall: ${ generalNote.trim() }` );
-		}
-
-		const message = `Please revise your proposed changes.\n\n${ parts.join(
-			'\n\n'
-		) }`;
+		const message = buildRevisionMessage( savedComments, generalNote );
 
 		try {
 			const res = await apiFetch( {

@@ -334,10 +334,14 @@ class SeoModule {
 	 *                                      sanitisation. The REST path sanitises via register_rest_route() args;
 	 *                                      any future direct caller must apply sanitize_text_field() /
 	 *                                      sanitize_textarea_field() itself.
+	 * @param int                  $user_id WordPress user ID to authorise the attachment alt-text write against.
+	 *                                      Defaults to 0, which resolves to the current user (REST path). The chat
+	 *                                      path must pass the acting user explicitly.
 	 * @return array<string,mixed>
 	 */
-	public static function apply_for_post( int $post_id, array $fields ): array {
+	public static function apply_for_post( int $post_id, array $fields, int $user_id = 0 ): array {
 		$updated = [];
+		$user_id = $user_id > 0 ? $user_id : \get_current_user_id();
 
 		$excerpt = $fields['excerpt'] ?? null;
 		if ( null !== $excerpt && '' !== $excerpt ) {
@@ -367,7 +371,7 @@ class SeoModule {
 		$alt_text = $fields['alt_text'] ?? null;
 		if ( null !== $alt_text && '' !== $alt_text ) {
 			$thumb_id = \get_post_thumbnail_id( $post_id );
-			if ( $thumb_id ) {
+			if ( $thumb_id && \user_can( $user_id, 'edit_post', $thumb_id ) ) {
 				\update_post_meta( $thumb_id, '_wp_attachment_image_alt', $alt_text );
 				$updated[] = 'alt_text';
 			}

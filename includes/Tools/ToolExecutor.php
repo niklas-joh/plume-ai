@@ -535,7 +535,7 @@ class ToolExecutor {
 		}
 
 		\Plume\Tiers\UsageTracker::log_usage( $seo_data['tokens_used'], $user_id );
-		$applied = \Plume\Modules\Seo\SeoModule::apply_for_post( $post_id, $seo_data );
+		$applied = \Plume\Modules\Seo\SeoModule::apply_for_post( $post_id, $seo_data, $user_id );
 
 		return [
 			'post_id'        => $post_id,

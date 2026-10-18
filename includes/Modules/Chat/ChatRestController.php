@@ -451,6 +451,9 @@ class ChatRestController {
 			$tools_called             = [];
 			$force_submit_content     = false;
 			$credits_accumulated      = 0;
+			$prompt_tokens_total      = 0;
+			$completion_tokens_total  = 0;
+			$cost_usd_total           = 0.0;
 			$last_successful_response = null;
 
 			while ( $iteration < $max_iterations ) {
@@ -503,8 +506,11 @@ class ChatRestController {
 
 				// Every successful call this turn is billed by the Worker on its own usage
 				// (see plume-proxy/src/index.ts::handleChatProxy) — sum across all iterations
-				// so the total logged below matches what was actually charged.
+				// so the totals logged and returned below match what was actually spent.
 				$credits_accumulated     += $response->credits_charged;
+				$prompt_tokens_total     += $response->prompt_tokens;
+				$completion_tokens_total += $response->completion_tokens;
+				$cost_usd_total          += $response->cost_usd;
 				$last_successful_response = $response;
 
 				// Bare text response — happens when tools are not supported by the provider.
@@ -589,7 +595,7 @@ class ChatRestController {
 			// place that writes it.
 			UsageTracker::log_usage( $credits_accumulated, $user_id );
 
-			$store->add_message( $conv_id, 'assistant', $final_response->content, $final_response->model, $final_response->total_tokens );
+			$store->add_message( $conv_id, 'assistant', $final_response->content, $final_response->model, $prompt_tokens_total + $completion_tokens_total );
 
 			// Remember which plan this conversation is currently awaiting approval on
 			// so a page reload (or another device) can re-open the review drawer. The
@@ -608,9 +614,9 @@ class ChatRestController {
 					'content'           => $final_response->content,
 					'model'             => $final_response->model,
 					'credits'           => $credits_accumulated,
-					'cost_usd'          => $final_response->cost_usd,
-					'prompt_tokens'     => $final_response->prompt_tokens,
-					'completion_tokens' => $final_response->completion_tokens,
+					'cost_usd'          => $cost_usd_total,
+					'prompt_tokens'     => $prompt_tokens_total,
+					'completion_tokens' => $completion_tokens_total,
 					'pending_plan'      => $pending_plan,
 					'tools_called'      => \array_values( \array_unique( $tools_called ) ),
 				]

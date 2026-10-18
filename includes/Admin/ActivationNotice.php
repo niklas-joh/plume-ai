@@ -84,7 +84,7 @@ class ActivationNotice {
 				echo wp_kses(
 					sprintf(
 						' <a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
-						\esc_url( PLUME_WEBSITE_URL . '/privacy-policy' ),
+						\esc_url( PLUME_WEBSITE_URL . '/privacy-policy.html' ),
 						\esc_html__( 'Learn more', 'plume' )
 					),
 					[

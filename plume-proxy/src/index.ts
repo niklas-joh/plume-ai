@@ -39,9 +39,10 @@ const FLAT_FEATURE_CREDITS: Record<
 type Provider = 'claude' | 'openai' | 'gemini';
 
 // Fallback model lists used when no config:models entry exists in USAGE_KV.
-// `free` carries only Claude Haiku — gpt-4.1-nano is deliberately not added
-// (its weight is undefined, tracked in issue #856).
-const DEFAULT_TIER_MODELS: Record< Provider, Record< ProxyTier, string[] > > = {
+export const DEFAULT_TIER_MODELS: Record<
+	Provider,
+	Record< ProxyTier, string[] >
+> = {
 	claude: {
 		free: [ 'claude-haiku-4-5-20251001' ],
 		pro_managed: [
@@ -51,7 +52,7 @@ const DEFAULT_TIER_MODELS: Record< Provider, Record< ProxyTier, string[] > > = {
 		],
 	},
 	openai: {
-		free: [],
+		free: [ 'gpt-4.1-nano' ],
 		pro_managed: [ 'gpt-4.1' ],
 	},
 	gemini: {
@@ -62,11 +63,14 @@ const DEFAULT_TIER_MODELS: Record< Provider, Record< ProxyTier, string[] > > = {
 
 // Fallback token weights — relative cost multipliers applied to raw token counts
 // before computing credits, so quota enforcement is provider/model-agnostic.
-const DEFAULT_MODEL_TOKEN_WEIGHT: Record< string, number > = {
+// Weights track list input price relative to Claude Haiku 4.5 ($1/MTok), so a
+// sub-Haiku model gets a fractional weight (gpt-4.1-nano: $0.10/MTok → 0.1).
+export const DEFAULT_MODEL_TOKEN_WEIGHT: Record< string, number > = {
 	'claude-haiku-4-5-20251001': 1,
 	'claude-sonnet-4-6': 3,
 	'claude-opus-4-6': 5,
 	'gpt-4.1': 2,
+	'gpt-4.1-nano': 0.1,
 	'gemini-3.1-flash-lite': 1,
 	'gemini-3.5-flash': 2,
 };

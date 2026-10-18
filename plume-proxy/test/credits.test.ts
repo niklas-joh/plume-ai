@@ -46,6 +46,15 @@ describe( 'chatCredits', () => {
 		expect( chatCredits( 10000, 5000, 10 ) ).toBe( 75 );
 	} );
 
+	it( 'handles a fractional weight (gpt-4.1-nano, weight=0.1)', () => {
+		// (15000+5000)*0.1 = 2000 → exactly 1 credit, no float drift past the boundary.
+		expect( chatCredits( 15000, 5000, 0.1 ) ).toBe( 1 );
+		// (3000+1000)*0.1/2000 = 0.2 → rounds up to 1.
+		expect( chatCredits( 3000, 1000, 0.1 ) ).toBe( 1 );
+		// (300000+100000)*0.1/2000 = 20.
+		expect( chatCredits( 300000, 100000, 0.1 ) ).toBe( 20 );
+	} );
+
 	it( 'is a pure function — identical inputs always produce identical output', () => {
 		const a = chatCredits( 1234, 567, 3 );
 		const b = chatCredits( 1234, 567, 3 );

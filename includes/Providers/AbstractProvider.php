@@ -184,6 +184,8 @@ abstract class AbstractProvider implements ProviderInterface {
 	 * so the plural/singular tool-call contract cannot drift between them (see #893). Token counts are
 	 * read from `$result['usage']`; the first proxy tool call (or null) is exposed via `tool_call` so
 	 * is_tool_call() stays a simple null-check while the full array is preserved in `raw`.
+	 * Prompt-cache counts (`cache_read_input_tokens` / `cache_creation_input_tokens`, reported by
+	 * the Worker since NEXT_VERSION) map onto `cache_read_tokens` / `cache_write_tokens`, matching BYOK.
 	 *
 	 * @since 1.11.0
 	 * @param array  $result The proxy's normalised response payload.
@@ -198,14 +200,16 @@ abstract class AbstractProvider implements ProviderInterface {
 		[ $first_tool_call ] = CompletionResponse::first_and_all_tool_calls_from_proxy( $result );
 
 		return new CompletionResponse(
-			content:           $result['content'] ?? '',
-			model:             $model,
-			prompt_tokens:     $in_tokens,
-			completion_tokens: $out_tokens,
-			cost_usd:          $cost,
-			raw:               $result,
-			tool_call:         $first_tool_call,
-			credits_charged:   (int) ( $result['credits_charged'] ?? 0 ),
+			content:            $result['content'] ?? '',
+			model:              $model,
+			prompt_tokens:      $in_tokens,
+			completion_tokens:  $out_tokens,
+			cost_usd:           $cost,
+			raw:                $result,
+			tool_call:          $first_tool_call,
+			credits_charged:    (int) ( $result['credits_charged'] ?? 0 ),
+			cache_read_tokens:  (int) ( $result['usage']['cache_read_input_tokens'] ?? 0 ),
+			cache_write_tokens: (int) ( $result['usage']['cache_creation_input_tokens'] ?? 0 ),
 		);
 	}
 }

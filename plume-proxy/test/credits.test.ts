@@ -2,7 +2,9 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+	CACHE_PRICE_MULTIPLIERS,
 	chatCredits,
+	rawChatCreditUnits,
 	getCreditLimit,
 	GENERATOR_CREDITS,
 	SEO_CREDITS,
@@ -94,5 +96,73 @@ describe( 'getCreditLimit', () => {
 
 	it( 'returns null for the unmetered pro_byok tier', () => {
 		expect( getCreditLimit( 'pro_byok' ) ).toBeNull();
+	} );
+} );
+
+describe( 'rawChatCreditUnits — prompt-cache billing (#946, #859)', () => {
+	it( 'is unchanged when no cache usage is passed', () => {
+		expect( rawChatCreditUnits( 1500, 500, 3 ) ).toBe( ( 2000 * 3 ) / 2000 );
+		expect(
+			rawChatCreditUnits( 1500, 500, 3, { provider: 'claude' } )
+		).toBe( rawChatCreditUnits( 1500, 500, 3 ) );
+		expect(
+			rawChatCreditUnits( 1500, 500, 3, {
+				provider: 'openai',
+				cacheWriteTokens: 0,
+				cacheReadTokens: 0,
+			} )
+		).toBe( rawChatCreditUnits( 1500, 500, 3 ) );
+	} );
+
+	it( 'uses the agreed per-provider multipliers', () => {
+		expect( CACHE_PRICE_MULTIPLIERS ).toEqual( {
+			claude: { write: 1.25, read: 0.1 },
+			openai: { write: 0, read: 0.25 },
+			gemini: { write: 0, read: 0.25 },
+		} );
+	} );
+
+	it( 'bills Claude cache writes at 1.25× input', () => {
+		// (1000 + 1.25 × 1000) × 1 / 2000 = 1.125
+		expect(
+			rawChatCreditUnits( 1000, 0, 1, {
+				provider: 'claude',
+				cacheWriteTokens: 1000,
+			} )
+		).toBe( 1.125 );
+		expect(
+			rawChatCreditUnits( 1000, 0, 1, {
+				provider: 'claude',
+				cacheWriteTokens: 1000,
+			} )
+		).toBeGreaterThan( rawChatCreditUnits( 1000, 0, 1 ) );
+	} );
+
+	it( 'bills Claude cache reads at 0.1× input', () => {
+		// 0.1 × 20000 × 1 / 2000 = 1
+		expect(
+			rawChatCreditUnits( 0, 0, 1, {
+				provider: 'claude',
+				cacheReadTokens: 20000,
+			} )
+		).toBeCloseTo( 1, 10 );
+	} );
+
+	it( 'bills OpenAI and Gemini cache reads at 0.25× input and ignores writes', () => {
+		for ( const provider of [ 'openai', 'gemini' ] as const ) {
+			expect(
+				rawChatCreditUnits( 0, 0, 2, {
+					provider,
+					cacheReadTokens: 4000,
+					cacheWriteTokens: 9999,
+				} )
+			).toBe( 1 ); // 0.25 × 4000 × 2 / 2000
+		}
+	} );
+
+	it( 'chatCredits() rounds the cache-inclusive raw cost', () => {
+		expect(
+			chatCredits( 1000, 0, 1, { provider: 'claude', cacheWriteTokens: 1000 } )
+		).toBe( 2 );
 	} );
 } );

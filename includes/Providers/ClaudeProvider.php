@@ -211,7 +211,9 @@ class ClaudeProvider extends AbstractProvider {
 		$model        = '' !== $worker_model ? $worker_model : ( ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL );
 		$in_tokens    = (int) ( $result['usage']['input_tokens'] ?? 0 );
 		$out_tokens   = (int) ( $result['usage']['output_tokens'] ?? 0 );
-		$cost         = $this->calculate_cost( $model, $in_tokens, $out_tokens );
+		$cache_read   = (int) ( $result['usage']['cache_read_input_tokens'] ?? 0 );
+		$cache_write  = (int) ( $result['usage']['cache_creation_input_tokens'] ?? 0 );
+		$cost         = $this->calculate_cost( $model, $in_tokens, $out_tokens, $cache_read, $cache_write );
 
 		// Detect a tool-call response. build_proxy_response() centralises the plural/singular contract
 		// and response assembly so the three providers cannot drift apart: the full array is preserved

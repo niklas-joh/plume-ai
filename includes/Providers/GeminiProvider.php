@@ -212,12 +212,12 @@ class GeminiProvider extends AbstractProvider {
 		// parse_response() expects the upstream Gemini wire format and cannot handle the normalised response.
 		$worker_model = \sanitize_text_field( $result['model'] ?? '' );
 		$model        = '' !== $worker_model ? $worker_model : $model;
-		// The Worker now reports cached prompt tokens separately from input_tokens. No cached
-		// rate is configured in PRICING, so they are costed at the full input rate as before.
-		$in_tokens  = (int) ( $result['usage']['input_tokens'] ?? 0 ) + (int) ( $result['usage']['cache_read_input_tokens'] ?? 0 );
+		// Cached prompt tokens are recombined and costed at the full input rate; see
+		// proxy_input_with_cache_read() for why cost_usd deliberately diverges from the credit charge.
+		$in_tokens  = $this->proxy_input_with_cache_read( $result['usage'] ?? [] );
 		$out_tokens = (int) ( $result['usage']['output_tokens'] ?? 0 );
 		$pricing    = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
-		$cost       = ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
+		$cost       = $this->flat_rate_cost( $in_tokens, $out_tokens, $pricing );
 
 		// Worker sends tool_calls (plural array); build_proxy_response() centralises the plural/singular
 		// contract and response assembly shared with Claude and OpenAI to prevent drift (see #893).

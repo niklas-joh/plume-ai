@@ -178,6 +178,40 @@ abstract class AbstractProvider implements ProviderInterface {
 	}
 
 	/**
+	 * Recombine the Worker's separately-reported cached prompt tokens into the billable input count.
+	 *
+	 * The proxy reports cached prompt tokens (`cache_read_input_tokens`) separately from
+	 * `input_tokens`. No cached rate is configured in any provider's PRICING table, so the two
+	 * are summed and costed at the full input rate — the behaviour that predated the split.
+	 * Centralising the decision here keeps it identical across the OpenAI and Gemini proxy paths.
+	 *
+	 * Note the deliberate divergence from the credit charge: credits (the source of truth, billed
+	 * by the Worker) price cached reads at 0.25× via CACHE_PRICE_MULTIPLIERS, whereas the
+	 * informational `cost_usd` derived from this count overstates them at the full input rate until
+	 * a cached rate is added to PRICING.
+	 *
+	 * @since NEXT_VERSION
+	 * @param array $usage The proxy `usage` payload.
+	 * @return int Input tokens including cached reads.
+	 */
+	protected function proxy_input_with_cache_read( array $usage ): int {
+		return (int) ( $usage['input_tokens'] ?? 0 ) + (int) ( $usage['cache_read_input_tokens'] ?? 0 );
+	}
+
+	/**
+	 * Compute a flat per-million-token USD cost from a provider PRICING entry.
+	 *
+	 * @since NEXT_VERSION
+	 * @param int   $in_tokens  Billable input tokens.
+	 * @param int   $out_tokens Output tokens.
+	 * @param array $pricing    PRICING entry with 'in'/'out' per-million rates.
+	 * @return float Cost in USD.
+	 */
+	protected function flat_rate_cost( int $in_tokens, int $out_tokens, array $pricing ): float {
+		return ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
+	}
+
+	/**
 	 * Build a CompletionResponse from the proxy's normalised shape `{ content, usage, model, tool_calls? }`.
 	 *
 	 * Centralises the response assembly shared by all three proxy providers (Claude, OpenAI, Gemini)

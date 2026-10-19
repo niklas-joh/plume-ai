@@ -186,6 +186,41 @@ class OpenAIProviderTest extends TestCase {
 		$this->assertFalse( $response->is_tool_call() );
 	}
 
+	public function test_complete_via_proxy_maps_cached_tokens_without_changing_cost(): void {
+		$this->mock_free_tier_proxy();
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		$request = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content' => 'ok',
+				'usage'   => [ 'input_tokens' => 1000, 'output_tokens' => 10 ],
+			] ),
+		] );
+		$uncached = ( new OpenAIProvider( '' ) )->complete( $request );
+
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content' => 'ok',
+				'usage'   => [
+					'input_tokens'            => 200,
+					'output_tokens'           => 10,
+					'cache_read_input_tokens' => 800,
+				],
+			] ),
+		] );
+		$cached = ( new OpenAIProvider( '' ) )->complete( $request );
+
+		$this->assertSame( 200, $cached->prompt_tokens );
+		$this->assertSame( 800, $cached->cache_read_tokens );
+		$this->assertSame( 0, $cached->cache_write_tokens );
+		// No cached rate in PRICING yet, so cached tokens cost the full input rate (as before the split).
+		$this->assertEqualsWithDelta( $uncached->cost_usd, $cached->cost_usd, 1e-12 );
+	}
+
 	public function test_complete_via_proxy_tool_call(): void {
 		$this->mock_free_tier_proxy();
 		Functions\when( 'wp_remote_post' )->justReturn( [

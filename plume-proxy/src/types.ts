@@ -48,9 +48,34 @@ export interface ToolParam {
 	};
 }
 
+/**
+ * Upstream AI provider the Worker can route a call to.
+ *
+ * @since NEXT_VERSION
+ */
+export type Provider = 'claude' | 'openai' | 'gemini';
+
+/**
+ * Provider-agnostic token usage for one upstream call.
+ *
+ * `input_tokens` never includes cached tokens: Anthropic already reports them
+ * separately, and the OpenAI/Gemini adapters subtract their cached count from
+ * the prompt total so no token is billed twice. The cache fields are only set
+ * when the provider reported a non-zero value, so a call with no caching has
+ * exactly the same shape as before.
+ */
+export interface NormalizedUsage {
+	input_tokens: number;
+	output_tokens: number;
+	/** Tokens written to the prompt cache (Anthropic only). @since NEXT_VERSION */
+	cache_creation_input_tokens?: number;
+	/** Tokens served from the prompt cache (all providers). @since NEXT_VERSION */
+	cache_read_input_tokens?: number;
+}
+
 export interface NormalizedResponse {
 	content: string;
-	usage: { input_tokens: number; output_tokens: number };
+	usage: NormalizedUsage;
 	tool_calls?: Array< {
 		id: string;
 		name: string;

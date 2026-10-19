@@ -1387,3 +1387,131 @@ describe( 'handleChatProxy', () => {
 		expect( second.status ).toBe( 429 );
 	} );
 } );
+
+describe( 'chat proxy — prompt-cache billing (#946, #859)', () => {
+	function stubUpstream( payload: Record< string, unknown > ) {
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockImplementation(
+					async () =>
+						new Response( JSON.stringify( payload ), { status: 200 } )
+				)
+		);
+	}
+
+	function chatBody( provider: 'claude' | 'openai' | 'gemini' ) {
+		return JSON.stringify( {
+			messages: [ { role: 'user', content: 'Hello' } ],
+			provider,
+			feature: 'chat',
+		} );
+	}
+
+	type CacheJson = {
+		usage: Record< string, number >;
+		credits_charged: number;
+	};
+
+	it( 'Claude: cache writes are billed at 1.25× on top of input_tokens', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		stubUpstream( {
+			content: [ { type: 'text', text: 'ok' } ],
+			usage: {
+				input_tokens: 1000,
+				output_tokens: 0,
+				cache_creation_input_tokens: 1000,
+				cache_read_input_tokens: 0,
+			},
+		} );
+
+		const response = await worker.fetch( makeChatRequest( chatBody( 'claude' ) ), env );
+		expect( response.status ).toBe( 200 );
+		const json = ( await response.json() ) as CacheJson;
+
+		// Haiku weight 1: (1000 + 1.25 × 1000) / 2000 = 1.125, vs 0.5 uncached.
+		const stored = await getStoredUsage( env );
+		expect( stored ).toBe( 1.125 );
+		expect( stored ).toBeGreaterThan( rawChatCreditUnits( 1000, 0, 1 ) );
+		expect( json.credits_charged ).toBe( 2 );
+		// Zero cache reads are omitted from the normalised usage.
+		expect( json.usage ).toEqual( {
+			input_tokens: 1000,
+			output_tokens: 0,
+			cache_creation_input_tokens: 1000,
+		} );
+	} );
+
+	it( 'Claude: cache reads are billed at 0.1×', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		stubUpstream( {
+			content: [ { type: 'text', text: 'ok' } ],
+			usage: {
+				input_tokens: 0,
+				output_tokens: 0,
+				cache_read_input_tokens: 4000,
+			},
+		} );
+
+		const response = await worker.fetch( makeChatRequest( chatBody( 'claude' ) ), env );
+		const json = ( await response.json() ) as CacheJson;
+
+		// 0.1 × 4000 / 2000 = 0.2
+		expect( await getStoredUsage( env ) ).toBeCloseTo( 0.2, 10 );
+		expect( json.credits_charged ).toBe( 1 );
+		expect( json.usage.cache_read_input_tokens ).toBe( 4000 );
+	} );
+
+	it( 'OpenAI: cached_tokens are split out of prompt_tokens and billed at 0.25×', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		stubUpstream( {
+			choices: [ { message: { content: 'ok' } } ],
+			usage: {
+				prompt_tokens: 10000,
+				completion_tokens: 0,
+				prompt_tokens_details: { cached_tokens: 8000 },
+			},
+		} );
+
+		const response = await worker.fetch( makeChatRequest( chatBody( 'openai' ) ), env );
+		expect( response.status ).toBe( 200 );
+		const json = ( await response.json() ) as CacheJson;
+
+		// gpt-4.1-nano weight 0.1: (2000 + 0.25 × 8000) × 0.1 / 2000 = 0.2,
+		// down from 10000 × 0.1 / 2000 = 0.5 when cached tokens were billed in full.
+		const stored = await getStoredUsage( env );
+		expect( stored ).toBeCloseTo( 0.2, 10 );
+		expect( stored ).toBeLessThan( rawChatCreditUnits( 10000, 0, 0.1 ) );
+		expect( json.usage ).toEqual( {
+			input_tokens: 2000,
+			output_tokens: 0,
+			cache_read_input_tokens: 8000,
+		} );
+	} );
+
+	it( 'Gemini: cachedContentTokenCount is split out of promptTokenCount and billed at 0.1×', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		stubUpstream( {
+			candidates: [ { content: { parts: [ { text: 'ok' } ] } } ],
+			usageMetadata: {
+				promptTokenCount: 4000,
+				candidatesTokenCount: 0,
+				cachedContentTokenCount: 2000,
+			},
+		} );
+
+		const response = await worker.fetch( makeChatRequest( chatBody( 'gemini' ) ), env );
+		expect( response.status ).toBe( 200 );
+		const json = ( await response.json() ) as CacheJson;
+
+		// gemini-3.1-flash-lite weight 1: (2000 + 0.1 × 2000) / 2000 = 1.1
+		expect( await getStoredUsage( env ) ).toBeCloseTo( 1.1, 10 );
+		expect( json.credits_charged ).toBe( 2 );
+		expect( json.usage ).toEqual( {
+			input_tokens: 2000,
+			output_tokens: 0,
+			cache_read_input_tokens: 2000,
+		} );
+	} );
+} );

@@ -4,6 +4,8 @@ import {
 	Env,
 	ModelConfig,
 	NormalizedResponse,
+	NormalizedUsage,
+	Provider,
 	ProxyRequest,
 	ProxyTier,
 	SiteRecord,
@@ -36,7 +38,35 @@ const FLAT_FEATURE_CREDITS: Record<
 	images: IMAGE_CREDITS,
 };
 
-type Provider = 'claude' | 'openai' | 'gemini';
+/**
+ * Build a NormalizedUsage, adding the cache fields only when non-zero so a
+ * call with no prompt caching keeps exactly the pre-cache response shape.
+ *
+ * @since NEXT_VERSION
+ * @param {number} input      Uncached input tokens.
+ * @param {number} output     Output tokens.
+ * @param {number} cacheWrite Tokens written to the prompt cache.
+ * @param {number} cacheRead  Tokens served from the prompt cache.
+ * @return {NormalizedUsage} Normalised usage.
+ */
+function buildUsage(
+	input: number,
+	output: number,
+	cacheWrite: number,
+	cacheRead: number
+): NormalizedUsage {
+	const usage: NormalizedUsage = {
+		input_tokens: input,
+		output_tokens: output,
+	};
+	if ( cacheWrite > 0 ) {
+		usage.cache_creation_input_tokens = cacheWrite;
+	}
+	if ( cacheRead > 0 ) {
+		usage.cache_read_input_tokens = cacheRead;
+	}
+	return usage;
+}
 
 // Fallback model lists used when no config:models entry exists in USAGE_KV.
 export const DEFAULT_TIER_MODELS: Record<
@@ -224,9 +254,22 @@ async function callClaude(
 				input?: Record< string, unknown >;
 		  } > )
 		: [];
-	const usage = ( result.usage as
-		| { input_tokens: number; output_tokens: number }
+	const rawUsage = ( result.usage as
+		| {
+				input_tokens: number;
+				output_tokens: number;
+				cache_creation_input_tokens?: number;
+				cache_read_input_tokens?: number;
+		  }
 		| undefined ) ?? { input_tokens: 0, output_tokens: 0 };
+	// Anthropic's input_tokens already excludes cache writes and reads, so the
+	// cache counts are additive rather than a split of input_tokens.
+	const usage = buildUsage(
+		rawUsage.input_tokens,
+		rawUsage.output_tokens,
+		rawUsage.cache_creation_input_tokens ?? 0,
+		rawUsage.cache_read_input_tokens ?? 0
+	);
 
 	const textBlock = blocks.find( ( b ) => b.type === 'text' && b.text );
 	const toolBlocks = blocks.filter(
@@ -237,10 +280,7 @@ async function callClaude(
 	if ( toolBlocks.length > 0 ) {
 		return {
 			content: textContent,
-			usage: {
-				input_tokens: usage.input_tokens,
-				output_tokens: usage.output_tokens,
-			},
+			usage,
 			tool_calls: toolBlocks.map( ( b ) => ( {
 				id: b.id as string,
 				name: b.name as string,
@@ -251,10 +291,7 @@ async function callClaude(
 
 	return {
 		content: textContent,
-		usage: {
-			input_tokens: usage.input_tokens,
-			output_tokens: usage.output_tokens,
-		},
+		usage,
 	};
 }
 
@@ -325,11 +362,17 @@ async function callOpenAI(
 	const usage = result.usage as {
 		prompt_tokens: number;
 		completion_tokens: number;
+		prompt_tokens_details?: { cached_tokens?: number };
 	};
-	const normalizedUsage = {
-		input_tokens: usage.prompt_tokens,
-		output_tokens: usage.completion_tokens,
-	};
+	// OpenAI's prompt_tokens includes cached tokens — split them out so they are
+	// billed once, at the cached rate.
+	const openaiCached = usage.prompt_tokens_details?.cached_tokens ?? 0;
+	const normalizedUsage = buildUsage(
+		usage.prompt_tokens - openaiCached,
+		usage.completion_tokens,
+		0,
+		openaiCached
+	);
 
 	if ( choices[ 0 ]?.finish_reason === 'tool_calls' ) {
 		const tcs = choices[ 0 ].message.tool_calls ?? [];
@@ -409,11 +452,17 @@ async function callGemini(
 	const usageMeta = result.usageMetadata as {
 		promptTokenCount: number;
 		candidatesTokenCount: number;
+		cachedContentTokenCount?: number;
 	};
-	const normalizedUsage = {
-		input_tokens: usageMeta.promptTokenCount,
-		output_tokens: usageMeta.candidatesTokenCount,
-	};
+	// Implicit-cache hits are reported inside promptTokenCount — split them out
+	// the same way as OpenAI.
+	const geminiCached = usageMeta.cachedContentTokenCount ?? 0;
+	const normalizedUsage = buildUsage(
+		usageMeta.promptTokenCount - geminiCached,
+		usageMeta.candidatesTokenCount,
+		0,
+		geminiCached
+	);
 
 	const functionCallParts = ( candidates[ 0 ]?.content?.parts ?? [] ).filter(
 		( p ) => p.functionCall
@@ -908,7 +957,14 @@ async function handleChatProxy(
 				? rawChatCreditUnits(
 						normalized.usage.input_tokens,
 						normalized.usage.output_tokens,
-						tokenWeights[ selectedModel ] ?? 1
+						tokenWeights[ selectedModel ] ?? 1,
+						{
+							provider,
+							cacheWriteTokens:
+								normalized.usage.cache_creation_input_tokens,
+							cacheReadTokens:
+								normalized.usage.cache_read_input_tokens,
+						}
 				  )
 				: FLAT_FEATURE_CREDITS[ feature ];
 

@@ -1,6 +1,6 @@
 // src/credits.ts
 
-import { ProxyTier, SiteTier } from './types';
+import { Provider, ProxyTier, SiteTier } from './types';
 
 export const GENERATOR_CREDITS = 10;
 export const SEO_CREDITS = 1;
@@ -35,6 +35,41 @@ export function getCreditLimit( tier: SiteTier ): number | null {
 export const TOKENS_PER_CREDIT = 2000;
 
 /**
+ * Prompt-cache price multipliers, relative to each model's base input price.
+ *
+ * - claude: cache write 1.25× (5-minute `ephemeral` TTL — Plume never sets a
+ *   1-hour `ttl`, which would be 2×), cache read 0.1×. Source: Anthropic
+ *   prompt-caching pricing docs; matches ClaudeProvider::PRICING on the BYOK path.
+ * - openai: no write premium, cached input 0.25×. Source: OpenAI model pages —
+ *   gpt-4.1 $2.00 input / $0.50 cached, gpt-4.1-nano $0.10 / $0.025 per MTok.
+ * - gemini: no write premium (Plume requests no explicit caching), cache hits
+ *   0.1× input. Source: Gemini API pricing page — gemini-3.1-flash-lite $0.25
+ *   input / $0.025 context caching per MTok (same 0.1× ratio for the Flash models).
+ *   Storage fees only apply to explicit caches, which Plume does not create.
+ *
+ * @since NEXT_VERSION
+ */
+export const CACHE_PRICE_MULTIPLIERS: Record<
+	Provider,
+	{ write: number; read: number }
+> = {
+	claude: { write: 1.25, read: 0.1 },
+	openai: { write: 0, read: 0.25 },
+	gemini: { write: 0, read: 0.1 },
+};
+
+/**
+ * Prompt-cache token counts for one call, plus the provider whose multipliers apply.
+ *
+ * @since NEXT_VERSION
+ */
+export interface CacheTokenUsage {
+	provider: Provider;
+	cacheWriteTokens?: number;
+	cacheReadTokens?: number;
+}
+
+/**
  * Raw (unrounded) chat cost in credit units — the building block chatCredits()
  * rounds. Used directly by handleChatProxy()'s per-call billing so that N calls
  * within one agentic-loop turn are billed on their real combined token volume
@@ -42,18 +77,32 @@ export const TOKENS_PER_CREDIT = 2000;
  * each call independently rounding up to its own whole credit, which would
  * overcharge multi-step turns relative to a single equivalent-sized call.
  *
+ * Formula:
+ * ((input + output + writeMult × cacheWrite + readMult × cacheRead) × weight) / TOKENS_PER_CREDIT,
+ * with the multipliers taken from CACHE_PRICE_MULTIPLIERS for the given provider.
+ * Without `cache` the result is identical to the pre-cache formula.
+ *
  * @since NEXT_VERSION
- * @param {number} inputTokens  Actual input token count returned by the provider for this call.
- * @param {number} outputTokens Actual output token count returned by the provider for this call.
- * @param {number} weight       Resolved per-model weight (DEFAULT_MODEL_TOKEN_WEIGHT, possibly KV-overridden).
+ * @param {number}          inputTokens  Uncached input tokens for this call.
+ * @param {number}          outputTokens Output token count returned by the provider for this call.
+ * @param {number}          weight       Resolved per-model weight (DEFAULT_MODEL_TOKEN_WEIGHT, possibly KV-overridden).
+ * @param {CacheTokenUsage} [cache]      Optional prompt-cache token counts and provider.
  * @return {number} Unrounded credit units for this call.
  */
 export function rawChatCreditUnits(
 	inputTokens: number,
 	outputTokens: number,
-	weight: number
+	weight: number,
+	cache?: CacheTokenUsage
 ): number {
-	return ( ( inputTokens + outputTokens ) * weight ) / TOKENS_PER_CREDIT;
+	let weightedTokens = inputTokens + outputTokens;
+	if ( cache ) {
+		const multipliers = CACHE_PRICE_MULTIPLIERS[ cache.provider ];
+		weightedTokens +=
+			multipliers.write * ( cache.cacheWriteTokens ?? 0 ) +
+			multipliers.read * ( cache.cacheReadTokens ?? 0 );
+	}
+	return ( weightedTokens * weight ) / TOKENS_PER_CREDIT;
 }
 
 /**
@@ -62,7 +111,7 @@ export function rawChatCreditUnits(
  * per-model weight table resolved by index.ts's getModelConfig(), not redefined
  * here).
  *
- * Formula: ceil((inputTokens + outputTokens) * weight / TOKENS_PER_CREDIT).
+ * Formula: ceil(rawChatCreditUnits(inputTokens, outputTokens, weight, cache)).
  *
  * Not used by handleChatProxy()'s per-call billing path — that bills on the raw
  * (unrounded) running total via rawChatCreditUnits() above. This thin ceil()
@@ -74,12 +123,16 @@ export function rawChatCreditUnits(
  * @param {number} inputTokens  Actual input token count returned by the provider for this call.
  * @param {number} outputTokens Actual output token count returned by the provider for this call.
  * @param {number} weight       Resolved per-model weight (DEFAULT_MODEL_TOKEN_WEIGHT, possibly KV-overridden).
+ * @param {CacheTokenUsage} [cache] Optional prompt-cache token counts and provider.
  * @return {number} Credits to charge, rounded up to the nearest whole credit.
  */
 export function chatCredits(
 	inputTokens: number,
 	outputTokens: number,
-	weight: number
+	weight: number,
+	cache?: CacheTokenUsage
 ): number {
-	return Math.ceil( rawChatCreditUnits( inputTokens, outputTokens, weight ) );
+	return Math.ceil(
+		rawChatCreditUnits( inputTokens, outputTokens, weight, cache )
+	);
 }

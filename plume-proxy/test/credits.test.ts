@@ -118,7 +118,7 @@ describe( 'rawChatCreditUnits — prompt-cache billing (#946, #859)', () => {
 		expect( CACHE_PRICE_MULTIPLIERS ).toEqual( {
 			claude: { write: 1.25, read: 0.1 },
 			openai: { write: 0, read: 0.25 },
-			gemini: { write: 0, read: 0.25 },
+			gemini: { write: 0, read: 0.1 },
 		} );
 	} );
 
@@ -148,16 +148,24 @@ describe( 'rawChatCreditUnits — prompt-cache billing (#946, #859)', () => {
 		).toBeCloseTo( 1, 10 );
 	} );
 
-	it( 'bills OpenAI and Gemini cache reads at 0.25× input and ignores writes', () => {
-		for ( const provider of [ 'openai', 'gemini' ] as const ) {
-			expect(
-				rawChatCreditUnits( 0, 0, 2, {
-					provider,
-					cacheReadTokens: 4000,
-					cacheWriteTokens: 9999,
-				} )
-			).toBe( 1 ); // 0.25 × 4000 × 2 / 2000
-		}
+	it( 'bills OpenAI cache reads at 0.25× input and ignores writes', () => {
+		expect(
+			rawChatCreditUnits( 0, 0, 2, {
+				provider: 'openai',
+				cacheReadTokens: 4000,
+				cacheWriteTokens: 9999,
+			} )
+		).toBe( 1 ); // 0.25 × 4000 × 2 / 2000
+	} );
+
+	it( 'bills Gemini cache reads at 0.1× input and ignores writes', () => {
+		expect(
+			rawChatCreditUnits( 0, 0, 2, {
+				provider: 'gemini',
+				cacheReadTokens: 10000,
+				cacheWriteTokens: 9999,
+			} )
+		).toBeCloseTo( 1, 10 ); // 0.1 × 10000 × 2 / 2000
 	} );
 
 	it( 'chatCredits() rounds the cache-inclusive raw cost', () => {

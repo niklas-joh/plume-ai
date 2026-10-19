@@ -1490,7 +1490,7 @@ describe( 'chat proxy — prompt-cache billing (#946, #859)', () => {
 		} );
 	} );
 
-	it( 'Gemini: cachedContentTokenCount is split out of promptTokenCount and billed at 0.25×', async () => {
+	it( 'Gemini: cachedContentTokenCount is split out of promptTokenCount and billed at 0.1×', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 		stubUpstream( {
 			candidates: [ { content: { parts: [ { text: 'ok' } ] } } ],
@@ -1505,8 +1505,8 @@ describe( 'chat proxy — prompt-cache billing (#946, #859)', () => {
 		expect( response.status ).toBe( 200 );
 		const json = ( await response.json() ) as CacheJson;
 
-		// gemini-3.1-flash-lite weight 1: (2000 + 0.25 × 2000) / 2000 = 1.25
-		expect( await getStoredUsage( env ) ).toBe( 1.25 );
+		// gemini-3.1-flash-lite weight 1: (2000 + 0.1 × 2000) / 2000 = 1.1
+		expect( await getStoredUsage( env ) ).toBeCloseTo( 1.1, 10 );
 		expect( json.credits_charged ).toBe( 2 );
 		expect( json.usage ).toEqual( {
 			input_tokens: 2000,

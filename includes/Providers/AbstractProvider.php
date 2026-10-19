@@ -186,9 +186,9 @@ abstract class AbstractProvider implements ProviderInterface {
 	 * Centralising the decision here keeps it identical across the OpenAI and Gemini proxy paths.
 	 *
 	 * Note the deliberate divergence from the credit charge: credits (the source of truth, billed
-	 * by the Worker) price cached reads at 0.25× via CACHE_PRICE_MULTIPLIERS, whereas the
-	 * informational `cost_usd` derived from this count overstates them at the full input rate until
-	 * a cached rate is added to PRICING.
+	 * by the Worker) price cached reads at 0.25× (OpenAI) / 0.1× (Gemini) via
+	 * CACHE_PRICE_MULTIPLIERS, whereas the informational `cost_usd` derived from this count
+	 * overstates them at the full input rate until a cached rate is added to PRICING.
 	 *
 	 * @since NEXT_VERSION
 	 * @param array $usage The proxy `usage` payload.

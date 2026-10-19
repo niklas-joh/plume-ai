@@ -40,10 +40,12 @@ export const TOKENS_PER_CREDIT = 2000;
  * - claude: cache write 1.25× (5-minute `ephemeral` TTL — Plume never sets a
  *   1-hour `ttl`, which would be 2×), cache read 0.1×. Source: Anthropic
  *   prompt-caching pricing docs; matches ClaudeProvider::PRICING on the BYOK path.
- * - openai: no write premium, cached input 0.25× (gpt-4.1-nano list price:
- *   $0.10 input / $0.025 cached input per MTok; the same ratio is assumed for gpt-4.1).
- * - gemini: no write premium (Plume requests no explicit caching), implicit
- *   cache hits billed at 0.25× input.
+ * - openai: no write premium, cached input 0.25×. Source: OpenAI model pages —
+ *   gpt-4.1 $2.00 input / $0.50 cached, gpt-4.1-nano $0.10 / $0.025 per MTok.
+ * - gemini: no write premium (Plume requests no explicit caching), cache hits
+ *   0.1× input. Source: Gemini API pricing page — gemini-3.1-flash-lite $0.25
+ *   input / $0.025 context caching per MTok (same 0.1× ratio for the Flash models).
+ *   Storage fees only apply to explicit caches, which Plume does not create.
  *
  * @since NEXT_VERSION
  */
@@ -53,7 +55,7 @@ export const CACHE_PRICE_MULTIPLIERS: Record<
 > = {
 	claude: { write: 1.25, read: 0.1 },
 	openai: { write: 0, read: 0.25 },
-	gemini: { write: 0, read: 0.25 },
+	gemini: { write: 0, read: 0.1 },
 };
 
 /**

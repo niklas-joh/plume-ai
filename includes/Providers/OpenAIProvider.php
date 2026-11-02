@@ -34,8 +34,11 @@ class OpenAIProvider extends AbstractProvider {
 	 * Models offered in the selector.
 	 *
 	 * Mirrors the union of plume-proxy/src/index.ts DEFAULT_TIER_MODELS.openai
-	 * (free + pro_managed) so a proxy-routed request never falls back to a
-	 * different model on the Worker. Keep the two in sync.
+	 * (free + pro_managed) so the selector never offers a model the Worker will
+	 * reject for proxy-routed (non-BYOK) requests. The Worker still enforces
+	 * per-tier (getModelForTier returns allowed[0] for any non-tier model), so a
+	 * model from the other tier is substituted cross-tier; cost is recomputed from
+	 * the Worker-returned model so pricing stays correct. Keep the two in sync.
 	 */
 	private const MODELS = [
 		'gpt-4.1'      => 'GPT-4.1',

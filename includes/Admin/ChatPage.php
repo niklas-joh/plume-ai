@@ -64,10 +64,11 @@ class ChatPage {
 		);
 
 		$default_slug        = (string) get_option( 'plume_default_provider', 'claude' );
+		$settings            = new ProviderSettings();
 		$default_model_label = self::default_model_label(
 			'' !== $default_slug ? $default_slug : 'claude',
-			new ProviderFactory( new ProviderSettings() ),
-			new ProviderSettings(),
+			new ProviderFactory( $settings ),
+			$settings,
 			TierManager::get_user_tier()
 		);
 
@@ -114,7 +115,7 @@ class ChatPage {
 		try {
 			$provider = $factory->make( $slug );
 
-			if ( 'ollama' !== $slug && '' === $settings->get_api_key( $slug ) ) {
+			if ( 'ollama' !== $slug && ! $settings->has_key( $slug ) ) {
 				$managed_id = ManagedDefaults::model_id( $slug, $tier );
 				if ( null !== $managed_id ) {
 					return ManagedDefaults::label( $managed_id ) ?? $managed_id;

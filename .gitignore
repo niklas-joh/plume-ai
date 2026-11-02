@@ -26,3 +26,8 @@ coverage.xml
 
 # QIT
 .qit/
+
+# Safety net: unit tests create wp-admin/includes/{media,file,image}.php
+# placeholders (see tests/Unit/Modules/Images/ImagesModuleUsageTest.php). A hard
+# PHP fatal would skip tearDown and leave these in the repo root; never commit them.
+wp-admin/

@@ -20,7 +20,7 @@ Chat, the Post generator and AI SEO work out of the box with no API key. Or conn
 
 * **Chat assistant**: brainstorm, research and rewrite in a conversation that can read your posts and search your content.
 * **Post generator**: describe a post, pick a tone and length, and get a full draft ready to edit.
-* **Editor sidebar**: chat about the post you are editing, rewrite, shorten or expand a block, and fill in SEO fields without leaving the block editor.
+* **Editor sidebar**: chat about the post you are editing, rewrite, shorten or expand a block, and check a quick SEO checklist without leaving the block editor.
 * **AI SEO**: generate meta titles, meta descriptions, excerpts and image alt text from one overview of all your posts.
 * **AI images**: create a featured image from a text prompt and set it in one click (needs your own OpenAI or Gemini API key).
 * **Usage dashboard**: see how many credits you have used this month.

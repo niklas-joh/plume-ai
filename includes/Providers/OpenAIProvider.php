@@ -28,31 +28,29 @@ use Plume\Tools\ToolRegistry;
 class OpenAIProvider extends AbstractProvider {
 
 	private const API_BASE      = 'https://api.openai.com/v1';
-	private const DEFAULT_MODEL = 'gpt-4o';
+	private const DEFAULT_MODEL = 'gpt-4.1';
 
+	/**
+	 * Models offered in the selector.
+	 *
+	 * Mirrors the union of plume-proxy/src/index.ts DEFAULT_TIER_MODELS.openai
+	 * (free + pro_managed) so a proxy-routed request never falls back to a
+	 * different model on the Worker. Keep the two in sync.
+	 */
 	private const MODELS = [
-		'gpt-4o'      => 'GPT-4o',
-		'gpt-4o-mini' => 'GPT-4o Mini',
-		'o3'          => 'o3',
-		'o4-mini'     => 'o4 Mini',
+		'gpt-4.1'      => 'GPT-4.1',
+		'gpt-4.1-nano' => 'GPT-4.1 Nano',
 	];
 
+	/** USD per million tokens. */
 	private const PRICING = [
-		'gpt-4o'      => [
-			'in'  => 2.5,
-			'out' => 10.0,
+		'gpt-4.1'      => [
+			'in'  => 2.0,
+			'out' => 8.0,
 		],
-		'gpt-4o-mini' => [
-			'in'  => 0.15,
-			'out' => 0.60,
-		],
-		'o3'          => [
-			'in'  => 10.0,
-			'out' => 40.0,
-		],
-		'o4-mini'     => [
-			'in'  => 1.1,
-			'out' => 4.4,
+		'gpt-4.1-nano' => [
+			'in'  => 0.10,
+			'out' => 0.40,
 		],
 	];
 

@@ -12,7 +12,8 @@ name: WordPress.org Deploy
 #        Edit Profile → Account & Security → SVN credentials.
 #
 # The workflow downloads the release ZIP built by release.yml, extracts it, then
-# uses 10up/action-wordpress-plugin-deploy to push to /trunk and create /tags/<version>.
+# uses 10up/action-wordpress-plugin-deploy to push to /trunk, create /tags/<version>
+# and sync wp-org-assets/ (icons, banners, screenshots) to the SVN /assets directory.
 # See https://github.com/10up/action-wordpress-plugin-deploy for env var reference.
 
 on:

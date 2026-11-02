@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Providers\ManagedDefaults;
 use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
 use Plume\Tiers\TierManager;
@@ -40,8 +41,7 @@ class ChatPage {
 	/**
 	 * Enqueue the admin script and stylesheet, and localise runtime data.
 	 *
-	 * Resolves the default model label by instantiating the configured provider;
-	 * falls back to 'AI' if the provider factory throws (e.g. no API key set).
+	 * Resolves the default model label via default_model_label().
 	 *
 	 * @since 1.0.0
 	 * @return void
@@ -64,16 +64,12 @@ class ChatPage {
 		);
 
 		$default_slug        = (string) get_option( 'plume_default_provider', 'claude' );
-		$provider_factory    = new ProviderFactory( new ProviderSettings() );
-		$default_model_label = 'AI';
-		try {
-			$default_provider    = $provider_factory->make( '' !== $default_slug ? $default_slug : 'claude' );
-			$default_models      = $default_provider->get_models();
-			$default_model_id    = $default_provider->get_default_model();
-			$default_model_label = $default_models[ $default_model_id ] ?? ucfirst( $default_slug );
-		} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- Intentional: fall back to 'AI' label on provider failure.
-			// Leave default label as 'AI' if factory fails.
-		}
+		$default_model_label = self::default_model_label(
+			'' !== $default_slug ? $default_slug : 'claude',
+			new ProviderFactory( new ProviderSettings() ),
+			new ProviderSettings(),
+			TierManager::get_user_tier()
+		);
 
 		wp_localize_script(
 			'plume-admin',
@@ -84,7 +80,7 @@ class ChatPage {
 				'currentPostId'     => 0,
 				'isPaid'            => TierManager::is_paid(),
 				'siteTitle'         => get_bloginfo( 'name' ),
-				'defaultModelLabel' => esc_html( $default_model_label ),
+				'defaultModelLabel' => $default_model_label,
 				'defaultProvider'   => $default_slug,
 				'publishCaps'       => self::publish_caps(),
 			]
@@ -96,6 +92,40 @@ class ChatPage {
 			[],
 			$asset['version']
 		);
+	}
+
+	/**
+	 * Resolve the label shown for the "Plugin default" model choice.
+	 *
+	 * Reflects the model a request with no explicit model really uses. With an own API
+	 * key (or Ollama) the plugin calls the provider directly and uses its default model.
+	 * Without a key the request goes through the managed proxy, whose default depends
+	 * on the tier (see ManagedDefaults). Falls back to the raw model id, then the
+	 * provider name, and to 'AI' if the provider cannot be created.
+	 *
+	 * @since NEXT_VERSION
+	 * @param string           $slug     Default provider slug.
+	 * @param ProviderFactory  $factory  Provider factory.
+	 * @param ProviderSettings $settings Provider settings holding the API keys.
+	 * @param string           $tier     Current site tier slug.
+	 * @return string Human-readable model label.
+	 */
+	private static function default_model_label( string $slug, ProviderFactory $factory, ProviderSettings $settings, string $tier ): string {
+		try {
+			$provider = $factory->make( $slug );
+
+			if ( 'ollama' !== $slug && '' === $settings->get_api_key( $slug ) ) {
+				$managed_id = ManagedDefaults::model_id( $slug, $tier );
+				if ( null !== $managed_id ) {
+					return ManagedDefaults::label( $managed_id ) ?? $managed_id;
+				}
+			}
+
+			$model_id = $provider->get_default_model();
+			return $provider->get_models()[ $model_id ] ?? ( '' !== $model_id ? $model_id : ucfirst( $slug ) );
+		} catch ( \Throwable $e ) {
+			return 'AI';
+		}
 	}
 
 	/**

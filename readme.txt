@@ -118,7 +118,7 @@ To regenerate compiled assets: install Node.js 18+ and npm, then run:
 * **All features are now available on every tier.** Chat, Generator, SEO, and Images are no longer locked behind Pro — every site gets full access to all four modules from the moment you install or update.
 * **Model and provider selection is now available on every plan.** The managed service enforces each plan's model catalogue server-side; nothing is locked in the plugin.
 * **You can enter your own API key on any plan**, free of charge (previously Pro BYOK only). Sites with a key call the provider directly with no credit limit; sites without one use the managed service.
-* **Usage is now measured in credits, not tokens.** Each AI action (a chat turn, a generated draft, an SEO suggestion, an image) costs a small number of credits depending on the model used. Your plan determines how many credits you get each month and which models you can choose from — not which features you can use.
+* **Usage is now measured in credits, not tokens.** Each AI action (a chat turn, a generated draft, or an SEO suggestion) costs a small number of credits depending on the model used. Your plan determines how many credits you get each month and which models you can choose from — not which features you can use.
 * **Free** now includes 100 credits/month, with access to Claude Haiku 4.5 and GPT-4.1 nano.
 * **Pro Managed** ($79/year) now includes 500 credits/month, plus access to larger models — Claude Sonnet 4.6, Claude Opus 4.6, GPT-4.1, and Gemini 3.1 Pro — for higher-quality results on demanding tasks.
 * **Pro BYOK** is unchanged: connect your own API key and get unlimited usage with no credit ceiling, billed directly by your provider.

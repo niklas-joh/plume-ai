@@ -71,8 +71,9 @@ final class ManagedDefaults {
 	/**
 	 * Return the model id the managed Worker uses when no model is requested.
 	 *
-	 * Pro Managed and Pro BYOK (without a key it routes through the proxy) share the
-	 * pro defaults; free and any unrecognised tier use the free defaults.
+	 * Pro Managed and Pro BYOK share the pro defaults (the Worker itself rejects
+	 * BYOK requests, so that label is only a best guess); free and any unrecognised
+	 * tier use the free defaults.
 	 *
 	 * @since NEXT_VERSION
 	 * @param string $provider Provider slug: 'claude', 'openai' or 'gemini'.

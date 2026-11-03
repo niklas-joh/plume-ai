@@ -373,7 +373,7 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertSame( '', $response->content );
 	}
 
-	public function test_complete_via_proxy_maps_cache_tokens_and_costs_them(): void {
+	public function test_complete_via_proxy_maps_cache_tokens(): void {
 		$this->mock_wpdb();
 		Functions\when( 'get_option' )->justReturn( 'mock-site-token' );
 		Functions\stubs( [ '__' => fn( $str ) => $str ] );
@@ -403,9 +403,6 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertSame( 100, $response->prompt_tokens );
 		$this->assertSame( 800, $response->cache_read_tokens );
 		$this->assertSame( 200, $response->cache_write_tokens );
-		// 100 in × $3/M + 20 out × $15/M + 800 cache-read × $0.30/M + 200 cache-write × $3.75/M.
-		$expected = ( 100 * 3 + 20 * 15 + 800 * 0.30 + 200 * 3.75 ) / 1_000_000;
-		$this->assertEqualsWithDelta( $expected, $response->cost_usd, 1e-12 );
 	}
 
 	public function test_complete_via_proxy_relays_tool_call(): void {

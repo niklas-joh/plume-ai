@@ -38,6 +38,9 @@ const FLAT_FEATURE_CREDITS: Record<
 
 type Provider = 'claude' | 'openai' | 'gemini';
 
+/** Every provider the Worker knows about. Iterate this instead of re-listing the triple. */
+const ALL_PROVIDERS: Provider[] = [ 'claude', 'openai', 'gemini' ];
+
 // Fallback model lists used when no config:models entry exists in USAGE_KV.
 export const DEFAULT_TIER_MODELS: Record<
 	Provider,
@@ -628,7 +631,7 @@ async function getDefaultModels(
 ): Promise< Partial< Record< Provider, string > > > {
 	const { tierModels } = await getModelConfig( env );
 	const result: Partial< Record< Provider, string > > = {};
-	for ( const provider of [ 'claude', 'openai', 'gemini' ] as Provider[] ) {
+	for ( const provider of ALL_PROVIDERS ) {
 		const allowed = getAllowedModels( provider, tier, tierModels );
 		if ( Array.isArray( allowed ) && allowed.length > 0 ) {
 			result[ provider ] = resolveDefaultModel( provider, tier, allowed );

@@ -236,6 +236,22 @@ describe( '/v1/config default_models', () => {
 		expect( data.credit_limit ).toBe( 100 );
 	} );
 
+	it( 'does not throw and omits a provider whose allow-list is not an array', async () => {
+		const env = makeEnv();
+		await seedSite( env, { tier: 'free' } );
+		await env.USAGE_KV.put(
+			'config:models',
+			JSON.stringify( { tier_models: { openai: { free: 'not-an-array' } } } )
+		);
+
+		// getConfig asserts a 200 response for us.
+		const data = await getConfig( env );
+		expect( data.default_models ).not.toHaveProperty( 'openai' );
+		expect( data.default_models?.claude ).toBe(
+			'claude-haiku-4-5-20251001'
+		);
+	} );
+
 	it( 'returns null default_models for the pro_byok tier', async () => {
 		const env = makeEnv();
 		await seedSite( env, { tier: 'pro_byok' } );

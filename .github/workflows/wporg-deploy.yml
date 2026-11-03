@@ -7,11 +7,13 @@ name: WordPress.org Deploy
 #   1. Plugin must be approved and have an SVN repo on WordPress.org.
 #   2. Add repository secrets:
 #      - WPORG_USERNAME  — your WordPress.org committer username
-#      - WPORG_PASSWORD  — your WordPress.org application password
-#        (generate at https://profiles.wordpress.org/<username>/profile/applications/)
+#      - WPORG_PASSWORD  — your WordPress.org SVN password (NOT your login password
+#        or an application password). Generate it under profiles.wordpress.org →
+#        Edit Profile → Account & Security → SVN credentials.
 #
 # The workflow downloads the release ZIP built by release.yml, extracts it, then
-# uses 10up/action-wordpress-plugin-deploy to push to /trunk and create /tags/<version>.
+# uses 10up/action-wordpress-plugin-deploy to push to /trunk, create /tags/<version>
+# and sync wp-org-assets/ (icons, banners, screenshots) to the SVN /assets directory.
 # See https://github.com/10up/action-wordpress-plugin-deploy for env var reference.
 
 on:

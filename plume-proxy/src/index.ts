@@ -64,8 +64,11 @@ export const DEFAULT_TIER_MODELS: Record<
 // Model used when a request names no model (the plugin's "Plugin default" choice).
 // An explicit map rather than allowed[0], so reordering a tier's allow-list can
 // never silently change the default (and the price) of a request. Mirrored in
-// includes/Providers/ManagedDefaults.php, which labels it in the chat UI — keep
-// both in step. If a KV `config:models` override drops the default from the
+// includes/Providers/ManagedDefaults.php, which holds an offline fallback copy
+// (pinned by tests carrying the same literals). Online, the plugin reads the live
+// value from GET /v1/config `default_models`, so a KV override is reflected in the
+// chat UI label; the PHP constants only serve unregistered or unreachable sites.
+// If a KV `config:models` override drops the default from the
 // tier's allow-list, getModelForTier falls back to the list's first entry.
 export const DEFAULT_MODEL_BY_TIER: Record<
 	Provider,
@@ -579,7 +582,8 @@ async function handleRotateSecret(
 }
 
 /**
- * Return the requesting site's monthly credit limit and current tier.
+ * Return the requesting site's monthly credit limit, current tier and the
+ * default model per provider for that tier (null for the unmetered pro_byok tier).
  *
  * Read-only — unlike /rotate-secret this never mutates the SiteRecord, so
  * it is safe for the plugin to call on every credit-limit cache miss
@@ -587,7 +591,7 @@ async function handleRotateSecret(
  *
  * @param {Request} request Incoming Worker request.
  * @param {Env}     env     Worker environment bindings.
- * @return {Promise<Response>} JSON response with credit_limit and tier, or an auth error.
+ * @return {Promise<Response>} JSON response with credit_limit, tier and default_models, or an auth error.
  */
 async function handleConfig(
 	request: Request,
@@ -601,7 +605,36 @@ async function handleConfig(
 	return jsonResponse( {
 		credit_limit: getCreditLimit( auth.tier ),
 		tier: auth.tier,
+		default_models:
+			auth.tier === 'pro_byok'
+				? null
+				: await getDefaultModels( auth.tier, env ),
 	} );
+}
+
+/**
+ * Resolve the default model per provider for a tier, honouring KV overrides.
+ *
+ * Never throws: a provider whose allow-list is empty or malformed (the chat path
+ * answers 400 for it) is omitted rather than failing the whole config response.
+ *
+ * @param {ProxyTier} tier Resolved proxy tier.
+ * @param {Env}       env  Worker environment bindings.
+ * @return {Promise<Partial<Record<Provider, string>>>} Default model id per provider.
+ */
+async function getDefaultModels(
+	tier: ProxyTier,
+	env: Env
+): Promise< Partial< Record< Provider, string > > > {
+	const { tierModels } = await getModelConfig( env );
+	const result: Partial< Record< Provider, string > > = {};
+	for ( const provider of [ 'claude', 'openai', 'gemini' ] as Provider[] ) {
+		const allowed = getAllowedModels( provider, tier, tierModels );
+		if ( Array.isArray( allowed ) && allowed.length > 0 ) {
+			result[ provider ] = resolveDefaultModel( provider, tier, allowed );
+		}
+	}
+	return result;
 }
 
 // ── Dev override endpoints ────────────────────────────────────────────────────
@@ -1037,9 +1070,7 @@ export function getModelForTier(
 	tierModels: Record< string, Record< string, string[] > >,
 	requestedModel?: string
 ): string {
-	const allowed =
-		tierModels[ provider ]?.[ tier ] ??
-		DEFAULT_TIER_MODELS[ provider ][ tier ];
+	const allowed = getAllowedModels( provider, tier, tierModels );
 	if ( allowed.length === 0 ) {
 		// Tagged with isValidationError so the handleChatProxy catch block can
 		// distinguish this intended 400 from arbitrary upstream provider errors
@@ -1052,6 +1083,45 @@ export function getModelForTier(
 	if ( requestedModel && allowed.includes( requestedModel ) ) {
 		return requestedModel;
 	}
+	return resolveDefaultModel( provider, tier, allowed );
+}
+
+/**
+ * Look up a tier's model allow-list, preferring the KV override over the compiled default.
+ *
+ * Shared by getModelForTier (chat) and handleConfig (/v1/config) so the two
+ * can never disagree about which list applies.
+ *
+ * @param {Provider}                                provider   Provider slug.
+ * @param {ProxyTier}                               tier       Resolved proxy tier.
+ * @param {Record<string, Record<string, string[]>>} tierModels Resolved model config.
+ * @return {string[]} The tier's allowed model ids (may be empty if a KV override empties it).
+ */
+function getAllowedModels(
+	provider: Provider,
+	tier: ProxyTier,
+	tierModels: Record< string, Record< string, string[] > >
+): string[] {
+	return (
+		tierModels[ provider ]?.[ tier ] ??
+		DEFAULT_TIER_MODELS[ provider ][ tier ]
+	);
+}
+
+/**
+ * Pick the model used when a request names none: the explicit default if the
+ * allow-list still contains it, otherwise the list's first entry.
+ *
+ * @param {Provider}  provider Provider slug.
+ * @param {ProxyTier} tier     Resolved proxy tier.
+ * @param {string[]}  allowed  Non-empty allow-list for the provider and tier.
+ * @return {string} Default model id.
+ */
+export function resolveDefaultModel(
+	provider: Provider,
+	tier: ProxyTier,
+	allowed: string[]
+): string {
 	const defaultModel = DEFAULT_MODEL_BY_TIER[ provider ][ tier ];
 	return allowed.includes( defaultModel ) ? defaultModel : allowed[ 0 ];
 }

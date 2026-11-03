@@ -297,6 +297,38 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertSame( '', $response->content );
 	}
 
+	public function test_complete_via_proxy_maps_cache_tokens(): void {
+		$this->mock_wpdb();
+		Functions\when( 'get_option' )->justReturn( 'mock-site-token' );
+		Functions\stubs( [ '__' => fn( $str ) => $str ] );
+
+		Functions\when( 'wp_remote_post' )->justReturn( [
+			'response' => [ 'code' => 200 ],
+			'body'     => json_encode( [
+				'content' => 'ok',
+				'model'   => 'claude-sonnet-4-6',
+				'usage'   => [
+					'input_tokens'                => 100,
+					'output_tokens'               => 20,
+					'cache_read_input_tokens'     => 800,
+					'cache_creation_input_tokens' => 200,
+				],
+			] ),
+		] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+
+		$provider = new ClaudeProvider( '' );
+		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
+		$response = $provider->complete( $request );
+
+		$this->assertSame( 100, $response->prompt_tokens );
+		$this->assertSame( 800, $response->cache_read_tokens );
+		$this->assertSame( 200, $response->cache_write_tokens );
+	}
+
 	public function test_complete_via_proxy_relays_tool_call(): void {
 		$this->mock_wpdb();
 		Functions\when( 'get_user_meta' )->justReturn( 'free' );

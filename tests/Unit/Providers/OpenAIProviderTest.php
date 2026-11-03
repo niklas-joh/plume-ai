@@ -116,7 +116,7 @@ class OpenAIProviderTest extends TestCase {
 						],
 					],
 				],
-				'model' => 'gpt-4o',
+				'model' => 'gpt-4.1',
 				'usage' => [ 'prompt_tokens' => 15, 'completion_tokens' => 6 ],
 			] ),
 		] );
@@ -134,6 +134,35 @@ class OpenAIProviderTest extends TestCase {
 		$this->assertSame( 'call_abc123', $response->tool_call['id'] );
 		$this->assertSame( [ 'count' => 5 ], $response->tool_call['arguments'] );
 		$this->assertSame( '', $response->content );
+	}
+
+	// ── Model list (#983: must match the Worker's allow-list) ────────────────
+
+	public function test_get_models_matches_worker_allow_lists(): void {
+		// Union of plume-proxy/src/index.ts DEFAULT_TIER_MODELS.openai free + pro_managed.
+		$models = ( new OpenAIProvider( 'sk-test' ) )->get_models();
+		$this->assertEqualsCanonicalizing( [ 'gpt-4.1', 'gpt-4.1-nano' ], array_keys( $models ) );
+	}
+
+	public function test_get_models_does_not_offer_stale_model_ids(): void {
+		$models = ( new OpenAIProvider( 'sk-test' ) )->get_models();
+		foreach ( [ 'gpt-4o', 'gpt-4o-mini', 'o3', 'o4-mini' ] as $stale_id ) {
+			$this->assertArrayNotHasKey( $stale_id, $models );
+		}
+	}
+
+	public function test_get_default_model_is_a_currently_offered_model(): void {
+		$provider = new OpenAIProvider( 'sk-test' );
+		$this->assertArrayHasKey( $provider->get_default_model(), $provider->get_models() );
+	}
+
+	public function test_pricing_keys_match_model_keys(): void {
+		// Guards the cost fallback in complete_via_proxy()/parse_response(): adding a model
+		// without a matching PRICING entry would silently mis-price it from DEFAULT_MODEL.
+		$reflection = new \ReflectionClass( OpenAIProvider::class );
+		$models     = $reflection->getConstant( 'MODELS' );
+		$pricing    = $reflection->getConstant( 'PRICING' );
+		$this->assertEqualsCanonicalizing( array_keys( $models ), array_keys( $pricing ) );
 	}
 
 	// ── Proxy path tests ─────────────────────────────────────────────────────

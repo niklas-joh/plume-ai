@@ -15,6 +15,7 @@ plume-proxy/.wrangler/
 
 # wp-env
 .wp-env/
+.wp-env.override.json
 
 # Playwright
 .artifacts/playwright-report/

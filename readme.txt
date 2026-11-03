@@ -12,193 +12,110 @@ AI-powered writing, image generation, and content design tools for WordPress.
 
 == Description ==
 
-Plume AI - Write and Design integrates Claude (Anthropic), OpenAI, Google Gemini, and Ollama directly
-into your WordPress dashboard, giving you AI assistance without leaving the editor.
+Plume AI brings an AI writing and design assistant into your WordPress dashboard and block editor. Draft posts, polish copy, write SEO metadata and create featured images without leaving WordPress or copying text between tabs.
 
-**Features:**
+Chat, the Post generator and AI SEO work out of the box with no API key. Or connect your own Anthropic, OpenAI, Google Gemini or self-hosted Ollama account. AI images use your own OpenAI or Google Gemini key.
 
-* **Chat assistant** — Conversational AI with tool support (read posts, search content)
-* **Content generator** — Generate full blog posts with customisable tone and length
-* **AI SEO** — Generate meta titles, descriptions, excerpts, and image alt text
-* **AI Images** — Generate and insert featured images directly from a text prompt
-* **Usage tracker** — Monitor credit consumption across providers
-* **Gutenberg integration** — Direct editor sidebar tools
+= What you can do =
 
-**Free vs Pro:**
+* **Chat assistant**: brainstorm, research and rewrite in a conversation that can read your posts and search your content.
+* **Post generator**: describe a post, pick a tone and length, and get a full draft ready to edit.
+* **Editor sidebar**: chat about the post you are editing, rewrite, shorten or expand a block, and check a quick SEO checklist without leaving the block editor.
+* **AI SEO**: generate meta titles, meta descriptions, excerpts and image alt text from one overview of all your posts.
+* **AI images**: create a featured image from a text prompt and set it in one click (needs your own OpenAI or Gemini API key).
+* **Usage dashboard**: see how many credits you have used this month.
 
-| | Free | Pro Managed | Pro BYOK |
-|---|---|---|---|
-| **Price** | Free | $79/year | Free (your own API key, billed by your provider) |
-| **Credits/month** | 100 | 500 | No credit limit — billed directly by your provider |
-| **Available models (managed service)** | Claude Haiku 4.5, GPT-4.1 nano | + Claude Sonnet 4.6, Claude Opus 4.6, GPT-4.1, Gemini 3.1 Pro | Not used — your provider's full catalogue |
-| **Chat, Generator, SEO, Images** | All included | All included | All included |
-| **Your own API key (BYOK)** | Optional | Optional | Required |
+= Plans =
 
-Every feature of the plugin works on every plan — nothing is locked. Model and
-provider selection is available everywhere; the managed service simply serves
-each plan its own model catalogue. You can enter your own API key on any plan
-(free of charge): requests then go directly to your chosen provider with no
-credit limit.
+Every feature works on every plan. Nothing is locked. Plans differ only in monthly credits and which models the managed service offers. AI images always use your own OpenAI or Gemini key, on any plan.
 
-* **Free** — Chat, Generator, SEO, and Images all included from day one.
-  100 credits/month using Claude Haiku 4.5 or GPT-4.1 nano.
-* **Pro Managed** — Everything in Free, plus 500 credits/month and access
-  to Claude Sonnet 4.6, Claude Opus 4.6, GPT-4.1, and Gemini 3.1 Pro.
-  $79/year.
-* **Pro BYOK** — Everything in Free, with no credit limit and access to
-  any model your configured provider supports. Uses your own API key,
-  sent directly to your chosen provider — never through Plume's managed
-  service. Entering a key is free on every plan.
+* **Free**: 100 credits a month on fast, efficient models such as Claude Haiku 4.5 and GPT-4.1 nano.
+* **Pro Managed** ($79/year, or billed monthly): 500 credits a month plus larger models such as Claude Sonnet 4.6, Claude Opus 4.6 and GPT-4.1.
+* **Your own API key** (free, any plan): requests go straight to your provider with no credit limit. You pay your provider directly. Ollama runs on your own server at no cost.
 
-**Supported AI providers:** Anthropic Claude, OpenAI (GPT-4+), Google Gemini, Ollama (local/self-hosted)
+= Privacy first =
 
-**External services:** This plugin sends content you submit to the AI provider of your choice
-(Anthropic, OpenAI, or Google). Your content leaves your server and is processed by the
-chosen provider. Review each provider's privacy policy and terms of service before use:
+* Your own API keys are stored encrypted (AES-256-CBC) and only ever sent to the provider that issued them.
+* Chat history stays in your WordPress database.
+* No tracking, cookies or analytics.
 
-* Anthropic: https://www.anthropic.com/legal/privacy
-* OpenAI: https://openai.com/policies/privacy-policy
-* Google Gemini: https://policies.google.com/privacy
-* Ollama is self-hosted; no external transmission occurs when using Ollama.
-* **Plume AI - Write and Design** (`https://plume-proxy.plumewp.workers.dev`): Free and managed-pro
-  tiers route chat requests through this service. The service receives your
-  site URL (for registration) and the chat messages you send. No messages are stored
-  beyond the in-flight API call. See: https://wpaimind.com/privacy-policy.html
+== External services ==
+
+Plume AI connects to the following services. Nothing is sent until you use an AI feature or finish the setup wizard.
+
+**Plume managed service** (`plume-proxy.plumewp.workers.dev`). Used for Chat, the Post generator and AI SEO when no API key of your own is set. The first time you use one of these (or finish the setup wizard with the managed option), it receives your site URL to register the site and assign its plan. With each request, it receives your prompt and the content you send, forwards it to the AI provider for the model you chose and returns the response. Message content is not stored beyond the request. [Terms](https://wpaimind.com/terms.html), [Privacy policy](https://wpaimind.com/privacy-policy.html).
+
+**Anthropic (Claude)**: receives your prompts and content when you use a Claude model, directly with your own key or through the managed service. [Terms](https://www.anthropic.com/legal/commercial-terms), [Privacy policy](https://www.anthropic.com/legal/privacy).
+
+**OpenAI**: receives your prompts and content when you use an OpenAI model, and your image prompts when OpenAI is your image provider (sent directly with your own key). [Terms](https://openai.com/policies/terms-of-use), [Privacy policy](https://openai.com/policies/privacy-policy).
+
+**Google Gemini**: receives your prompts and content when you use a Gemini model, and your image prompts when Gemini is your image provider (sent directly with your own key). [Terms](https://ai.google.dev/gemini-api/terms), [Privacy policy](https://policies.google.com/privacy).
+
+**Lemon Squeezy**: handles Pro checkout and payments. You only reach it by clicking an upgrade link, and payment details are never stored by the plugin. [Terms](https://www.lemonsqueezy.com/terms), [Privacy policy](https://www.lemonsqueezy.com/privacy).
+
+**Ollama** runs on infrastructure you control (default `http://localhost:11434`). No data leaves your network unless you point it at a remote server.
 
 == Installation ==
 
-1. Upload the `plume` folder to the `/wp-content/plugins/` directory.
-2. Activate the plugin through the **Plugins** menu in WordPress.
-3. (Optional, any plan) Navigate to **Plume AI - Write and Design → Settings** and enter your own API key to call your provider directly. Without a key, requests use the managed service.
-4. Start using the Chat, Generator, or Usage modules from the admin menu.
+1. In your WordPress admin, go to **Plugins → Add New Plugin** and search for **Plume AI**.
+2. Click **Install Now**, then **Activate**.
+3. Open **Plume AI** in the admin menu and start with Chat, the Post generator or SEO. No API key needed.
+4. Optional: under **Plume AI → Settings**, add your own Anthropic, OpenAI or Gemini API key, or your Ollama server URL. AI images need an OpenAI or Gemini key.
+
+To install manually, upload the `plume` folder to `/wp-content/plugins/` and activate it from the **Plugins** screen.
 
 == Frequently Asked Questions ==
 
+= Do I need an API key? =
+
+Not for Chat, the Post generator or AI SEO. Without a key, those requests go through the Plume managed service using your plan's monthly credits. AI images need your own OpenAI or Gemini key. Adding your own key is free on any plan and removes the credit limit.
+
+= What is a credit? =
+
+Each request to the managed service (a chat reply, a generated draft or an SEO suggestion) uses a small number of credits. Larger models use more. Credits reset every month. With your own API key, there is no credit limit.
+
 = Which AI providers are supported? =
 
-Claude (Anthropic), OpenAI (GPT-4 and above), Google Gemini, and Ollama. You can configure
-one or more providers and switch between them in the settings.
+Anthropic Claude, OpenAI, Google Gemini and Ollama (self-hosted). You can configure several and switch between them in the settings or per conversation.
 
-= Does this plugin store my API keys securely? =
+= Are my API keys stored securely? =
 
-**Without your own API key:** No key is required — chat requests are routed
-through Plume AI - Write and Design (see External services above). Your messages are
-forwarded to Claude (Anthropic) on your behalf.
+Yes. Keys are encrypted (AES-256-CBC) in your WordPress database and only sent to the provider that issued them, never to the Plume managed service or anyone else.
 
-**With your own API key (any plan):** Your key is stored encrypted (AES-256-CBC) in the
-WordPress database and is transmitted directly to the AI provider you have chosen. It is
-never sent to any other server.
+= Is Plume AI GDPR-compliant? =
 
-= Is this plugin GDPR-compliant? =
+Content you submit is sent to the AI provider you choose, and, if you have no API key, through the Plume managed service (see External services). You are responsible for making sure this suits your data protection obligations. Consider listing the Plume privacy policy and your provider's data processing terms in your own privacy documentation. Ollama keeps everything on your own server.
 
-The plugin transmits content you submit to Plume AI - Write and Design and/or the AI
-provider you have configured (Anthropic Claude, OpenAI, Google Gemini). Both the service and
-the AI provider receive your chat messages. You are responsible for ensuring that
-transmission is compliant with your applicable data protection regulations. Consider adding
-the Plume AI - Write and Design privacy policy and your chosen provider's data processing agreement to your
-privacy documentation.
+= Who can use the AI features? =
 
-= What WordPress roles can use the AI features? =
+Users who can edit posts (Contributors and above) can use Chat, the Post generator and SEO. AI images also need permission to upload files (Authors and above). Only Administrators can change plugin settings.
 
-Users with the `edit_posts` capability (Authors, Editors, Administrators) can use the
-content generation tools. Site settings require `manage_options` (Administrators only).
+= Where is the source code? =
 
-== Development ==
+All source code, including the uncompiled React files, is at [github.com/niklas-joh/plume-ai](https://github.com/niklas-joh/plume-ai). To rebuild the compiled assets, install Node.js 18+ and run `npm install && npm run build`.
 
-Full source code including all React source files (src/) and build tooling is
-publicly available at: https://github.com/niklas-joh/plume-ai
+== Screenshots ==
 
-To regenerate compiled assets: install Node.js 18+ and npm, then run:
-
-    npm install && npm run build
+1. The dashboard: quick starts for writing, editing, images and chat, plus your monthly credit usage.
+2. The chat assistant with quick actions and model selection.
+3. The post generator: describe your post, choose tone and length, get a full draft.
+4. AI SEO: see which posts are missing metadata and generate it in one click.
+5. AI images: create a featured image from a text prompt with your own OpenAI or Gemini key.
+6. Settings: choose your default AI and image providers, or add your own API keys.
 
 == Changelog ==
 
 = NEXT_VERSION =
-* **All features are now available on every tier.** Chat, Generator, SEO, and Images are no longer locked behind Pro — every site gets full access to all four modules from the moment you install or update.
-* **Model and provider selection is now available on every plan.** The managed service enforces each plan's model catalogue server-side; nothing is locked in the plugin.
-* **You can enter your own API key on any plan**, free of charge (previously Pro BYOK only). Sites with a key call the provider directly with no credit limit; sites without one use the managed service.
-* **Usage is now measured in credits, not tokens.** Each AI action (a chat turn, a generated draft, or an SEO suggestion) costs a small number of credits depending on the model used. Your plan determines how many credits you get each month and which models you can choose from — not which features you can use.
-* **Free** now includes 100 credits/month, with access to Claude Haiku 4.5 and GPT-4.1 nano.
-* **Pro Managed** ($79/year) now includes 500 credits/month, plus access to larger models — Claude Sonnet 4.6, Claude Opus 4.6, GPT-4.1, and Gemini 3.1 Pro — for higher-quality results on demanding tasks.
-* **Pro BYOK** is unchanged: connect your own API key and get unlimited usage with no credit ceiling, billed directly by your provider.
-* The 30-day trial has been removed. There's no longer a time-boxed "all features unlocked" period to track, because every tier already has full feature access — a trial no longer has anything distinct left to offer.
-* Removed: the public-facing `[plume_chat]` shortcode and front-end chat widget module. This does not affect the in-editor SEO panel or admin-side Chat, Generator, Images, or SEO tools, which are unaffected and unlocked for all tiers as above.
+First release on WordPress.org.
 
-= 1.7.1 =
-* Fix chat post content not being read and add post-attach guard for quick actions.
+* Chat assistant, Post generator, AI SEO and AI images, all available on every plan.
+* Usage is measured in monthly credits: Free includes 100, Pro Managed 500. Your own API key removes the limit on any plan.
+* Choose your provider and model on every plan: Anthropic Claude, OpenAI, Google Gemini or self-hosted Ollama.
+* Removed the 30-day trial and the front-end `[plume_chat]` shortcode. Admin and editor tools are unaffected.
 
-= 1.7.0 =
-* Chat layout improvements: collapsible sidebar, height fix, and title tooltips.
-
-= 1.6.0 =
-* Centre chat input and add suggestion chips on launch.
-
-= 1.5.0 =
-* Add generate_seo_meta tool for chat SEO optimisation.
-
-= 1.4.0 =
-* Fold usage widget into Dashboard and show percentage display.
-
-= 1.3.6 =
-* Fix context_post_id not being passed when sending messages from MiniChat in the editor.
-
-= 1.3.5 =
-* Sanitise conversation titles explicitly and remove unreachable database-error branch.
-
-= 1.3.4 =
-* Fix default provider selection, conversation title update, and inline delete errors.
-
-= 1.3.3 =
-* Add pro_byok guard in proxy Worker and clarify 401 error message.
-
-= 1.3.2 =
-* Prevent infinite loop in maybe_demote_expired_trials().
-
-= 1.3.1 =
-* Fix CI to push and close each auto-fix issue immediately after fixing.
-
-= 1.3.0 =
-* Batch auto-fix: one Claude session per PR, remove max-turns limits.
-
-= 1.2.1 =
-* Restore isPro field — revert erroneous canChat rename in settings.
-
-= 1.2.0 =
-* Consolidate PR review nits into a single issue per PR in the automated workflow.
-
-= 1.1.0 =
-* Add delete conversation with confirmation dialog and inline error state.
-
-= 1.0.3 =
-* Add @wordpress/element to devDependencies alongside peerDependencies.
-
-= 1.0.2 =
-* Return full conversation object on create; return HTTP 500 on DB failure.
-
-= 1.0.1 =
-* Guard putenv cleanup with try/finally in test suite.
-
-= 1.0.0 =
-* Full initial stable release: chat REST API, React UI, Gutenberg sidebar, SEO and Images pages.
-* Encrypted API key storage, provider abstraction (Claude, OpenAI, Gemini, Ollama), tool-calling loop.
-* Frontend chat widget shortcode, content generator wizard, and usage dashboard.
-
-= 0.2.0 =
-* Repo extraction, CI/CD pipeline, release workflow, and build script fix.
-
-= 0.1.0 =
-* Initial release.
+Earlier development history: [CHANGELOG.md on GitHub](https://github.com/niklas-joh/plume-ai/blob/main/CHANGELOG.md).
 
 == Upgrade Notice ==
 
-= 1.7.1 =
-No breaking changes. Update safely.
-
-= 0.1.0 =
-Initial release. No upgrade steps required.
-
-== Screenshots ==
-
-1. The Plume AI - Write and Design chat assistant in the WordPress admin.
-2. The blog post generator with tone and length controls.
+= NEXT_VERSION =
+First WordPress.org release. Usage now uses monthly credits, all features are available on every plan, and the [plume_chat] shortcode has been removed.

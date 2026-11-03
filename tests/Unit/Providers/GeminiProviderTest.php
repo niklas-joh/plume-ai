@@ -46,7 +46,7 @@ class GeminiProviderTest extends TestCase {
 		// and .pro_managed — keep these in sync (see the class constant's docblock).
 		// Each tier currently carries exactly one model, so this asserts parity of
 		// the combined set, not order or per-tier membership.
-		$worker_allow_list = [ 'gemini-3.1-flash-lite', 'gemini-3.5-flash' ];
+		$worker_allow_list = [ 'gemini-3.1-flash-lite', 'gemini-3.6-flash' ];
 
 		$models = ( new GeminiProvider( 'AIza-test' ) )->get_models();
 
@@ -56,7 +56,7 @@ class GeminiProviderTest extends TestCase {
 	public function test_get_models_does_not_offer_stale_model_ids(): void {
 		$models = ( new GeminiProvider( 'AIza-test' ) )->get_models();
 
-		foreach ( [ 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.1-pro', 'gemini-3.1-pro-preview' ] as $stale_id ) {
+		foreach ( [ 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.1-pro', 'gemini-3.1-pro-preview', 'gemini-3.5-flash' ] as $stale_id ) {
 			$this->assertArrayNotHasKey( $stale_id, $models, "Stale/invalid model ID '{$stale_id}' must not be offered." );
 		}
 	}

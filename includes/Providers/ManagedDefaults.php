@@ -90,7 +90,7 @@ final class ManagedDefaults {
 	private const PRO = [
 		'claude' => 'claude-sonnet-4-6',
 		'openai' => 'gpt-4.1',
-		'gemini' => 'gemini-3.5-flash',
+		'gemini' => 'gemini-3.6-flash',
 	];
 
 	/**
@@ -105,7 +105,7 @@ final class ManagedDefaults {
 		'gpt-4.1-nano'              => 'GPT-4.1 nano',
 		'gpt-4.1'                   => 'GPT-4.1',
 		'gemini-3.1-flash-lite'     => 'Gemini 3.1 Flash Lite',
-		'gemini-3.5-flash'          => 'Gemini 3.5 Flash',
+		'gemini-3.6-flash'          => 'Gemini 3.6 Flash',
 	];
 
 	/**

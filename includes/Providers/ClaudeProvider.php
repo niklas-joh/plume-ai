@@ -39,30 +39,6 @@ class ClaudeProvider extends AbstractProvider {
 		'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5',
 	];
 
-	// Cost per 1M tokens (input/output/cache) in USD.
-	// cache_write_in: cache-write surcharge (1.25× normal input).
-	// cache_read_in: cache-read rate (0.10× normal input).
-	private const PRICING = [
-		'claude-opus-4-6'           => [
-			'in'             => 5.0,
-			'out'            => 25.0,
-			'cache_write_in' => 6.25,
-			'cache_read_in'  => 0.50,
-		],
-		'claude-sonnet-4-6'         => [
-			'in'             => 3.0,
-			'out'            => 15.0,
-			'cache_write_in' => 3.75,
-			'cache_read_in'  => 0.30,
-		],
-		'claude-haiku-4-5-20251001' => [
-			'in'             => 1.0,
-			'out'            => 5.0,
-			'cache_write_in' => 1.25,
-			'cache_read_in'  => 0.10,
-		],
-	];
-
 	/**
 	 * Tracks whether the proxy handled logging so maybe_log() can skip double-logging.
 	 *
@@ -209,14 +185,11 @@ class ClaudeProvider extends AbstractProvider {
 		// fall back to the requested model, then the plugin default.
 		$worker_model = \sanitize_text_field( $result['model'] ?? '' );
 		$model        = '' !== $worker_model ? $worker_model : ( ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL );
-		$in_tokens    = (int) ( $result['usage']['input_tokens'] ?? 0 );
-		$out_tokens   = (int) ( $result['usage']['output_tokens'] ?? 0 );
-		$cost         = $this->calculate_cost( $model, $in_tokens, $out_tokens );
 
 		// Detect a tool-call response. build_proxy_response() centralises the plural/singular contract
 		// and response assembly so the three providers cannot drift apart: the full array is preserved
 		// in `raw` for extract_tool_calls() and `tool_call` holds the first entry (null-check friendly).
-		return $this->build_proxy_response( $result, $model, $cost );
+		return $this->build_proxy_response( $result, $model );
 	}
 
 	/**
@@ -279,36 +252,6 @@ class ClaudeProvider extends AbstractProvider {
 				'cache_control' => [ 'type' => 'ephemeral' ],
 			],
 		];
-	}
-
-	/**
-	 * Calculate the USD cost for a completion based on token usage.
-	 *
-	 * Centralises pricing so future rate changes require a single edit.
-	 * Cache read tokens are billed at cache_read_in (0.10× normal input).
-	 * Cache write tokens are billed at cache_write_in (1.25× normal input).
-	 *
-	 * @since 1.0.0
-	 * @param string $model              Model slug used for the completion.
-	 * @param int    $in_tokens          Normal input token count.
-	 * @param int    $out_tokens         Output token count.
-	 * @param int    $cache_read_tokens  Tokens read from cache (billed at cache_read_in rate).
-	 * @param int    $cache_write_tokens Tokens written to cache (billed at cache_write_in rate).
-	 * @return float Cost in USD.
-	 */
-	private function calculate_cost(
-		string $model,
-		int $in_tokens,
-		int $out_tokens,
-		int $cache_read_tokens = 0,
-		int $cache_write_tokens = 0
-	): float {
-		$pricing     = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
-		$normal_cost = $in_tokens / 1_000_000 * $pricing['in'];
-		$out_cost    = $out_tokens / 1_000_000 * $pricing['out'];
-		$read_cost   = $cache_read_tokens / 1_000_000 * $pricing['cache_read_in'];
-		$write_cost  = $cache_write_tokens / 1_000_000 * $pricing['cache_write_in'];
-		return $normal_cost + $out_cost + $read_cost + $write_cost;
 	}
 
 	/**
@@ -415,7 +358,6 @@ class ClaudeProvider extends AbstractProvider {
 		$out_tokens  = (int) ( $data['usage']['output_tokens'] ?? 0 );
 		$cache_read  = (int) ( $data['usage']['cache_read_input_tokens'] ?? 0 );
 		$cache_write = (int) ( $data['usage']['cache_creation_input_tokens'] ?? 0 );
-		$cost        = $this->calculate_cost( $model, $in_tokens, $out_tokens, $cache_read, $cache_write );
 
 		// Check for a tool_use block in the response content.
 		$content_blocks = $data['content'] ?? [];
@@ -433,7 +375,6 @@ class ClaudeProvider extends AbstractProvider {
 				model:              $model,
 				prompt_tokens:      $in_tokens,
 				completion_tokens:  $out_tokens,
-				cost_usd:           $cost,
 				raw:                $data,
 				tool_call:          [
 					'id'        => $tool_use_block['id'],
@@ -459,7 +400,6 @@ class ClaudeProvider extends AbstractProvider {
 			model:              $model,
 			prompt_tokens:      $in_tokens,
 			completion_tokens:  $out_tokens,
-			cost_usd:           $cost,
 			raw:                $data,
 			cache_read_tokens:  $cache_read,
 			cache_write_tokens: $cache_write,

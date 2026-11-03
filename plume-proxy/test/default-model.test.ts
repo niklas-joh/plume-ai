@@ -18,7 +18,7 @@ describe( 'managed default model per provider and tier', () => {
 		[ 'openai', 'free', 'gpt-4.1-nano' ],
 		[ 'openai', 'pro_managed', 'gpt-4.1' ],
 		[ 'gemini', 'free', 'gemini-3.1-flash-lite' ],
-		[ 'gemini', 'pro_managed', 'gemini-3.5-flash' ],
+		[ 'gemini', 'pro_managed', 'gemini-3.6-flash' ],
 	] as const;
 
 	it.each( expected )(

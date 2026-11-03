@@ -58,7 +58,7 @@ curl -s http://localhost:8787/v1/chat | jq .
 | Tier | Credits/month | Models |
 |------|-------------|--------|
 | free | 100 | Claude Haiku 4.5, Gemini 3.1 Flash-Lite |
-| pro_managed | 500 | Claude Haiku 4.5 / Sonnet 4.6 / Opus 4.6, GPT-4.1, Gemini 3.5 Flash |
+| pro_managed | 500 | Claude Haiku 4.5 / Sonnet 4.6 / Opus 4.6, GPT-4.1, Gemini 3.6 Flash |
 | pro_byok | — | bypasses proxy entirely |
 
 Source of truth is `DEFAULT_TIER_MODELS` / `MONTHLY_CREDIT_LIMITS` in

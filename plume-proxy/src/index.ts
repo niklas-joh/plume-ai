@@ -60,7 +60,7 @@ export const DEFAULT_TIER_MODELS: Record<
 	},
 	gemini: {
 		free: [ 'gemini-3.1-flash-lite' ],
-		pro_managed: [ 'gemini-3.5-flash' ],
+		pro_managed: [ 'gemini-3.6-flash' ],
 	},
 };
 
@@ -87,7 +87,7 @@ export const DEFAULT_MODEL_BY_TIER: Record<
 	},
 	gemini: {
 		free: 'gemini-3.1-flash-lite',
-		pro_managed: 'gemini-3.5-flash',
+		pro_managed: 'gemini-3.6-flash',
 	},
 };
 
@@ -102,7 +102,9 @@ export const DEFAULT_MODEL_TOKEN_WEIGHT: Record< string, number > = {
 	'gpt-4.1': 2,
 	'gpt-4.1-nano': 0.1,
 	'gemini-3.1-flash-lite': 1,
-	'gemini-3.5-flash': 2,
+	// $0.75/MTok until 31 Dec 2026, $1.50 from 1 Jan 2027 — weighted at the 2027
+	// price so no change is needed at the switch-over.
+	'gemini-3.6-flash': 1.5,
 };
 
 /**

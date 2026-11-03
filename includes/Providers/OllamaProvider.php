@@ -122,8 +122,7 @@ class OllamaProvider extends AbstractProvider {
 			$raw['model'] ?? $this->default_model,
 			$in_tokens,
 			$out_tokens,
-			0.0, // Local inference — no cost.
-			$raw
+			raw: $raw
 		);
 	}
 

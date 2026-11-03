@@ -309,7 +309,7 @@ describe( 'ChatApp', () => {
 			{
 				slug: 'gemini',
 				is_available: true,
-				models: { 'gemini-3.5-flash': 'Gemini 3.5 Flash' },
+				models: { 'gemini-3.6-flash': 'Gemini 3.6 Flash' },
 			},
 		];
 
@@ -331,7 +331,7 @@ describe( 'ChatApp', () => {
 					return 'gemini';
 				}
 				if ( 'plume-selected-model' === key ) {
-					return 'gemini-3.5-flash';
+					return 'gemini-3.6-flash';
 				}
 				return null;
 			} );
@@ -356,7 +356,7 @@ describe( 'ChatApp', () => {
 			// window.plumeData.defaultProvider is 'claude' (see beforeAll above) —
 			// this asserts the stored 'gemini' choice wins over that default.
 			expect( providerSelect.value ).toBe( 'gemini' );
-			expect( modelSelect.value ).toBe( 'gemini-3.5-flash' );
+			expect( modelSelect.value ).toBe( 'gemini-3.6-flash' );
 		} );
 
 		it( 'persists the provider to storage when changed via the selector', async () => {

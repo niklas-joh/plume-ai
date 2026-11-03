@@ -27,7 +27,7 @@ use Plume\Tools\ToolRegistry;
 class GeminiProvider extends AbstractProvider {
 
 	private const API_BASE      = 'https://generativelanguage.googleapis.com/v1beta';
-	private const DEFAULT_MODEL = 'gemini-3.5-flash';
+	private const DEFAULT_MODEL = 'gemini-3.6-flash';
 	private const IMAGE_MODEL   = 'imagen-3.0-generate-001';
 
 	/**
@@ -35,22 +35,11 @@ class GeminiProvider extends AbstractProvider {
 	 * .pro_managed allow-lists (plume-proxy/src/index.ts) so the dropdown
 	 * never offers a model the Worker will reject for proxy-routed (non-BYOK)
 	 * requests — see #906. free -> gemini-3.1-flash-lite, pro_managed ->
-	 * gemini-3.5-flash; the Worker alone decides which tier gets which.
+	 * gemini-3.6-flash; the Worker alone decides which tier gets which.
 	 */
 	private const MODELS = [
 		'gemini-3.1-flash-lite' => 'Gemini 3.1 Flash Lite',
-		'gemini-3.5-flash'      => 'Gemini 3.5 Flash',
-	];
-
-	private const PRICING = [
-		'gemini-3.1-flash-lite' => [
-			'in'  => 0.25,
-			'out' => 1.50,
-		],
-		'gemini-3.5-flash'      => [
-			'in'  => 1.50,
-			'out' => 9.0,
-		],
+		'gemini-3.6-flash'      => 'Gemini 3.6 Flash',
 	];
 
 	/**
@@ -212,14 +201,10 @@ class GeminiProvider extends AbstractProvider {
 		// parse_response() expects the upstream Gemini wire format and cannot handle the normalised response.
 		$worker_model = \sanitize_text_field( $result['model'] ?? '' );
 		$model        = '' !== $worker_model ? $worker_model : $model;
-		$in_tokens    = (int) ( $result['usage']['input_tokens'] ?? 0 );
-		$out_tokens   = (int) ( $result['usage']['output_tokens'] ?? 0 );
-		$pricing      = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
-		$cost         = ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
 
 		// Worker sends tool_calls (plural array); build_proxy_response() centralises the plural/singular
 		// contract and response assembly shared with Claude and OpenAI to prevent drift (see #893).
-		return $this->build_proxy_response( $result, $model, $cost );
+		return $this->build_proxy_response( $result, $model );
 	}
 
 	/**
@@ -332,7 +317,7 @@ class GeminiProvider extends AbstractProvider {
 	 * POST a JSON body to the Gemini API and return the decoded response.
 	 *
 	 * @since 1.0.0
-	 * @param string $path API endpoint path (e.g. '/models/gemini-3.5-flash:generateContent').
+	 * @param string $path API endpoint path (e.g. '/models/gemini-3.6-flash:generateContent').
 	 * @param array  $body Request payload.
 	 * @return array
 	 * @throws ProviderException On HTTP failure or non-2xx status.
@@ -371,15 +356,13 @@ class GeminiProvider extends AbstractProvider {
 	 *
 	 * @since 1.0.0
 	 * @param array  $data  Decoded API response body.
-	 * @param string $model Model identifier used for pricing lookup.
+	 * @param string $model Model identifier used when the response omits one.
 	 * @return CompletionResponse
 	 */
 	private function parse_response( array $data, string $model ): CompletionResponse {
 		$meta       = $data['usageMetadata'] ?? [];
 		$in_tokens  = (int) ( $meta['promptTokenCount'] ?? 0 );
 		$out_tokens = (int) ( $meta['candidatesTokenCount'] ?? 0 );
-		$pricing    = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
-		$cost       = ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
 
 		// Check for a functionCall in the response parts.
 		$parts = $data['candidates'][0]['content']['parts'] ?? [];
@@ -393,7 +376,6 @@ class GeminiProvider extends AbstractProvider {
 					model: $data['modelVersion'] ?? $model,
 					prompt_tokens: $in_tokens,
 					completion_tokens: $out_tokens,
-					cost_usd: $cost,
 					raw: [
 						'data'    => $data,
 						'call_id' => $call_id,
@@ -417,6 +399,12 @@ class GeminiProvider extends AbstractProvider {
 				$data['candidates'][0]['content']['parts'] ?? []
 			)
 		);
-		return new CompletionResponse( $content, $model, $in_tokens, $out_tokens, $cost, $data );
+		return new CompletionResponse(
+			content:           $content,
+			model:             $model,
+			prompt_tokens:     $in_tokens,
+			completion_tokens: $out_tokens,
+			raw:               $data,
+		);
 	}
 }

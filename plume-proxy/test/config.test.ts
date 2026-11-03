@@ -177,7 +177,7 @@ describe( '/v1/config default_models', () => {
 		expect( data.default_models ).toEqual( {
 			claude: 'claude-sonnet-4-6',
 			openai: 'gpt-4.1',
-			gemini: 'gemini-3.5-flash',
+			gemini: 'gemini-3.6-flash',
 		} );
 	} );
 

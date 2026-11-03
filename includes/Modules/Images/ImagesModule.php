@@ -16,7 +16,6 @@ use Plume\Providers\ProviderFactory;
 use Plume\Providers\ProviderException;
 use Plume\Settings\ProviderSettings;
 use Plume\Tiers\TierManager;
-use Plume\Tiers\UsageTracker;
 
 /**
  * Registers the image-generation admin assets and REST route.
@@ -25,9 +24,6 @@ use Plume\Tiers\UsageTracker;
  * via a 207 Multi-Status response rather than aborting the entire request.
  */
 class ImagesModule {
-
-	/** Credits deducted per generated image — mirrors IMAGE_CREDITS in plume-proxy/src/credits.ts. */
-	private const IMAGE_CREDITS = 15;
 
 	/**
 	 * Register WordPress hooks for this module.
@@ -190,7 +186,9 @@ class ImagesModule {
 			);
 		}
 
-		UsageTracker::log_usage( count( $images ) * self::IMAGE_CREDITS );
+		// No usage is logged here: images are generated with the user's own API key and never
+		// pass through the managed proxy, so no managed credits are consumed. If a managed image
+		// route is added, take the charge from the Worker's credits_charged, as chat does.
 		$status = empty( $errors ) ? 201 : 207;
 
 		return new \WP_REST_Response(

@@ -156,15 +156,6 @@ class OpenAIProviderTest extends TestCase {
 		$this->assertArrayHasKey( $provider->get_default_model(), $provider->get_models() );
 	}
 
-	public function test_pricing_keys_match_model_keys(): void {
-		// Guards the cost fallback in complete_via_proxy()/parse_response(): adding a model
-		// without a matching PRICING entry would silently mis-price it from DEFAULT_MODEL.
-		$reflection = new \ReflectionClass( OpenAIProvider::class );
-		$models     = $reflection->getConstant( 'MODELS' );
-		$pricing    = $reflection->getConstant( 'PRICING' );
-		$this->assertEqualsCanonicalizing( array_keys( $models ), array_keys( $pricing ) );
-	}
-
 	// ── Proxy path tests ─────────────────────────────────────────────────────
 
 	private function mock_free_tier_proxy(): void {

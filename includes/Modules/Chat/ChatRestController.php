@@ -453,7 +453,6 @@ class ChatRestController {
 			$credits_accumulated      = 0;
 			$prompt_tokens_total      = 0;
 			$completion_tokens_total  = 0;
-			$cost_usd_total           = 0.0;
 			$last_successful_response = null;
 
 			while ( $iteration < $max_iterations ) {
@@ -510,7 +509,6 @@ class ChatRestController {
 				$credits_accumulated     += $response->credits_charged;
 				$prompt_tokens_total     += $response->prompt_tokens;
 				$completion_tokens_total += $response->completion_tokens;
-				$cost_usd_total          += $response->cost_usd;
 				$last_successful_response = $response;
 
 				// Bare text response — happens when tools are not supported by the provider.
@@ -614,7 +612,6 @@ class ChatRestController {
 					'content'           => $final_response->content,
 					'model'             => $final_response->model,
 					'credits'           => $credits_accumulated,
-					'cost_usd'          => $cost_usd_total,
 					'prompt_tokens'     => $prompt_tokens_total,
 					'completion_tokens' => $completion_tokens_total,
 					'pending_plan'      => $pending_plan,

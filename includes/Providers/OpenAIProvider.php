@@ -37,24 +37,12 @@ class OpenAIProvider extends AbstractProvider {
 	 * (free + pro_managed) so the selector never offers a model the Worker will
 	 * reject for proxy-routed (non-BYOK) requests. The Worker still enforces
 	 * per-tier (getModelForTier returns allowed[0] for any non-tier model), so a
-	 * model from the other tier is substituted cross-tier; cost is recomputed from
-	 * the Worker-returned model so pricing stays correct. Keep the two in sync.
+	 * model from the other tier is substituted cross-tier and the response reports
+	 * the Worker-returned model. Keep the two in sync.
 	 */
 	private const MODELS = [
 		'gpt-4.1'      => 'GPT-4.1',
 		'gpt-4.1-nano' => 'GPT-4.1 Nano',
-	];
-
-	/** USD per million tokens. */
-	private const PRICING = [
-		'gpt-4.1'      => [
-			'in'  => 2.0,
-			'out' => 8.0,
-		],
-		'gpt-4.1-nano' => [
-			'in'  => 0.10,
-			'out' => 0.40,
-		],
 	];
 
 	/**
@@ -220,14 +208,10 @@ class OpenAIProvider extends AbstractProvider {
 		// parse_response() expects the upstream OpenAI wire format and cannot handle the normalised response.
 		$worker_model = \sanitize_text_field( $result['model'] ?? '' );
 		$model        = '' !== $worker_model ? $worker_model : $model;
-		$in_tokens    = (int) ( $result['usage']['input_tokens'] ?? 0 );
-		$out_tokens   = (int) ( $result['usage']['output_tokens'] ?? 0 );
-		$pricing      = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
-		$cost         = ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
 
 		// Worker sends tool_calls (plural array); build_proxy_response() centralises the plural/singular
 		// contract and response assembly shared with Claude and Gemini to prevent drift (see #893).
-		return $this->build_proxy_response( $result, $model, $cost );
+		return $this->build_proxy_response( $result, $model );
 	}
 
 	/**
@@ -318,14 +302,12 @@ class OpenAIProvider extends AbstractProvider {
 	 *
 	 * @since 1.0.0
 	 * @param array  $data  Decoded API response body.
-	 * @param string $model Model identifier used for pricing lookup.
+	 * @param string $model Model identifier used when the response omits one.
 	 * @return CompletionResponse
 	 */
 	private function parse_response( array $data, string $model ): CompletionResponse {
 		$in_tokens  = (int) ( $data['usage']['prompt_tokens'] ?? 0 );
 		$out_tokens = (int) ( $data['usage']['completion_tokens'] ?? 0 );
-		$pricing    = self::PRICING[ $model ] ?? self::PRICING[ self::DEFAULT_MODEL ];
-		$cost       = ( $in_tokens / 1_000_000 * $pricing['in'] ) + ( $out_tokens / 1_000_000 * $pricing['out'] );
 
 		$message       = $data['choices'][0]['message'] ?? [];
 		$finish_reason = $data['choices'][0]['finish_reason'] ?? '';
@@ -340,7 +322,6 @@ class OpenAIProvider extends AbstractProvider {
 					model: $data['model'] ?? $model,
 					prompt_tokens: $in_tokens,
 					completion_tokens: $out_tokens,
-					cost_usd: $cost,
 					raw: $data,
 					tool_call: [
 						'id'        => $tool_call_data['id'],
@@ -352,6 +333,12 @@ class OpenAIProvider extends AbstractProvider {
 		}
 
 		$content = $message['content'] ?? '';
-		return new CompletionResponse( $content, $model, $in_tokens, $out_tokens, $cost, $data );
+		return new CompletionResponse(
+			content:           $content,
+			model:             $model,
+			prompt_tokens:     $in_tokens,
+			completion_tokens: $out_tokens,
+			raw:               $data,
+		);
 	}
 }

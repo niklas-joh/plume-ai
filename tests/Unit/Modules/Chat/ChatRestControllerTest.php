@@ -561,7 +561,6 @@ class ChatRestControllerTest extends TestCase {
             model:             'claude-3-5-sonnet',
             prompt_tokens:     10,
             completion_tokens: 5,
-            cost_usd:          0.0,
             raw:               [ 'content' => [] ],
             tool_call:         [ 'id' => 'tc_1', 'name' => 'get_recent_posts', 'arguments' => [ 'count' => 3 ] ],
         );
@@ -572,7 +571,6 @@ class ChatRestControllerTest extends TestCase {
             model:             'claude-3-5-sonnet',
             prompt_tokens:     20,
             completion_tokens: 15,
-            cost_usd:          0.001,
             raw:               [],
             tool_call:         null,
         );
@@ -612,7 +610,7 @@ class ChatRestControllerTest extends TestCase {
         // Usage is summed across both loop iterations (10+20, 5+15), not just the final call.
         $this->assertSame( 30, $response->data['prompt_tokens'] );
         $this->assertSame( 20, $response->data['completion_tokens'] );
-        $this->assertSame( 0.001, $response->data['cost_usd'] );
+        $this->assertArrayNotHasKey( 'cost_usd', $response->data );
         // The assistant message is persisted with the whole turn's token total (30 + 20).
         $this->assertSame( 'assistant', $saved_messages[1][1] );
         $this->assertSame( 50, $saved_messages[1][4] );
@@ -758,7 +756,6 @@ class ChatRestControllerTest extends TestCase {
             model:             'claude-3-5-sonnet',
             prompt_tokens:     10,
             completion_tokens: 5,
-            cost_usd:          0.0,
             raw:               [ 'content' => [] ],
             tool_call:         [ 'id' => 'tc_x', 'name' => 'get_site_info', 'arguments' => [] ],
         );
@@ -1619,7 +1616,6 @@ class ChatRestControllerTest extends TestCase {
             model:             'gemini-3.5-flash',
             prompt_tokens:     10,
             completion_tokens: 5,
-            cost_usd:          0.0,
             raw:               [
                 'data' => [
                     'candidates' => [ [
@@ -1641,7 +1637,6 @@ class ChatRestControllerTest extends TestCase {
             model:             'gemini-3.5-flash',
             prompt_tokens:     20,
             completion_tokens: 15,
-            cost_usd:          0.0,
             raw:               [],
             tool_call:         null,
         );
@@ -1702,7 +1697,6 @@ class ChatRestControllerTest extends TestCase {
             model:             'claude-3-5-sonnet',
             prompt_tokens:     10,
             completion_tokens: 5,
-            cost_usd:          0.0,
             raw:               [
                 'content' => [
                     [ 'type' => 'tool_use', 'id' => 'tu_1', 'name' => 'chat_response', 'input' => [ 'message' => 'Hi! How can I help?' ] ],
@@ -1757,7 +1751,6 @@ class ChatRestControllerTest extends TestCase {
             model:             'claude-3-5-sonnet',
             prompt_tokens:     10,
             completion_tokens: 5,
-            cost_usd:          0.0,
             raw:               [
                 'content' => [
                     [ 'type' => 'tool_use', 'id' => 'tu_1', 'name' => 'plan_post', 'input' => [ 'title' => 'Widgets', 'content' => 'Full body.' ] ],
@@ -1841,7 +1834,6 @@ class ChatRestControllerTest extends TestCase {
             model:             'claude-3-5-sonnet',
             prompt_tokens:     10,
             completion_tokens: 5,
-            cost_usd:          0.0,
             raw:               [
                 'content' => [
                     [ 'type' => 'tool_use', 'id' => 'tu_1', 'name' => 'plan_update', 'input' => $plan_update_input ],
@@ -1855,7 +1847,6 @@ class ChatRestControllerTest extends TestCase {
             model:             'claude-3-5-sonnet',
             prompt_tokens:     10,
             completion_tokens: 5,
-            cost_usd:          0.0,
             raw:               [
                 'content' => [
                     [ 'type' => 'tool_use', 'id' => 'tu_2', 'name' => 'submit_post_content', 'input' => $submit_input ],
@@ -1947,7 +1938,6 @@ class ChatRestControllerTest extends TestCase {
             model:             'claude-3-5-sonnet',
             prompt_tokens:     10,
             completion_tokens: 5,
-            cost_usd:          0.0,
             raw:               [
                 'content' => [
                     [ 'type' => 'tool_use', 'id' => 'tu_1', 'name' => 'plan_post', 'input' => $tool_input ],
@@ -2282,7 +2272,6 @@ class ChatRestControllerTest extends TestCase {
             model:             'claude-3-5-sonnet',
             prompt_tokens:     10,
             completion_tokens: 5,
-            cost_usd:          0.0,
             raw:               [ 'content' => [] ],
             tool_call:         [ 'id' => 'tc_x', 'name' => 'get_site_info', 'arguments' => [] ],
             credits_charged:   2,

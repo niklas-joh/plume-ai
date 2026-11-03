@@ -52,7 +52,6 @@ class OllamaProviderTest extends TestCase {
 		$request  = new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] );
 		$response = $provider->complete( $request );
 
-		$this->assertSame( 0.0, $response->cost_usd );
 		$this->assertSame( 'Local response', $response->content );
 	}
 

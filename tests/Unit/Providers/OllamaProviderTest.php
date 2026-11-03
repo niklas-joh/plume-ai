@@ -32,7 +32,7 @@ class OllamaProviderTest extends TestCase {
 		$this->assertSame( 'ollama', ( new OllamaProvider() )->get_slug() );
 	}
 
-	public function test_cost_is_always_zero(): void {
+	public function test_returns_content_for_local_completion(): void {
 		$this->mock_wpdb();
 		Functions\when( 'wp_remote_post' )->justReturn( [
 			'response' => [ 'code' => 200 ],

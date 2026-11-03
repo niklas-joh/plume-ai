@@ -1,3 +1,14 @@
+## [1.15.0](https://github.com/niklas-joh/plume-ai/compare/v1.14.0...v1.15.0) (2026-10-23)
+
+### New Features
+
+* **worker:** price gpt-4.1-nano and offer it on the free tier ([#982](https://github.com/niklas-joh/plume-ai/issues/982)) ([7ff94ff](https://github.com/niklas-joh/plume-ai/commit/7ff94ffa5e75f79b466ceb6adf57e693aec30a19)), closes [#856](https://github.com/niklas-joh/plume-ai/issues/856) [#946](https://github.com/niklas-joh/plume-ai/issues/946) [#859](https://github.com/niklas-joh/plume-ai/issues/859)
+
+### Bug Fixes
+
+* **chat:** report token usage summed across agentic-loop iterations ([#981](https://github.com/niklas-joh/plume-ai/issues/981)) ([955af62](https://github.com/niklas-joh/plume-ai/commit/955af6275bf431e148a2374e5accb9b7d503e4a4)), closes [#943](https://github.com/niklas-joh/plume-ai/issues/943)
+* **privacy:** point privacy policy links to the live page ([#980](https://github.com/niklas-joh/plume-ai/issues/980)) ([aa46de2](https://github.com/niklas-joh/plume-ai/commit/aa46de22c345df38b1fda8f0b0e31ad81dba6f6e)), closes [#625](https://github.com/niklas-joh/plume-ai/issues/625)
+
 ## [1.14.0](https://github.com/niklas-joh/plume-ai/compare/v1.13.3...v1.14.0) (2026-10-17)
 
 ### New Features

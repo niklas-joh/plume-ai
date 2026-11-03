@@ -91,6 +91,30 @@ export const DEFAULT_TIER_MODELS: Record<
 	},
 };
 
+// Model used when a request names no model (the plugin's "Plugin default" choice).
+// An explicit map rather than allowed[0], so reordering a tier's allow-list can
+// never silently change the default (and the price) of a request. Mirrored in
+// includes/Providers/ManagedDefaults.php, which labels it in the chat UI — keep
+// both in step. If a KV `config:models` override drops the default from the
+// tier's allow-list, getModelForTier falls back to the list's first entry.
+export const DEFAULT_MODEL_BY_TIER: Record<
+	Provider,
+	Record< ProxyTier, string >
+> = {
+	claude: {
+		free: 'claude-haiku-4-5-20251001',
+		pro_managed: 'claude-sonnet-4-6',
+	},
+	openai: {
+		free: 'gpt-4.1-nano',
+		pro_managed: 'gpt-4.1',
+	},
+	gemini: {
+		free: 'gemini-3.1-flash-lite',
+		pro_managed: 'gemini-3.5-flash',
+	},
+};
+
 // Fallback token weights — relative cost multipliers applied to raw token counts
 // before computing credits, so quota enforcement is provider/model-agnostic.
 // Weights track list input price relative to Claude Haiku 4.5 ($1/MTok), so a
@@ -1063,7 +1087,7 @@ async function updateUsage(
 	} );
 }
 
-function getModelForTier(
+export function getModelForTier(
 	provider: Provider,
 	tier: ProxyTier,
 	tierModels: Record< string, Record< string, string[] > >,
@@ -1084,7 +1108,8 @@ function getModelForTier(
 	if ( requestedModel && allowed.includes( requestedModel ) ) {
 		return requestedModel;
 	}
-	return allowed[ 0 ];
+	const defaultModel = DEFAULT_MODEL_BY_TIER[ provider ][ tier ];
+	return allowed.includes( defaultModel ) ? defaultModel : allowed[ 0 ];
 }
 
 function getCurrentMonth(): string {

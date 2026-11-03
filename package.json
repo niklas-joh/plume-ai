@@ -1,6 +1,6 @@
 {
   "name": "plume",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "private": true,
   "scripts": {
     "prepare": "GIT_DIR=$(git rev-parse --git-dir 2>/dev/null) && mkdir -p \"$GIT_DIR/hooks\" && cp scripts/pre-commit \"$GIT_DIR/hooks/pre-commit\" && chmod +x \"$GIT_DIR/hooks/pre-commit\" && cp scripts/pre-push \"$GIT_DIR/hooks/pre-push\" && chmod +x \"$GIT_DIR/hooks/pre-push\"",
@@ -41,7 +41,7 @@
     "@wordpress/element": ">=6.0.0",
     "@wordpress/env": "^11.8.0",
     "@wordpress/eslint-plugin": "^26.0.0",
-    "@wordpress/scripts": "^36.0.0",
+    "@wordpress/scripts": "^37.0.0",
     "conventional-changelog-conventionalcommits": "^9.3.1",
     "eslint": "^10.0.0",
     "eslint-plugin-jsdoc": "^64.5.2",

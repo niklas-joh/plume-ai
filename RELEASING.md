@@ -108,19 +108,41 @@ and are **not** deployed to WordPress.org.
 
 ### First-time setup
 
-The plugin must be approved on WordPress.org before automated deployment can work.
-Initial submission is manual: upload the ZIP from the GitHub Release via
-https://wordpress.org/plugins/developers/add/
+The plugin was approved on WordPress.org on 19 October 2026 (slug `plume`,
+SVN `https://plugins.svn.wordpress.org/plume`, committer `niklasjohansson`).
 
-Once approved, add these two repository secrets (Settings → Secrets → Actions):
+Add these two repository secrets (Settings → Secrets and variables → Actions)
+**before** the first release is cut:
 
 | Secret | Value |
 |---|---|
-| `WPORG_USERNAME` | Your WordPress.org committer username |
-| `WPORG_PASSWORD` | A WordPress.org application password (generate at `profiles.wordpress.org/<user>/profile/applications/`) |
+| `WPORG_USERNAME` | `niklasjohansson` |
+| `WPORG_PASSWORD` | Your **SVN password**: profiles.wordpress.org → Edit Profile → Account & Security → SVN credentials. Your login password and application passwords do not work for SVN. |
 
-After the secrets are configured, every subsequent stable release is deployed
-automatically — no manual SVN steps needed.
+### First WordPress.org release (2.0.0)
+
+1. Add the two secrets above.
+2. Merge the launch PR. Its squash commit must start with `feat(wporg)!:` (the `!`
+   marks a breaking change, which bumps 1.x to 2.0.0). Check the commit message
+   in GitHub's merge dialog before confirming.
+3. Run **Actions → Release → Run workflow** (or wait for the Friday run).
+4. The `v2.0.0` GitHub Release triggers **WordPress.org Deploy**, which commits
+   the zip to `trunk/`, copies it to `tags/2.0.0/` and uploads `wp-org-assets/`
+   to SVN `assets/`.
+5. Check https://wordpress.org/plugins/plume/. Search results can take up to
+   72 hours to update.
+
+If the deploy job fails (for example, missing secrets), fix the cause and re-run
+**WordPress.org Deploy** with tag `v2.0.0`. Re-running is safe.
+
+### readme.txt and changelog
+
+`readme.txt` controls the public plugin page. semantic-release sets `Stable tag`
+and replaces `= NEXT_VERSION =` headings in the Changelog and Upgrade Notice
+sections with the real version. Before a release, add user-facing notes under a
+`= NEXT_VERSION =` heading. Plugin page images live in `wp-org-assets/`
+(icons, banners, `screenshot-N.png` matching the readme's Screenshots captions)
+and are synced on every deploy.
 
 ### Manual deploy / testing
 
@@ -135,7 +157,7 @@ select **WordPress.org Deploy** → **Run workflow** → supply the release tag 
 |---|---|---|
 | `ci.yml` | PR to `main` | PHPCS, PHPUnit, JS lint, commitlint |
 | `release.yml` | Weekly schedule (Fri 10:00 UTC) or `workflow_dispatch` | Full semantic-release pipeline |
-| `wporg-deploy.yml` | Stable release published | Deploy ZIP to WordPress.org SVN |
+| `wporg-deploy.yml` | Stable release published | Deploy ZIP + `wp-org-assets/` to WordPress.org SVN |
 | `claude-code-review.yml` | PR opened/updated | Automated code review |
 | `auto-fix-ci.yml` | CI failure | Auto-fix lint issues |
 | `auto-fix-review-issue.yml` | Issue labelled | Auto-fix code review issues |

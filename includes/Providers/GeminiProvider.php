@@ -27,7 +27,7 @@ use Plume\Tools\ToolRegistry;
 class GeminiProvider extends AbstractProvider {
 
 	private const API_BASE      = 'https://generativelanguage.googleapis.com/v1beta';
-	private const DEFAULT_MODEL = 'gemini-3.5-flash';
+	private const DEFAULT_MODEL = 'gemini-3.6-flash';
 	private const IMAGE_MODEL   = 'imagen-3.0-generate-001';
 
 	/**
@@ -35,11 +35,11 @@ class GeminiProvider extends AbstractProvider {
 	 * .pro_managed allow-lists (plume-proxy/src/index.ts) so the dropdown
 	 * never offers a model the Worker will reject for proxy-routed (non-BYOK)
 	 * requests — see #906. free -> gemini-3.1-flash-lite, pro_managed ->
-	 * gemini-3.5-flash; the Worker alone decides which tier gets which.
+	 * gemini-3.6-flash; the Worker alone decides which tier gets which.
 	 */
 	private const MODELS = [
 		'gemini-3.1-flash-lite' => 'Gemini 3.1 Flash Lite',
-		'gemini-3.5-flash'      => 'Gemini 3.5 Flash',
+		'gemini-3.6-flash'      => 'Gemini 3.6 Flash',
 	];
 
 	/**
@@ -317,7 +317,7 @@ class GeminiProvider extends AbstractProvider {
 	 * POST a JSON body to the Gemini API and return the decoded response.
 	 *
 	 * @since 1.0.0
-	 * @param string $path API endpoint path (e.g. '/models/gemini-3.5-flash:generateContent').
+	 * @param string $path API endpoint path (e.g. '/models/gemini-3.6-flash:generateContent').
 	 * @param array  $body Request payload.
 	 * @return array
 	 * @throws ProviderException On HTTP failure or non-2xx status.

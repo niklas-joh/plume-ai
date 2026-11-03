@@ -34,7 +34,7 @@ class ManagedDefaultsTest extends TestCase {
 			'openai free'        => [ 'openai', 'free', 'gpt-4.1-nano', 'GPT-4.1 nano' ],
 			'openai pro_managed' => [ 'openai', 'pro_managed', 'gpt-4.1', 'GPT-4.1' ],
 			'gemini free'        => [ 'gemini', 'free', 'gemini-3.1-flash-lite', 'Gemini 3.1 Flash Lite' ],
-			'gemini pro_managed' => [ 'gemini', 'pro_managed', 'gemini-3.5-flash', 'Gemini 3.5 Flash' ],
+			'gemini pro_managed' => [ 'gemini', 'pro_managed', 'gemini-3.6-flash', 'Gemini 3.6 Flash' ],
 			'claude unknown tier' => [ 'claude', 'bogus', 'claude-haiku-4-5-20251001', 'Claude Haiku 4.5' ],
 		];
 	}

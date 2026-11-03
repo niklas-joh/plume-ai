@@ -4,6 +4,7 @@
     [
       "@semantic-release/commit-analyzer",
       {
+        "preset": "conventionalcommits",
         "releaseRules": [
           {"breaking": true, "release": "major"},
           {"type": "feat", "release": "minor"},
@@ -43,7 +44,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "sed -i 's/ \\* Version:.*/ * Version:           ${nextRelease.version}/' plume.php && sed -i \"s/define( 'PLUME_VERSION', '[^']*' )/define( 'PLUME_VERSION', '${nextRelease.version}' )/\" plume.php && sed -i 's/^Stable tag:.*/Stable tag: ${nextRelease.version}/' readme.txt && ./bin/stamp-since-tags.sh ${nextRelease.version} && ./bin/build-wporg.sh --version ${nextRelease.version} --skip-build"
+        "prepareCmd": "sed -i 's/ \\* Version:.*/ * Version:           ${nextRelease.version}/' plume.php && sed -i \"s/define( 'PLUME_VERSION', '[^']*' )/define( 'PLUME_VERSION', '${nextRelease.version}' )/\" plume.php && sed -i 's/^Stable tag:.*/Stable tag: ${nextRelease.version}/' readme.txt && sed -i 's/^= NEXT_VERSION =$/= ${nextRelease.version} =/' readme.txt && ./bin/stamp-since-tags.sh ${nextRelease.version} && ./bin/build-wporg.sh --version ${nextRelease.version} --skip-build"
       }
     ],
     [

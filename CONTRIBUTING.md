@@ -33,6 +33,18 @@ Stop it when done:
 npm run env:stop
 ```
 
+### Local overrides
+
+Create a `.wp-env.override.json` in the repository root to change the committed `.wp-env.json` settings on your machine only. wp-env merges it over `.wp-env.json`, and the file is gitignored, so it is never committed. For example, to turn off debug output:
+
+```json
+{
+  "config": { "WP_DEBUG": false, "SCRIPT_DEBUG": false }
+}
+```
+
+CI writes its own copy of this file in `.github/workflows/pr-checks.yml`, so a local override never affects CI.
+
 > To use your existing blog Docker environment instead, set `WP_BASE_URL=http://localhost:8080` when running Playwright tests.
 
 ## Running Checks Locally

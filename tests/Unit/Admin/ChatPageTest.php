@@ -59,6 +59,9 @@ class ChatPageTest extends TestCase {
 				'current_user_can'   => true,
 			]
 		);
+		// ManagedDefaults::model_id() checks its live-defaults transient first; a miss plus
+		// no site token (get_option returns '') means constants are used and nothing is fetched.
+		Functions\when( 'get_transient' )->justReturn( false );
 		// publish_caps() is irrelevant here; no post types means no capability lookups.
 		Functions\when( 'apply_filters' )->alias( static fn( string $hook, $value ) => 'plume_allowed_post_types' === $hook ? [] : $value );
 		Functions\when( 'wp_localize_script' )->alias(

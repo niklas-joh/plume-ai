@@ -9,8 +9,6 @@ declare( strict_types=1 );
 
 namespace Plume\Tiers;
 
-use Plume\Proxy\SiteRegistration;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -47,17 +45,6 @@ class UsageTracker {
 	 * @deprecated Use FREE_CREDITS or PRO_MANAGED_CREDITS directly.
 	 */
 	public const FALLBACK_LIMIT = self::FREE_CREDITS;
-
-	/**
-	 * HTTP timeout, in seconds, for the hot-path live credit-limit fetch.
-	 *
-	 * Deliberately short: this runs on a cache miss while resolving a user's
-	 * usage summary, so a slow/unreachable Worker must not stall the request —
-	 * on timeout we fall back to the hardcoded constants above.
-	 *
-	 * @since 1.13.1
-	 */
-	private const CONFIG_FETCH_TIMEOUT = 3;
 
 	/**
 	 * Returns the wp_usermeta key for the current calendar month's token counter.
@@ -161,46 +148,20 @@ class UsageTracker {
 	/**
 	 * Fetch this site's live credit limit from the Worker's GET /v1/config endpoint.
 	 *
-	 * Bearer-authenticated with the site's own token; the Worker resolves the
-	 * tier from the token itself rather than trusting a caller-supplied value.
-	 * That resolved tier can disagree with $tier — e.g. TierManager::get_user_tier()
-	 * locally downgrades an unverified pro site to 'free' while the Worker's
-	 * SiteRecord still says 'pro_managed' — so the response's `tier` is checked
-	 * against $tier before use; a mismatch is treated like any other failure and
-	 * falls back to the hardcoded constant for $tier. Without this check the
-	 * limit would get cached under the wrong tier's transient key. Read-only:
-	 * unlike /rotate-secret, this never mutates the site's Worker-side record.
+	 * Transport, authentication and the tier-mismatch guard live in
+	 * WorkerConfig::fetch(); this only validates the `credit_limit` field. Any
+	 * failure (including a tier mismatch) returns null so the caller falls back to
+	 * the hardcoded constant for $tier.
 	 *
 	 * @since 1.13.1
+	 * @since NEXT_VERSION Delegates the HTTP call to WorkerConfig::fetch().
 	 * @param string $tier Tier slug the result will be cached under; validated against
 	 *                     the Worker's own view of the tier before the limit is trusted.
-	 * @return int|null Live limit from the Worker, or null on any failure (including a
-	 *                  tier mismatch) so the caller falls back.
+	 * @return int|null Live limit from the Worker, or null on any failure.
 	 */
 	private static function fetch_live_credit_limit( string $tier ): ?int {
-		$token = SiteRegistration::get_site_token();
-		if ( '' === $token ) {
-			return null;
-		}
-
-		$response = wp_remote_get(
-			TierConfig::get_proxy_url() . '/v1/config',
-			[
-				'headers' => [ 'Authorization' => 'Bearer ' . $token ],
-				'timeout' => self::CONFIG_FETCH_TIMEOUT,
-			]
-		);
-
-		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
-			return null;
-		}
-
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-		if ( ! is_array( $body ) || ! isset( $body['credit_limit'] ) || ! is_numeric( $body['credit_limit'] ) ) {
-			return null;
-		}
-
-		if ( ! isset( $body['tier'] ) || $tier !== $body['tier'] ) {
+		$body = WorkerConfig::fetch( $tier );
+		if ( null === $body || ! isset( $body['credit_limit'] ) || ! is_numeric( $body['credit_limit'] ) ) {
 			return null;
 		}
 

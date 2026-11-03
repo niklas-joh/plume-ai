@@ -147,6 +147,8 @@ if ( 'chat_response' === ( $tool_call['name'] ?? '' ) ) {
 clones the current instance with `content` replaced. Immutable; creates a new object, does not mutate.
 All other fields (`model`, `tokens`, `cost_usd`, `raw`) are copied unchanged.
 
+> **Note (historical):** `cost_usd` was later removed from `CompletionResponse`; it no longer exists as a copied field.
+
 **`pending_plan` propagation:**
 
 The loop initialises `$pending_plan = null` before the `while`. When `plan_post` or `plan_update`

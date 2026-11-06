@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * error handling, JSON decoding and the tier guard. Consumers validate and cache
  * only the fields they need.
  *
- * @since NEXT_VERSION
+ * @since 2.0.0
  */
 final class WorkerConfig {
 
@@ -34,7 +34,7 @@ final class WorkerConfig {
 	 * resolving a usage summary, so a slow or unreachable Worker must not stall the
 	 * request. Callers fall back to hardcoded constants on timeout.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 */
 	public const TIMEOUT = 3;
 
@@ -49,7 +49,7 @@ final class WorkerConfig {
 	 * result is discarded; otherwise a value could be cached under the wrong tier's
 	 * key. Read-only: unlike /rotate-secret, this never mutates the Worker-side record.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 * @param string $tier Tier slug the caller will cache the result under.
 	 * @return array<string, mixed>|null Decoded response body, or null when the site is
 	 *                                   unregistered, the request fails, the body is not

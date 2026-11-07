@@ -29,7 +29,7 @@ Chat, the Post generator and AI SEO work out of the box through the Plume manage
 
 - Your own API keys are stored encrypted and only sent to the provider that issued them.
 - Chat history stays in your WordPress database.
-- No tracking, cookies or analytics.
+- No tracking or cookies in the plugin itself. The Plume managed service records usage statistics for that service (see the External services section of readme.txt).
 
 Plume AI connects to external services (the managed service, your chosen AI provider and the checkout provider). The full disclosure, with terms and privacy links, is in the [External services section of readme.txt](https://github.com/niklas-joh/plume-ai/blob/main/readme.txt).
 

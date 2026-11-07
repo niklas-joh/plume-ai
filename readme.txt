@@ -37,13 +37,13 @@ Every feature works on every plan. Nothing is locked. Plans differ only in month
 
 * Your own API keys are stored encrypted (AES-256-CBC) and only ever sent to the provider that issued them.
 * Chat history stays in your WordPress database.
-* No tracking, cookies or analytics.
+* No tracking or cookies in the plugin itself. If you use the Plume managed service, it records usage statistics for that service (see External services).
 
 == External services ==
 
 Plume AI connects to the following services. Nothing is sent until you use an AI feature or finish the setup wizard.
 
-**Plume managed service** (`plume-proxy.plumewp.workers.dev`). Used for Chat, the Post generator and AI SEO when no API key of your own is set. The first time you use one of these (or finish the setup wizard with the managed option), it receives your site URL to register the site and assign its plan. With each request, it receives your prompt and the content you send, forwards it to the AI provider for the model you chose and returns the response. Message content is not stored beyond the request. [Terms](https://wpaimind.com/terms.html), [Privacy policy](https://wpaimind.com/privacy-policy.html).
+**Plume managed service** (`plume-proxy.plumewp.workers.dev`). Used for Chat, the Post generator and AI SEO when no API key of your own is set. The first time you use one of these (or finish the setup wizard with the managed option), it receives your site URL to register the site and assign its plan. With each request, it receives your prompt and the content you send, forwards it to the AI provider for the model you chose and returns the response. Message content is not stored beyond the request. For each request and registration attempt, the service also records usage statistics: your site's domain (including any path in the site URL), your plan, the feature used, the AI provider and model, token counts, credits used, response time, and whether the request succeeded or failed. If a registration fails verification, it records only a short hashed reference derived from the site URL (the first 12 characters of its SHA-256 hash, called `site_ref`) and the failure reason, not the URL itself. Prompts, responses, API keys, IP addresses and user details are never part of these statistics. They are used to operate and bill the service (credit limits), monitor reliability and speed, and understand usage to improve the product, and are kept for up to 90 days. Site records needed to run the service are kept while the site stays registered. [Terms](https://wpaimind.com/terms.html), [Privacy policy](https://wpaimind.com/privacy-policy.html).
 
 **Anthropic (Claude)**: receives your prompts and content when you use a Claude model, directly with your own key or through the managed service. [Terms](https://www.anthropic.com/legal/commercial-terms), [Privacy policy](https://www.anthropic.com/legal/privacy).
 

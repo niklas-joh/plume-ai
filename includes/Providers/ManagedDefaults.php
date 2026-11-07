@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * model list, which only offers models usable with the user's own key. The Worker
  * sends no display names; unknown ids are shown as the raw id by the caller.
  *
- * @since NEXT_VERSION
+ * @since 2.0.0
  */
 final class ManagedDefaults {
 
@@ -40,7 +40,7 @@ final class ManagedDefaults {
 	 *
 	 * Short, because a KV override is an operational lever that should show up soon.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 */
 	public const LIVE_TTL = HOUR_IN_SECONDS;
 
@@ -50,21 +50,21 @@ final class ManagedDefaults {
 	 * Short, so an unreachable Worker costs at most one timeout per tier per five
 	 * minutes rather than one per request, yet recovery is quick.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 */
 	public const FAILURE_TTL = 5 * MINUTE_IN_SECONDS;
 
 	/**
 	 * Transient key prefix; the normalised tier slug is appended.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 */
 	private const TRANSIENT_PREFIX = 'plume_default_models_';
 
 	/**
 	 * Providers the Worker reports defaults for.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 * @var string[]
 	 */
 	private const PROVIDERS = [ 'claude', 'openai', 'gemini' ];
@@ -72,7 +72,7 @@ final class ManagedDefaults {
 	/**
 	 * Default model id per provider for the free tier.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 * @var array<string, string>
 	 */
 	private const FREE = [
@@ -84,7 +84,7 @@ final class ManagedDefaults {
 	/**
 	 * Default model id per provider for the pro tiers.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 * @var array<string, string>
 	 */
 	private const PRO = [
@@ -96,7 +96,7 @@ final class ManagedDefaults {
 	/**
 	 * Display label per managed model id.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 * @var array<string, string>
 	 */
 	private const LABELS = [
@@ -117,7 +117,7 @@ final class ManagedDefaults {
 	 * falls back to the constant for that provider only. Pro Managed is looked up as
 	 * itself; free and any unrecognised tier share the free defaults.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 * @param string $provider Provider slug: 'claude', 'openai' or 'gemini'.
 	 * @param string $tier     Tier slug.
 	 * @return string|null Model id, or null when the provider has no managed route.
@@ -140,7 +140,7 @@ final class ManagedDefaults {
 	/**
 	 * Return the display label for a managed model id.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 * @param string $model_id Model id returned by model_id().
 	 * @return string|null Label, or null when the id is not known.
 	 */
@@ -155,7 +155,7 @@ final class ManagedDefaults {
 	 * (no token) fetches and caches nothing, so it picks up live values as soon as
 	 * it registers.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 * @param string $tier Normalised tier slug: 'free' or 'pro_managed'.
 	 * @return array<string, string> Validated model id per provider; may be empty.
 	 */
@@ -180,7 +180,7 @@ final class ManagedDefaults {
 	/**
 	 * Keep only known providers whose model id looks like a model id.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 * @param mixed $default_models The `default_models` value from the Worker response.
 	 * @return array<string, string> Valid entries only.
 	 */

@@ -1,3 +1,26 @@
+## [2.0.0](https://github.com/niklas-joh/plume-ai/compare/v1.15.0...v2.0.0) (2026-11-06)
+
+### ⚠ BREAKING CHANGES
+
+* **wporg:** prepare first WordPress.org release (#994)
+
+### New Features
+
+* **proxy:** report managed default models from /v1/config ([#1003](https://github.com/niklas-joh/plume-ai/issues/1003)) ([aead438](https://github.com/niklas-joh/plume-ai/commit/aead4386e8d47e75dda50add973c6a95d995baad))
+* **wporg:** prepare first WordPress.org release ([#994](https://github.com/niklas-joh/plume-ai/issues/994)) ([4d53d16](https://github.com/niklas-joh/plume-ai/commit/4d53d16531ce9775eac62cd4cc8c14712eafb381))
+
+### Bug Fixes
+
+* **chat:** align OpenAIProvider model list with Worker allow-list ([#990](https://github.com/niklas-joh/plume-ai/issues/990)) ([f280f11](https://github.com/niklas-joh/plume-ai/commit/f280f1124767079d2146d31f79c2e9967f639203))
+* **chat:** show the tier's real default model in "Plugin default" label ([#997](https://github.com/niklas-joh/plume-ai/issues/997)) ([06d981a](https://github.com/niklas-joh/plume-ai/commit/06d981ad0b6b4f14d762b021e3559b6c0b34ef21))
+* **credits:** bill prompt-cache tokens on the proxy path ([#986](https://github.com/niklas-joh/plume-ai/issues/986)) ([6f7a0e6](https://github.com/niklas-joh/plume-ai/commit/6f7a0e6eff7a573b25a6f0a29e84b226dfcba9a5))
+* **images:** do not count managed credits for BYO-key image generation ([#996](https://github.com/niklas-joh/plume-ai/issues/996)) ([2912a32](https://github.com/niklas-joh/plume-ai/commit/2912a321b4829a60332ab144ceb06d165a599fdb))
+* **models:** switch Gemini pro to 3.6 Flash and remove the unused USD cost estimate ([#1002](https://github.com/niklas-joh/plume-ai/issues/1002)) ([416e122](https://github.com/niklas-joh/plume-ai/commit/416e1220d55f18d9605cf1809616a0d340cff96c))
+
+### Documentation
+
+* **readme:** add GitHub README ([#1008](https://github.com/niklas-joh/plume-ai/issues/1008)) ([4cca9ce](https://github.com/niklas-joh/plume-ai/commit/4cca9ce9d43031bc26a91d37b7610071e43e368d))
+
 ## [1.15.0](https://github.com/niklas-joh/plume-ai/compare/v1.14.0...v1.15.0) (2026-10-23)
 
 ### New Features

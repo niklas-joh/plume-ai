@@ -946,6 +946,11 @@ async function handleChatProxyInner(
 			return jsonResponse( { error: 'Unauthorised' }, 401 );
 		}
 
+		// Set straight after auth so 413 and invalid-feature rows carry site/tier.
+		// Copy only these two fields; never the whole record (holds secrets).
+		m.siteKey = siteKeyFromUrl( auth.site_url );
+		m.tier = auth.tier;
+
 		const contentLength = Number(
 			request.headers.get( 'Content-Length' ) ?? 0
 		);
@@ -970,9 +975,6 @@ async function handleChatProxyInner(
 
 		const { model, max_tokens: maxTokens } = body;
 		const { site_token: siteToken, tier } = auth;
-		// Copy only these two fields; never the whole record (holds secrets).
-		m.siteKey = siteKeyFromUrl( auth.site_url );
-		m.tier = tier;
 
 		const provider: Provider = body.provider ?? 'claude';
 		if (

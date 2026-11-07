@@ -1709,6 +1709,50 @@ describe( 'handleChatProxy usage metrics', () => {
 		expect( points[ 4 ].blobs?.[ 5 ] ).toBe( 'byok_blocked' );
 	} );
 
+	it( 'authenticated 413 emits one point with site key and too_large', async () => {
+		const { env, points } = makeMetricsEnv();
+		await seedSite( env, 'free' );
+		const req = new Request( 'https://worker.example.com/v1/chat', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${ TEST_TOKEN }`,
+				'Content-Type': 'application/json',
+				'Content-Length': '99999999',
+			},
+			body: promptBody,
+		} );
+		const res = await worker.fetch( req, env );
+		expect( res.status ).toBe( 413 );
+		expect( points ).toHaveLength( 1 );
+		expect( points[ 0 ].indexes ).toEqual( [ 'example.com/blog' ] );
+		expect( points[ 0 ].blobs?.[ 4 ] ).toBe( 'free' );
+		expect( points[ 0 ].blobs?.[ 5 ] ).toBe( 'too_large' );
+		const dump = JSON.stringify( points );
+		for ( const f of [ SECRET_SYNC, SECRET_LICENCE, TEST_TOKEN, PROMPT_TEXT ] ) {
+			expect( dump ).not.toContain( f );
+		}
+	} );
+
+	it( 'authenticated invalid-feature 400 emits one point with site key and bad_request', async () => {
+		const { env, points } = makeMetricsEnv();
+		await seedSite( env, 'free' );
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: PROMPT_TEXT } ],
+			provider: 'claude',
+			feature: 'unicorn',
+		} );
+		const res = await worker.fetch( makeChatRequest( body ), env );
+		expect( res.status ).toBe( 400 );
+		expect( points ).toHaveLength( 1 );
+		expect( points[ 0 ].indexes ).toEqual( [ 'example.com/blog' ] );
+		expect( points[ 0 ].blobs?.[ 4 ] ).toBe( 'free' );
+		expect( points[ 0 ].blobs?.[ 5 ] ).toBe( 'bad_request' );
+		const dump = JSON.stringify( points );
+		for ( const f of [ SECRET_SYNC, SECRET_LICENCE, TEST_TOKEN, PROMPT_TEXT ] ) {
+			expect( dump ).not.toContain( f );
+		}
+	} );
+
 	it( 'response is identical when writeDataPoint throws', async () => {
 		const throwing = makeEnv( {
 			PLUME_METRICS: {

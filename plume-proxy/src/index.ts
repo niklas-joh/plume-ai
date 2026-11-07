@@ -923,13 +923,13 @@ async function handleChatProxy(
 	request: Request,
 	env: Env
 ): Promise< Response > {
-	const m = newChatMetric();
-	const response = await handleChatProxyInner( request, env, m );
+	const metric = newChatMetric();
+	const response = await handleChatProxyInner( request, env, metric );
 	recordMetric( env, () =>
 		buildChatDataPoint( {
-			...m,
+			...metric,
 			status: response.status,
-			latencyMs: Date.now() - m.startedAt,
+			latencyMs: Date.now() - metric.startedAt,
 		} )
 	);
 	return response;
@@ -938,7 +938,7 @@ async function handleChatProxy(
 async function handleChatProxyInner(
 	request: Request,
 	env: Env,
-	m: ChatMetric
+	metric: ChatMetric
 ): Promise< Response > {
 	try {
 		const auth = await authenticateRequest( request, env );
@@ -948,8 +948,8 @@ async function handleChatProxyInner(
 
 		// Set straight after auth so 413 and invalid-feature rows carry site/tier.
 		// Copy only these two fields; never the whole record (holds secrets).
-		m.siteKey = siteKeyFromUrl( auth.site_url );
-		m.tier = auth.tier;
+		metric.siteKey = siteKeyFromUrl( auth.site_url );
+		metric.tier = auth.tier;
 
 		const contentLength = Number(
 			request.headers.get( 'Content-Length' ) ?? 0
@@ -971,7 +971,7 @@ async function handleChatProxyInner(
 			);
 		}
 		const { feature } = body;
-		m.feature = feature;
+		metric.feature = feature;
 
 		const { model, max_tokens: maxTokens } = body;
 		const { site_token: siteToken, tier } = auth;
@@ -984,7 +984,7 @@ async function handleChatProxyInner(
 		) {
 			return jsonResponse( { error: 'Unknown provider' }, 400 );
 		}
-		m.provider = provider;
+		metric.provider = provider;
 
 		// BYOK sites call Anthropic directly via ClaudeProvider and must never reach here.
 		if ( tier === 'pro_byok' ) {
@@ -1001,8 +1001,8 @@ async function handleChatProxyInner(
 			effectiveTier,
 			env
 		);
-		m.creditsUsedAfter = Math.ceil( rateLimitCheck.used );
-		m.creditLimit = rateLimitCheck.limit;
+		metric.creditsUsedAfter = Math.ceil( rateLimitCheck.used );
+		metric.creditLimit = rateLimitCheck.limit;
 		if ( ! rateLimitCheck.allowed ) {
 			return jsonResponse(
 				{
@@ -1023,7 +1023,7 @@ async function handleChatProxyInner(
 			tierModels,
 			model
 		);
-		m.model = selectedModel;
+		metric.model = selectedModel;
 		const clampedMaxTokens = Math.min(
 			maxTokens ?? ( effectiveTier === 'free' ? 1000 : 4000 ),
 			MAX_TOKENS[ effectiveTier ]
@@ -1055,7 +1055,9 @@ async function handleChatProxyInner(
 				);
 			}
 		} finally {
-			m.upstreamMs = Date.now() - upstreamStart;
+			// In a finally so upstream latency is captured on the error path too,
+			// not just on a successful provider call.
+			metric.upstreamMs = Date.now() - upstreamStart;
 		}
 
 		// Every successful call is billed on its own real usage — there is no more
@@ -1088,13 +1090,13 @@ async function handleChatProxyInner(
 		const creditsCharged =
 			Math.ceil( previousRawTotal + rawContribution ) - Math.ceil( previousRawTotal );
 
-		m.creditsCharged = creditsCharged;
-		m.creditsUsedAfter = Math.ceil( previousRawTotal + rawContribution );
-		m.inputTokens = normalized.usage.input_tokens;
-		m.outputTokens = normalized.usage.output_tokens;
-		m.cacheReadTokens = normalized.usage.cache_read_input_tokens ?? 0;
-		m.cacheWriteTokens = normalized.usage.cache_creation_input_tokens ?? 0;
-		m.toolCalls = normalized.tool_calls?.length ?? 0;
+		metric.creditsCharged = creditsCharged;
+		metric.creditsUsedAfter = Math.ceil( previousRawTotal + rawContribution );
+		metric.inputTokens = normalized.usage.input_tokens;
+		metric.outputTokens = normalized.usage.output_tokens;
+		metric.cacheReadTokens = normalized.usage.cache_read_input_tokens ?? 0;
+		metric.cacheWriteTokens = normalized.usage.cache_creation_input_tokens ?? 0;
+		metric.toolCalls = normalized.tool_calls?.length ?? 0;
 
 		await updateUsage( siteToken, rawContribution, env );
 
@@ -1115,7 +1117,7 @@ async function handleChatProxyInner(
 		// dropping those extra properties — log them explicitly so `wrangler tail`
 		// actually shows *why* an upstream call failed (bad key, bad model id, etc.),
 		// since the client-facing response below never includes this detail.
-		m.errorCode = errorCodeFromThrown( error );
+		metric.errorCode = errorCodeFromThrown( error );
 		const upstream = error as { status?: number; body?: unknown };
 		// eslint-disable-next-line no-console
 		console.error( 'Proxy error:', error, {

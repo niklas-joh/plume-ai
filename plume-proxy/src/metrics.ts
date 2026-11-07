@@ -220,6 +220,8 @@ export function classifyChatOutcome(
 			return 'rate_limited';
 		case 413:
 			return 'too_large';
+		// Assumes 403 is only ever the BYOK block in chat (the single 403 path
+		// today). Revisit this mapping if another 403 is added to the handler.
 		case 403:
 			return 'byok_blocked';
 		case 400:

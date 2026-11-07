@@ -515,6 +515,35 @@ describe( 'handleRegistration', () => {
 } );
 
 describe( 'handleRegistration usage metrics', () => {
+	it( 'records no datapoint for pre-attempt validation failures (invalid JSON, invalid site_url, missing challenge)', async () => {
+		const env = makeEnv();
+		const points = withMetrics( env );
+
+		const badJson = new Request( 'https://worker.example.com/register', {
+			method: 'POST',
+			body: '{not json',
+			headers: {
+				'Content-Type': 'application/json',
+				'CF-Connecting-IP': '127.0.0.1',
+			},
+		} );
+		expect( ( await handleRegistration( badJson, env ) ).status ).toBe( 400 );
+
+		const badUrl = await handleRegistration(
+			makeRequest( { body: { site_url: 'not a url', challenge_token: 'x' } } ),
+			env
+		);
+		expect( badUrl.status ).toBe( 400 );
+
+		const noChallenge = await handleRegistration(
+			makeRequest( { body: { site_url: 'https://good.example.com' } } ),
+			env
+		);
+		expect( noChallenge.status ).toBe( 403 );
+
+		expect( points ).toHaveLength( 0 );
+	} );
+
 	it( 'records registered, existing and verify_failed without leaking secrets or attacker URLs', async () => {
 		const env = makeEnv();
 		const points = withMetrics( env );

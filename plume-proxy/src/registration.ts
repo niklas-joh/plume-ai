@@ -87,6 +87,11 @@ export async function handleRegistration(
 			buildRegisterDataPoint( { ...m, startedAt } )
 		);
 
+	// Deliberately NOT recorded: the three pre-attempt validation exits below
+	// (invalid JSON, invalid site_url, missing challenge_token). They are
+	// unauthenticated, carry no verified site and no useful signal, and
+	// recording them would let anyone grow the dataset with junk. Metrics start
+	// at the challenge check, where an attempt becomes meaningful. (#1013)
 	let body: { site_url?: string; challenge_token?: string };
 	try {
 		body = ( await request.json() ) as {

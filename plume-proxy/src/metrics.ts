@@ -72,6 +72,14 @@ export type ChatOutcome =
 	| 'upstream_error'
 	| 'internal_error';
 
+/**
+ * Outcomes recorded for a /register attempt. Requests rejected before the
+ * challenge check (invalid JSON, invalid site_url, missing challenge_token)
+ * are deliberately not recorded: see handleRegistration. Adding a label here
+ * is an append-only schema change.
+ *
+ * @since NEXT_VERSION
+ */
 export type RegisterOutcome =
 	| 'registered'
 	| 'existing'

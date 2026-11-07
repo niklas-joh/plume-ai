@@ -104,7 +104,7 @@ class ChatPage {
 	 * on the tier (see ManagedDefaults). Falls back to the raw model id, then the
 	 * provider name, and to 'AI' if the provider cannot be created.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.0.0
 	 * @param string           $slug     Default provider slug.
 	 * @param ProviderFactory  $factory  Provider factory.
 	 * @param ProviderSettings $settings Provider settings holding the API keys.

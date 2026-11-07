@@ -3,7 +3,7 @@ Contributors: niklasjohansson
 Tags: ai, writing, content, images, chatbot
 Requires at least: 6.4
 Tested up to: 7.1
-Stable tag: 1.15.0
+Stable tag: 2.0.0
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -105,7 +105,7 @@ All source code, including the uncompiled React files, is at [github.com/niklas-
 
 == Changelog ==
 
-= NEXT_VERSION =
+= 2.0.0 =
 First release on WordPress.org.
 
 * Chat assistant, Post generator, AI SEO and AI images, all available on every plan.
@@ -117,5 +117,5 @@ Earlier development history: [CHANGELOG.md on GitHub](https://github.com/niklas-
 
 == Upgrade Notice ==
 
-= NEXT_VERSION =
+= 2.0.0 =
 First WordPress.org release. Usage now uses monthly credits, all features are available on every plan, and the [plume_chat] shortcode has been removed.

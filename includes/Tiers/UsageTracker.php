@@ -154,7 +154,7 @@ class UsageTracker {
 	 * the hardcoded constant for $tier.
 	 *
 	 * @since 1.13.1
-	 * @since NEXT_VERSION Delegates the HTTP call to WorkerConfig::fetch().
+	 * @since 2.0.0 Delegates the HTTP call to WorkerConfig::fetch().
 	 * @param string $tier Tier slug the result will be cached under; validated against
 	 *                     the Worker's own view of the tier before the limit is trusted.
 	 * @return int|null Live limit from the Worker, or null on any failure.

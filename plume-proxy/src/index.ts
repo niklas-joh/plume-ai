@@ -15,6 +15,14 @@ import {
 import { authenticateRequest, generateToken } from './auth';
 import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
+import {
+	buildChatDataPoint,
+	errorCodeFromThrown,
+	newChatMetric,
+	recordMetric,
+	siteKeyFromUrl,
+	type ChatMetric,
+} from './metrics';
 import { verifyHmac } from './signature';
 import {
 	rawChatCreditUnits,
@@ -902,9 +910,35 @@ async function handleDevSetUsage(
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Chat proxy entry point: runs the handler and records exactly one usage
+ * datapoint for every exit path. Metrics never alter the response.
+ *
+ * @since NEXT_VERSION
+ * @param {Request} request Incoming request.
+ * @param {Env}     env     Worker environment.
+ * @return {Promise<Response>} Handler response.
+ */
 async function handleChatProxy(
 	request: Request,
 	env: Env
+): Promise< Response > {
+	const m = newChatMetric();
+	const response = await handleChatProxyInner( request, env, m );
+	recordMetric( env, () =>
+		buildChatDataPoint( {
+			...m,
+			status: response.status,
+			latencyMs: Date.now() - m.startedAt,
+		} )
+	);
+	return response;
+}
+
+async function handleChatProxyInner(
+	request: Request,
+	env: Env,
+	m: ChatMetric
 ): Promise< Response > {
 	try {
 		const auth = await authenticateRequest( request, env );
@@ -932,9 +966,13 @@ async function handleChatProxy(
 			);
 		}
 		const { feature } = body;
+		m.feature = feature;
 
 		const { model, max_tokens: maxTokens } = body;
 		const { site_token: siteToken, tier } = auth;
+		// Copy only these two fields; never the whole record (holds secrets).
+		m.siteKey = siteKeyFromUrl( auth.site_url );
+		m.tier = tier;
 
 		const provider: Provider = body.provider ?? 'claude';
 		if (
@@ -944,6 +982,7 @@ async function handleChatProxy(
 		) {
 			return jsonResponse( { error: 'Unknown provider' }, 400 );
 		}
+		m.provider = provider;
 
 		// BYOK sites call Anthropic directly via ClaudeProvider and must never reach here.
 		if ( tier === 'pro_byok' ) {
@@ -960,6 +999,8 @@ async function handleChatProxy(
 			effectiveTier,
 			env
 		);
+		m.creditsUsedAfter = Math.ceil( rateLimitCheck.used );
+		m.creditLimit = rateLimitCheck.limit;
 		if ( ! rateLimitCheck.allowed ) {
 			return jsonResponse(
 				{
@@ -980,33 +1021,39 @@ async function handleChatProxy(
 			tierModels,
 			model
 		);
+		m.model = selectedModel;
 		const clampedMaxTokens = Math.min(
 			maxTokens ?? ( effectiveTier === 'free' ? 1000 : 4000 ),
 			MAX_TOKENS[ effectiveTier ]
 		);
 
 		let normalized: NormalizedResponse;
-		if ( provider === 'claude' ) {
-			normalized = await callClaude(
-				body,
-				selectedModel,
-				clampedMaxTokens,
-				env
-			);
-		} else if ( provider === 'openai' ) {
-			normalized = await callOpenAI(
-				body,
-				selectedModel,
-				clampedMaxTokens,
-				env
-			);
-		} else {
-			normalized = await callGemini(
-				body,
-				selectedModel,
-				clampedMaxTokens,
-				env
-			);
+		const upstreamStart = Date.now();
+		try {
+			if ( provider === 'claude' ) {
+				normalized = await callClaude(
+					body,
+					selectedModel,
+					clampedMaxTokens,
+					env
+				);
+			} else if ( provider === 'openai' ) {
+				normalized = await callOpenAI(
+					body,
+					selectedModel,
+					clampedMaxTokens,
+					env
+				);
+			} else {
+				normalized = await callGemini(
+					body,
+					selectedModel,
+					clampedMaxTokens,
+					env
+				);
+			}
+		} finally {
+			m.upstreamMs = Date.now() - upstreamStart;
 		}
 
 		// Every successful call is billed on its own real usage — there is no more
@@ -1039,6 +1086,14 @@ async function handleChatProxy(
 		const creditsCharged =
 			Math.ceil( previousRawTotal + rawContribution ) - Math.ceil( previousRawTotal );
 
+		m.creditsCharged = creditsCharged;
+		m.creditsUsedAfter = Math.ceil( previousRawTotal + rawContribution );
+		m.inputTokens = normalized.usage.input_tokens;
+		m.outputTokens = normalized.usage.output_tokens;
+		m.cacheReadTokens = normalized.usage.cache_read_input_tokens ?? 0;
+		m.cacheWriteTokens = normalized.usage.cache_creation_input_tokens ?? 0;
+		m.toolCalls = normalized.tool_calls?.length ?? 0;
+
 		await updateUsage( siteToken, rawContribution, env );
 
 		const responseData: Record< string, unknown > = {
@@ -1058,6 +1113,7 @@ async function handleChatProxy(
 		// dropping those extra properties — log them explicitly so `wrangler tail`
 		// actually shows *why* an upstream call failed (bad key, bad model id, etc.),
 		// since the client-facing response below never includes this detail.
+		m.errorCode = errorCodeFromThrown( error );
 		const upstream = error as { status?: number; body?: unknown };
 		// eslint-disable-next-line no-console
 		console.error( 'Proxy error:', error, {

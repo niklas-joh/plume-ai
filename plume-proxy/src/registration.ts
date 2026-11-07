@@ -2,6 +2,12 @@
 
 import { Env, SiteRecord, VerificationFailureReason } from './types';
 import { generateToken } from './auth';
+import {
+	buildRegisterDataPoint,
+	recordMetric,
+	siteKeyFromUrl,
+	type RegisterMetric,
+} from './metrics';
 
 export const REGISTRATION_RATE_LIMIT = 5; // max new registrations per IP per hour
 export const CHALLENGE_RATE_LIMIT = 20; // max challenge requests per IP per hour
@@ -74,6 +80,13 @@ export async function handleRegistration(
 		return jsonResponse( { error: 'Method not allowed' }, 405 );
 	}
 
+	const startedAt = Date.now();
+	// Never records a URL here: callers pass siteKey only for verified sites.
+	const track = ( m: Omit< RegisterMetric, 'startedAt' > ): void =>
+		recordMetric( env, () =>
+			buildRegisterDataPoint( { ...m, startedAt } )
+		);
+
 	let body: { site_url?: string; challenge_token?: string };
 	try {
 		body = ( await request.json() ) as {
@@ -100,6 +113,7 @@ export async function handleRegistration(
 		`challenge:${ challengeToken }`
 	);
 	if ( ! storedChallenge ) {
+		track( { outcome: 'bad_challenge', status: 403, siteKey: '' } );
 		return jsonResponse( { error: 'Invalid or expired challenge' }, 403 );
 	}
 
@@ -109,8 +123,18 @@ export async function handleRegistration(
 		'/wp-json/plume/v1/activation-verify' +
 		'?challenge=' +
 		encodeURIComponent( challengeToken );
+	// Hoisted above verification so a failed attempt can be correlated by hash
+	// without recording the attacker-controllable URL.
+	const urlHash = await sha256( siteUrl );
 	const failure = await verifySite( verifyUrl );
 	if ( failure ) {
+		track( {
+			outcome: 'verify_failed',
+			status: 403,
+			siteKey: '',
+			errorCode: failure.reason,
+			siteRef: urlHash.slice( 0, 12 ),
+		} );
 		return jsonResponse(
 			{
 				error: 'Site verification failed',
@@ -127,7 +151,6 @@ export async function handleRegistration(
 	await env.USAGE_KV.delete( `challenge:${ challengeToken }` );
 
 	// Idempotent — return the existing token if already registered.
-	const urlHash = await sha256( siteUrl );
 	const existingToken = await env.USAGE_KV.get( `site_url:${ urlHash }` );
 	if ( existingToken ) {
 		const record = await env.USAGE_KV.get< SiteRecord >(
@@ -135,6 +158,13 @@ export async function handleRegistration(
 			'json'
 		);
 		if ( record ) {
+			track( {
+				outcome: 'existing',
+				status: 200,
+				// The stored, previously verified URL rather than the request value.
+				siteKey: siteKeyFromUrl( record.site_url ),
+				isNew: false,
+			} );
 			return jsonResponse( { token: existingToken, tier: record.tier } );
 		}
 	}
@@ -151,6 +181,7 @@ export async function handleRegistration(
 		10
 	);
 	if ( attempts >= REGISTRATION_RATE_LIMIT ) {
+		track( { outcome: 'reg_rate_limited', status: 429, siteKey: '' } );
 		return jsonResponse(
 			{ error: 'Too many registration attempts. Try again later.' },
 			429
@@ -172,6 +203,14 @@ export async function handleRegistration(
 
 	await env.USAGE_KV.put( `site:${ token }`, JSON.stringify( record ) );
 	await env.USAGE_KV.put( `site_url:${ urlHash }`, token );
+
+	track( {
+		outcome: 'registered',
+		status: 201,
+		// Site answered the verification callback with 2xx.
+		siteKey: siteKeyFromUrl( siteUrl ),
+		isNew: true,
+	} );
 
 	return jsonResponse(
 		{ token, tier: 'free', tier_sync_secret: tierSyncSecret },

@@ -25,6 +25,10 @@ binding = "USAGE_KV"
 id = "71612d363b07408bb70eec49d5739b1c"
 preview_id = "38975852f1bc4c838da456ea9a21e789"
 
+[[analytics_engine_datasets]]
+binding = "PLUME_METRICS"
+dataset = "plume_metrics"
+
 # Secrets (set via CLI — never commit values):
 # wrangler secret put ANTHROPIC_API_KEY
 # wrangler secret put OPENAI_API_KEY
@@ -62,3 +66,7 @@ DEV_ENDPOINTS_ENABLED = "1"
 [[env.dev.kv_namespaces]]
 binding = "USAGE_KV"
 id = "46d46fc066354b3a946fd734bca7eb1a"
+
+[[env.dev.analytics_engine_datasets]]
+binding = "PLUME_METRICS"
+dataset = "plume_metrics_dev"

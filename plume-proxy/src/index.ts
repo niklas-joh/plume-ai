@@ -236,7 +236,27 @@ export function isProviderServed(
 	tier: ProxyTier,
 	cfg: ResolvedModelConfig
 ): boolean {
-	const allowed = getAllowedModels( provider, tier, cfg.tierModels );
+	return hasServableModels(
+		provider,
+		getAllowedModels( provider, tier, cfg.tierModels ),
+		cfg
+	);
+}
+
+/**
+ * The served condition given a pre-resolved allow-list, so callers that already
+ * hold the list (resolveChatRoute) do not recompute it (#1022).
+ *
+ * @param {Provider}            provider Provider slug.
+ * @param {string[]}            allowed  Pre-resolved tier allow-list.
+ * @param {ResolvedModelConfig} cfg      Resolved model config.
+ * @return {boolean} True if the provider is enabled with a non-empty allow-list.
+ */
+function hasServableModels(
+	provider: Provider,
+	allowed: string[],
+	cfg: ResolvedModelConfig
+): boolean {
 	return (
 		cfg.enabledProviders.includes( provider ) &&
 		Array.isArray( allowed ) &&
@@ -265,19 +285,17 @@ export function resolveChatRoute(
 	cfg: ResolvedModelConfig,
 	requestedModel?: string
 ): ChatRoute {
+	// Resolve the tier allow-list once and thread it through both the served
+	// check and the native model pick, rather than recomputing it in each (#1022).
+	const allowed = getAllowedModels( requestedProvider, tier, cfg.tierModels );
 	if (
 		requestedProvider === FALLBACK_PROVIDER ||
-		isProviderServed( requestedProvider, tier, cfg )
+		hasServableModels( requestedProvider, allowed, cfg )
 	) {
 		return {
 			requestedProvider,
 			provider: requestedProvider,
-			model: getModelForTier(
-				requestedProvider,
-				tier,
-				cfg.tierModels,
-				requestedModel
-			),
+			model: pickModel( requestedProvider, tier, allowed, requestedModel ),
 			// TEMPORARY(#1020): on removal, delete this line with ChatRoute.substituted.
 			substituted: false,
 		};
@@ -1320,7 +1338,30 @@ export function getModelForTier(
 	tierModels: Record< string, Record< string, string[] > >,
 	requestedModel?: string
 ): string {
-	const allowed = getAllowedModels( provider, tier, tierModels );
+	return pickModel(
+		provider,
+		tier,
+		getAllowedModels( provider, tier, tierModels ),
+		requestedModel
+	);
+}
+
+/**
+ * Pick the served model from a pre-resolved allow-list, so callers that already
+ * hold the list (resolveChatRoute) do not recompute it (#1022).
+ *
+ * @param {Provider}  provider       Provider slug.
+ * @param {ProxyTier} tier           Resolved proxy tier.
+ * @param {string[]}  allowed        Pre-resolved tier allow-list.
+ * @param {string}    [requestedModel] Model the client asked for, if any.
+ * @return {string} The model id serving the request.
+ */
+function pickModel(
+	provider: Provider,
+	tier: ProxyTier,
+	allowed: string[],
+	requestedModel?: string
+): string {
 	if ( allowed.length === 0 ) {
 		// Tagged with isValidationError so the handleChatProxy catch block can
 		// distinguish this intended 400 from arbitrary upstream provider errors

@@ -14,6 +14,8 @@
 //   blob6   outcome      see ChatOutcome / RegisterOutcome
 //   blob7   error_code   upstream_<status> | validation | internal | verification reason
 //   blob8   site_ref     register only: first 12 hex chars of sha256(site_url)
+//   blob9   requested_provider  provider the client asked for (differs from blob3 when
+//                        a disabled provider is served by Claude, #1020); chat only
 //   double1 http_status
 //   double2 latency_ms
 //   double3 upstream_ms
@@ -39,6 +41,7 @@ export const BLOB = {
 	OUTCOME: 5,
 	ERROR_CODE: 6,
 	SITE_REF: 7,
+	REQUESTED_PROVIDER: 8,
 } as const;
 
 /** Zero-based positions inside `doubles`. @since NEXT_VERSION */
@@ -59,7 +62,7 @@ export const DOUBLE = {
 
 const MAX_INDEX_BYTES = 96;
 const MAX_BLOB_BYTES = 128;
-const BLOB_COUNT = 8;
+const BLOB_COUNT = 9;
 const DOUBLE_COUNT = 12;
 
 export type ChatOutcome =
@@ -98,6 +101,8 @@ export interface ChatMetric {
 	siteKey: string;
 	feature: string;
 	provider: string;
+	/** Provider the client asked for; differs from `provider` when substituted. */
+	requestedProvider: string;
 	model: string;
 	tier: SiteTier | '';
 	errorCode: string;
@@ -124,6 +129,7 @@ export function newChatMetric(): ChatMetric {
 		siteKey: '',
 		feature: '',
 		provider: '',
+		requestedProvider: '',
 		model: '',
 		tier: '',
 		errorCode: '',
@@ -288,6 +294,7 @@ export function buildChatDataPoint(
 	blobs[ BLOB.EVENT ] = 'chat';
 	blobs[ BLOB.FEATURE ] = blob( m.feature );
 	blobs[ BLOB.PROVIDER ] = blob( m.provider );
+	blobs[ BLOB.REQUESTED_PROVIDER ] = blob( m.requestedProvider );
 	blobs[ BLOB.MODEL ] = blob( m.model );
 	blobs[ BLOB.TIER ] = blob( m.tier );
 	blobs[ BLOB.OUTCOME ] = classifyChatOutcome( m.status, m.errorCode );

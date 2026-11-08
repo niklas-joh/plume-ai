@@ -85,6 +85,7 @@ describe( 'data point builders', () => {
 			siteKey: 'example.com',
 			feature: 'chat',
 			provider: 'claude',
+			requestedProvider: 'openai',
 			model: 'm',
 			tier: 'free',
 			errorCode: '',
@@ -104,6 +105,8 @@ describe( 'data point builders', () => {
 		expect( dp.blobs?.[ BLOB.EVENT ] ).toBe( 'chat' );
 		expect( dp.blobs?.[ BLOB.FEATURE ] ).toBe( 'chat' );
 		expect( dp.blobs?.[ BLOB.PROVIDER ] ).toBe( 'claude' );
+		expect( dp.blobs?.[ BLOB.REQUESTED_PROVIDER ] ).toBe( 'openai' );
+		expect( BLOB.REQUESTED_PROVIDER ).toBe( 8 );
 		expect( dp.blobs?.[ BLOB.MODEL ] ).toBe( 'm' );
 		expect( dp.blobs?.[ BLOB.TIER ] ).toBe( 'free' );
 		expect( dp.blobs?.[ BLOB.OUTCOME ] ).toBe( 'ok' );

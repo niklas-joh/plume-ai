@@ -1182,6 +1182,7 @@ async function handleChatProxyInner(
 			return jsonResponse( { error: 'Unknown provider' }, 400 );
 		}
 		metric.provider = provider;
+		metric.requestedProvider = provider;
 
 		// BYOK sites call Anthropic directly via ClaudeProvider and must never reach here.
 		if ( tier === 'pro_byok' ) {
@@ -1217,6 +1218,7 @@ async function handleChatProxyInner(
 		const route = resolveChatRoute( provider, effectiveTier, cfg, model );
 		// Record what was actually served (the provider can be substituted, #1020).
 		metric.provider = route.provider;
+		metric.requestedProvider = route.requestedProvider;
 		metric.model = route.model;
 		const clampedMaxTokens = Math.min(
 			maxTokens ?? ( effectiveTier === 'free' ? 1000 : 4000 ),

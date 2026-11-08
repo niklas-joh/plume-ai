@@ -1609,6 +1609,28 @@ describe( 'handleChatProxy usage metrics', () => {
 		expect( dp.doubles?.[ 5 ] ).toBe( 100 );
 	} );
 
+	it( 'records both the requested and the served provider when substituted', async () => {
+		const { env, points } = makeMetricsEnv();
+		await seedSite( env, 'free' );
+		stubOk();
+		vi.spyOn( console, 'log' ).mockImplementation( () => undefined );
+
+		const res = await worker.fetch(
+			makeChatRequest(
+				JSON.stringify( {
+					messages: [ { role: 'user', content: PROMPT_TEXT } ],
+					provider: 'openai',
+					feature: 'chat',
+				} )
+			),
+			env
+		);
+		expect( res.status ).toBe( 200 );
+		expect( points ).toHaveLength( 1 );
+		expect( points[ 0 ].blobs?.[ 2 ] ).toBe( 'claude' );
+		expect( points[ 0 ].blobs?.[ 8 ] ).toBe( 'openai' );
+	} );
+
 	it( 'carries used and limit on a 429', async () => {
 		const { env, points } = makeMetricsEnv();
 		await seedSite( env, 'free' );

@@ -8,6 +8,16 @@ import {
 } from '../src/registration';
 import { makeEnv } from './helpers/kv-mock';
 
+function withMetrics( env: ReturnType< typeof makeEnv > ) {
+	const points: AnalyticsEngineDataPoint[] = [];
+	env.PLUME_METRICS = {
+		writeDataPoint: ( dp: AnalyticsEngineDataPoint ) => {
+			points.push( dp );
+		},
+	} as unknown as AnalyticsEngineDataset;
+	return points;
+}
+
 afterEach( () => {
 	vi.restoreAllMocks();
 } );
@@ -501,5 +511,100 @@ describe( 'handleRegistration', () => {
 			env
 		);
 		expect( res.status ).toBe( 429 );
+	} );
+} );
+
+describe( 'handleRegistration usage metrics', () => {
+	it( 'records no datapoint for pre-attempt validation failures (invalid JSON, invalid site_url, missing challenge)', async () => {
+		const env = makeEnv();
+		const points = withMetrics( env );
+
+		const badJson = new Request( 'https://worker.example.com/register', {
+			method: 'POST',
+			body: '{not json',
+			headers: {
+				'Content-Type': 'application/json',
+				'CF-Connecting-IP': '127.0.0.1',
+			},
+		} );
+		expect( ( await handleRegistration( badJson, env ) ).status ).toBe( 400 );
+
+		const badUrl = await handleRegistration(
+			makeRequest( { body: { site_url: 'not a url', challenge_token: 'x' } } ),
+			env
+		);
+		expect( badUrl.status ).toBe( 400 );
+
+		const noChallenge = await handleRegistration(
+			makeRequest( { body: { site_url: 'https://good.example.com' } } ),
+			env
+		);
+		expect( noChallenge.status ).toBe( 403 );
+
+		expect( points ).toHaveLength( 0 );
+	} );
+
+	it( 'records registered, existing and verify_failed without leaking secrets or attacker URLs', async () => {
+		const env = makeEnv();
+		const points = withMetrics( env );
+
+		// registered
+		const c1 = '1'.repeat( 64 );
+		await env.USAGE_KV.put( `challenge:${ c1 }`, '1' );
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue( new Response( '{}', { status: 200 } ) )
+		);
+		const r1 = await handleRegistration(
+			makeRequest( {
+				body: { site_url: 'https://www.good.example.com/', challenge_token: c1 },
+			} ),
+			env
+		);
+		const created = ( await r1.json() ) as {
+			token: string;
+			tier_sync_secret: string;
+		};
+
+		// existing
+		const c2 = '2'.repeat( 64 );
+		await env.USAGE_KV.put( `challenge:${ c2 }`, '1' );
+		await handleRegistration(
+			makeRequest( {
+				body: { site_url: 'https://www.good.example.com/', challenge_token: c2 },
+			} ),
+			env
+		);
+
+		// verify_failed with an attacker-supplied URL
+		const evil = 'https://evil-victim.example.org/secret-path';
+		const c3 = '3'.repeat( 64 );
+		await env.USAGE_KV.put( `challenge:${ c3 }`, '1' );
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue( new Response( '{}', { status: 403 } ) )
+		);
+		await handleRegistration(
+			makeRequest( { body: { site_url: evil, challenge_token: c3 } } ),
+			env
+		);
+
+		expect( points ).toHaveLength( 3 );
+		expect( points[ 0 ].blobs?.[ 5 ] ).toBe( 'registered' );
+		expect( points[ 0 ].indexes ).toEqual( [ 'good.example.com' ] );
+		expect( points[ 0 ].doubles?.[ 11 ] ).toBe( 1 );
+		expect( points[ 1 ].blobs?.[ 5 ] ).toBe( 'existing' );
+		expect( points[ 1 ].doubles?.[ 11 ] ).toBe( 0 );
+		expect( points[ 2 ].blobs?.[ 5 ] ).toBe( 'verify_failed' );
+		expect( points[ 2 ].blobs?.[ 6 ] ).toBe( 'http_forbidden' );
+		expect( points[ 2 ].indexes ).toEqual( [ '' ] );
+		expect( points[ 2 ].blobs?.[ 7 ] ).toMatch( /^[0-9a-f]{12}$/ );
+
+		const dump = JSON.stringify( points );
+		expect( dump ).not.toContain( 'evil-victim' );
+		expect( dump ).not.toContain( 'secret-path' );
+		expect( dump ).not.toContain( created.token );
+		expect( dump ).not.toContain( created.tier_sync_secret );
+		expect( dump ).not.toContain( '1'.repeat( 64 ) );
 	} );
 } );

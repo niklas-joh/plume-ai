@@ -1529,6 +1529,287 @@ describe( 'chat proxy — prompt-cache billing (#946, #859)', () => {
 	} );
 } );
 
+// ── Usage metrics (Analytics Engine) ────────────────────────────────────────
+
+describe( 'handleChatProxy usage metrics', () => {
+	const SECRET_SYNC = 'SECRET_SYNC_abc123';
+	const SECRET_LICENCE = 'LICENCE_xyz789';
+	const PROMPT_TEXT = 'PROMPT_TEXT_unique_marker';
+	const UPSTREAM_ERR = 'UPSTREAM_ERROR_BODY_marker';
+
+	function makeMetricsEnv( tier: SiteRecord[ 'tier' ] = 'free' ) {
+		const points: AnalyticsEngineDataPoint[] = [];
+		const env = makeEnv( {
+			PLUME_METRICS: {
+				writeDataPoint: ( dp: AnalyticsEngineDataPoint ) => {
+					points.push( dp );
+				},
+			} as unknown as AnalyticsEngineDataset,
+		} );
+		return { env, points, tier };
+	}
+
+	async function seedSite(
+		env: ReturnType< typeof makeEnv >,
+		tier: SiteRecord[ 'tier' ]
+	) {
+		await env.USAGE_KV.put(
+			`site:${ TEST_TOKEN }`,
+			JSON.stringify( {
+				site_url: 'https://www.Example.com/blog/',
+				tier,
+				created_at: Date.now(),
+				tier_sync_secret: SECRET_SYNC,
+				ls_licence_key: SECRET_LICENCE,
+			} )
+		);
+	}
+
+	function stubOk() {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue(
+				new Response(
+					JSON.stringify( {
+						content: [ { type: 'text', text: 'Hi' } ],
+						usage: { input_tokens: 10, output_tokens: 5 },
+					} ),
+					{ status: 200 }
+				)
+			)
+		);
+	}
+
+	const promptBody = JSON.stringify( {
+		messages: [ { role: 'user', content: PROMPT_TEXT } ],
+		provider: 'claude',
+		feature: 'chat',
+	} );
+
+	it( 'emits exactly one point on success with the expected fields', async () => {
+		const { env, points } = makeMetricsEnv();
+		await seedSite( env, 'free' );
+		stubOk();
+
+		const res = await worker.fetch( makeChatRequest( promptBody ), env );
+		expect( res.status ).toBe( 200 );
+		expect( points ).toHaveLength( 1 );
+		const dp = points[ 0 ];
+		expect( dp.indexes ).toEqual( [ 'example.com/blog' ] );
+		expect( dp.blobs?.[ 0 ] ).toBe( 'chat' );
+		expect( dp.blobs?.[ 1 ] ).toBe( 'chat' );
+		expect( dp.blobs?.[ 2 ] ).toBe( 'claude' );
+		expect( dp.blobs?.[ 3 ] ).not.toBe( '' );
+		expect( dp.blobs?.[ 4 ] ).toBe( 'free' );
+		expect( dp.blobs?.[ 5 ] ).toBe( 'ok' );
+		expect( dp.doubles?.[ 0 ] ).toBe( 200 );
+		expect( dp.doubles?.[ 3 ] ).toBeGreaterThanOrEqual( 1 );
+		expect( dp.doubles?.[ 6 ] ).toBe( 10 );
+		expect( dp.doubles?.[ 7 ] ).toBe( 5 );
+		expect( dp.doubles?.[ 5 ] ).toBe( 100 );
+	} );
+
+	it( 'records both the requested and the served provider when substituted', async () => {
+		const { env, points } = makeMetricsEnv();
+		await seedSite( env, 'free' );
+		stubOk();
+		vi.spyOn( console, 'log' ).mockImplementation( () => undefined );
+
+		const res = await worker.fetch(
+			makeChatRequest(
+				JSON.stringify( {
+					messages: [ { role: 'user', content: PROMPT_TEXT } ],
+					provider: 'openai',
+					feature: 'chat',
+				} )
+			),
+			env
+		);
+		expect( res.status ).toBe( 200 );
+		expect( points ).toHaveLength( 1 );
+		expect( points[ 0 ].blobs?.[ 2 ] ).toBe( 'claude' );
+		expect( points[ 0 ].blobs?.[ 8 ] ).toBe( 'openai' );
+	} );
+
+	it( 'carries used and limit on a 429', async () => {
+		const { env, points } = makeMetricsEnv();
+		await seedSite( env, 'free' );
+		await env.USAGE_KV.put(
+			`usage:${ TEST_TOKEN }:${ currentMonthKey() }`,
+			'100'
+		);
+		const res = await worker.fetch( makeChatRequest( promptBody ), env );
+		expect( res.status ).toBe( 429 );
+		expect( points ).toHaveLength( 1 );
+		expect( points[ 0 ].blobs?.[ 5 ] ).toBe( 'rate_limited' );
+		expect( points[ 0 ].doubles?.[ 4 ] ).toBe( 100 );
+		expect( points[ 0 ].doubles?.[ 5 ] ).toBe( 100 );
+	} );
+
+	it( 'records an unknown token as unauthorised with empty index1', async () => {
+		const { env, points } = makeMetricsEnv();
+		await seedSite( env, 'free' );
+		const req = new Request( 'https://worker.example.com/v1/chat', {
+			method: 'POST',
+			headers: {
+				Authorization: 'Bearer ' + 'f'.repeat( 64 ),
+				'Content-Type': 'application/json',
+			},
+			body: promptBody,
+		} );
+		const res = await worker.fetch( req, env );
+		expect( res.status ).toBe( 401 );
+		expect( points ).toHaveLength( 1 );
+		expect( points[ 0 ].indexes ).toEqual( [ '' ] );
+		expect( points[ 0 ].blobs?.[ 5 ] ).toBe( 'unauthorised' );
+	} );
+
+	it( 'records an absent token as unauthorised with empty index1', async () => {
+		const { env, points } = makeMetricsEnv();
+		const req = new Request( 'https://worker.example.com/v1/chat', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: promptBody,
+		} );
+		const res = await worker.fetch( req, env );
+		expect( res.status ).toBe( 401 );
+		expect( points ).toHaveLength( 1 );
+		expect( points[ 0 ].indexes?.[ 0 ] ).toBe( '' );
+		expect( points[ 0 ].blobs?.[ 5 ] ).toBe( 'unauthorised' );
+	} );
+
+	it( 'leaks no secret, token, prompt or upstream body in any datapoint', async () => {
+		const { env, points } = makeMetricsEnv();
+		await seedSite( env, 'free' );
+
+		// success
+		stubOk();
+		await worker.fetch( makeChatRequest( promptBody ), env );
+
+		// upstream error (body contains prompt and secrets)
+		vi.spyOn( console, 'error' ).mockImplementation( () => {} );
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue(
+				new Response(
+					JSON.stringify( {
+						error: {
+							message: `${ UPSTREAM_ERR } ${ PROMPT_TEXT } ${ SECRET_SYNC } ${ SECRET_LICENCE }`,
+						},
+					} ),
+					{ status: 502 }
+				)
+			)
+		);
+		const errRes = await worker.fetch( makeChatRequest( promptBody ), env );
+		expect( errRes.status ).toBe( 500 );
+
+		// 429
+		await env.USAGE_KV.put(
+			`usage:${ TEST_TOKEN }:${ currentMonthKey() }`,
+			'100'
+		);
+		await worker.fetch( makeChatRequest( promptBody ), env );
+
+		// 401 with a valid-looking but absent token
+		await worker.fetch(
+			new Request( 'https://worker.example.com/v1/chat', {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${ 'a'.repeat( 64 ) }`,
+					'Content-Type': 'application/json',
+				},
+				body: promptBody,
+			} ),
+			env
+		);
+
+		// BYOK
+		await seedSite( env, 'pro_byok' );
+		await worker.fetch( makeChatRequest( promptBody ), env );
+
+		expect( points.length ).toBe( 5 );
+		const dump = JSON.stringify( points );
+		for ( const forbidden of [
+			SECRET_SYNC,
+			SECRET_LICENCE,
+			TEST_TOKEN,
+			PROMPT_TEXT,
+			UPSTREAM_ERR,
+		] ) {
+			expect( dump ).not.toContain( forbidden );
+		}
+		expect( points[ 1 ].blobs?.[ 5 ] ).toBe( 'upstream_error' );
+		expect( points[ 1 ].blobs?.[ 6 ] ).toBe( 'upstream_502' );
+		expect( points[ 4 ].blobs?.[ 5 ] ).toBe( 'byok_blocked' );
+	} );
+
+	it( 'authenticated 413 emits one point with site key and too_large', async () => {
+		const { env, points } = makeMetricsEnv();
+		await seedSite( env, 'free' );
+		const req = new Request( 'https://worker.example.com/v1/chat', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${ TEST_TOKEN }`,
+				'Content-Type': 'application/json',
+				'Content-Length': '99999999',
+			},
+			body: promptBody,
+		} );
+		const res = await worker.fetch( req, env );
+		expect( res.status ).toBe( 413 );
+		expect( points ).toHaveLength( 1 );
+		expect( points[ 0 ].indexes ).toEqual( [ 'example.com/blog' ] );
+		expect( points[ 0 ].blobs?.[ 4 ] ).toBe( 'free' );
+		expect( points[ 0 ].blobs?.[ 5 ] ).toBe( 'too_large' );
+		const dump = JSON.stringify( points );
+		for ( const f of [ SECRET_SYNC, SECRET_LICENCE, TEST_TOKEN, PROMPT_TEXT ] ) {
+			expect( dump ).not.toContain( f );
+		}
+	} );
+
+	it( 'authenticated invalid-feature 400 emits one point with site key and bad_request', async () => {
+		const { env, points } = makeMetricsEnv();
+		await seedSite( env, 'free' );
+		const body = JSON.stringify( {
+			messages: [ { role: 'user', content: PROMPT_TEXT } ],
+			provider: 'claude',
+			feature: 'unicorn',
+		} );
+		const res = await worker.fetch( makeChatRequest( body ), env );
+		expect( res.status ).toBe( 400 );
+		expect( points ).toHaveLength( 1 );
+		expect( points[ 0 ].indexes ).toEqual( [ 'example.com/blog' ] );
+		expect( points[ 0 ].blobs?.[ 4 ] ).toBe( 'free' );
+		expect( points[ 0 ].blobs?.[ 5 ] ).toBe( 'bad_request' );
+		const dump = JSON.stringify( points );
+		for ( const f of [ SECRET_SYNC, SECRET_LICENCE, TEST_TOKEN, PROMPT_TEXT ] ) {
+			expect( dump ).not.toContain( f );
+		}
+	} );
+
+	it( 'response is identical when writeDataPoint throws', async () => {
+		const throwing = makeEnv( {
+			PLUME_METRICS: {
+				writeDataPoint: () => {
+					throw new Error( 'boom' );
+				},
+			} as unknown as AnalyticsEngineDataset,
+		} );
+		const plain = makeEnv();
+		await seedSite( throwing, 'free' );
+		await seedSite( plain, 'free' );
+		vi.spyOn( console, 'warn' ).mockImplementation( () => {} );
+
+		stubOk();
+		const a = await worker.fetch( makeChatRequest( promptBody ), throwing );
+		stubOk();
+		const b = await worker.fetch( makeChatRequest( promptBody ), plain );
+		expect( a.status ).toBe( b.status );
+		expect( await a.json() ).toEqual( await b.json() );
+	} );
+} );
+
 // TEMPORARY(#1020): Claude substitution of disabled providers. On removal:
 // delete this block and assert a 400 provider_unavailable for a disabled provider.
 describe( 'TEMPORARY(#1020) substitution', () => {

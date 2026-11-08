@@ -17,6 +17,14 @@ import {
 import { authenticateRequest, generateToken } from './auth';
 import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
+import {
+	buildChatDataPoint,
+	errorCodeFromThrown,
+	newChatMetric,
+	recordMetric,
+	siteKeyFromUrl,
+	type ChatMetric,
+} from './metrics';
 import { verifyHmac } from './signature';
 import {
 	rawChatCreditUnits,
@@ -1099,15 +1107,46 @@ async function handleDevSetUsage(
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Chat proxy entry point: runs the handler and records exactly one usage
+ * datapoint for every exit path. Metrics never alter the response.
+ *
+ * @since NEXT_VERSION
+ * @param {Request} request Incoming request.
+ * @param {Env}     env     Worker environment.
+ * @return {Promise<Response>} Handler response.
+ */
 async function handleChatProxy(
 	request: Request,
 	env: Env
+): Promise< Response > {
+	const metric = newChatMetric();
+	const response = await handleChatProxyInner( request, env, metric );
+	recordMetric( env, () =>
+		buildChatDataPoint( {
+			...metric,
+			status: response.status,
+			latencyMs: Date.now() - metric.startedAt,
+		} )
+	);
+	return response;
+}
+
+async function handleChatProxyInner(
+	request: Request,
+	env: Env,
+	metric: ChatMetric
 ): Promise< Response > {
 	try {
 		const auth = await authenticateRequest( request, env );
 		if ( ! auth.authenticated || ! auth.site_token || ! auth.tier ) {
 			return jsonResponse( { error: 'Unauthorised' }, 401 );
 		}
+
+		// Set straight after auth so 413 and invalid-feature rows carry site/tier.
+		// Copy only these two fields; never the whole record (holds secrets).
+		metric.siteKey = siteKeyFromUrl( auth.site_url );
+		metric.tier = auth.tier;
 
 		const contentLength = Number(
 			request.headers.get( 'Content-Length' ) ?? 0
@@ -1129,6 +1168,7 @@ async function handleChatProxy(
 			);
 		}
 		const { feature } = body;
+		metric.feature = feature;
 
 		const { model, max_tokens: maxTokens } = body;
 		const { site_token: siteToken, tier } = auth;
@@ -1141,6 +1181,8 @@ async function handleChatProxy(
 		) {
 			return jsonResponse( { error: 'Unknown provider' }, 400 );
 		}
+		metric.provider = provider;
+		metric.requestedProvider = provider;
 
 		// BYOK sites call Anthropic directly via ClaudeProvider and must never reach here.
 		if ( tier === 'pro_byok' ) {
@@ -1157,6 +1199,8 @@ async function handleChatProxy(
 			effectiveTier,
 			env
 		);
+		metric.creditsUsedAfter = Math.ceil( rateLimitCheck.used );
+		metric.creditLimit = rateLimitCheck.limit;
 		if ( ! rateLimitCheck.allowed ) {
 			return jsonResponse(
 				{
@@ -1172,6 +1216,10 @@ async function handleChatProxy(
 
 		const cfg = await getModelConfig( env );
 		const route = resolveChatRoute( provider, effectiveTier, cfg, model );
+		// Record what was actually served (the provider can be substituted, #1020).
+		metric.provider = route.provider;
+		metric.requestedProvider = route.requestedProvider;
+		metric.model = route.model;
 		const clampedMaxTokens = Math.min(
 			maxTokens ?? ( effectiveTier === 'free' ? 1000 : 4000 ),
 			MAX_TOKENS[ effectiveTier ]
@@ -1193,27 +1241,34 @@ async function handleChatProxy(
 		}
 
 		let normalized: NormalizedResponse;
-		if ( route.provider === 'claude' ) {
-			normalized = await callClaude(
-				upstreamBody,
-				route.model,
-				clampedMaxTokens,
-				env
-			);
-		} else if ( route.provider === 'openai' ) {
-			normalized = await callOpenAI(
-				upstreamBody,
-				route.model,
-				clampedMaxTokens,
-				env
-			);
-		} else {
-			normalized = await callGemini(
-				upstreamBody,
-				route.model,
-				clampedMaxTokens,
-				env
-			);
+		const upstreamStart = Date.now();
+		try {
+			if ( route.provider === 'claude' ) {
+				normalized = await callClaude(
+					upstreamBody,
+					route.model,
+					clampedMaxTokens,
+					env
+				);
+			} else if ( route.provider === 'openai' ) {
+				normalized = await callOpenAI(
+					upstreamBody,
+					route.model,
+					clampedMaxTokens,
+					env
+				);
+			} else {
+				normalized = await callGemini(
+					upstreamBody,
+					route.model,
+					clampedMaxTokens,
+					env
+				);
+			}
+		} finally {
+			// In a finally so upstream latency is captured on the error path too,
+			// not just on a successful provider call.
+			metric.upstreamMs = Date.now() - upstreamStart;
 		}
 
 		// Every successful call is billed on its own real usage — there is no more
@@ -1246,6 +1301,14 @@ async function handleChatProxy(
 		const creditsCharged =
 			Math.ceil( previousRawTotal + rawContribution ) - Math.ceil( previousRawTotal );
 
+		metric.creditsCharged = creditsCharged;
+		metric.creditsUsedAfter = Math.ceil( previousRawTotal + rawContribution );
+		metric.inputTokens = normalized.usage.input_tokens;
+		metric.outputTokens = normalized.usage.output_tokens;
+		metric.cacheReadTokens = normalized.usage.cache_read_input_tokens ?? 0;
+		metric.cacheWriteTokens = normalized.usage.cache_creation_input_tokens ?? 0;
+		metric.toolCalls = normalized.tool_calls?.length ?? 0;
+
 		await updateUsage( siteToken, rawContribution, env );
 
 		const responseData: Record< string, unknown > = {
@@ -1265,6 +1328,7 @@ async function handleChatProxy(
 		// dropping those extra properties — log them explicitly so `wrangler tail`
 		// actually shows *why* an upstream call failed (bad key, bad model id, etc.),
 		// since the client-facing response below never includes this detail.
+		metric.errorCode = errorCodeFromThrown( error );
 		const upstream = error as { status?: number; body?: unknown };
 		// eslint-disable-next-line no-console
 		console.error( 'Proxy error:', error, {

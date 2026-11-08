@@ -61,3 +61,31 @@ export function makeEnv( overrides: Partial< Env > = {} ): Env {
 		...overrides,
 	} as Env;
 }
+
+/**
+ * Enable every managed provider in the KV `config:models` value, so a test can
+ * exercise the native OpenAI/Gemini adapters despite the compiled Claude-only
+ * default (#1020).
+ *
+ * Merges into any `config:models` value the test has already seeded, because a
+ * KV put replaces the whole JSON value and would otherwise drop the test's own
+ * `tier_models` / `model_token_weight` overrides.
+ *
+ * TEMPORARY(#1020): only needed while the compiled default is Claude only.
+ * On removal: drop the calls if DEFAULT_ENABLED_PROVIDERS is all providers again.
+ *
+ * @since NEXT_VERSION
+ * @param {Env} env Test Env whose USAGE_KV is updated in place.
+ * @return {Promise<void>} Resolves once the merged value is stored.
+ */
+export async function enableAllProviders( env: Env ): Promise< void > {
+	const raw = ( await env.USAGE_KV.get( 'config:models' ) ) as string | null;
+	const existing = raw ? ( JSON.parse( raw ) as Record< string, unknown > ) : {};
+	await env.USAGE_KV.put(
+		'config:models',
+		JSON.stringify( {
+			...existing,
+			enabled_providers: [ 'claude', 'openai', 'gemini' ],
+		} )
+	);
+}

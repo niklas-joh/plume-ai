@@ -2,7 +2,7 @@
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import worker from '../src/index';
-import { makeEnv } from './helpers/kv-mock';
+import { enableAllProviders, makeEnv } from './helpers/kv-mock';
 import { currentMonthKey } from './helpers/month';
 import {
 	chatCredits,
@@ -426,6 +426,7 @@ describe( 'handleChatProxy', () => {
 
 	it( 'OpenAI adapter: sends correct OpenAI-format body and returns normalised response', async () => {
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
+		await enableAllProviders( env );
 
 		let capturedUrl: string | null = null;
 		let capturedBody: Record< string, unknown > | null = null;
@@ -493,6 +494,7 @@ describe( 'handleChatProxy', () => {
 
 	it( 'Gemini adapter: sends correct Gemini-format body and returns normalised response', async () => {
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
+		await enableAllProviders( env );
 
 		let capturedUrl: string | null = null;
 		let capturedBody: Record< string, unknown > | null = null;
@@ -570,6 +572,7 @@ describe( 'handleChatProxy', () => {
 		// Gemini 3.x can prepend a signature-only part (no `text`) ahead of the
 		// actual answer; reading only parts[0] previously produced an empty reply.
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
+		await enableAllProviders( env );
 
 		vi.stubGlobal(
 			'fetch',
@@ -616,6 +619,7 @@ describe( 'handleChatProxy', () => {
 		// by e.g. the meta_fields param in ToolRegistry.php for an open string map)
 		// must be stripped recursively before the request reaches Gemini.
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
+		await enableAllProviders( env );
 
 		const toolWithOpenMap: ToolParam = {
 			name: 'update_post',
@@ -698,6 +702,7 @@ describe( 'handleChatProxy', () => {
 		// not { role, content } — callGemini() must not re-wrap these as {text: ...},
 		// which would produce an empty, invalid Part (see plume-proxy/src/index.ts).
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
+		await enableAllProviders( env );
 
 		let capturedBody: Record< string, unknown > | null = null;
 		vi.stubGlobal(
@@ -794,6 +799,7 @@ describe( 'handleChatProxy', () => {
 
 	it( 'returns a UUID-format tool_call id in tool_calls[0] when Gemini functionCall part is returned', async () => {
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
+		await enableAllProviders( env );
 
 		vi.stubGlobal(
 			'fetch',
@@ -871,6 +877,7 @@ describe( 'handleChatProxy', () => {
 
 	it( 'returns 200 when a higher-tier OpenAI model is requested by a free site — falls back to default', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
+		await enableAllProviders( env );
 
 		let capturedBody: Record< string, unknown > | null = null;
 		vi.stubGlobal(
@@ -905,6 +912,7 @@ describe( 'handleChatProxy', () => {
 
 	it( 'free tier: GPT-4.1 nano is allowed and billed at its fractional weight (0.1)', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
+		await enableAllProviders( env );
 
 		vi.stubGlobal(
 			'fetch',
@@ -937,6 +945,7 @@ describe( 'handleChatProxy', () => {
 
 	it( 'falls back to the free-tier default when a pro-only Gemini model is requested by a free site', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
+		await enableAllProviders( env );
 
 		let capturedUrl: string | null = null;
 		vi.stubGlobal(
@@ -993,6 +1002,8 @@ describe( 'handleChatProxy', () => {
 				model_token_weight: { 'claude-opus-4-7': 20 },
 			} )
 		);
+		// Merges into the override above rather than replacing it.
+		await enableAllProviders( env );
 
 		vi.stubGlobal(
 			'fetch',
@@ -1465,6 +1476,7 @@ describe( 'chat proxy — prompt-cache billing (#946, #859)', () => {
 
 	it( 'OpenAI: cached_tokens are split out of prompt_tokens and billed at 0.25×', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
+		await enableAllProviders( env );
 		stubUpstream( {
 			choices: [ { message: { content: 'ok' } } ],
 			usage: {
@@ -1492,6 +1504,7 @@ describe( 'chat proxy — prompt-cache billing (#946, #859)', () => {
 
 	it( 'Gemini: cachedContentTokenCount is split out of promptTokenCount and billed at 0.1×', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
+		await enableAllProviders( env );
 		stubUpstream( {
 			candidates: [ { content: { parts: [ { text: 'ok' } ] } } ],
 			usageMetadata: {
@@ -1772,5 +1785,452 @@ describe( 'handleChatProxy usage metrics', () => {
 		const b = await worker.fetch( makeChatRequest( promptBody ), plain );
 		expect( a.status ).toBe( b.status );
 		expect( await a.json() ).toEqual( await b.json() );
+	} );
+} );
+
+// TEMPORARY(#1020): Claude substitution of disabled providers. On removal:
+// delete this block and assert a 400 provider_unavailable for a disabled provider.
+describe( 'TEMPORARY(#1020) substitution', () => {
+	type Captured = { url: string; body: string };
+
+	function stubClaude(
+		captured: Captured[],
+		usage: Record< string, number > = { input_tokens: 10, output_tokens: 5 },
+		content: unknown[] = [ { type: 'text', text: 'Claude reply' } ]
+	) {
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockImplementation( async ( url: string, init: RequestInit ) => {
+					captured.push( { url, body: init.body as string } );
+					return new Response( JSON.stringify( { content, usage } ), {
+						status: 200,
+					} );
+				} )
+		);
+	}
+
+	function silenceLog() {
+		return vi.spyOn( console, 'log' ).mockImplementation( () => {} );
+	}
+
+	it( 'serves a free OpenAI request with Claude Haiku and reports the real model', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		silenceLog();
+		const captured: Captured[] = [];
+		stubClaude( captured, {
+			input_tokens: 1000,
+			output_tokens: 0,
+			cache_creation_input_tokens: 1000,
+		} );
+
+		const response = await worker.fetch(
+			makeChatRequest(
+				JSON.stringify( {
+					messages: [ { role: 'user', content: 'Hello' } ],
+					provider: 'openai',
+					model: 'gpt-4.1',
+					feature: 'chat',
+				} )
+			),
+			env
+		);
+		expect( response.status ).toBe( 200 );
+
+		expect( captured ).toHaveLength( 1 );
+		expect( captured[ 0 ].url ).toBe( 'https://api.anthropic.com/v1/messages' );
+		expect( JSON.parse( captured[ 0 ].body ).model ).toBe(
+			'claude-haiku-4-5-20251001'
+		);
+
+		const json = ( await response.json() ) as Record< string, unknown >;
+		expect( Object.keys( json ).sort() ).toEqual( [
+			'content',
+			'credits_charged',
+			'model',
+			'usage',
+		] );
+		expect( json.model ).toBe( 'claude-haiku-4-5-20251001' );
+		expect( json.content ).toBe( 'Claude reply' );
+
+		// Haiku weight 1 with Claude's 1.25× cache-write multiplier:
+		// (1000 + 1.25 × 1000) / 2000 = 1.125. OpenAI multipliers (write 0) at
+		// the gpt-4.1-nano weight would have given 0.05.
+		expect( await getStoredUsage( env ) ).toBe( 1.125 );
+		expect( json.credits_charged ).toBe( 2 );
+	} );
+
+	it( 'serves a pro_managed Gemini request with Claude Sonnet (the tier default)', async () => {
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
+		silenceLog();
+		const captured: Captured[] = [];
+		stubClaude( captured, { input_tokens: 2000, output_tokens: 0 } );
+
+		const response = await worker.fetch(
+			makeChatRequest(
+				JSON.stringify( {
+					messages: [ { role: 'user', content: 'Hello' } ],
+					provider: 'gemini',
+					model: 'gemini-3.6-flash',
+					feature: 'chat',
+				} )
+			),
+			env
+		);
+		expect( response.status ).toBe( 200 );
+		expect( captured[ 0 ].url ).toBe( 'https://api.anthropic.com/v1/messages' );
+		expect( JSON.parse( captured[ 0 ].body ).model ).toBe( 'claude-sonnet-4-6' );
+
+		const json = ( await response.json() ) as { model: string };
+		expect( json.model ).toBe( 'claude-sonnet-4-6' );
+		// Sonnet weight 3: 2000 × 3 / 2000 = 3.
+		expect( await getStoredUsage( env ) ).toBe( 3 );
+	} );
+
+	it( 'translates a second-iteration OpenAI-shaped history before it reaches Anthropic', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		silenceLog();
+		const captured: Captured[] = [];
+		stubClaude( captured );
+
+		const response = await worker.fetch(
+			makeChatRequest(
+				JSON.stringify( {
+					messages: [
+						{ role: 'user', content: 'List my recent posts' },
+						{
+							role: 'assistant',
+							tool_calls: [
+								{
+									id: 'toolu_01',
+									type: 'function',
+									function: {
+										name: 'get_recent_posts',
+										arguments: '[]',
+									},
+								},
+							],
+						},
+						{
+							role: 'tool',
+							tool_call_id: 'toolu_01',
+							content: '[{"id":7}]',
+						},
+					],
+					system: 'Be brief.',
+					tools: [ mockTool ],
+					provider: 'openai',
+					feature: 'chat',
+				} )
+			),
+			env
+		);
+		expect( response.status ).toBe( 200 );
+
+		const sent = JSON.parse( captured[ 0 ].body ) as Record< string, unknown >;
+		expect( sent.system ).toBe( 'Be brief.' );
+		expect( sent.messages ).toEqual( [
+			{ role: 'user', content: 'List my recent posts' },
+			{
+				role: 'assistant',
+				content: [
+					{
+						type: 'tool_use',
+						id: 'toolu_01',
+						name: 'get_recent_posts',
+						input: {},
+					},
+				],
+			},
+			{
+				role: 'user',
+				content: [
+					{
+						type: 'tool_result',
+						tool_use_id: 'toolu_01',
+						content: '[{"id":7}]',
+					},
+				],
+			},
+		] );
+		expect( ( sent.tools as unknown[] ).length ).toBe( 1 );
+	} );
+
+	it( 'translates a second-iteration Gemini-shaped history before it reaches Anthropic', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		silenceLog();
+		const captured: Captured[] = [];
+		stubClaude( captured );
+
+		const response = await worker.fetch(
+			makeChatRequest(
+				JSON.stringify( {
+					messages: [
+						{ role: 'user', content: 'List my recent posts' },
+						{
+							role: 'model',
+							parts: [
+								{
+									functionCall: {
+										id: 'toolu_01',
+										name: 'get_recent_posts',
+										args: [],
+									},
+									thoughtSignature: 'sig',
+								},
+							],
+						},
+						{
+							role: 'user',
+							parts: [
+								{
+									functionResponse: {
+										id: 'toolu_01',
+										name: 'get_recent_posts',
+										response: { posts: [ 7 ] },
+									},
+								},
+							],
+						},
+					],
+					provider: 'gemini',
+					feature: 'chat',
+				} )
+			),
+			env
+		);
+		expect( response.status ).toBe( 200 );
+
+		const sent = JSON.parse( captured[ 0 ].body ) as Record< string, unknown >;
+		expect( sent.messages ).toEqual( [
+			{ role: 'user', content: 'List my recent posts' },
+			{
+				role: 'assistant',
+				content: [
+					{
+						type: 'tool_use',
+						id: 'toolu_01',
+						name: 'get_recent_posts',
+						input: {},
+					},
+				],
+			},
+			{
+				role: 'user',
+				content: [
+					{
+						type: 'tool_result',
+						tool_use_id: 'toolu_01',
+						content: '{"posts":[7]}',
+					},
+				],
+			},
+		] );
+	} );
+
+	it( 'relays Claude tool calls to an old plugin on the OpenAI path', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		silenceLog();
+		const captured: Captured[] = [];
+		stubClaude( captured, { input_tokens: 10, output_tokens: 5 }, [
+			{
+				type: 'tool_use',
+				id: 'toolu_09',
+				name: 'get_recent_posts',
+				input: {},
+			},
+		] );
+
+		const response = await worker.fetch(
+			makeChatRequest(
+				JSON.stringify( {
+					messages: [ { role: 'user', content: 'List posts' } ],
+					tools: [ mockTool ],
+					provider: 'openai',
+					feature: 'chat',
+				} )
+			),
+			env
+		);
+		const json = ( await response.json() ) as {
+			tool_calls: Array< { id: string; name: string } >;
+		};
+		expect( json.tool_calls ).toEqual( [
+			{ id: 'toolu_09', name: 'get_recent_posts', arguments: {} },
+		] );
+	} );
+
+	it.each( [
+		[ 'generator', GENERATOR_CREDITS ],
+		[ 'seo', SEO_CREDITS ],
+	] as const )(
+		'%s with provider openai is served by Claude and billed the flat amount (%i)',
+		async ( feature, expectedCredits ) => {
+			const env = await makeEnvWithSiteToken( 'pro_managed' );
+			silenceLog();
+			const captured: Captured[] = [];
+			stubClaude( captured, { input_tokens: 9999, output_tokens: 9999 } );
+
+			const response = await worker.fetch(
+				makeChatRequest(
+					JSON.stringify( {
+						messages: [ { role: 'user', content: 'Write a post' } ],
+						provider: 'openai',
+						feature,
+					} )
+				),
+				env
+			);
+			expect( response.status ).toBe( 200 );
+			expect( captured[ 0 ].url ).toBe(
+				'https://api.anthropic.com/v1/messages'
+			);
+			expect( await getStoredUsage( env ) ).toBe( expectedCredits );
+		}
+	);
+
+	it( 'logs provider_substituted without any message content', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		const log = silenceLog();
+		stubClaude( [] );
+
+		await worker.fetch(
+			makeChatRequest(
+				JSON.stringify( {
+					messages: [ { role: 'user', content: 'SECRET-PROMPT' } ],
+					system: 'SECRET-SYSTEM',
+					provider: 'openai',
+					feature: 'chat',
+				} )
+			),
+			env
+		);
+
+		expect( log ).toHaveBeenCalledTimes( 1 );
+		expect( log ).toHaveBeenCalledWith( 'provider_substituted', {
+			requested: 'openai',
+			served: 'claude',
+			model: 'claude-haiku-4-5-20251001',
+			feature: 'chat',
+		} );
+		expect( JSON.stringify( log.mock.calls ) ).not.toMatch( /SECRET|deadbeef/ );
+	} );
+} );
+
+describe( 'native provider routing (permanent, #1020)', () => {
+	it( 'routes OpenAI natively again once KV enables it (re-enable regression)', async () => {
+		const env = await makeEnvWithSiteToken( 'free' );
+		await env.USAGE_KV.put(
+			'config:models',
+			JSON.stringify( { enabled_providers: [ 'claude', 'openai' ] } )
+		);
+		const log = vi.spyOn( console, 'log' ).mockImplementation( () => {} );
+		let capturedUrl = '';
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation( async ( url: string ) => {
+				capturedUrl = url;
+				return new Response(
+					JSON.stringify( {
+						choices: [ { message: { content: 'ok' } } ],
+						usage: { prompt_tokens: 5, completion_tokens: 2 },
+					} ),
+					{ status: 200 }
+				);
+			} )
+		);
+
+		const response = await worker.fetch(
+			makeChatRequest(
+				JSON.stringify( {
+					messages: [ { role: 'user', content: 'Hello' } ],
+					provider: 'openai',
+					feature: 'chat',
+				} )
+			),
+			env
+		);
+		expect( response.status ).toBe( 200 );
+		expect( capturedUrl ).toBe( 'https://api.openai.com/v1/chat/completions' );
+		expect( ( ( await response.json() ) as { model: string } ).model ).toBe(
+			'gpt-4.1-nano'
+		);
+		expect( log ).not.toHaveBeenCalled();
+	} );
+
+	it( 'sends a byte-identical upstream body for provider claude', async () => {
+		const env = await makeEnvWithSiteToken( 'pro_managed' );
+		const log = vi.spyOn( console, 'log' ).mockImplementation( () => {} );
+		let sentBody = '';
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockImplementation( async ( _url: string, init: RequestInit ) => {
+					sentBody = init.body as string;
+					return new Response(
+						JSON.stringify( {
+							content: [ { type: 'text', text: 'ok' } ],
+							usage: { input_tokens: 1, output_tokens: 1 },
+						} ),
+						{ status: 200 }
+					);
+				} )
+		);
+
+		// Claude-shaped history the translator would otherwise rewrite: a
+		// single cached text block, an empty text block, consecutive user turns
+		// and a short system string.
+		const messages = [
+			{
+				role: 'user',
+				content: [
+					{
+						type: 'text',
+						text: 'Hello',
+						cache_control: { type: 'ephemeral' },
+					},
+				],
+			},
+			{ role: 'user', content: [ { type: 'text', text: '' } ] },
+			{ role: 'assistant', content: 'Hi' },
+			{ role: 'user', content: 'Again' },
+		];
+		const system = [ { type: 'text', text: 'Sys' } ];
+
+		const response = await worker.fetch(
+			makeChatRequest(
+				JSON.stringify( {
+					messages,
+					system,
+					tools: [ mockTool ],
+					provider: 'claude',
+					model: 'claude-opus-4-6',
+					max_tokens: 123,
+					feature: 'chat',
+				} )
+			),
+			env
+		);
+		expect( response.status ).toBe( 200 );
+
+		expect( sentBody ).toBe(
+			JSON.stringify( {
+				model: 'claude-opus-4-6',
+				max_tokens: 123,
+				messages,
+				system,
+				tools: [
+					{
+						name: mockTool.name,
+						description: mockTool.description,
+						input_schema: mockTool.parameters,
+						cache_control: { type: 'ephemeral' },
+					},
+				],
+			} )
+		);
+		expect( log ).not.toHaveBeenCalled();
 	} );
 } );

@@ -1,6 +1,7 @@
 // src/index.ts
 
 import {
+	ChatRoute,
 	Env,
 	ModelConfig,
 	NormalizedResponse,
@@ -8,6 +9,7 @@ import {
 	Provider,
 	ProxyRequest,
 	ProxyTier,
+	ResolvedModelConfig,
 	SiteRecord,
 	SiteTier,
 	ToolParam,
@@ -32,6 +34,9 @@ import {
 	IMAGE_CREDITS,
 	MONTHLY_CREDIT_LIMITS,
 } from './credits';
+// TEMPORARY(#1020): Claude substitution of disabled providers.
+// On removal: delete this import together with src/substitution.ts.
+import { substituteRoute, toClaudeRequest } from './substitution';
 
 const MAX_BODY_BYTES = 1_048_576; // 1 MB
 
@@ -78,6 +83,27 @@ function buildUsage(
 
 /** Every provider the Worker knows about. Iterate this instead of re-listing the triple. */
 const ALL_PROVIDERS: Provider[] = [ 'claude', 'openai', 'gemini' ];
+
+/**
+ * Managed providers served for chat when KV `config:models` sets no
+ * `enabled_providers`. Mirrored by ManagedCatalogue::FALLBACK_ENABLED in the
+ * plugin; both sides pin the same literal in their tests.
+ *
+ * TEMPORARY(#1020): Claude-only while OpenAI's managed models are retired and
+ * Gemini has no credit; re-enable a provider through KV, no deploy needed.
+ * On removal: set this back to all of ALL_PROVIDERS (and the PHP mirror).
+ *
+ * @since NEXT_VERSION
+ */
+export const DEFAULT_ENABLED_PROVIDERS: readonly Provider[] = [ 'claude' ];
+
+/**
+ * Provider that is always enabled, whatever KV says, so a managed site always
+ * has at least one provider to chat with.
+ *
+ * @since NEXT_VERSION
+ */
+export const FALLBACK_PROVIDER: Provider = 'claude';
 
 // Fallback model lists used when no config:models entry exists in USAGE_KV.
 export const DEFAULT_TIER_MODELS: Record<
@@ -148,15 +174,13 @@ export const DEFAULT_MODEL_TOKEN_WEIGHT: Record< string, number > = {
 /**
  * Load model config from USAGE_KV (`config:models`).
  * Falls back to compiled defaults if the key is absent or unparseable.
- * Both `tier_models` and `model_token_weight` can be overridden independently.
+ * `tier_models`, `model_token_weight` and `enabled_providers` can each be
+ * overridden independently.
  *
  * @param {Env} env Worker environment bindings.
- * @return {Promise<{tierModels: Record<string, Record<string, string[]>>, tokenWeights: Record<string, number>}>} Resolved model config.
+ * @return {Promise<ResolvedModelConfig>} Resolved model config.
  */
-async function getModelConfig( env: Env ): Promise< {
-	tierModels: Record< string, Record< string, string[] > >;
-	tokenWeights: Record< string, number >;
-} > {
+async function getModelConfig( env: Env ): Promise< ResolvedModelConfig > {
 	try {
 		const raw = await env.USAGE_KV.get( 'config:models' );
 		if ( raw ) {
@@ -169,6 +193,9 @@ async function getModelConfig( env: Env ): Promise< {
 					...DEFAULT_MODEL_TOKEN_WEIGHT,
 					...parsed.model_token_weight,
 				},
+				enabledProviders: sanitiseEnabledProviders(
+					parsed.enabled_providers
+				),
 			};
 		}
 	} catch {
@@ -177,7 +204,119 @@ async function getModelConfig( env: Env ): Promise< {
 	return {
 		tierModels: DEFAULT_TIER_MODELS,
 		tokenWeights: DEFAULT_MODEL_TOKEN_WEIGHT,
+		enabledProviders: sanitiseEnabledProviders( undefined ),
 	};
+}
+
+/**
+ * Normalise a KV `enabled_providers` value.
+ *
+ * Anything but an array gives the compiled default. An array keeps only known
+ * providers, drops duplicates and always gains FALLBACK_PROVIDER, so a KV typo
+ * can never leave a site with no provider at all.
+ *
+ * @since NEXT_VERSION
+ * @param {unknown} value Raw `enabled_providers` value from KV.
+ * @return {Provider[]} Enabled providers in ALL_PROVIDERS order (a new array).
+ */
+export function sanitiseEnabledProviders( value: unknown ): Provider[] {
+	const requested: readonly unknown[] = Array.isArray( value )
+		? value
+		: DEFAULT_ENABLED_PROVIDERS;
+	return ALL_PROVIDERS.filter(
+		( provider ) =>
+			provider === FALLBACK_PROVIDER || requested.includes( provider )
+	);
+}
+
+/**
+ * Whether a provider answers chats natively for a tier: it is enabled and its
+ * allow-list for the tier is a non-empty array.
+ *
+ * @since NEXT_VERSION
+ * @param {Provider}            provider Provider slug.
+ * @param {ProxyTier}           tier     Resolved proxy tier.
+ * @param {ResolvedModelConfig} cfg      Resolved model config.
+ * @return {boolean} True if the provider is served natively.
+ */
+export function isProviderServed(
+	provider: Provider,
+	tier: ProxyTier,
+	cfg: ResolvedModelConfig
+): boolean {
+	return hasServableModels(
+		provider,
+		getAllowedModels( provider, tier, cfg.tierModels ),
+		cfg
+	);
+}
+
+/**
+ * The served condition given a pre-resolved allow-list, so callers that already
+ * hold the list (resolveChatRoute) do not recompute it (#1022).
+ *
+ * @param {Provider}            provider Provider slug.
+ * @param {string[]}            allowed  Pre-resolved tier allow-list.
+ * @param {ResolvedModelConfig} cfg      Resolved model config.
+ * @return {boolean} True if the provider is enabled with a non-empty allow-list.
+ */
+function hasServableModels(
+	provider: Provider,
+	allowed: string[],
+	cfg: ResolvedModelConfig
+): boolean {
+	return (
+		cfg.enabledProviders.includes( provider ) &&
+		Array.isArray( allowed ) &&
+		allowed.length > 0
+	);
+}
+
+/**
+ * Decide which provider and model serve a chat request.
+ *
+ * The single rule shared by /v1/chat and /v1/config, so the model a chat is
+ * billed for and the default the plugin labels can never disagree (#1003).
+ * Claude is always answered natively, and its empty allow-list still throws
+ * getModelForTier's tagged 400.
+ *
+ * @since NEXT_VERSION
+ * @param {Provider}            requestedProvider Provider the client asked for.
+ * @param {ProxyTier}           tier              Resolved proxy tier.
+ * @param {ResolvedModelConfig} cfg               Resolved model config.
+ * @param {string}              [requestedModel]  Model the client asked for, if any.
+ * @return {ChatRoute} Provider and model that serve the request.
+ */
+export function resolveChatRoute(
+	requestedProvider: Provider,
+	tier: ProxyTier,
+	cfg: ResolvedModelConfig,
+	requestedModel?: string
+): ChatRoute {
+	// Resolve the tier allow-list once and thread it through both the served
+	// check and the native model pick, rather than recomputing it in each (#1022).
+	const allowed = getAllowedModels( requestedProvider, tier, cfg.tierModels );
+	if (
+		requestedProvider === FALLBACK_PROVIDER ||
+		hasServableModels( requestedProvider, allowed, cfg )
+	) {
+		return {
+			requestedProvider,
+			provider: requestedProvider,
+			model: pickModel( requestedProvider, tier, allowed, requestedModel ),
+			// TEMPORARY(#1020): on removal, delete this line with ChatRoute.substituted.
+			substituted: false,
+		};
+	}
+
+	// TEMPORARY(#1020): serve a disabled provider with the tier's Claude model
+	// (a non-Claude requestedModel falls back to the tier default).
+	// On removal: throw a tagged 400 `provider_unavailable` here instead.
+	return substituteRoute(
+		requestedProvider,
+		FALLBACK_PROVIDER,
+		getModelForTier( FALLBACK_PROVIDER, tier, cfg.tierModels, requestedModel )
+	);
 }
 
 // Anthropic caches everything up to and including the tool carrying cache_control
@@ -644,8 +783,16 @@ async function handleRotateSecret(
 }
 
 /**
- * Return the requesting site's monthly credit limit, current tier and the
- * default model per provider for that tier (null for the unmetered pro_byok tier).
+ * Return the requesting site's monthly credit limit, current tier, and the
+ * managed provider catalogue for that tier:
+ *
+ * - `default_models`: model used per provider when a chat names none. For a
+ *   provider that is not served, this is the Claude model that answers it
+ *   instead, so older plugins label "Plugin default" with the real model.
+ * - `enabled_providers`: providers served natively, in canonical order.
+ * - `models`: allow-list per served provider.
+ *
+ * All three are null for the unmetered pro_byok tier, which never uses the proxy.
  *
  * Read-only — unlike /rotate-secret this never mutates the SiteRecord, so
  * it is safe for the plugin to call on every credit-limit cache miss
@@ -653,7 +800,7 @@ async function handleRotateSecret(
  *
  * @param {Request} request Incoming Worker request.
  * @param {Env}     env     Worker environment bindings.
- * @return {Promise<Response>} JSON response with credit_limit, tier and default_models, or an auth error.
+ * @return {Promise<Response>} JSON response with credit_limit, tier, default_models, enabled_providers and models, or an auth error.
  */
 async function handleConfig(
 	request: Request,
@@ -664,37 +811,87 @@ async function handleConfig(
 		return jsonResponse( { error: 'Unauthorised' }, 401 );
 	}
 
+	if ( auth.tier === 'pro_byok' ) {
+		return jsonResponse( {
+			credit_limit: getCreditLimit( auth.tier ),
+			tier: auth.tier,
+			default_models: null,
+			enabled_providers: null,
+			models: null,
+		} );
+	}
+
+	const cfg = await getModelConfig( env );
 	return jsonResponse( {
 		credit_limit: getCreditLimit( auth.tier ),
 		tier: auth.tier,
-		default_models:
-			auth.tier === 'pro_byok'
-				? null
-				: await getDefaultModels( auth.tier, env ),
+		default_models: getDefaultModels( auth.tier, cfg ),
+		enabled_providers: getServedProviders( auth.tier, cfg ),
+		models: getServedModels( auth.tier, cfg ),
 	} );
 }
 
 /**
- * Resolve the default model per provider for a tier, honouring KV overrides.
+ * Resolve the model a chat for each provider would use when it names none.
  *
- * Never throws: a provider whose allow-list is empty or malformed (the chat path
- * answers 400 for it) is omitted rather than failing the whole config response.
+ * Never throws: a provider whose route cannot be resolved (only possible when
+ * Claude's own allow-list is empty, which the chat path answers with a 400) is
+ * omitted rather than failing the whole config response.
  *
- * @param {ProxyTier} tier Resolved proxy tier.
- * @param {Env}       env  Worker environment bindings.
- * @return {Promise<Partial<Record<Provider, string>>>} Default model id per provider.
+ * @param {ProxyTier}           tier Resolved proxy tier.
+ * @param {ResolvedModelConfig} cfg  Resolved model config.
+ * @return {Partial<Record<Provider, string>>} Default model id per provider.
  */
-async function getDefaultModels(
+function getDefaultModels(
 	tier: ProxyTier,
-	env: Env
-): Promise< Partial< Record< Provider, string > > > {
-	const { tierModels } = await getModelConfig( env );
+	cfg: ResolvedModelConfig
+): Partial< Record< Provider, string > > {
 	const result: Partial< Record< Provider, string > > = {};
 	for ( const provider of ALL_PROVIDERS ) {
-		const allowed = getAllowedModels( provider, tier, tierModels );
-		if ( Array.isArray( allowed ) && allowed.length > 0 ) {
-			result[ provider ] = resolveDefaultModel( provider, tier, allowed );
+		try {
+			// TEMPORARY(#1020): for a disabled provider this reports its Claude
+			// substitute. On removal: nothing to change here; resolveChatRoute then
+			// throws for a disabled provider and it is omitted.
+			result[ provider ] = resolveChatRoute( provider, tier, cfg ).model;
+		} catch {
+			// Omitted, see the never-throws contract above.
 		}
+	}
+	return result;
+}
+
+/**
+ * List the providers served natively for a tier.
+ *
+ * @since NEXT_VERSION
+ * @param {ProxyTier}           tier Resolved proxy tier.
+ * @param {ResolvedModelConfig} cfg  Resolved model config.
+ * @return {Provider[]} Served providers in ALL_PROVIDERS order.
+ */
+function getServedProviders(
+	tier: ProxyTier,
+	cfg: ResolvedModelConfig
+): Provider[] {
+	return ALL_PROVIDERS.filter( ( provider ) =>
+		isProviderServed( provider, tier, cfg )
+	);
+}
+
+/**
+ * Map each natively served provider to its allow-list for a tier.
+ *
+ * @since NEXT_VERSION
+ * @param {ProxyTier}           tier Resolved proxy tier.
+ * @param {ResolvedModelConfig} cfg  Resolved model config.
+ * @return {Partial<Record<Provider, string[]>>} Allowed model ids per served provider.
+ */
+function getServedModels(
+	tier: ProxyTier,
+	cfg: ResolvedModelConfig
+): Partial< Record< Provider, string[] > > {
+	const result: Partial< Record< Provider, string[] > > = {};
+	for ( const provider of getServedProviders( tier, cfg ) ) {
+		result[ provider ] = getAllowedModels( provider, tier, cfg.tierModels );
 	}
 	return result;
 }
@@ -1016,40 +1213,52 @@ async function handleChatProxyInner(
 			);
 		}
 
-		const { tierModels, tokenWeights } = await getModelConfig( env );
-		const selectedModel = getModelForTier(
-			provider,
-			effectiveTier,
-			tierModels,
-			model
-		);
-		metric.model = selectedModel;
+		const cfg = await getModelConfig( env );
+		const route = resolveChatRoute( provider, effectiveTier, cfg, model );
+		// Record what was actually served (the provider can be substituted, #1020).
+		metric.provider = route.provider;
+		metric.model = route.model;
 		const clampedMaxTokens = Math.min(
 			maxTokens ?? ( effectiveTier === 'free' ? 1000 : 4000 ),
 			MAX_TOKENS[ effectiveTier ]
 		);
 
+		let upstreamBody = body;
+		if ( route.substituted ) {
+			// TEMPORARY(#1020): translate provider-shaped history for Claude and log
+			// the substitution (no content, no site data).
+			// On removal: delete this block; resolveChatRoute then rejects the request.
+			upstreamBody = toClaudeRequest( body );
+			// eslint-disable-next-line no-console
+			console.log( 'provider_substituted', {
+				requested: route.requestedProvider,
+				served: route.provider,
+				model: route.model,
+				feature,
+			} );
+		}
+
 		let normalized: NormalizedResponse;
 		const upstreamStart = Date.now();
 		try {
-			if ( provider === 'claude' ) {
+			if ( route.provider === 'claude' ) {
 				normalized = await callClaude(
-					body,
-					selectedModel,
+					upstreamBody,
+					route.model,
 					clampedMaxTokens,
 					env
 				);
-			} else if ( provider === 'openai' ) {
+			} else if ( route.provider === 'openai' ) {
 				normalized = await callOpenAI(
-					body,
-					selectedModel,
+					upstreamBody,
+					route.model,
 					clampedMaxTokens,
 					env
 				);
 			} else {
 				normalized = await callGemini(
-					body,
-					selectedModel,
+					upstreamBody,
+					route.model,
 					clampedMaxTokens,
 					env
 				);
@@ -1070,9 +1279,9 @@ async function handleChatProxyInner(
 				? rawChatCreditUnits(
 						normalized.usage.input_tokens,
 						normalized.usage.output_tokens,
-						tokenWeights[ selectedModel ] ?? 1,
+						cfg.tokenWeights[ route.model ] ?? 1,
 						{
-							provider,
+							provider: route.provider,
 							cacheWriteTokens:
 								normalized.usage.cache_creation_input_tokens,
 							cacheReadTokens:
@@ -1104,7 +1313,7 @@ async function handleChatProxyInner(
 			content: normalized.content,
 			usage: normalized.usage,
 			credits_charged: creditsCharged,
-			model: selectedModel,
+			model: route.model,
 		};
 		if ( ( normalized.tool_calls?.length ?? 0 ) > 0 ) {
 			responseData.tool_calls = normalized.tool_calls;
@@ -1191,7 +1400,30 @@ export function getModelForTier(
 	tierModels: Record< string, Record< string, string[] > >,
 	requestedModel?: string
 ): string {
-	const allowed = getAllowedModels( provider, tier, tierModels );
+	return pickModel(
+		provider,
+		tier,
+		getAllowedModels( provider, tier, tierModels ),
+		requestedModel
+	);
+}
+
+/**
+ * Pick the served model from a pre-resolved allow-list, so callers that already
+ * hold the list (resolveChatRoute) do not recompute it (#1022).
+ *
+ * @param {Provider}  provider       Provider slug.
+ * @param {ProxyTier} tier           Resolved proxy tier.
+ * @param {string[]}  allowed        Pre-resolved tier allow-list.
+ * @param {string}    [requestedModel] Model the client asked for, if any.
+ * @return {string} The model id serving the request.
+ */
+function pickModel(
+	provider: Provider,
+	tier: ProxyTier,
+	allowed: string[],
+	requestedModel?: string
+): string {
 	if ( allowed.length === 0 ) {
 		// Tagged with isValidationError so the handleChatProxy catch block can
 		// distinguish this intended 400 from arbitrary upstream provider errors

@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use Plume\Core\RestApi;
 use Plume\DB\ConversationStore;
+use Plume\Providers\ManagedCatalogue;
 use Plume\Providers\ProviderFactory;
 use Plume\Providers\CompletionRequest;
 use Plume\Providers\CompletionResponse;
@@ -23,6 +24,7 @@ use Plume\Tools\ToolRegistry;
 use Plume\Tools\ToolExecutor;
 use Plume\Voice\VoiceInjector;
 use Plume\Proxy\SiteRegistration;
+use Plume\Tiers\TierManager;
 use Plume\Tiers\UsageTracker;
 
 /**
@@ -324,9 +326,14 @@ class ChatRestController {
 	 * @since 1.13.3 Returns 422 with code 'site_unreachable' instead of the generic
 	 *                      503 'not_registered' when a permanent site-verification failure
 	 *                      is on record (see SiteRegistration::get_unavailable_error()).
+	 * @since NEXT_VERSION Returns 422 with code 'provider_key_missing' when the site has its own
+	 *                      key for some provider but none for the requested one, which the managed
+	 *                      service does not serve; otherwise a disabled managed provider is
+	 *                      resolved to Claude at runtime (see ProviderFactory::resolve_text_slug()).
 	 * @param \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response 201 on success; 403 if the conversation is not owned by the caller;
-	 *                           422 with code 'site_unreachable' when a permanent site-verification
+	 *                           422 with code 'provider_key_missing' when the requested provider has no
+	 *                           key and is not served by the managed service; 422 with code 'site_unreachable' when a permanent site-verification
 	 *                           failure is on record; 429 with a `Retry-After` header (seconds until
 	 *                           next month UTC) on provider rate-limit; 502 when the provider returns
 	 *                           401/403; 503 with code 'not_registered' while registration is still
@@ -340,7 +347,6 @@ class ChatRestController {
 		$conv_id        = (int) $request->get_param( 'id' );
 		$content        = $request->get_param( 'content' );
 		$provider_param = $request->get_param( 'provider' );
-		$provider_slug  = ! empty( $provider_param ) ? $provider_param : \get_option( 'plume_default_provider', 'claude' );
 		$model          = $request->get_param( 'model' );
 
 		$user_id = \get_current_user_id();
@@ -352,7 +358,34 @@ class ChatRestController {
 			return new \WP_REST_Response( [ 'message' => __( 'Forbidden.', 'plume' ) ], 403 );
 		}
 
-		$factory  = $this->make_provider_factory();
+		$factory = $this->make_provider_factory();
+		$tier    = $this->current_tier();
+
+		$requested_slug = ! empty( $provider_param ) ? (string) $provider_param : (string) \get_option( 'plume_default_provider', 'claude' );
+
+		// Checked before persisting the user turn, like the availability check below:
+		// an own-key site asking for a provider it has no key for (and the managed
+		// service no longer serves) is told so instead of being switched silently.
+		if ( $factory->missing_key_for( $requested_slug, $tier ) ) {
+			return new \WP_REST_Response(
+				[
+					'message' => $factory->missing_key_message( $requested_slug ),
+					'code'    => 'provider_key_missing',
+				],
+				422
+			);
+		}
+
+		$provider_slug = $factory->resolve_text_slug( $requested_slug, $tier );
+		if ( $provider_slug !== $requested_slug ) {
+			// TEMPORARY(#1020): a model id of the requested provider means nothing to the
+			// substituted one (for example gpt-4.1 sent to Claude), so use its default
+			// (CompletionRequest treats an empty model as "provider default").
+			// On removal: delete this reset together with the substitution in
+			// ProviderFactory::resolve_text_slug().
+			$model = '';
+		}
+
 		$provider = $factory->make( $provider_slug );
 
 		// Checked before persisting the user turn: a client-side retry (e.g. while site
@@ -694,20 +727,38 @@ class ChatRestController {
 	}
 
 	/**
-	 * Return all configured providers with their models and availability status.
+	 * Return the providers the user can chat with, with their models and availability.
+	 *
+	 * Managed providers the Worker does not serve are left out, and the models of a
+	 * managed provider come from the Worker's allow-list. Providers with the site's own
+	 * key and Ollama are always listed with their own models.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Filtered by the Worker's managed catalogue.
 	 * @param \WP_REST_Request $request Incoming REST request (unused).
 	 * @return \WP_REST_Response
 	 */
 	public function list_providers( \WP_REST_Request $request ): \WP_REST_Response { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by WP_REST_Server callback signature.
 		$factory = $this->make_provider_factory();
-		$all     = $factory->get_all();
+		$tier    = $this->current_tier();
 		$data    = [];
-		foreach ( $all as $provider ) {
+		foreach ( $factory->get_all() as $provider ) {
+			$slug       = $provider->get_slug();
+			$is_managed = $factory->is_managed_route( $slug, $tier );
+
+			// A provider the managed service does not serve is hidden unless the site
+			// has its own key for it (or it is Ollama); the Worker would not answer it.
+			if ( $is_managed && ! ManagedCatalogue::is_enabled( $slug, $tier ) ) {
+				continue;
+			}
+
 			$data[] = [
-				'slug'         => $provider->get_slug(),
-				'models'       => $provider->get_models(),
+				'slug'         => $slug,
+				// Managed requests may only use the models the Worker allows; own-key
+				// requests go straight to the provider and keep its full list.
+				'models'       => $is_managed
+					? ManagedCatalogue::labelled_models( $slug, $tier, $provider->get_models() )
+					: $provider->get_models(),
 				'is_available' => $provider->is_available(),
 			];
 		}
@@ -814,6 +865,16 @@ class ChatRestController {
 	 */
 	protected function make_provider_factory(): ProviderFactory {
 		return new ProviderFactory( new ProviderSettings() );
+	}
+
+	/**
+	 * Current site tier slug — overridable in tests.
+	 *
+	 * @since NEXT_VERSION
+	 * @return string
+	 */
+	protected function current_tier(): string {
+		return TierManager::get_user_tier();
 	}
 
 	/**

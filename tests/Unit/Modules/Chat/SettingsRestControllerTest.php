@@ -15,6 +15,8 @@ class SettingsRestControllerTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
         Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
+        // get_settings() reads the managed catalogue; a miss on an unregistered site uses the fallback.
+        Functions\when( 'get_transient' )->justReturn( false );
     }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
@@ -535,5 +537,38 @@ class SettingsRestControllerTest extends TestCase {
 
         $this->assertNotInstanceOf( \WP_Error::class, $response );
         $this->assertSame( [ [ 'claude', 'sk-free-attempt' ] ], $api_key_calls );
+    }
+
+    // ── managed_providers (#1020) ─────────────────────────────────────────────
+
+    private function get_settings_for_tier( string $tier ): array {
+        Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_post_types' )->justReturn( [] );
+        Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => 'plume_site_tier' === $key ? $tier : $default );
+        Functions\when( 'get_transient' )->justReturn(
+            [
+                'enabled_providers' => [ 'claude' ],
+                'models'            => [],
+                'default_models'    => [],
+            ]
+        );
+        $controller = new class extends SettingsRestController {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                return new class extends \Plume\Settings\ProviderSettings {
+                    public function __construct() {}
+                    public function has_key( string $provider ): bool { return false; }
+                    public function get_api_key( string $provider ): string { return ''; }
+                };
+            }
+        };
+        return $controller->get_settings( new \WP_REST_Request() )->data;
+    }
+
+    public function test_get_settings_reports_managed_providers_for_a_free_site(): void {
+        $this->assertSame( [ 'claude' ], $this->get_settings_for_tier( 'free' )['managed_providers'] );
+    }
+
+    public function test_get_settings_managed_providers_is_null_for_pro_byok(): void {
+        $this->assertNull( $this->get_settings_for_tier( 'pro_byok' )['managed_providers'] );
     }
 }

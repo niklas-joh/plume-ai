@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Providers\ManagedCatalogue;
 use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
 use Plume\Tiers\TierManager;
@@ -61,13 +62,15 @@ class SettingsRestController {
 	 * Returns all plugin settings. API key values are masked if set.
 	 *
 	 * Response includes `is_paid` (bool) indicating whether the site tier is
-	 * anything other than free.
+	 * anything other than free, and `managed_providers` (string[]|null), the providers
+	 * the Plume service serves for this tier (null on pro_byok).
 	 *
 	 * @param \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response
 	 */
 	public function get_settings( \WP_REST_Request $request ): \WP_REST_Response { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by WP_REST_Server callback signature.
 		$provider_settings = $this->make_provider_settings();
+		$tier              = TierManager::get_user_tier();
 
 		$data = [
 			'default_provider'     => sanitize_text_field( (string) get_option( 'plume_default_provider', 'claude' ) ),
@@ -85,6 +88,9 @@ class SettingsRestController {
 			'enable_write_tools'   => (bool) \get_option( 'plume_enable_write_tools', true ),
 			// Note: intentionally snake_case to match WP REST convention; JS reads this as `settings.is_paid`.
 			'is_paid'              => TierManager::is_paid(),
+			// Providers the Plume service serves; null on pro_byok (no restriction). The
+			// settings screen disables the others unless the site has its own key.
+			'managed_providers'    => 'pro_byok' === $tier ? null : ManagedCatalogue::get( $tier )['enabled_providers'],
 		];
 
 		return rest_ensure_response( $data );

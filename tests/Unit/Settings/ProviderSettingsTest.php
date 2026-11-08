@@ -87,4 +87,43 @@ class ProviderSettingsTest extends TestCase {
         $option_value = $stored['plume_provider_keys'] ?? [];
         $this->assertNotContains( 'sk-proj-plaintext', $option_value );
     }
+
+    // ── TEMPORARY(#1020): has_any_key() ───────────────────────────────────────
+    // On removal: delete this block together with ProviderSettings::has_any_key().
+
+    public function test_has_any_key_false_when_no_key_anywhere(): void {
+        Functions\when( 'get_option' )->justReturn( [] );
+        $this->assertFalse( ( new ProviderSettings() )->has_any_key() );
+    }
+
+    public function test_has_any_key_true_for_a_database_key(): void {
+        $stored = [];
+        Functions\when( 'get_option' )->alias( function( $k, $d = null ) use ( &$stored ) { return $stored[ $k ] ?? $d; } );
+        Functions\when( 'update_option' )->alias( function( $k, $v ) use ( &$stored ) {
+            $stored[ $k ] = $v;
+            return true;
+        } );
+        if ( ! defined( 'AUTH_KEY' ) )         define( 'AUTH_KEY',         'test-auth-key-32-chars-exactly!!' );
+        if ( ! defined( 'SECURE_AUTH_KEY' ) )  define( 'SECURE_AUTH_KEY',  'test-secure-auth-32-chars!!!!!!' );
+
+        $settings = new ProviderSettings();
+        $settings->set_api_key( 'gemini', 'g-key' );
+
+        $this->assertTrue( ( new ProviderSettings() )->has_any_key() );
+    }
+
+    public function test_has_any_key_true_for_an_environment_variable(): void {
+        Functions\when( 'get_option' )->justReturn( [] );
+        putenv( 'OPENAI_API_KEY=sk-from-env' );
+        try {
+            $this->assertTrue( ( new ProviderSettings() )->has_any_key() );
+        } finally {
+            putenv( 'OPENAI_API_KEY' );
+        }
+    }
+
+    public function test_has_any_key_ignores_ollama(): void {
+        Functions\when( 'get_option' )->alias( fn( $k, $d = null ) => 'plume_provider_keys' === $k ? [ 'ollama' => 'x' ] : $d );
+        $this->assertFalse( ( new ProviderSettings() )->has_any_key() );
+    }
 }

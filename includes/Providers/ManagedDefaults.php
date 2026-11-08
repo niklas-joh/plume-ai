@@ -8,9 +8,6 @@
 declare( strict_types=1 );
 namespace Plume\Providers;
 
-use Plume\Proxy\SiteRegistration;
-use Plume\Tiers\WorkerConfig;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -20,8 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Used only to label the "Plugin default" choice in the chat UI. The Worker is the
  * source of truth: model_id() reads the live `default_models` from GET /v1/config
- * (via WorkerConfig, cached in a per-tier transient), so a KV `config:models`
- * override on the Worker is reflected here. The FREE and PRO constants below are
+ * (via ManagedCatalogue, cached in a per-tier transient), so a KV `config:models`
+ * override on the Worker is reflected here. For a provider the Worker does not serve,
+ * `default_models` reports the model that actually answers (#1020). The FREE and PRO constants below are
  * only the offline fallback, for unregistered sites and an unreachable Worker; they
  * are pinned by tests carrying the same literals as DEFAULT_MODEL_BY_TIER in
  * plume-proxy/src/index.ts, so keep the two in step.
@@ -32,42 +30,30 @@ if ( ! defined( 'ABSPATH' ) ) {
  * sends no display names; unknown ids are shown as the raw id by the caller.
  *
  * @since 2.0.0
+ * @since NEXT_VERSION Live values come from ManagedCatalogue, which also caches the
+ *                     Worker's enabled providers and model lists.
  */
 final class ManagedDefaults {
 
 	/**
 	 * Transient lifetime, in seconds, for live defaults.
 	 *
-	 * Short, because a KV override is an operational lever that should show up soon.
+	 * Kept for backwards compatibility; the cache now lives in ManagedCatalogue.
 	 *
 	 * @since 2.0.0
+	 * @since NEXT_VERSION Alias of ManagedCatalogue::LIVE_TTL.
 	 */
-	public const LIVE_TTL = HOUR_IN_SECONDS;
+	public const LIVE_TTL = ManagedCatalogue::LIVE_TTL;
 
 	/**
 	 * Transient lifetime, in seconds, for the empty "fetch failed" sentinel.
 	 *
-	 * Short, so an unreachable Worker costs at most one timeout per tier per five
-	 * minutes rather than one per request, yet recovery is quick.
+	 * Kept for backwards compatibility; the cache now lives in ManagedCatalogue.
 	 *
 	 * @since 2.0.0
+	 * @since NEXT_VERSION Alias of ManagedCatalogue::FAILURE_TTL.
 	 */
-	public const FAILURE_TTL = 5 * MINUTE_IN_SECONDS;
-
-	/**
-	 * Transient key prefix; the normalised tier slug is appended.
-	 *
-	 * @since 2.0.0
-	 */
-	private const TRANSIENT_PREFIX = 'plume_default_models_';
-
-	/**
-	 * Providers the Worker reports defaults for.
-	 *
-	 * @since 2.0.0
-	 * @var string[]
-	 */
-	private const PROVIDERS = [ 'claude', 'openai', 'gemini' ];
+	public const FAILURE_TTL = ManagedCatalogue::FAILURE_TTL;
 
 	/**
 	 * Default model id per provider for the free tier.
@@ -149,53 +135,17 @@ final class ManagedDefaults {
 	}
 
 	/**
-	 * Return the live default model per provider for a tier, using the transient cache.
+	 * Return the live default model per provider for a tier.
 	 *
-	 * A cached empty array is the "fetch failed" sentinel. An unregistered site
-	 * (no token) fetches and caches nothing, so it picks up live values as soon as
-	 * it registers.
+	 * Delegates to the catalogue, which owns the transient cache. An empty array
+	 * means no live value is available (unregistered site or unreachable Worker).
 	 *
 	 * @since 2.0.0
+	 * @since NEXT_VERSION Reads ManagedCatalogue instead of a transient of its own.
 	 * @param string $tier Normalised tier slug: 'free' or 'pro_managed'.
 	 * @return array<string, string> Validated model id per provider; may be empty.
 	 */
 	private static function live_defaults( string $tier ): array {
-		$key    = self::TRANSIENT_PREFIX . $tier;
-		$cached = get_transient( $key );
-		if ( is_array( $cached ) ) {
-			return $cached;
-		}
-
-		if ( '' === SiteRegistration::get_site_token() ) {
-			return [];
-		}
-
-		$body = WorkerConfig::fetch( $tier );
-		$live = null === $body ? [] : self::sanitise_default_models( $body['default_models'] ?? null );
-
-		set_transient( $key, $live, [] === $live ? self::FAILURE_TTL : self::LIVE_TTL );
-		return $live;
-	}
-
-	/**
-	 * Keep only known providers whose model id looks like a model id.
-	 *
-	 * @since 2.0.0
-	 * @param mixed $default_models The `default_models` value from the Worker response.
-	 * @return array<string, string> Valid entries only.
-	 */
-	private static function sanitise_default_models( $default_models ): array {
-		if ( ! is_array( $default_models ) ) {
-			return [];
-		}
-
-		$valid = [];
-		foreach ( self::PROVIDERS as $provider ) {
-			$id = $default_models[ $provider ] ?? null;
-			if ( is_string( $id ) && 1 === preg_match( '/^[A-Za-z0-9._:-]+$/', $id ) ) {
-				$valid[ $provider ] = $id;
-			}
-		}
-		return $valid;
+		return ManagedCatalogue::get( $tier )['default_models'];
 	}
 }

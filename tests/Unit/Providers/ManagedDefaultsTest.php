@@ -57,6 +57,33 @@ class ManagedDefaultsTest extends TestCase {
 	}
 
 	/**
+	 * Build a cached catalogue entry carrying the given default models.
+	 *
+	 * @param array<string, string> $defaults Default model id per provider.
+	 * @return array<string, mixed>
+	 */
+	private static function catalogue( array $defaults ): array {
+		return [
+			'enabled_providers' => [ 'claude', 'openai', 'gemini' ],
+			'models'            => [],
+			'default_models'    => $defaults,
+		];
+	}
+
+	/**
+	 * The cached entry written when the Worker could not be read.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function failure_entry(): array {
+		return [
+			'enabled_providers' => [ 'claude' ],
+			'models'            => [],
+			'default_models'    => [],
+		];
+	}
+
+	/**
 	 * @since NEXT_VERSION
 	 * @return array<string, array{string, string, string, string}>
 	 */
@@ -120,7 +147,7 @@ class ManagedDefaultsTest extends TestCase {
 			'gemini' => 'gemini-live',
 		];
 		$this->stub_token( 'sometoken' );
-		Functions\expect( 'get_transient' )->once()->with( 'plume_default_models_free' )->andReturn( false );
+		Functions\expect( 'get_transient' )->once()->with( 'plume_managed_catalogue_free' )->andReturn( false );
 		Functions\expect( 'wp_remote_get' )->once()->andReturn( [ 'response' => [ 'code' => 200 ] ] );
 		$this->stub_worker_body(
 			[
@@ -130,7 +157,7 @@ class ManagedDefaultsTest extends TestCase {
 		);
 		Functions\expect( 'set_transient' )
 			->once()
-			->with( 'plume_default_models_free', $live, ManagedDefaults::LIVE_TTL )
+			->with( 'plume_managed_catalogue_free', self::catalogue( $live ), ManagedDefaults::LIVE_TTL )
 			->andReturn( true );
 
 		$this->assertSame( 'claude-live-1', ManagedDefaults::model_id( 'claude', 'free' ) );
@@ -145,14 +172,37 @@ class ManagedDefaultsTest extends TestCase {
 	}
 
 	/**
+	 * The public constants are kept for BC and now alias the catalogue's.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	public function test_ttl_constants_alias_the_catalogue_constants(): void {
+		$this->assertSame( \Plume\Providers\ManagedCatalogue::LIVE_TTL, ManagedDefaults::LIVE_TTL );
+		$this->assertSame( \Plume\Providers\ManagedCatalogue::FAILURE_TTL, ManagedDefaults::FAILURE_TTL );
+	}
+
+	/**
+	 * When the Worker serves a disabled provider with Claude, the "Plugin default"
+	 * label for that provider follows the Worker (#1020).
+	 *
+	 * @since NEXT_VERSION
+	 */
+	public function test_worker_reported_substitute_model_wins_for_a_disabled_provider(): void {
+		$this->stub_token( 'sometoken' );
+		Functions\when( 'get_transient' )->justReturn( self::catalogue( [ 'openai' => 'claude-haiku-4-5-20251001' ] ) );
+
+		$this->assertSame( 'claude-haiku-4-5-20251001', ManagedDefaults::model_id( 'openai', 'free' ) );
+	}
+
+	/**
 	 * @since NEXT_VERSION
 	 */
 	public function test_transient_hit_makes_no_http_call(): void {
 		$this->stub_token( 'sometoken' );
 		Functions\expect( 'get_transient' )
 			->once()
-			->with( 'plume_default_models_pro_managed' )
-			->andReturn( [ 'openai' => 'gpt-cached' ] );
+			->with( 'plume_managed_catalogue_pro_managed' )
+			->andReturn( self::catalogue( [ 'openai' => 'gpt-cached' ] ) );
 		Functions\expect( 'wp_remote_get' )->never();
 		Functions\expect( 'set_transient' )->never();
 
@@ -164,7 +214,7 @@ class ManagedDefaultsTest extends TestCase {
 	 */
 	public function test_provider_missing_from_cached_array_falls_back_to_its_constant(): void {
 		$this->stub_token( 'sometoken' );
-		Functions\when( 'get_transient' )->justReturn( [ 'openai' => 'gpt-cached' ] );
+		Functions\when( 'get_transient' )->justReturn( self::catalogue( [ 'openai' => 'gpt-cached' ] ) );
 		Functions\expect( 'wp_remote_get' )->never();
 
 		$this->assertSame( 'claude-sonnet-4-6', ManagedDefaults::model_id( 'claude', 'pro_managed' ) );
@@ -175,7 +225,7 @@ class ManagedDefaultsTest extends TestCase {
 	 */
 	public function test_sentinel_hit_uses_constants_without_http_call(): void {
 		$this->stub_token( 'sometoken' );
-		Functions\expect( 'get_transient' )->once()->andReturn( [] );
+		Functions\expect( 'get_transient' )->once()->andReturn( self::catalogue( [] ) );
 		Functions\expect( 'wp_remote_get' )->never();
 		Functions\expect( 'set_transient' )->never();
 
@@ -191,7 +241,7 @@ class ManagedDefaultsTest extends TestCase {
 		Functions\expect( 'wp_remote_get' )->once()->andReturn( new \WP_Error( 'http_request_failed', 'timeout' ) );
 		Functions\expect( 'set_transient' )
 			->once()
-			->with( 'plume_default_models_free', [], ManagedDefaults::FAILURE_TTL )
+			->with( 'plume_managed_catalogue_free', self::failure_entry(), ManagedDefaults::FAILURE_TTL )
 			->andReturn( true );
 
 		$this->assertSame( 'claude-haiku-4-5-20251001', ManagedDefaults::model_id( 'claude', 'free' ) );
@@ -213,7 +263,7 @@ class ManagedDefaultsTest extends TestCase {
 		);
 		Functions\expect( 'set_transient' )
 			->once()
-			->with( 'plume_default_models_free', [], ManagedDefaults::FAILURE_TTL )
+			->with( 'plume_managed_catalogue_free', self::failure_entry(), ManagedDefaults::FAILURE_TTL )
 			->andReturn( true );
 
 		$this->assertSame( 'claude-haiku-4-5-20251001', ManagedDefaults::model_id( 'claude', 'free' ) );
@@ -282,7 +332,7 @@ class ManagedDefaultsTest extends TestCase {
 		// Only the valid entry is cached; invalid values and unknown keys are dropped.
 		Functions\expect( 'set_transient' )
 			->once()
-			->with( 'plume_default_models_free', [ 'claude' => 'claude-live-1' ], ManagedDefaults::LIVE_TTL )
+			->with( 'plume_managed_catalogue_free', self::catalogue( [ 'claude' => 'claude-live-1' ] ), ManagedDefaults::LIVE_TTL )
 			->andReturn( true );
 
 		$this->assertSame( 'claude-live-1', ManagedDefaults::model_id( 'claude', 'free' ) );
@@ -293,7 +343,7 @@ class ManagedDefaultsTest extends TestCase {
 	 */
 	public function test_provider_without_live_value_keeps_its_constant(): void {
 		$this->stub_token( 'sometoken' );
-		Functions\when( 'get_transient' )->justReturn( [ 'claude' => 'claude-live-1' ] );
+		Functions\when( 'get_transient' )->justReturn( self::catalogue( [ 'claude' => 'claude-live-1' ] ) );
 
 		$this->assertSame( 'gpt-4.1-nano', ManagedDefaults::model_id( 'openai', 'free' ) );
 		$this->assertSame( 'gemini-3.1-flash-lite', ManagedDefaults::model_id( 'gemini', 'free' ) );
@@ -328,7 +378,7 @@ class ManagedDefaultsTest extends TestCase {
 	 */
 	public function test_unrecognised_tier_is_cached_under_the_free_key(): void {
 		$this->stub_token( 'sometoken' );
-		Functions\expect( 'get_transient' )->once()->with( 'plume_default_models_free' )->andReturn( [ 'claude' => 'claude-live-1' ] );
+		Functions\expect( 'get_transient' )->once()->with( 'plume_managed_catalogue_free' )->andReturn( self::catalogue( [ 'claude' => 'claude-live-1' ] ) );
 		Functions\expect( 'wp_remote_get' )->never();
 
 		$this->assertSame( 'claude-live-1', ManagedDefaults::model_id( 'claude', 'bogus' ) );

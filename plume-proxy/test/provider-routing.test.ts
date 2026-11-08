@@ -12,8 +12,10 @@ import {
 } from '../src/index';
 import type { Provider, ResolvedModelConfig } from '../src/types';
 
+// Explicit Claude-only list rather than DEFAULT_ENABLED_PROVIDERS, so these
+// tests keep passing when the compiled default changes.
 function makeCfg(
-	enabledProviders: Provider[] = DEFAULT_ENABLED_PROVIDERS,
+	enabledProviders: Provider[] = [ 'claude' ],
 	tierModels: ResolvedModelConfig[ 'tierModels' ] = DEFAULT_TIER_MODELS
 ): ResolvedModelConfig {
 	return {
@@ -24,6 +26,20 @@ function makeCfg(
 }
 
 const ALL: Provider[] = [ 'claude', 'openai', 'gemini' ];
+
+const EMPTY_CLAUDE: ResolvedModelConfig[ 'tierModels' ] = {
+	...DEFAULT_TIER_MODELS,
+	claude: { free: [], pro_managed: [] },
+};
+
+function catchError( fn: () => unknown ): unknown {
+	try {
+		fn();
+	} catch ( error ) {
+		return error;
+	}
+	return undefined;
+}
 
 describe( 'sanitiseEnabledProviders', () => {
 	it.each( [
@@ -61,9 +77,10 @@ describe( 'sanitiseEnabledProviders', () => {
 	} );
 
 	it( 'returns a copy, so callers cannot mutate the compiled default', () => {
+		const before = [ ...DEFAULT_ENABLED_PROVIDERS ];
 		const result = sanitiseEnabledProviders( undefined );
 		result.push( 'openai' );
-		expect( DEFAULT_ENABLED_PROVIDERS ).toEqual( [ 'claude' ] );
+		expect( DEFAULT_ENABLED_PROVIDERS ).toEqual( before );
 	} );
 } );
 
@@ -95,11 +112,10 @@ describe( 'isProviderServed', () => {
 
 describe( 'resolveChatRoute (native)', () => {
 	it( 'serves Claude natively with the tier default', () => {
-		expect( resolveChatRoute( 'claude', 'free', makeCfg() ) ).toEqual( {
+		expect( resolveChatRoute( 'claude', 'free', makeCfg() ) ).toMatchObject( {
 			requestedProvider: 'claude',
 			provider: 'claude',
 			model: 'claude-haiku-4-5-20251001',
-			substituted: false,
 		} );
 	} );
 
@@ -124,31 +140,19 @@ describe( 'resolveChatRoute (native)', () => {
 			'free',
 			makeCfg( [ 'claude', 'gemini' ] )
 		);
-		expect( route ).toEqual( {
+		expect( route ).toMatchObject( {
 			requestedProvider: 'gemini',
 			provider: 'gemini',
 			model: 'gemini-3.1-flash-lite',
-			substituted: false,
 		} );
 	} );
 
 	it( 'throws the tagged 400 when Claude itself has an empty allow-list', () => {
-		const cfg = makeCfg( DEFAULT_ENABLED_PROVIDERS, {
-			...DEFAULT_TIER_MODELS,
-			claude: { free: [], pro_managed: [] },
+		const cfg = makeCfg( [ 'claude' ], EMPTY_CLAUDE );
+		expect( catchError( () => resolveChatRoute( 'claude', 'free', cfg ) ) ).toMatchObject( {
+			status: 400,
+			isValidationError: true,
 		} );
-		for ( const provider of [ 'openai', 'claude' ] as Provider[] ) {
-			let caught: unknown;
-			try {
-				resolveChatRoute( provider, 'free', cfg );
-			} catch ( error ) {
-				caught = error;
-			}
-			expect( caught ).toMatchObject( {
-				status: 400,
-				isValidationError: true,
-			} );
-		}
 	} );
 } );
 
@@ -183,6 +187,14 @@ describe( 'TEMPORARY(#1020) substitution', () => {
 			resolveChatRoute( 'openai', 'pro_managed', makeCfg(), 'gpt-4.1' )
 				.model
 		).toBe( 'claude-sonnet-4-6' );
+	} );
+
+	it( 'throws the tagged 400 for a disabled provider when Claude has no models to substitute', () => {
+		const cfg = makeCfg( [ 'claude' ], EMPTY_CLAUDE );
+		expect( catchError( () => resolveChatRoute( 'openai', 'free', cfg ) ) ).toMatchObject( {
+			status: 400,
+			isValidationError: true,
+		} );
 	} );
 
 	it( 'substitutes an enabled provider whose allow-list is empty', () => {

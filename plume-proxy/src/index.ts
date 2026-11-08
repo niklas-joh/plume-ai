@@ -87,7 +87,7 @@ const ALL_PROVIDERS: Provider[] = [ 'claude', 'openai', 'gemini' ];
  *
  * @since NEXT_VERSION
  */
-export const DEFAULT_ENABLED_PROVIDERS: Provider[] = [ 'claude' ];
+export const DEFAULT_ENABLED_PROVIDERS: readonly Provider[] = [ 'claude' ];
 
 /**
  * Provider that is always enabled, whatever KV says, so a managed site always
@@ -212,7 +212,9 @@ async function getModelConfig( env: Env ): Promise< ResolvedModelConfig > {
  * @return {Provider[]} Enabled providers in ALL_PROVIDERS order (a new array).
  */
 export function sanitiseEnabledProviders( value: unknown ): Provider[] {
-	const requested = Array.isArray( value ) ? value : DEFAULT_ENABLED_PROVIDERS;
+	const requested: readonly unknown[] = Array.isArray( value )
+		? value
+		: DEFAULT_ENABLED_PROVIDERS;
 	return ALL_PROVIDERS.filter(
 		( provider ) =>
 			provider === FALLBACK_PROVIDER || requested.includes( provider )
@@ -276,6 +278,7 @@ export function resolveChatRoute(
 				cfg.tierModels,
 				requestedModel
 			),
+			// TEMPORARY(#1020): on removal, delete this line with ChatRoute.substituted.
 			substituted: false,
 		};
 	}

@@ -226,7 +226,7 @@ describe( '/v1/config default_models', () => {
 		expect( data.default_models?.claude ).toBe( 'claude-sonnet-4-6' );
 	} );
 
-	it( 'does not throw and substitutes a provider whose allow-list is empty', async () => {
+	it( 'does not throw and leaves out a provider whose allow-list is empty', async () => {
 		const env = makeEnv();
 		await seedSite( env, { tier: 'free' } );
 		await env.USAGE_KV.put(
@@ -238,14 +238,13 @@ describe( '/v1/config default_models', () => {
 		);
 
 		const data = await getConfig( env );
-		expect( data.default_models?.openai ).toBe( 'claude-haiku-4-5-20251001' );
 		expect( data.default_models?.gemini ).toBe( 'gemini-3.1-flash-lite' );
 		expect( data.enabled_providers ).toEqual( [ 'claude', 'gemini' ] );
 		expect( data.models ).not.toHaveProperty( 'openai' );
 		expect( data.credit_limit ).toBe( 100 );
 	} );
 
-	it( 'does not throw and substitutes a provider whose allow-list is not an array', async () => {
+	it( 'does not throw and leaves out a provider whose allow-list is not an array', async () => {
 		const env = makeEnv();
 		await seedSite( env, { tier: 'free' } );
 		await env.USAGE_KV.put(
@@ -258,7 +257,6 @@ describe( '/v1/config default_models', () => {
 
 		// getConfig asserts a 200 response for us.
 		const data = await getConfig( env );
-		expect( data.default_models?.openai ).toBe( 'claude-haiku-4-5-20251001' );
 		expect( data.enabled_providers ).not.toContain( 'openai' );
 		expect( data.models ).not.toHaveProperty( 'openai' );
 	} );
@@ -268,7 +266,10 @@ describe( '/v1/config default_models', () => {
 		await seedSite( env, { tier: 'free' } );
 		await env.USAGE_KV.put(
 			'config:models',
-			JSON.stringify( { tier_models: { claude: { free: [] } } } )
+			JSON.stringify( {
+				enabled_providers: [ 'claude' ],
+				tier_models: { claude: { free: [] } },
+			} )
 		);
 
 		const data = await getConfig( env );
@@ -309,9 +310,13 @@ describe( '/v1/config enabled_providers and models', () => {
 		return ( await res.json() ) as ConfigBody;
 	}
 
-	it( 'reports Claude only, with the free allow-list, for a free site', async () => {
+	it( 'reports only Claude, with the free allow-list, when only Claude is enabled', async () => {
 		const env = makeEnv();
 		await seedSite( env, { tier: 'free' } );
+		await env.USAGE_KV.put(
+			'config:models',
+			JSON.stringify( { enabled_providers: [ 'claude' ] } )
+		);
 
 		const data = await getConfig( env );
 		expect( data.enabled_providers ).toEqual( [ 'claude' ] );
@@ -320,9 +325,13 @@ describe( '/v1/config enabled_providers and models', () => {
 		} );
 	} );
 
-	it( 'reports the pro allow-list for a pro_managed site', async () => {
+	it( 'reports the pro allow-list for a pro_managed site when only Claude is enabled', async () => {
 		const env = makeEnv();
 		await seedSite( env, { tier: 'pro_managed' } );
+		await env.USAGE_KV.put(
+			'config:models',
+			JSON.stringify( { enabled_providers: [ 'claude' ] } )
+		);
 
 		const data = await getConfig( env );
 		expect( data.enabled_providers ).toEqual( [ 'claude' ] );
@@ -355,9 +364,17 @@ describe( '/v1/config enabled_providers and models', () => {
 	// TEMPORARY(#1020): substituted defaults. On removal: delete this block;
 	// a disabled provider is then simply absent from default_models.
 	describe( 'TEMPORARY(#1020) substitution', () => {
+		async function claudeOnly( env: ReturnType< typeof makeEnv > ) {
+			await env.USAGE_KV.put(
+				'config:models',
+				JSON.stringify( { enabled_providers: [ 'claude' ] } )
+			);
+		}
+
 		it( 'reports the Claude substitute as the default of a disabled provider on free', async () => {
 			const env = makeEnv();
 			await seedSite( env, { tier: 'free' } );
+			await claudeOnly( env );
 
 			const data = await getConfig( env );
 			expect( data.default_models ).toEqual( {
@@ -370,6 +387,7 @@ describe( '/v1/config enabled_providers and models', () => {
 		it( 'reports Sonnet as the substitute default on pro_managed', async () => {
 			const env = makeEnv();
 			await seedSite( env, { tier: 'pro_managed' } );
+			await claudeOnly( env );
 
 			const data = await getConfig( env );
 			expect( data.default_models ).toEqual( {
@@ -378,5 +396,28 @@ describe( '/v1/config enabled_providers and models', () => {
 				gemini: 'claude-sonnet-4-6',
 			} );
 		} );
+
+		it.each( [
+			[ 'empty', [] ],
+			[ 'not an array', 'not-an-array' ],
+		] )(
+			'reports the Claude substitute for an enabled provider whose allow-list is %s',
+			async ( _label, openaiFree ) => {
+				const env = makeEnv();
+				await seedSite( env, { tier: 'free' } );
+				await env.USAGE_KV.put(
+					'config:models',
+					JSON.stringify( {
+						enabled_providers: [ 'claude', 'openai', 'gemini' ],
+						tier_models: { openai: { free: openaiFree } },
+					} )
+				);
+
+				const data = await getConfig( env );
+				expect( data.default_models?.openai ).toBe(
+					'claude-haiku-4-5-20251001'
+				);
+			}
+		);
 	} );
 } );

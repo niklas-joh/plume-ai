@@ -497,7 +497,7 @@ describe( 'TEMPORARY(#1020) substitution', () => {
 				expect( blocksOf( result[ 2 ] )[ 0 ].content ).toBe( '{}' );
 			} );
 
-			it( 'falls back to the function name when a part carries no id', () => {
+			it( 'derives a positional id from the function name when a part carries no id', () => {
 				const result = toClaudeMessages( [
 					{ role: 'user', content: 'Go' },
 					{
@@ -508,7 +508,9 @@ describe( 'TEMPORARY(#1020) substitution', () => {
 						role: 'user',
 						parts: [
 							{
+								// PHP sets the response id to `id ?? name`.
 								functionResponse: {
+									id: 'get_recent_posts',
 									name: 'get_recent_posts',
 									response: { ok: true },
 								},
@@ -517,11 +519,70 @@ describe( 'TEMPORARY(#1020) substitution', () => {
 					},
 				] );
 				expect( blocksOf( result[ 1 ] )[ 0 ].id ).toBe(
-					'get_recent_posts'
+					'get_recent_posts_0'
 				);
 				expect( blocksOf( result[ 2 ] )[ 0 ].tool_use_id ).toBe(
-					'get_recent_posts'
+					'get_recent_posts_0'
 				);
+				expectValidClaudeHistory( result );
+			} );
+
+			it( 'gives parallel id-less calls to the same function unique, matching ids', () => {
+				const call = { functionCall: { name: 'get_post_content', args: {} } };
+				const reply = ( content: string ) => ( {
+					functionResponse: {
+						name: 'get_post_content',
+						response: { content },
+					},
+				} );
+				const result = toClaudeMessages( [
+					{ role: 'user', content: 'Review posts' },
+					{ role: 'model', parts: [ call, call ] },
+					{ role: 'user', parts: [ reply( 'A' ), reply( 'B' ) ] },
+					{ role: 'model', parts: [ call ] },
+					{ role: 'user', parts: [ reply( 'C' ) ] },
+				] );
+
+				const ids = [ result[ 1 ], result[ 3 ] ].flatMap( ( m ) =>
+					blocksOf( m ).map( ( b ) => b.id )
+				);
+				expect( ids ).toEqual( [
+					'get_post_content_0',
+					'get_post_content_1',
+					'get_post_content_2',
+				] );
+				expect( new Set( ids ).size ).toBe( ids.length );
+				expect(
+					blocksOf( result[ 2 ] ).map( ( b ) => [ b.tool_use_id, b.content ] )
+				).toEqual( [
+					[ 'get_post_content_0', '{"content":"A"}' ],
+					[ 'get_post_content_1', '{"content":"B"}' ],
+				] );
+				expectValidClaudeHistory( result );
+			} );
+
+			it( 'keeps real ids as they are next to id-less calls', () => {
+				const result = toClaudeMessages( [
+					{ role: 'user', content: 'Go' },
+					{
+						role: 'model',
+						parts: [
+							{ functionCall: { id: 'gemini_x', name: 'f', args: {} } },
+							{ functionCall: { name: 'f', args: {} } },
+						],
+					},
+					{
+						role: 'user',
+						parts: [
+							{ functionResponse: { id: 'gemini_x', name: 'f', response: {} } },
+							{ functionResponse: { id: 'f', name: 'f', response: {} } },
+						],
+					},
+				] );
+				expect( blocksOf( result[ 1 ] ).map( ( b ) => b.id ) ).toEqual( [
+					'gemini_x',
+					'f_0',
+				] );
 				expectValidClaudeHistory( result );
 			} );
 

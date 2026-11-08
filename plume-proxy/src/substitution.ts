@@ -86,7 +86,7 @@ export function asObject( value: unknown ): Record< string, unknown > {
  * pair still matches after sanitising.
  *
  * @since NEXT_VERSION
- * @param {unknown} id Original id (or Gemini function name when it has no id).
+ * @param {unknown} id Original id (or the derived id of an id-less Gemini call).
  * @return {string} Sanitised, non-empty id.
  */
 export function toolId( id: unknown ): string {
@@ -120,7 +120,36 @@ function textBlocks( content: MessageParam[ 'content' ] ): ClaudeBlock[] {
 	);
 }
 
-function geminiPartToBlock( part: Record< string, unknown > ): ClaudeBlock | null {
+/**
+ * Running count of id-less Gemini calls and responses per function name, so
+ * the n-th call to a function pairs with the n-th response to it.
+ */
+interface GeminiIdCounters {
+	calls: Map< string, number >;
+	responses: Map< string, number >;
+}
+
+// PHP sends `id ?? name` for a response, so "no id" is detected as id === name
+// on both sides. Using the bare name would give parallel calls to the same
+// function duplicate tool_use ids, which Anthropic rejects.
+function geminiId(
+	id: string | undefined,
+	name: string,
+	counts: Map< string, number >
+): string {
+	const raw = id ?? name;
+	if ( raw !== name ) {
+		return toolId( raw );
+	}
+	const n = counts.get( name ) ?? 0;
+	counts.set( name, n + 1 );
+	return toolId( `${ name }_${ n }` );
+}
+
+function geminiPartToBlock(
+	part: Record< string, unknown >,
+	counters: GeminiIdCounters
+): ClaudeBlock | null {
 	if ( typeof part.text === 'string' ) {
 		return part.text ? { type: 'text', text: part.text } : null;
 	}
@@ -128,10 +157,11 @@ function geminiPartToBlock( part: Record< string, unknown > ): ClaudeBlock | nul
 		| { id?: string; name?: string; args?: unknown }
 		| undefined;
 	if ( call ) {
+		const name = call.name ?? '';
 		return {
 			type: 'tool_use',
-			id: toolId( call.id ?? call.name ),
-			name: call.name ?? '',
+			id: geminiId( call.id, name, counters.calls ),
+			name,
 			input: asObject( call.args ),
 		};
 	}
@@ -141,7 +171,7 @@ function geminiPartToBlock( part: Record< string, unknown > ): ClaudeBlock | nul
 	if ( reply ) {
 		return {
 			type: 'tool_result',
-			tool_use_id: toolId( reply.id ?? reply.name ),
+			tool_use_id: geminiId( reply.id, reply.name ?? '', counters.responses ),
 			content: JSON.stringify( reply.response ?? {} ),
 		};
 	}
@@ -150,7 +180,8 @@ function geminiPartToBlock( part: Record< string, unknown > ): ClaudeBlock | nul
 }
 
 function convertMessage(
-	message: MessageParam
+	message: MessageParam,
+	counters: GeminiIdCounters
 ): { role: ClaudeMessage[ 'role' ]; blocks: ClaudeBlock[] } | null {
 	if ( message.role === 'system' ) {
 		return null;
@@ -178,7 +209,7 @@ function convertMessage(
 		return {
 			role,
 			blocks: message.parts
-				.map( geminiPartToBlock )
+				.map( ( part ) => geminiPartToBlock( part, counters ) )
 				.filter( ( b ): b is ClaudeBlock => b !== null ),
 		};
 	}
@@ -214,7 +245,9 @@ function isPlainTextBlock( block: ClaudeBlock ): boolean {
  * Order of operations (each step relies on the previous one):
  * 1. Convert each message to `{ role, blocks }`: `model` → assistant, `tool` →
  *    user with a tool_result, Gemini `parts` and OpenAI `tool_calls` → blocks,
- *    system messages and empty text dropped.
+ *    system messages and empty text dropped. An id-less Gemini call gets
+ *    `<name>_<n>`, counted per function across the history, and its response
+ *    the same id.
  * 2. Drop messages with no blocks, so they cannot stop step 3 merging the
  *    turns either side of them.
  * 3. Merge consecutive same-role messages (several `tool` messages become one
@@ -231,9 +264,10 @@ function isPlainTextBlock( block: ClaudeBlock ): boolean {
 export function toClaudeMessages( messages: MessageParam[] ): ClaudeMessage[] {
 	const merged: Array< { role: ClaudeMessage[ 'role' ]; blocks: ClaudeBlock[] } > =
 		[];
+	const counters: GeminiIdCounters = { calls: new Map(), responses: new Map() };
 
 	for ( const message of messages ) {
-		const converted = convertMessage( message );
+		const converted = convertMessage( message, counters );
 		if ( ! converted || converted.blocks.length === 0 ) {
 			continue;
 		}

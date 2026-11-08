@@ -1857,14 +1857,16 @@ describe( 'TEMPORARY(#1020) substitution', () => {
 		} );
 		expect( JSON.stringify( log.mock.calls ) ).not.toMatch( /SECRET|deadbeef/ );
 	} );
+} );
 
+describe( 'native provider routing (permanent, #1020)', () => {
 	it( 'routes OpenAI natively again once KV enables it (re-enable regression)', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 		await env.USAGE_KV.put(
 			'config:models',
 			JSON.stringify( { enabled_providers: [ 'claude', 'openai' ] } )
 		);
-		const log = silenceLog();
+		const log = vi.spyOn( console, 'log' ).mockImplementation( () => {} );
 		let capturedUrl = '';
 		vi.stubGlobal(
 			'fetch',
@@ -1897,9 +1899,7 @@ describe( 'TEMPORARY(#1020) substitution', () => {
 		);
 		expect( log ).not.toHaveBeenCalled();
 	} );
-} );
 
-describe( 'native Claude requests are untouched by #1020 routing', () => {
 	it( 'sends a byte-identical upstream body for provider claude', async () => {
 		const env = await makeEnvWithSiteToken( 'pro_managed' );
 		const log = vi.spyOn( console, 'log' ).mockImplementation( () => {} );

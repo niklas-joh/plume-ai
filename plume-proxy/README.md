@@ -77,7 +77,8 @@ This allows emergency pricing corrections without a wrangler deploy cycle.
 
 ```bash
 # Override a single model's weight (binding is USAGE_KV; shape: model_token_weight key)
-wrangler kv key put --binding=USAGE_KV "config:models" '{"model_token_weight":{"claude-opus-4-6":5}}'
+# --remote targets the deployed Worker's KV; Wrangler 4 defaults to local storage.
+npx wrangler kv key put --binding=USAGE_KV "config:models" '{"model_token_weight":{"claude-opus-4-6":5}}' --remote
 ```
 
 `getModelConfig()` in `index.ts` reads `config:models` from `USAGE_KV` and deep-merges
@@ -87,12 +88,12 @@ wrangler kv key put --binding=USAGE_KV "config:models" '{"model_token_weight":{"
 Remove the key to revert to the code default:
 
 ```bash
-wrangler kv key delete --binding=USAGE_KV "config:models"
+npx wrangler kv key delete --binding=USAGE_KV "config:models" --remote
 ```
 
 > **`put` replaces the whole JSON value.** `config:models` is a single JSON
 > document holding `tier_models`, `model_token_weight` and `enabled_providers`.
-> Read the current value first (`wrangler kv key get --binding=USAGE_KV
+> Read the current value first (`npx wrangler kv key get --binding=USAGE_KV
 > "config:models" --remote`) and repeat every field you want to keep in the new
 > value, otherwise the put silently drops them.
 
@@ -131,7 +132,13 @@ npx wrangler kv key put "config:models" '{"enabled_providers":["claude","gemini"
   weights) to be deployed first.
 - Merge with any existing `tier_models` / `model_token_weight` overrides (see the
   caveat above).
-- Back to Claude-only: delete the key, or put a value without `enabled_providers`.
+- Back to Claude-only: delete the key (or put a value without `enabled_providers`
+  if it holds other overrides):
+
+  ```bash
+  npx wrangler kv key delete "config:models" --binding USAGE_KV --remote
+  npx wrangler kv key delete "config:models" --binding USAGE_KV --env dev --remote  # dev Worker
+  ```
 
 ## `GET /v1/config`
 
@@ -179,6 +186,14 @@ OpenAI, deploy the #1006 model changes first. To make the switch permanent, set
 `DEFAULT_ENABLED_PROVIDERS` in `src/index.ts` to all providers (and its PHP
 mirror `ManagedCatalogue::FALLBACK_ENABLED`, with both parity tests).
 
+To undo Level 1 and return to Claude-only, delete the key (or put the previous
+value back if it held other overrides):
+
+```bash
+npx wrangler kv key delete "config:models" --binding USAGE_KV --remote
+npx wrangler kv key delete "config:models" --binding USAGE_KV --env dev --remote  # dev Worker
+```
+
 ### Level 2: delete the temporary code
 
 1. Delete `src/substitution.ts` and `test/substitution.test.ts`.
@@ -190,10 +205,12 @@ mirror `ManagedCatalogue::FALLBACK_ENABLED`, with both parity tests).
      `provider_substituted` log line.
    - `getDefaultModels`: no edit; a disabled provider is then omitted.
    - `DEFAULT_ENABLED_PROVIDERS`: back to all providers.
-   - `ChatRoute.substituted` in `src/types.ts`: delete the field.
-   - Tests: delete every `describe( 'TEMPORARY(#1020) substitution' )` block
-     and the native-path test that pins `DEFAULT_ENABLED_PROVIDERS` to Claude;
+   - `ChatRoute.substituted` in `src/types.ts`: delete the field, and the
+     `substituted: false` line in `resolveChatRoute`.
+   - Tests: delete every `describe( 'TEMPORARY(#1020) substitution' )` block;
+     re-pin the `DEFAULT_ENABLED_PROVIDERS` parity test to the new default;
      drop the `enableAllProviders()` calls if the default is all providers again.
+     Untagged tests do not depend on substitution or on the Claude-only default.
 3. `npm test && npm run typecheck`.
 
 **Permanent (keep):** `enabled_providers` in `config:models` and

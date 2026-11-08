@@ -110,9 +110,18 @@ export interface ProxyRequest {
 	feature: 'chat' | 'generator' | 'seo' | 'images';
 }
 
+/**
+ * One chat history message as the plugin sends it.
+ *
+ * Besides plain `{ role, content }` turns, this covers the provider-shaped
+ * tool-exchange messages built by ChatRestController::append_tool_exchange():
+ * Claude-shaped block arrays in `content`, OpenAI-shaped assistant `tool_calls`
+ * plus `role: 'tool'` results, and Gemini-shaped `role: 'model'` turns with `parts`.
+ */
 export interface MessageParam {
-	role: 'user' | 'assistant' | 'model';
-	content?: string;
+	role: 'user' | 'assistant' | 'model' | 'tool' | 'system';
+	/** Plain text, or Claude content blocks (text/tool_use/tool_result). */
+	content?: string | Array< Record< string, unknown > >;
 	/**
 	 * Pre-built Gemini-native parts (functionCall/functionResponse) for tool-exchange
 	 * turns — set by ChatRestController::append_tool_exchange()'s 'gemini' case
@@ -121,15 +130,75 @@ export interface MessageParam {
 	 * fields (text/functionCall/functionResponse/...) initialized.
 	 */
 	parts?: Array< Record< string, unknown > >;
+	/**
+	 * OpenAI-shaped tool calls on an assistant turn. `arguments` is the
+	 * JSON-encoded tool input (`"[]"` for a tool called with no input).
+	 *
+	 * @since NEXT_VERSION
+	 */
+	tool_calls?: Array< {
+		id: string;
+		type?: string;
+		function: { name: string; arguments: string };
+	} >;
+	/**
+	 * Id of the tool call a `role: 'tool'` message answers (OpenAI shape).
+	 *
+	 * @since NEXT_VERSION
+	 */
+	tool_call_id?: string;
 }
 
 /**
  * Model configuration stored in USAGE_KV under the key `config:models`.
- * Both fields are optional — absent fields fall back to the compiled defaults in index.ts.
+ * All fields are optional — absent fields fall back to the compiled defaults in index.ts.
+ *
+ * A KV put replaces the whole JSON value, so an update must repeat every field
+ * it wants to keep.
  */
 export interface ModelConfig {
 	tier_models?: Record< string, Record< string, string[] > >;
 	model_token_weight?: Record< string, number >;
+	/**
+	 * Managed providers served for chat. Claude is always included; unknown
+	 * slugs are dropped; absent or not an array → compiled default
+	 * (DEFAULT_ENABLED_PROVIDERS in index.ts).
+	 *
+	 * @since NEXT_VERSION
+	 */
+	enabled_providers?: string[];
+}
+
+/**
+ * Model configuration after merging the KV `config:models` value over the
+ * compiled defaults.
+ *
+ * @since NEXT_VERSION
+ */
+export interface ResolvedModelConfig {
+	tierModels: Record< string, Record< string, string[] > >;
+	tokenWeights: Record< string, number >;
+	/** Sanitised enabled providers, in canonical order; always contains Claude. */
+	enabledProviders: Provider[];
+}
+
+/**
+ * Which provider and model actually serve a /v1/chat request.
+ *
+ * @since NEXT_VERSION
+ */
+export interface ChatRoute {
+	/** Provider the client asked for. */
+	requestedProvider: Provider;
+	/** Provider that serves the request. */
+	provider: Provider;
+	/** Model that serves the request; reported back to the client and used for billing. */
+	model: string;
+	/**
+	 * TEMPORARY(#1020): true when a disabled provider is served by Claude.
+	 * On removal: delete this field (disabled providers then get a 400).
+	 */
+	substituted: boolean;
 }
 
 /**

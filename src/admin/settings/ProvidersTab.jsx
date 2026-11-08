@@ -1,6 +1,11 @@
 import { useState } from '@wordpress/element';
-import { SelectControl, TextControl, Button } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
+import {
+	SelectControl,
+	TextControl,
+	Button,
+	Notice,
+} from '@wordpress/components';
+import { __, sprintf } from '@wordpress/i18n';
 
 const API_KEY_PROVIDERS = [
 	{ id: 'claude', label: 'Claude (Anthropic)' },
@@ -14,6 +19,9 @@ const PROVIDER_OPTIONS = [
 	{ value: 'gemini', label: 'Gemini' },
 	{ value: 'ollama', label: 'Ollama (local)' },
 ];
+
+// Providers that can be served by the Plume service (mirrors ProviderFactory::PROXY_CAPABLE).
+const MANAGED_CAPABLE = [ 'claude', 'openai', 'gemini' ];
 
 const IMAGE_PROVIDER_OPTIONS = [
 	{ value: 'openai', label: 'OpenAI (DALL·E)' },
@@ -29,15 +37,47 @@ const IMAGE_PROVIDER_OPTIONS = [
  * Guideline 5) — the managed proxy enforces each plan's model catalogue
  * service-side.
  *
- * @param {Object}   props
- * @param {Object}   props.settings      Full settings object from the REST API.
- * @param {Function} props.saveSettings  Persists a partial settings patch via POST.
- * @param {boolean}  props.isSaving      True while a save request is in flight.
+ * `settings.managed_providers` lists the providers the Plume service serves for this
+ * site's tier. `null` or absent means no restriction (pro_byok, or an older response).
+ * A listed-out provider is disabled in the default-provider select unless the site has
+ * its own key for it, and a notice explains why when it is the stored default.
+ *
+ * @param {Object}    props
+ * @param {Object}    props.settings                    Full settings object from the REST API.
+ * @param {?string[]} props.settings.managed_providers  Provider slugs served by the Plume service, or null for no restriction.
+ * @param {Function}  props.saveSettings                Persists a partial settings patch via POST.
+ * @param {boolean}   props.isSaving                    True while a save request is in flight.
  * @return {ReactElement}
  */
 export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 	const apiKeys = settings?.api_keys ?? {};
 	const [ dirty, setDirty ] = useState( {} ); // { [provider]: string }
+
+	const managed = settings?.managed_providers;
+	// `apiKeys[ id ]` is a mask string when a key is set (SettingsRestController).
+	const needsOwnKey = ( id ) =>
+		Array.isArray( managed ) &&
+		MANAGED_CAPABLE.includes( id ) &&
+		! managed.includes( id ) &&
+		! apiKeys[ id ];
+	const providerOptions = PROVIDER_OPTIONS.map( ( option ) =>
+		needsOwnKey( option.value )
+			? {
+					...option,
+					disabled: true,
+					label: sprintf(
+						/* translators: %s: AI provider name, e.g. "OpenAI". */
+						__( '%s (needs your own API key)', 'plume' ),
+						option.label
+					),
+				}
+			: option
+	);
+	const defaultProvider = settings?.default_provider ?? '';
+	const defaultProviderName = PROVIDER_OPTIONS.find(
+		( option ) => option.value === defaultProvider
+	)?.label;
+	const hasAnyOwnKey = MANAGED_CAPABLE.some( ( id ) => !! apiKeys[ id ] );
 
 	function handleKeyChange( provider, value ) {
 		setDirty( ( prev ) => ( { ...prev, [ provider ]: value } ) );
@@ -78,13 +118,41 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 				<fieldset>
 					<SelectControl
 						label={ __( 'Default AI Provider', 'plume' ) }
-						options={ PROVIDER_OPTIONS }
-						value={ settings?.default_provider ?? '' }
+						options={ providerOptions }
+						value={ defaultProvider }
 						onChange={ ( val ) =>
 							saveSettings( { default_provider: val } )
 						}
 						__nextHasNoMarginBottom
 					/>
+
+					{ needsOwnKey( defaultProvider ) &&
+						( hasAnyOwnKey ? (
+							<Notice status="info" isDismissible={ false }>
+								{ sprintf(
+									/* translators: %1$s: AI provider name, e.g. "OpenAI". */
+									__(
+										'%1$s is not available through the Plume service. Add your own %1$s API key or choose a different provider.',
+										'plume'
+									),
+									defaultProviderName
+								) }
+							</Notice>
+						) : (
+							// TEMPORARY(#1020): only true while the Worker serves keyless
+							// sites with Claude. On removal: delete this branch so the
+							// permanent notice above is shown whether or not a key is set.
+							<Notice status="info" isDismissible={ false }>
+								{ sprintf(
+									/* translators: %1$s: AI provider name, e.g. "OpenAI". */
+									__(
+										'%1$s is temporarily unavailable through the Plume service. Chats use Claude until you add your own %1$s API key below.',
+										'plume'
+									),
+									defaultProviderName
+								) }
+							</Notice>
+						) ) }
 
 					<SelectControl
 						label={ __( 'Image Provider', 'plume' ) }

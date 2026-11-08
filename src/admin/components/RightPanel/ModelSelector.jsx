@@ -20,6 +20,10 @@ const PROVIDER_LABELS = {
  * (WP.org Guideline 5) — the managed proxy enforces each plan's model
  * catalogue service-side.
  *
+ * The `providers` list is already filtered server-side: managed providers the Plume
+ * service does not serve are omitted (unless the site has its own key), and a managed
+ * provider's models are the Worker's allow-list. This component renders what it is given.
+ *
  * @param {Object}   props
  * @param {Array}    props.providers         Array of provider objects from the /providers endpoint.
  * @param {string}   props.selectedProvider  Currently selected provider slug.

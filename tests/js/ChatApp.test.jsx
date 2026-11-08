@@ -398,5 +398,60 @@ describe( 'ChatApp', () => {
 				'gemini'
 			);
 		} );
+
+		it( 'falls back to the plugin default and posts that provider when the stored provider is no longer listed', async () => {
+			const apiFetch = require( '@wordpress/api-fetch' );
+			const posted = [];
+			apiFetch.mockImplementation( ( { path, method, data } ) => {
+				if ( path === '/plume/v1/providers' ) {
+					// Managed site: the server no longer lists openai.
+					return Promise.resolve( [ PROVIDERS[ 0 ] ] );
+				}
+				if ( path === '/plume/v1/conversations' && method === 'POST' ) {
+					return Promise.resolve( { id: 1, title: 'New conversation' } );
+				}
+				if (
+					path === '/plume/v1/conversations/1/messages' &&
+					method === 'POST'
+				) {
+					posted.push( data );
+					return Promise.resolve( {
+						content: 'Hello back',
+						model: 'claude',
+						credits: 1,
+					} );
+				}
+				return Promise.resolve( [] );
+			} );
+			const { storageGet } = require( '../../src/admin/utils/storage' );
+			storageGet.mockImplementation( ( key ) =>
+				'plume-selected-provider' === key ? 'openai' : null
+			);
+
+			await act( async () => {
+				root.render( <ChatApp /> );
+			} );
+
+			const textarea = container.querySelector(
+				'.plume-composer__input'
+			);
+			const setter = Object.getOwnPropertyDescriptor(
+				window.HTMLTextAreaElement.prototype,
+				'value'
+			).set;
+			await act( async () => {
+				setter.call( textarea, 'Hi there' );
+				textarea.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+				textarea.dispatchEvent(
+					new KeyboardEvent( 'keydown', {
+						key: 'Enter',
+						bubbles: true,
+					} )
+				);
+			} );
+
+			expect( posted ).toHaveLength( 1 );
+			expect( posted[ 0 ].provider ).toBe( 'claude' );
+		} );
 	} );
 } );

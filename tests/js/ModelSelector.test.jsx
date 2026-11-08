@@ -116,4 +116,39 @@ describe( 'ModelSelector', () => {
 			container.querySelector( '.plume-model-saved' )
 		).not.toBeNull();
 	} );
+	it( 'renders a single provider and the Worker-provided models when only Claude is listed', async () => {
+		// Advanced mode is persisted by earlier tests; pin it rather than toggling.
+		window.localStorage.setItem( 'plume_advanced_model', '1' );
+		const workerProviders = [
+			{
+				slug: 'claude',
+				is_available: true,
+				models: { 'claude-haiku-4-5-20251001': 'Claude Haiku 4.5' },
+			},
+		];
+		await act( async () => {
+			root.render(
+				<ModelSelector
+					providers={ workerProviders }
+					selectedProvider="claude"
+					selectedModel=""
+					onProviderChange={ jest.fn() }
+					onModelChange={ jest.fn() }
+				/>
+			);
+		} );
+
+		const providerSelect = container.querySelector(
+			'select[aria-label="AI provider"]'
+		);
+		expect( providerSelect.querySelectorAll( 'option' ).length ).toBe( 1 );
+		const modelSelect = container.querySelector(
+			'select[aria-label="Model"]'
+		);
+		const ids = Array.from( modelSelect.querySelectorAll( 'option' ) ).map(
+			( o ) => o.value
+		);
+		expect( ids ).toContain( 'claude-haiku-4-5-20251001' );
+		expect( ids ).not.toContain( 'claude-opus-4-6' );
+	} );
 } );

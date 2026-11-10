@@ -1687,7 +1687,9 @@ describe( 'handleChatProxy usage metrics', () => {
 		await worker.fetch( makeChatRequest( promptBody ), env );
 
 		// upstream error (body contains prompt and secrets)
-		vi.spyOn( console, 'error' ).mockImplementation( () => {} );
+		const errorSpy = vi
+			.spyOn( console, 'error' )
+			.mockImplementation( () => {} );
 		vi.stubGlobal(
 			'fetch',
 			vi.fn().mockResolvedValue(
@@ -1702,7 +1704,21 @@ describe( 'handleChatProxy usage metrics', () => {
 			)
 		);
 		const errRes = await worker.fetch( makeChatRequest( promptBody ), env );
-		expect( errRes.status ).toBe( 500 );
+		expect( errRes.status ).toBe( 503 );
+		expect( await errRes.json() ).toEqual( {
+			error: 'This AI model is temporarily unavailable.',
+			code: 'provider_unavailable',
+		} );
+		// Logs carry only the code, status and error name: no upstream body or prompt.
+		const logged = JSON.stringify( errorSpy.mock.calls );
+		for ( const forbidden of [
+			SECRET_SYNC,
+			SECRET_LICENCE,
+			PROMPT_TEXT,
+			UPSTREAM_ERR,
+		] ) {
+			expect( logged ).not.toContain( forbidden );
+		}
 
 		// 429
 		await env.USAGE_KV.put(

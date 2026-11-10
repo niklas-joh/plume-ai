@@ -1322,34 +1322,46 @@ async function handleChatProxyInner(
 		}
 		return jsonResponse( responseData );
 	} catch ( error ) {
-		// Errors from callClaude/callOpenAI/callGemini carry `status`/`body` from the
-		// upstream provider's response (see e.g. callGemini's Object.assign throw);
-		// console.error on a bare Error only prints its message/stack, silently
-		// dropping those extra properties — log them explicitly so `wrangler tail`
-		// actually shows *why* an upstream call failed (bad key, bad model id, etc.),
-		// since the client-facing response below never includes this detail.
+		// Log only the derived code, the upstream status and the error name. Never
+		// log `body` or `message`: an upstream body can echo prompt content, and a
+		// JSON.parse error message can contain a snippet of the payload.
 		metric.errorCode = errorCodeFromThrown( error );
-		const upstream = error as { status?: number; body?: unknown };
+		const upstream = error as {
+			status?: number;
+			name?: string;
+			isValidationError?: boolean;
+		};
 		// eslint-disable-next-line no-console
-		console.error( 'Proxy error:', error, {
+		console.error( 'Proxy error:', {
+			code: metric.errorCode,
 			status: upstream?.status,
-			body: upstream?.body,
+			name: upstream?.name,
 		} );
 		// Only honour our own tagged validation error (the typed 400 from
 		// getModelForTier). Upstream provider errors also carry a `status`
 		// (e.g. a 429/401 from our Anthropic/OpenAI account) but must never be
 		// forwarded verbatim, as their status semantics collide with the
-		// proxy's own — they collapse to a generic 500 instead.
-		const tagged = error as { status?: number; isValidationError?: boolean };
-		const isValidationError =
-			tagged?.isValidationError === true &&
-			typeof tagged.status === 'number';
-		const status = isValidationError ? ( tagged.status as number ) : 500;
-		const message =
-			isValidationError && error instanceof Error
-				? error.message
-				: 'Internal proxy error';
-		return jsonResponse( { error: message }, status );
+		// proxy's own.
+		if (
+			upstream?.isValidationError === true &&
+			typeof upstream.status === 'number' &&
+			error instanceof Error
+		) {
+			return jsonResponse( { error: error.message }, upstream.status );
+		}
+		// Any other upstream failure (retired model, depleted provider credit,
+		// overload) gets a neutral code that never exposes billing or account
+		// details; the plugin renders a translatable message for it.
+		if ( typeof upstream?.status === 'number' ) {
+			return jsonResponse(
+				{
+					error: 'This AI model is temporarily unavailable.',
+					code: 'provider_unavailable',
+				},
+				503
+			);
+		}
+		return jsonResponse( { error: 'Internal proxy error' }, 500 );
 	}
 }
 

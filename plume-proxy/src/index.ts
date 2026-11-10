@@ -1355,6 +1355,10 @@ async function handleChatProxyInner(
 		if ( typeof upstream?.status === 'number' ) {
 			return jsonResponse(
 				{
+					// Non-localised fallback for direct/legacy consumers only: the
+					// plugin maps on `code` and renders its own translatable string
+					// (ProxyClient.php), so this text is never surfaced to end users
+					// and the two strings need not be kept in sync.
 					error: 'This AI model is temporarily unavailable.',
 					code: 'provider_unavailable',
 				},

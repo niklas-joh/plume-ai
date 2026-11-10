@@ -24,6 +24,7 @@ class WorkerConfigTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		\Plume\Tiers\WorkerConfig::reset_memo();
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
 	}
 
@@ -52,6 +53,20 @@ class WorkerConfigTest extends TestCase {
 		Functions\expect( 'wp_remote_get' )->once()->andReturn( [ 'response' => [ 'code' => 200 ] ] );
 		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
 		Functions\when( 'wp_remote_retrieve_body' )->justReturn( $body );
+	}
+
+	/**
+	 * @since NEXT_VERSION
+	 */
+	public function test_repeated_fetches_for_one_tier_share_a_single_request(): void {
+		$this->stub_token( 'sometoken' );
+		$this->stub_ok_response( '{"tier":"free","credit_limit":10}' );
+
+		$first  = WorkerConfig::fetch( 'free' );
+		$second = WorkerConfig::fetch( 'free' );
+
+		$this->assertSame( $first, $second );
+		$this->assertSame( 'free', $first['tier'] );
 	}
 
 	/**

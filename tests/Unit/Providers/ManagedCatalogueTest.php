@@ -26,6 +26,7 @@ class ManagedCatalogueTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		\Plume\Tiers\WorkerConfig::reset_memo();
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
 	}
 

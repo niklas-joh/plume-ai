@@ -82,6 +82,19 @@ final class WorkerConfig {
 	}
 
 	/**
+	 * Clear the per-request memo.
+	 *
+	 * Production code never needs this (the memo lives for one PHP request); it exists
+	 * so unit tests, which share one PHP process, can start each case with a cold memo.
+	 *
+	 * @internal
+	 * @since NEXT_VERSION
+	 */
+	public static function reset_memo(): void {
+		self::$memo = [];
+	}
+
+	/**
 	 * Perform the live `/v1/config` HTTP request and validate the response.
 	 *
 	 * @since NEXT_VERSION

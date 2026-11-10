@@ -45,6 +45,18 @@ Create a `.wp-env.override.json` in the repository root to change the committed 
 
 CI writes its own copy of this file in `.github/workflows/pr-checks.yml`, so a local override never affects CI.
 
+#### `DISALLOW_FILE_MODS` is intentionally enabled
+
+`.wp-env.json` sets `DISALLOW_FILE_MODS: true` on purpose. wp-env bind-mounts this repo directly into the container, and the WordPress admin updater once deleted the mounted working tree while "updating" the plugin. The constant blocks all file modifications from the admin, so the repo can no longer be wiped from the UI.
+
+The trade-off is that your local wp-env (`localhost:8888`) shows **no Add New / Update buttons** on the Plugins and Themes screens, the plugin/theme file editor is disabled, and auto-updates are off. If you need to install another plugin locally (for example to test an integration), override the constant in `.wp-env.override.json`:
+
+```json
+{
+  "config": { "DISALLOW_FILE_MODS": false }
+}
+```
+
 > To use your existing blog Docker environment instead, set `WP_BASE_URL=http://localhost:8080` when running Playwright tests.
 
 ## Running Checks Locally

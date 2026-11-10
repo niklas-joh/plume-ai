@@ -13,6 +13,7 @@ class UsageTrackerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		\Plume\Tiers\WorkerConfig::reset_memo();
 		// Default site-tier lookup returns the supplied default so tests focused on
 		// per-user meta resolution do not need to stub the new SITE_OPTION read.
 		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );

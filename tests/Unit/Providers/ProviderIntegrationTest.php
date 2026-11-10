@@ -20,8 +20,11 @@ class ProviderIntegrationTest extends TestCase {
         Functions\when( 'get_option' )->alias( fn( $k, $d = null ) => match ( $k ) {
             'plume_site_voice'      => [ 'tone' => 'Professional', 'language' => 'British English' ],
             'plume_default_provider' => 'claude',
+            'plume_site_token'       => '',
+            'plume_site_tier'        => 'free',
             default                       => ( is_array( $d ) ? $d : [] ),
         } );
+        Functions\when( 'get_transient' )->justReturn( false );
         Functions\when( 'get_user_meta' )->justReturn( [] );
         Functions\when( 'sanitize_key' )->alias( fn($v) => $v );
         Functions\when( 'sanitize_text_field' )->alias( fn($v) => $v );

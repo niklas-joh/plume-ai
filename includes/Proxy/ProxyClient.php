@@ -24,6 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * (Claude, OpenAI, Gemini). The Pro BYOK tier bypasses this class entirely and
  * calls the provider's own API directly.
  *
+ * The Worker may serve a request for a provider it has disabled with Claude (#1020);
+ * the response then carries the model that really answered, and the plugin records it.
+ *
  * @since 1.2.0
  */
 class ProxyClient {

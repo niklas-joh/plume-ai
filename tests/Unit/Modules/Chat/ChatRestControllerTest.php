@@ -591,6 +591,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'complete' )->willReturnOnConsecutiveCalls( $tool_response, $final_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -635,6 +637,8 @@ class ChatRestControllerTest extends TestCase {
         );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -674,6 +678,8 @@ class ChatRestControllerTest extends TestCase {
         );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -716,6 +722,8 @@ class ChatRestControllerTest extends TestCase {
         );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -770,6 +778,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'complete' )->willReturn( $tool_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -876,6 +886,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'is_available' )->willReturn( false );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -935,6 +947,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'is_available' )->willReturn( false );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -991,6 +1005,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'is_available' )->willReturn( false );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -1029,6 +1045,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'is_available' )->willReturn( false );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -1088,6 +1106,8 @@ class ChatRestControllerTest extends TestCase {
         );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -1148,6 +1168,8 @@ class ChatRestControllerTest extends TestCase {
         );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -1657,6 +1679,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'complete' )->willReturnOnConsecutiveCalls( $tool_response, $final_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -1714,6 +1738,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'complete' )->willReturn( $chat_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -1780,6 +1806,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'complete' )->willReturn( $plan_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -1890,6 +1918,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'complete' )->willReturnOnConsecutiveCalls( $plan_update_response, $submit_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -1967,6 +1997,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'complete' )->willReturn( $plan_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -2038,6 +2070,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'complete' )->willReturnOnConsecutiveCalls( $tool_response, $final_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -2124,6 +2158,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'complete' )->willReturnOnConsecutiveCalls( $tool_response, $final_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -2210,6 +2246,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'complete' )->willReturnOnConsecutiveCalls( $response_1, $response_2, $final_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -2287,6 +2325,8 @@ class ChatRestControllerTest extends TestCase {
         $provider_mock->method( 'complete' )->willReturn( $tool_response );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -2382,6 +2422,8 @@ class ChatRestControllerTest extends TestCase {
         );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -2448,6 +2490,8 @@ class ChatRestControllerTest extends TestCase {
         );
 
         $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory_mock->method( 'make' )->willReturn( $provider_mock );
 
         $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
@@ -2773,5 +2817,197 @@ class ChatRestControllerTest extends TestCase {
 
         $this->assertCount( 1, $result[0]['functionDeclarations'] );
         $this->assertSame( 'submit_post_content', $result[0]['functionDeclarations'][0]['name'] );
+    }
+
+    // ── Managed provider catalogue (#1020) ────────────────────────────────────
+
+    /**
+     * Build a ProviderSettings double that reports own keys for the given providers.
+     *
+     * @param string[] $keys Providers with an own API key.
+     * @return \Plume\Settings\ProviderSettings
+     */
+    private function fake_settings( array $keys ): \Plume\Settings\ProviderSettings {
+        return new class( $keys ) extends \Plume\Settings\ProviderSettings {
+            /** @param string[] $keys */
+            public function __construct( private array $keys ) {}
+            public function has_key( string $provider ): bool {
+                return in_array( $provider, $this->keys, true );
+            }
+            public function has_any_key(): bool {
+                return [] !== $this->keys;
+            }
+            public function get_api_key( string $provider ): string {
+                return $this->has_key( $provider ) ? 'key' : '';
+            }
+        };
+    }
+
+    /**
+     * Stub the options and catalogue transient for a free-tier site.
+     *
+     * @param string[]                           $enabled Providers the Worker enables.
+     * @param array<string, string[]>            $models  Worker allow-lists per provider.
+     */
+    private function stub_catalogue( array $enabled, array $models = [] ): void {
+        Functions\when( 'get_option' )->alias(
+            fn( $key, $default = '' ) => match ( $key ) {
+                'plume_site_tier'        => 'free',
+                'plume_default_provider' => 'claude',
+                default                  => $default,
+            }
+        );
+        Functions\when( 'get_transient' )->justReturn(
+            [
+                'enabled_providers' => $enabled,
+                'models'            => $models,
+                'default_models'    => [],
+            ]
+        );
+        Functions\when( '__' )->returnArg();
+    }
+
+    /**
+     * Run list_providers() against a real factory and return the slug => entry map.
+     *
+     * @param string[] $keys Own keys.
+     * @return array<string, array<string, mixed>>
+     */
+    private function listed_providers( array $keys ): array {
+        $factory    = new \Plume\Providers\ProviderFactory( $this->fake_settings( $keys ) );
+        $controller = $this->make_controller_with_tier(
+            $this->createMock( \Plume\DB\ConversationStore::class ),
+            $factory,
+            $this->createMock( \Plume\Voice\VoiceInjector::class )
+        );
+        $data = $controller->list_providers( new \WP_REST_Request( 'GET' ) )->data;
+        return array_column( $data, null, 'slug' );
+    }
+
+    public function test_list_providers_on_a_managed_free_site_lists_only_claude_and_ollama(): void {
+        $this->stub_catalogue( [ 'claude' ], [ 'claude' => [ 'claude-haiku-4-5-20251001' ] ] );
+
+        $listed = $this->listed_providers( [] );
+
+        $this->assertSame( [ 'claude', 'ollama' ], array_keys( $listed ) );
+        $this->assertSame( [ 'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5' ], $listed['claude']['models'] );
+    }
+
+    public function test_list_providers_includes_a_provider_with_an_own_key_and_its_own_models(): void {
+        $this->stub_catalogue( [ 'claude' ], [ 'claude' => [ 'claude-haiku-4-5-20251001' ] ] );
+
+        $listed = $this->listed_providers( [ 'openai' ] );
+
+        $this->assertArrayHasKey( 'openai', $listed );
+        $this->assertSame( ( new \Plume\Providers\OpenAIProvider( 'k' ) )->get_models(), $listed['openai']['models'] );
+        $this->assertArrayNotHasKey( 'gemini', $listed );
+    }
+
+    public function test_list_providers_with_an_old_worker_lists_every_provider(): void {
+        $this->stub_catalogue( [ 'claude', 'openai', 'gemini' ], [] );
+
+        $listed = $this->listed_providers( [] );
+
+        $this->assertSame( [ 'claude', 'openai', 'gemini', 'ollama' ], array_keys( $listed ) );
+        $this->assertSame( ( new \Plume\Providers\ClaudeProvider( 'k' ) )->get_models(), $listed['claude']['models'] );
+    }
+
+    /**
+     * Build a request/store/provider scenario for send_message() and return the response.
+     *
+     * @param \Plume\Providers\ProviderFactory $factory Factory (mock or real).
+     * @param \Plume\DB\ConversationStore      $store   Store mock.
+     * @param string                           $provider Requested provider slug.
+     * @param string                           $model   Requested model.
+     */
+    private function send_with( \Plume\Providers\ProviderFactory $factory, \Plume\DB\ConversationStore $store, string $provider, string $model ): \WP_REST_Response {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+
+        $controller = $this->make_controller_with_tier( $store, $factory, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '42' ] );
+        $request->set_body_params( [ 'content' => 'Hello', 'provider' => $provider, 'model' => $model ] );
+        return $controller->send_message( $request );
+    }
+
+    /**
+     * Provider double that records the CompletionRequest it receives.
+     *
+     * @param \Plume\Providers\CompletionRequest|null $captured Receives the request.
+     */
+    private function recording_provider( ?\Plume\Providers\CompletionRequest &$captured ): \Plume\Providers\ProviderInterface {
+        $provider = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider->method( 'is_available' )->willReturn( true );
+        $provider->method( 'supports_tools' )->willReturn( false );
+        $provider->method( 'complete' )->willReturnCallback(
+            function ( $req ) use ( &$captured ) {
+                $captured = $req;
+                return new CompletionResponse( content: 'ok', model: 'm', prompt_tokens: 1, completion_tokens: 1, raw: [], tool_call: null );
+            }
+        );
+        return $provider;
+    }
+
+    // TEMPORARY(#1020): the `$model` reset when the provider was substituted.
+    // On removal: delete this test with the substitution in send_message().
+    public function test_temporary_1020_send_message_substitutes_claude_and_clears_the_model(): void {
+        $this->stub_catalogue( [ 'claude' ] );
+        $store = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store->method( 'get_messages' )->willReturn( [ [ 'role' => 'user', 'content' => 'Hello' ] ] );
+
+        $captured = null;
+        $factory  = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory->method( 'missing_key_for' )->willReturn( false );
+        $factory->expects( $this->once() )->method( 'resolve_text_slug' )->with( 'openai', 'free' )->willReturn( 'claude' );
+        $factory->expects( $this->once() )->method( 'make' )->with( 'claude' )->willReturn( $this->recording_provider( $captured ) );
+
+        $response = $this->send_with( $factory, $store, 'openai', 'gpt-4.1' );
+
+        $this->assertSame( 200, $response->get_status() );
+        $this->assertSame( '', $captured->model, 'A model of another provider must not be sent to Claude.' );
+    }
+
+    public function test_send_message_keeps_provider_and_model_when_the_site_has_an_own_key(): void {
+        $this->stub_catalogue( [ 'claude' ] );
+        $store = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store->method( 'get_messages' )->willReturn( [ [ 'role' => 'user', 'content' => 'Hello' ] ] );
+
+        $captured = null;
+        $factory  = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory->method( 'missing_key_for' )->willReturn( false );
+        $factory->method( 'resolve_text_slug' )->willReturnArgument( 0 );
+        $factory->expects( $this->once() )->method( 'make' )->with( 'openai' )->willReturn( $this->recording_provider( $captured ) );
+
+        $this->send_with( $factory, $store, 'openai', 'gpt-4.1' );
+
+        $this->assertSame( 'gpt-4.1', $captured->model );
+    }
+
+    public function test_send_message_with_only_a_claude_key_and_openai_returns_422_provider_key_missing(): void {
+        $this->stub_catalogue( [ 'claude' ] );
+        $store = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store->expects( $this->never() )->method( 'add_message' );
+
+        // Real factory over a Claude-key-only site: nothing may reach a provider.
+        $factory = new \Plume\Providers\ProviderFactory( $this->fake_settings( [ 'claude' ] ) );
+
+        $response = $this->send_with( $factory, $store, 'openai', 'gpt-4.1' );
+
+        $this->assertSame( 422, $response->get_status() );
+        $this->assertSame( 'provider_key_missing', $response->data['code'] );
+        $this->assertSame(
+            'You have not added an API key for OpenAI. Add one under Settings → Providers, or choose a different model.',
+            $response->data['message']
+        );
     }
 }

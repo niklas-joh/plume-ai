@@ -63,14 +63,16 @@ class ChatPage {
 			true
 		);
 
-		$default_slug        = (string) get_option( 'plume_default_provider', 'claude' );
-		$settings            = new ProviderSettings();
-		$default_model_label = self::default_model_label(
-			'' !== $default_slug ? $default_slug : 'claude',
-			new ProviderFactory( $settings ),
-			$settings,
-			TierManager::get_user_tier()
-		);
+		$settings = new ProviderSettings();
+		$factory  = new ProviderFactory( $settings );
+		$tier     = TierManager::get_user_tier();
+
+		// TEMPORARY(#1020): a stored default the managed service no longer serves
+		// resolves to Claude here, as in send_message(), so the label and the
+		// preselected provider describe what a chat really uses.
+		// On removal: use the stored slug directly; resolve_text_slug() then returns it unchanged.
+		$default_slug        = $factory->resolve_text_slug( (string) get_option( 'plume_default_provider', 'claude' ), $tier );
+		$default_model_label = self::default_model_label( $default_slug, $factory, $settings, $tier );
 
 		wp_localize_script(
 			'plume-admin',

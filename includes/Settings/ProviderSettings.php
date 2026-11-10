@@ -101,6 +101,29 @@ class ProviderSettings {
 		return '' !== $this->get_api_key( $provider );
 	}
 
+	/**
+	 * Check whether the site has its own key for any proxy-capable provider.
+	 *
+	 * Counts claude, openai and gemini only (Ollama needs no key), and includes
+	 * environment-variable keys, like has_key().
+	 *
+	 * TEMPORARY(#1020): only used to tell "keyless site" (served by Claude) from
+	 * "own-key site" (told which key is missing) while Claude-only is in force.
+	 * On removal: delete this method, its tests, and the clause in
+	 * ProviderFactory::missing_key_for() that calls it.
+	 *
+	 * @since NEXT_VERSION
+	 * @return bool True if any of claude, openai or gemini has a key.
+	 */
+	public function has_any_key(): bool {
+		foreach ( array_keys( self::ENV_VARS ) as $provider ) {
+			if ( $this->has_key( $provider ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	// ── Encryption helpers ─────────────────────────────────────────────────────
 
 	/**

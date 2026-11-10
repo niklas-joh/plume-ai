@@ -169,4 +169,27 @@ class ChatPageTest extends TestCase {
 	public function test_factory_failure_falls_back_to_generic_label(): void {
 		$this->assertSame( 'AI', $this->label_for( 'free', 'not-a-provider' ) );
 	}
+
+	// TEMPORARY(#1020): a stored default of a disabled managed provider resolves to Claude.
+	// On removal: delete this test with the ChatPage $default_slug substitution.
+	/**
+	 * @since NEXT_VERSION
+	 */
+	public function test_temporary_1020_stored_openai_on_a_keyless_free_site_shows_claude(): void {
+		$this->assertSame( 'Claude Haiku 4.5', $this->label_for( 'free', 'openai' ) );
+		$this->assertSame( 'claude', $this->localised['defaultProvider'] );
+	}
+
+	/**
+	 * Mixed site (own Claude key, stored default openai): nothing is substituted, so the
+	 * label shows the managed OpenAI default. Accepted as cosmetic (send_message() answers
+	 * with provider_key_missing instead); pinned so a change is deliberate.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	public function test_mixed_site_keeps_the_stored_provider_and_its_managed_label(): void {
+		putenv( 'CLAUDE_API_KEY=sk-test' );
+		$this->assertSame( 'GPT-4.1 nano', $this->label_for( 'free', 'openai' ) );
+		$this->assertSame( 'openai', $this->localised['defaultProvider'] );
+	}
 }

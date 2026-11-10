@@ -2,6 +2,8 @@
 
 export interface Env {
 	USAGE_KV: KVNamespace;
+	/** Workers Analytics Engine dataset for usage metrics. Optional: absent binding disables metrics. @since NEXT_VERSION */
+	PLUME_METRICS?: AnalyticsEngineDataset;
 	ANTHROPIC_API_KEY: string;
 	OPENAI_API_KEY: string;
 	GEMINI_API_KEY: string;

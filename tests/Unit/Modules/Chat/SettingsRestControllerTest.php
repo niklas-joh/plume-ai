@@ -114,6 +114,10 @@ class SettingsRestControllerTest extends TestCase {
         $this->assertSame( '', $data['api_keys']['claude'] );
         $this->assertSame( '', $data['api_keys']['openai'] );
         $this->assertSame( '', $data['api_keys']['gemini'] );
+
+        // An unset image provider means Gemini (ProviderFactory::make_image_provider());
+        // the Settings select must show that, not fall back to its first entry.
+        $this->assertSame( 'gemini', $response->data['image_provider'] );
     }
 
     // ── GET /settings — is_paid field ─────────────────────────────────────────

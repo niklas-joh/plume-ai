@@ -1,19 +1,21 @@
-// Extend the @wordpress/scripts unit-test preset with project-specific overrides.
-// The preset provides jsdom, babel-jest transforms, CSS mocking, and
-// @wordpress/jest-console matchers.
-const base = require( '@wordpress/scripts/config/jest-unit.config.js' );
-
+// Self-contained Jest configuration for the JS unit suite in tests/js.
+// @wordpress/scripts 37 no longer ships a Jest preset (its default runner is
+// Vitest), so everything the old preset provided is declared here instead.
 module.exports = {
-	...base,
-	// Append a project-level setup file after the preset's own setupFilesAfterEnv.
-	// Sets IS_REACT_ACT_ENVIRONMENT=true so React 18's act() works in jsdom
-	// without emitting warnings that @wordpress/jest-console treats as failures.
-	setupFilesAfterEnv: [
-		...( base.setupFilesAfterEnv ?? [] ),
-		'<rootDir>/tests/js/setup.js',
-	],
+	testEnvironment: 'jsdom',
+	testMatch: [ '<rootDir>/tests/js/**/*.test.[jt]s?(x)' ],
+	transform: {
+		'\\.[jt]sx?$': [
+			'babel-jest',
+			{ presets: [ '@wordpress/babel-preset-default' ] },
+		],
+	},
+	// Sets IS_REACT_ACT_ENVIRONMENT=true so React's act() works in jsdom
+	// without emitting "not configured to support act()" warnings.
+	setupFilesAfterEnv: [ '<rootDir>/tests/js/setup.js' ],
 	moduleNameMapper: {
-		...base.moduleNameMapper,
+		// Components import their stylesheets; Jest cannot parse CSS.
+		'\\.(css|scss)$': '<rootDir>/tests/js/__mocks__/style.js',
 		// Several @wordpress/* packages are webpack externals — not installed as
 		// standalone npm packages. Map them to minimal stubs so Jest can resolve
 		// the imports; individual tests may override behaviour via jest.mock().

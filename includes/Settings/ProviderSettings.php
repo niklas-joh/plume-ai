@@ -112,7 +112,7 @@ class ProviderSettings {
 	 * On removal: delete this method, its tests, and the clause in
 	 * ProviderFactory::missing_key_for() that calls it.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @return bool True if any of claude, openai or gemini has a key.
 	 */
 	public function has_any_key(): bool {

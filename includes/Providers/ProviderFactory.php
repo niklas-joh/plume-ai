@@ -68,7 +68,7 @@ class ProviderFactory {
 	 * resolve_text_slug()).
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Resolves a managed-disabled default at runtime.
+	 * @since 2.1.0 Resolves a managed-disabled default at runtime.
 	 * @return ProviderInterface
 	 * @throws ProviderException With code 'provider_key_missing' when the site has its own
 	 *                           key for some provider but none for the stored default,
@@ -137,7 +137,7 @@ class ProviderFactory {
 	 *
 	 * Brand names are not translated.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param string $slug Provider slug.
 	 * @return string Brand name, or the capitalised slug for an unknown provider.
 	 */
@@ -156,7 +156,7 @@ class ProviderFactory {
 	 * True for proxy-capable providers on a managed tier when the site has no own key
 	 * for them. Own-key requests call the provider directly, and Ollama has no proxy.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param string $slug Provider slug.
 	 * @param string $tier Site tier slug.
 	 * @return bool
@@ -177,7 +177,7 @@ class ProviderFactory {
 	 * An own-key site is not substituted (see missing_key_for()): it is told which key
 	 * is missing instead of silently getting another provider.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param string $slug Requested provider slug; empty means Claude.
 	 * @param string $tier Site tier slug.
 	 * @return string Slug to build the provider from.
@@ -208,7 +208,7 @@ class ProviderFactory {
 	 * True when the request would use the managed service for a provider it does not
 	 * serve, and the site is an own-key site (so it is not silently switched to Claude).
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param string $slug Requested provider slug.
 	 * @param string $tier Site tier slug.
 	 * @return bool
@@ -225,7 +225,7 @@ class ProviderFactory {
 	/**
 	 * The user-facing message for a provider the site has no key for.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param string $slug Requested provider slug.
 	 * @return string Translated message.
 	 */

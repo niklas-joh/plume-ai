@@ -48,7 +48,7 @@ final class WorkerConfig {
 	 * failure) collapses that to one call per tier per request. Each consumer keeps
 	 * its own validation and transient; they just share the underlying fetch.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @var array<string, array<string, mixed>|null>
 	 */
 	private static array $memo = [];
@@ -88,7 +88,7 @@ final class WorkerConfig {
 	 * so unit tests, which share one PHP process, can start each case with a cold memo.
 	 *
 	 * @internal
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 */
 	public static function reset_memo(): void {
 		self::$memo = [];
@@ -97,7 +97,7 @@ final class WorkerConfig {
 	/**
 	 * Perform the live `/v1/config` HTTP request and validate the response.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param string $tier Tier slug the response's `tier` field must match.
 	 * @return array<string, mixed>|null Decoded response body, or null on any failure.
 	 */

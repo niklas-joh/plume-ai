@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use Plume\Admin\AdminMenu;
+use Plume\Modules\Concerns\BuildsRestErrorResponse;
 use Plume\Providers\ProviderFactory;
 use Plume\Providers\CompletionRequest;
 use Plume\Providers\ProviderException;
@@ -27,6 +28,8 @@ use Plume\Tiers\TierManager;
  * appears when the REST request uses context=edit (e.g. PostListTable).
  */
 class SeoModule {
+
+	use BuildsRestErrorResponse;
 
 	/**
 	 * Register WordPress hooks for this module.
@@ -291,31 +294,6 @@ class SeoModule {
 			'alt_text'       => \sanitize_text_field( $data['alt_text'] ?? '' ),
 			'tokens_used'    => $response->total_tokens,
 		];
-	}
-
-	/**
-	 * Build a REST error response for the SEO routes.
-	 *
-	 * `error` is the key these routes have always sent and is kept for existing
-	 * consumers. `message` and `code` follow the core REST error convention:
-	 * apiFetch rejects with the parsed body only, so the client can read the
-	 * text and tell credit exhaustion apart without seeing the HTTP status.
-	 *
-	 * @since NEXT_VERSION
-	 * @param string $message Translated, user-facing error text.
-	 * @param string $code    Machine-readable error code.
-	 * @param int    $status  HTTP status code.
-	 * @return \WP_REST_Response
-	 */
-	private static function error_response( string $message, string $code, int $status ): \WP_REST_Response {
-		return new \WP_REST_Response(
-			[
-				'error'   => $message,
-				'message' => $message,
-				'code'    => $code,
-			],
-			$status
-		);
 	}
 
 	/**

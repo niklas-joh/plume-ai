@@ -4,6 +4,7 @@ import { Cpu } from 'lucide-react';
 import MarkdownContent from '../../../shared/MarkdownContent';
 import PlanCard from './PlanCard';
 import OutOfCreditsNotice from '../../../shared/OutOfCreditsNotice';
+import { DEFAULT_WEBSITE_URL } from '../../../shared/constants';
 import { parseRevisionMessage } from './revisionMessage';
 
 const TOOL_LABELS = {
@@ -43,7 +44,7 @@ export default function MessageBubble( { message } ) {
 	const revision = isAI ? null : parseRevisionMessage( message.content );
 
 	if ( message.outOfCredits ) {
-		const { websiteUrl = 'https://wpaimind.com', settingsUrl = '' } =
+		const { websiteUrl = DEFAULT_WEBSITE_URL, settingsUrl = '' } =
 			window.plumeData ?? {};
 		return (
 			<div className="plume-bubble plume-bubble--ai">

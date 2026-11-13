@@ -6,12 +6,13 @@ import DOMPurify from 'dompurify';
 import OutOfCreditsNotice from '../shared/OutOfCreditsNotice';
 import { isOutOfCreditsError } from '../shared/credits';
 import { getErrorMessage } from '../shared/errors';
+import { DEFAULT_WEBSITE_URL } from '../shared/constants';
 
 const {
 	nonce,
 	restUrl,
 	adminUrl = '/wp-admin/',
-	websiteUrl = 'https://wpaimind.com',
+	websiteUrl = DEFAULT_WEBSITE_URL,
 	settingsUrl = '',
 } = window.plumeData ?? {};
 

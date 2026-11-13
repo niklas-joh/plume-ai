@@ -165,15 +165,16 @@ class ImagesModule {
 		$settings = new ProviderSettings();
 		$factory  = new ProviderFactory( $settings );
 		$provider = $factory->make_image_provider();
+		$details  = self::image_provider_details( $settings, $factory, $provider->get_slug() );
 
 		// Images never go through the managed service, so without the site's own key
 		// the provider call can only fail. Say what is missing instead.
-		if ( ! $settings->has_key( $provider->get_slug() ) ) {
+		if ( ! $details['hasKey'] ) {
 			return self::error_response(
 				sprintf(
 					/* translators: %s: AI provider name, e.g. "OpenAI". */
 					__( 'AI images use your own API key. Add a %s API key in Plume AI → Settings, then try again.', 'plume' ),
-					$factory->label( $provider->get_slug() )
+					$details['label']
 				),
 				'image_key_missing',
 				422
@@ -246,8 +247,29 @@ class ImagesModule {
 		$settings = new ProviderSettings();
 		$factory  = new ProviderFactory( $settings );
 		$slug     = $factory->make_image_provider()->get_slug();
+		$details  = self::image_provider_details( $settings, $factory, $slug );
 
 		return [
+			'label'  => $details['label'],
+			'hasKey' => $details['hasKey'],
+		];
+	}
+
+	/**
+	 * Resolve the image provider's slug, brand label and key presence in one place.
+	 *
+	 * Both the enqueue-time status and the generate-time key check need the same
+	 * slug → label → has_key derivation; sharing it keeps the two in step.
+	 *
+	 * @since NEXT_VERSION
+	 * @param ProviderSettings $settings Provider settings used to check for a saved key.
+	 * @param ProviderFactory  $factory  Factory used to resolve the provider brand label.
+	 * @param string           $slug     Image provider slug.
+	 * @return array{slug: string, label: string, hasKey: bool}
+	 */
+	private static function image_provider_details( ProviderSettings $settings, ProviderFactory $factory, string $slug ): array {
+		return [
+			'slug'   => $slug,
 			'label'  => $factory->label( $slug ),
 			'hasKey' => $settings->has_key( $slug ),
 		];

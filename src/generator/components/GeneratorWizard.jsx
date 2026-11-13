@@ -6,6 +6,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { getErrorMessage } from '../../shared/errors';
 import { isOutOfCreditsError } from '../../shared/credits';
 import OutOfCreditsNotice from '../../shared/OutOfCreditsNotice';
+import { DEFAULT_WEBSITE_URL } from '../../shared/constants';
 
 const TONES = [
 	'professional',
@@ -190,7 +191,7 @@ export default function GeneratorWizard() {
 			{ outOfCredits && (
 				<OutOfCreditsNotice
 					websiteUrl={
-						window.plumeData?.websiteUrl ?? 'https://wpaimind.com'
+						window.plumeData?.websiteUrl ?? DEFAULT_WEBSITE_URL
 					}
 					settingsUrl={ window.plumeData?.settingsUrl }
 				/>

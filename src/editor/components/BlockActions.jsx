@@ -48,6 +48,9 @@ const ACTIONS = [
  * editor's global undo, which would revert whatever the author did last and
  * that may no longer be this action.
  *
+ * Each action runs in its own throwaway conversation, deleted afterwards so
+ * block actions do not fill the Chat history with one-line conversations.
+ *
  * @return {ReactElement}
  */
 export default function BlockActions() {
@@ -78,6 +81,7 @@ export default function BlockActions() {
 		// Captured now: the selection may move while the request is in flight.
 		const { clientId } = selectedBlock;
 		const previous = attributes[ attribute ];
+		let conversationId = null;
 
 		setBusySlug( action.slug );
 		try {
@@ -86,8 +90,10 @@ export default function BlockActions() {
 				method: 'POST',
 				data: { title: action.label },
 			} );
+			conversationId = conversation.id;
+
 			const res = await apiFetch( {
-				path: `/plume/v1/conversations/${ conversation.id }/messages`,
+				path: `/plume/v1/conversations/${ conversationId }/messages`,
 				method: 'POST',
 				data: { content: action.prompt + blockText },
 			} );
@@ -119,6 +125,13 @@ export default function BlockActions() {
 			);
 		} finally {
 			setBusySlug( null );
+			if ( conversationId ) {
+				// Best effort: a failed clean-up only leaves a stray conversation.
+				apiFetch( {
+					path: `/plume/v1/conversations/${ conversationId }`,
+					method: 'DELETE',
+				} ).catch( () => {} );
+			}
 		}
 	}
 

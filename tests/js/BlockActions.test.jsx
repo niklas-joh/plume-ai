@@ -200,4 +200,27 @@ describe( 'BlockActions', () => {
 		expect( request.data.content ).toMatch( /Markdown/ );
 		expect( request.data.content ).toContain( 'Old text' );
 	} );
+
+	it( 'deletes its throwaway conversation, whether the action worked or not', async () => {
+		mockApi( () => Promise.resolve( { content: 'New text' } ) );
+		await act( async () => {
+			root.render( <BlockActions /> );
+		} );
+		await act( async () => {
+			buttons()[ 0 ].click();
+		} );
+		expect( callsTo( '/plume/v1/conversations/9', 'DELETE' ).length ).toBe(
+			1
+		);
+
+		apiFetch.mockClear();
+		mockApi( () => Promise.reject( { message: 'Nope.' } ) );
+		await act( async () => {
+			buttons()[ 0 ].click();
+		} );
+		expect( callsTo( '/plume/v1/conversations/9', 'DELETE' ).length ).toBe(
+			1
+		);
+	} );
 } );
+

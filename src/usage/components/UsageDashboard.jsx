@@ -2,6 +2,7 @@ import { useState, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { BarChart2, Zap, Loader2 } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
+import { getErrorMessage } from '../../shared/errors';
 
 /**
  * Admin page showing monthly credit usage stats fetched from the REST API.
@@ -21,7 +22,12 @@ export default function UsageDashboard() {
 		apiFetch( { path: '/plume/v1/usage' } )
 			.then( setData )
 			.catch( ( e ) =>
-				setError( e?.message || 'Failed to load usage data.' )
+				setError(
+					getErrorMessage(
+						e,
+						__( 'Failed to load usage data.', 'plume' )
+					)
+				)
 			)
 			.finally( () => setIsLoading( false ) );
 	}, [] );

@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import { __ } from '@wordpress/i18n';
 import { Loader2 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import OutOfCreditsNotice from '../shared/OutOfCreditsNotice';
 import { isOutOfCreditsError } from '../shared/credits';
+import { getErrorMessage } from '../shared/errors';
 
 const {
 	nonce,
@@ -105,7 +107,9 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 			if ( isOutOfCreditsError( e ) ) {
 				setOutOfCredits( true );
 			} else {
-				setError( e.message ?? 'Generation failed.' );
+				setError(
+					getErrorMessage( e, __( 'Generation failed.', 'plume' ) )
+				);
 			}
 		} finally {
 			setGenerating( false );
@@ -145,7 +149,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 			} );
 			onClose();
 		} catch ( e ) {
-			setError( e.message ?? 'Apply failed.' );
+			setError( getErrorMessage( e, __( 'Apply failed.', 'plume' ) ) );
 		} finally {
 			setApplying( false );
 		}

@@ -110,4 +110,31 @@ describe( 'SeoWorkArea — out-of-credits handling', () => {
 			'Network error.'
 		);
 	} );
+
+	it( 'shows the server text sent in the `error` field', async () => {
+		// The envelope /plume/v1/seo/generate really sends on failure.
+		apiFetch.mockRejectedValue( { error: 'Post not found.' } );
+
+		await act( async () => {
+			root.render(
+				<SeoWorkArea
+					post={ POST }
+					onClose={ jest.fn() }
+					onUpdate={ jest.fn() }
+				/>
+			);
+		} );
+
+		const generateButton = Array.from(
+			container.querySelectorAll( 'button' )
+		).find( ( b ) => b.textContent.includes( 'Generate SEO' ) );
+
+		await act( async () => {
+			generateButton.click();
+		} );
+
+		expect( container.querySelector( '.plume-work-error' ).textContent ).toBe(
+			'Post not found.'
+		);
+	} );
 } );

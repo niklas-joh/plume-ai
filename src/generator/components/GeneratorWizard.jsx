@@ -3,6 +3,7 @@ import { __ } from '@wordpress/i18n';
 import { TextControl, SelectControl, Button } from '@wordpress/components';
 import { Wand2, Loader2, CheckCircle2, ExternalLink } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
+import { getErrorMessage } from '../../shared/errors';
 
 const TONES = [
 	'professional',
@@ -56,7 +57,12 @@ export default function GeneratorWizard() {
 			setResult( res );
 			setStep( 3 );
 		} catch ( e ) {
-			setError( e?.message || 'Generation failed. Please try again.' );
+			setError(
+				getErrorMessage(
+					e,
+					__( 'Generation failed. Please try again.', 'plume' )
+				)
+			);
 			setStep( 1 );
 		}
 	}

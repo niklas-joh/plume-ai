@@ -382,6 +382,121 @@ class SeoModuleTest extends TestCase {
 		$this->assertSame( [], $result['updated'] );
 	}
 
+	// ── credit exhaustion ─────────────────────────────────────────────────────
+
+	/**
+	 * Stub WordPress so a keyless, registered site reaches the managed proxy and
+	 * the proxy answers 429 (monthly credits exhausted).
+	 *
+	 * @since NEXT_VERSION
+	 * @return void
+	 */
+	private function stub_managed_proxy_out_of_credits(): void {
+		$post               = new \stdClass();
+		$post->ID           = 1;
+		$post->post_title   = 'Test';
+		$post->post_excerpt = '';
+		$post->post_content = 'Content';
+
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\when( 'wp_strip_all_tags' )->alias( fn( $s ) => $s );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, $default = null ) {
+				if ( 'plume_default_provider' === $key ) {
+					return 'claude';
+				}
+				if ( 'plume_provider_settings' === $key ) {
+					return [];
+				}
+				if ( 'plume_site_token' === $key ) {
+					return 'site-token';
+				}
+				return $default;
+			}
+		);
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'get_user_meta' )->justReturn( 'free' );
+		Functions\when( 'sanitize_key' )->alias( fn( $v ) => $v );
+		Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_remote_post' )->justReturn(
+			[
+				'response' => [ 'code' => 429 ],
+				'body'     => json_encode( [ 'error' => 'Monthly limit reached' ] ),
+			]
+		);
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 429 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		// The managed model catalogue and Worker config are cached in transients and
+		// fetched over HTTP; an unreachable Worker makes both fall back to constants.
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'wp_remote_get' )->justReturn( new \WP_Error( 'http_request_failed', 'unreachable' ) );
+	}
+
+	/**
+	 * Credit exhaustion must keep its own error code so callers can tell it apart
+	 * from a generic provider failure.
+	 *
+	 * @since NEXT_VERSION
+	 * @return void
+	 */
+	public function test_generate_for_post_keeps_rate_limit_code_when_credits_are_exhausted(): void {
+		$this->stub_managed_proxy_out_of_credits();
+
+		$result = SeoModule::generate_for_post( 1, 1 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
+	}
+
+	/**
+	 * The REST body must carry `code` and `message`: apiFetch rejects with the
+	 * parsed body only, so the client cannot see the HTTP status.
+	 *
+	 * @since NEXT_VERSION
+	 * @return void
+	 */
+	public function test_handle_generate_reports_credit_exhaustion_with_code_and_message(): void {
+		$this->stub_managed_proxy_out_of_credits();
+
+		$request = new \WP_REST_Request( 'POST' );
+		$request->set_param( 'post_id', 1 );
+
+		$response = SeoModule::handle_generate( $request );
+		$data     = $response->data;
+
+		$this->assertSame( 429, $response->get_status() );
+		$this->assertSame( 'rate_limit_exceeded', $data['code'] );
+		$this->assertSame( 'Monthly usage limit reached.', $data['message'] );
+		$this->assertSame( $data['message'], $data['error'], 'The legacy `error` key must be kept.' );
+	}
+
+	/**
+	 * Every error body carries `message` and `code` alongside the legacy `error` key.
+	 *
+	 * @since NEXT_VERSION
+	 * @return void
+	 */
+	public function test_handle_generate_error_body_carries_message_and_code(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$request = new \WP_REST_Request( 'POST' );
+		$request->set_param( 'post_id', 999 );
+
+		$data = SeoModule::handle_generate( $request )->data;
+
+		$this->assertSame( 'Post not found.', $data['error'] );
+		$this->assertSame( 'Post not found.', $data['message'] );
+		$this->assertSame( 'not_found', $data['code'] );
+	}
+
 	// ── handle_generate error paths ────────────────────────────────────────────
 
 	public function test_handle_generate_returns_404_for_invalid_post_id(): void {

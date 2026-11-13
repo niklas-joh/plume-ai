@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Providers\ProviderException;
 use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
 use Plume\Tiers\TierManager;
@@ -70,6 +71,7 @@ class GeneratorModule {
 				'currentPostId' => 0,
 				'isPaid'        => TierManager::is_paid(),
 				'siteTitle'     => \get_bloginfo( 'name' ),
+				'websiteUrl'    => PLUME_WEBSITE_URL,
 			]
 		);
 	}
@@ -124,8 +126,13 @@ class GeneratorModule {
 	 * Generate a draft post from the request parameters using the default AI provider.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Error bodies carry `message` and `code` alongside `error`;
+	 *                      credit exhaustion is returned as 429 'rate_limit_exceeded' and
+	 *                      other provider failures as 502 'provider_error'.
 	 * @param \WP_REST_Request $request Incoming REST request.
-	 * @return \WP_REST_Response 201 on success with post_id, edit_url, content, credits_used; 500 on error.
+	 * @return \WP_REST_Response 201 on success with post_id, edit_url, content, credits_used;
+	 *                           429 when the managed service's credits are exhausted; 502 on
+	 *                           other provider errors; 500 on unexpected errors.
 	 */
 	public static function handle_generate( \WP_REST_Request $request ): \WP_REST_Response {
 		$title    = $request->get_param( 'title' );
@@ -187,7 +194,7 @@ class GeneratorModule {
 			);
 
 			if ( \is_wp_error( $post_id ) ) {
-				return new \WP_REST_Response( [ 'error' => $post_id->get_error_message() ], 500 );
+				return self::error_response( $post_id->get_error_message(), 'post_insert_failed', 500 );
 			}
 
 			return new \WP_REST_Response(
@@ -200,12 +207,50 @@ class GeneratorModule {
 				201
 			);
 
+		} catch ( ProviderException $e ) {
+			// Provider messages are written for the user (out of credits, missing key,
+			// site still connecting), so they are passed on. Credit exhaustion keeps
+			// its own code and status so the wizard can show the out-of-credits notice.
+			$out_of_credits = 'rate_limit_exceeded' === $e->get_error_code();
+			$message        = '' !== $e->getMessage() ? $e->getMessage() : __( 'Provider error. Please try again later.', 'plume' );
+			return self::error_response(
+				$message,
+				$out_of_credits ? 'rate_limit_exceeded' : 'provider_error',
+				$out_of_credits ? 429 : 502
+			);
 		} catch ( \Throwable $e ) {
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				\error_log( '[Plume][Generator] ' . get_class( $e ) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
 			}
-			return new \WP_REST_Response( [ 'error' => $e->getMessage() ], 500 );
+			// An unexpected exception's text is for developers (and the debug log
+			// above), not for the person waiting for a draft.
+			return self::error_response( __( 'An unexpected error occurred. Please try again later.', 'plume' ), 'unexpected_error', 500 );
 		}
+	}
+
+	/**
+	 * Build a REST error response for the generator route.
+	 *
+	 * `error` is the key this route has always sent and is kept for existing
+	 * consumers. `message` and `code` follow the core REST error convention:
+	 * apiFetch rejects with the parsed body only, so the client can read the
+	 * text and tell credit exhaustion apart without seeing the HTTP status.
+	 *
+	 * @since NEXT_VERSION
+	 * @param string $message Translated, user-facing error text.
+	 * @param string $code    Machine-readable error code.
+	 * @param int    $status  HTTP status code.
+	 * @return \WP_REST_Response
+	 */
+	private static function error_response( string $message, string $code, int $status ): \WP_REST_Response {
+		return new \WP_REST_Response(
+			[
+				'error'   => $message,
+				'message' => $message,
+				'code'    => $code,
+			],
+			$status
+		);
 	}
 }

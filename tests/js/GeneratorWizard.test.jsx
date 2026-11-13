@@ -78,6 +78,23 @@ describe( 'GeneratorWizard — error handling', () => {
 		);
 	} );
 
+	it( 'shows the out-of-credits notice when credits are exhausted', async () => {
+		apiFetch.mockRejectedValue( {
+			error: 'Monthly usage limit reached.',
+			message: 'Monthly usage limit reached.',
+			code: 'rate_limit_exceeded',
+		} );
+
+		await act( async () => {
+			root.render( <GeneratorWizard /> );
+		} );
+		await submitBrief( container );
+
+		expect(
+			container.querySelector( '.plume-out-of-credits-banner' )
+		).not.toBeNull();
+	} );
+
 	it( 'falls back to a generic message when the server sends none', async () => {
 		apiFetch.mockRejectedValue( {} );
 

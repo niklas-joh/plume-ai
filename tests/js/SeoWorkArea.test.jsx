@@ -54,9 +54,11 @@ describe( 'SeoWorkArea — out-of-credits handling', () => {
 	} );
 
 	it( 'renders OutOfCreditsNotice when generation fails with a rate_limit_exceeded error', async () => {
+		// The envelope /plume/v1/seo/generate sends when credits run out.
 		apiFetch.mockRejectedValue( {
-			code: 'rate_limit_exceeded',
+			error: 'Monthly usage limit reached.',
 			message: 'Monthly usage limit reached.',
+			code: 'rate_limit_exceeded',
 		} );
 
 		await act( async () => {

@@ -4,6 +4,8 @@ import { TextControl, SelectControl, Button } from '@wordpress/components';
 import { Wand2, Loader2, CheckCircle2, ExternalLink } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 import { getErrorMessage } from '../../shared/errors';
+import { isOutOfCreditsError } from '../../shared/credits';
+import OutOfCreditsNotice from '../../shared/OutOfCreditsNotice';
 
 const TONES = [
 	'professional',
@@ -37,6 +39,7 @@ export default function GeneratorWizard() {
 	} );
 	const [ result, setResult ] = useState( null ); // { post_id, edit_url, content, credits_used }
 	const [ error, setError ] = useState( null );
+	const [ outOfCredits, setOutOfCredits ] = useState( false );
 
 	function update( field, value ) {
 		setForm( ( prev ) => ( { ...prev, [ field ]: value } ) );
@@ -48,6 +51,7 @@ export default function GeneratorWizard() {
 		}
 		setStep( 2 );
 		setError( null );
+		setOutOfCredits( false );
 		try {
 			const res = await apiFetch( {
 				path: '/plume/v1/generate',
@@ -57,12 +61,16 @@ export default function GeneratorWizard() {
 			setResult( res );
 			setStep( 3 );
 		} catch ( e ) {
-			setError(
-				getErrorMessage(
-					e,
-					__( 'Generation failed. Please try again.', 'plume' )
-				)
-			);
+			if ( isOutOfCreditsError( e ) ) {
+				setOutOfCredits( true );
+			} else {
+				setError(
+					getErrorMessage(
+						e,
+						__( 'Generation failed. Please try again.', 'plume' )
+					)
+				);
+			}
 			setStep( 1 );
 		}
 	}
@@ -178,6 +186,14 @@ export default function GeneratorWizard() {
 					Describe your post and AI will write a full draft.
 				</p>
 			</div>
+
+			{ outOfCredits && (
+				<OutOfCreditsNotice
+					websiteUrl={
+						window.plumeData?.websiteUrl ?? 'https://wpaimind.com'
+					}
+				/>
+			) }
 
 			{ error && (
 				<div

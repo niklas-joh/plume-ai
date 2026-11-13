@@ -6,6 +6,7 @@
 import React from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import apiFetch from '@wordpress/api-fetch';
 import ProvidersTab from '../../src/admin/settings/ProvidersTab';
 
 jest.mock( '@wordpress/element', () => ( {
@@ -216,5 +217,120 @@ describe( 'ProvidersTab', () => {
 		} );
 
 		expect( container.querySelector( '[role="status"]' ) ).toBeNull();
+	} );
+
+	describe( 'saving an API key', () => {
+		let saveSettings;
+
+		beforeEach( () => {
+			apiFetch.mockReset();
+			saveSettings = jest.fn( () => Promise.resolve( true ) );
+		} );
+
+		async function renderWithSave() {
+			await act( async () => {
+				root.render(
+					<ProvidersTab
+						settings={ {
+							default_provider: 'claude',
+							api_keys: NO_KEYS,
+						} }
+						saveSettings={ saveSettings }
+						isSaving={ false }
+					/>
+				);
+			} );
+		}
+
+		async function typeKey( label, value ) {
+			const input = container.querySelector(
+				`input[aria-label="${ label }"]`
+			);
+			const setter = Object.getOwnPropertyDescriptor(
+				window.HTMLInputElement.prototype,
+				'value'
+			).set;
+			await act( async () => {
+				setter.call( input, value );
+				input.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+			} );
+		}
+
+		async function typeKeyAndSave( label, value ) {
+			await typeKey( label, value );
+			const saveButton = container
+				.querySelector( `input[aria-label="${ label }"]` )
+				.closest( '.plume-field-input-group' )
+				.querySelector( 'button' );
+			await act( async () => {
+				saveButton.click();
+			} );
+		}
+
+		it( 'checks the key with the provider, then saves it', async () => {
+			apiFetch.mockResolvedValue( { success: true } );
+			await renderWithSave();
+
+			await typeKeyAndSave( 'OpenAI', 'sk-good' );
+
+			expect( apiFetch ).toHaveBeenCalledWith( {
+				path: '/plume/v1/test-key',
+				method: 'POST',
+				data: { provider: 'openai', api_key: 'sk-good' },
+			} );
+			expect( saveSettings ).toHaveBeenCalledWith( {
+				api_keys: { ...NO_KEYS, openai: 'sk-good' },
+			} );
+			expect( container.textContent ).toContain( 'Key verified and saved.' );
+		} );
+
+		it( 'does not save a key the provider rejects, and says why', async () => {
+			apiFetch.mockRejectedValue( {
+				code: 'invalid_key',
+				message: 'Incorrect API key provided',
+			} );
+			await renderWithSave();
+
+			await typeKeyAndSave( 'OpenAI', 'sk-bad' );
+
+			expect( saveSettings ).not.toHaveBeenCalled();
+			const alert = container.querySelector( '.plume-key-status--error' );
+			expect( alert ).not.toBeNull();
+			expect( alert.textContent ).toContain( 'Incorrect API key provided' );
+			// The rejected key stays in the field so it can be corrected.
+			expect(
+				container.querySelector( 'input[aria-label="OpenAI"]' ).value
+			).toBe( 'sk-bad' );
+		} );
+
+		it( 'still saves when the check itself could not run, and says so', async () => {
+			apiFetch.mockRejectedValue( {
+				code: 'verification_failed',
+				message: 'The key could not be verified: Rate limit reached',
+			} );
+			await renderWithSave();
+
+			await typeKeyAndSave( 'OpenAI', 'sk-unknown' );
+
+			expect( saveSettings ).toHaveBeenCalledWith( {
+				api_keys: { ...NO_KEYS, openai: 'sk-unknown' },
+			} );
+			expect(
+				container.querySelector( '.plume-key-status--warning' )
+			).not.toBeNull();
+		} );
+
+		it( 'removes a key without asking the provider', async () => {
+			await renderWithSave();
+
+			// Typing and clearing leaves an empty value: a key removal.
+			await typeKey( 'OpenAI', 'x' );
+			await typeKeyAndSave( 'OpenAI', '' );
+
+			expect( apiFetch ).not.toHaveBeenCalled();
+			expect( saveSettings ).toHaveBeenCalledWith( {
+				api_keys: { ...NO_KEYS, openai: '' },
+			} );
+		} );
 	} );
 } );

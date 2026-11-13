@@ -6,6 +6,8 @@ import {
 	Notice,
 } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
+import apiFetch from '@wordpress/api-fetch';
+import { getErrorMessage } from '../../shared/errors';
 
 const API_KEY_PROVIDERS = [
 	{ id: 'claude', label: 'Claude (Anthropic)' },
@@ -52,6 +54,10 @@ const IMAGE_PROVIDER_OPTIONS = [
 export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 	const apiKeys = settings?.api_keys ?? {};
 	const [ dirty, setDirty ] = useState( {} ); // { [provider]: string }
+	// Per-provider result of the last save: { type: 'success'|'warning'|'error', text }.
+	const [ keyStatus, setKeyStatus ] = useState( {} );
+	// Slug of the provider whose key is being checked right now, or null.
+	const [ verifying, setVerifying ] = useState( null );
 
 	const managed = settings?.managed_providers;
 	// `apiKeys[ id ]` is a mask string when a key is set (SettingsRestController).
@@ -83,14 +89,105 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 		setDirty( ( prev ) => ( { ...prev, [ provider ]: value } ) );
 	}
 
-	function handleSaveKey( provider ) {
-		const value = dirty[ provider ] ?? '';
-		saveSettings( { api_keys: { ...apiKeys, [ provider ]: value } } );
+	function setStatus( provider, status ) {
+		setKeyStatus( ( prev ) => ( { ...prev, [ provider ]: status } ) );
+	}
+
+	/**
+	 * Saves an API key, checking it with its provider first.
+	 *
+	 * A key the provider rejects is not stored: saving it would only move the
+	 * failure to the user's next chat, far from where it can be fixed. When the
+	 * check itself cannot run (provider outage, rate limit, network), the key is
+	 * stored anyway and the user is told it is unverified, so a provider hiccup
+	 * never blocks setup. An empty value removes the key and needs no check.
+	 *
+	 * @param {string} provider Provider slug (claude, openai or gemini).
+	 * @param {string} label    Provider name shown in messages.
+	 * @return {Promise<void>}
+	 */
+	async function handleSaveKey( provider, label ) {
+		const value = ( dirty[ provider ] ?? '' ).trim();
+		let unverified = false;
+
+		setStatus( provider, null );
+
+		if ( value !== '' ) {
+			setVerifying( provider );
+			try {
+				await apiFetch( {
+					path: '/plume/v1/test-key',
+					method: 'POST',
+					data: { provider, api_key: value },
+				} );
+			} catch ( e ) {
+				if ( e?.code === 'invalid_key' ) {
+					setVerifying( null );
+					setStatus( provider, {
+						type: 'error',
+						text: sprintf(
+							/* translators: 1: AI provider name, e.g. "OpenAI". 2: error message from that provider. */
+							__(
+								'%1$s rejected this key, so it was not saved: %2$s',
+								'plume'
+							),
+							label,
+							getErrorMessage(
+								e,
+								__( 'Invalid API key.', 'plume' )
+							)
+						),
+					} );
+					return;
+				}
+				unverified = true;
+			}
+			setVerifying( null );
+		}
+
+		const saved = await saveSettings( {
+			api_keys: { ...apiKeys, [ provider ]: value },
+		} );
+		// SettingsApp reports a failed save in its own notice.
+		if ( saved === false ) {
+			return;
+		}
+
 		setDirty( ( prev ) => {
 			const next = { ...prev };
 			delete next[ provider ];
 			return next;
 		} );
+
+		if ( value === '' ) {
+			return;
+		}
+		setStatus(
+			provider,
+			unverified
+				? {
+						type: 'warning',
+						text: sprintf(
+							/* translators: %s: AI provider name, e.g. "OpenAI". */
+							__(
+								'Saved, but the key could not be checked with %s just now. If chats fail, check the key.',
+								'plume'
+							),
+							label
+						),
+				  }
+				: {
+						type: 'success',
+						text: __( 'Key verified and saved.', 'plume' ),
+				  }
+		);
+	}
+
+	function saveLabel( provider ) {
+		if ( verifying === provider ) {
+			return __( 'Checking…', 'plume' );
+		}
+		return isSaving ? __( 'Saving…', 'plume' ) : __( 'Save', 'plume' );
 	}
 
 	function handleUrlChange( value ) {
@@ -194,13 +291,27 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 							<Button
 								variant="primary"
 								disabled={
-									isSaving || dirty[ id ] === undefined
+									isSaving ||
+									verifying !== null ||
+									dirty[ id ] === undefined
 								}
-								onClick={ () => handleSaveKey( id ) }
+								onClick={ () => handleSaveKey( id, label ) }
 							>
-								{ isSaving ? 'Saving…' : 'Save' }
+								{ saveLabel( id ) }
 							</Button>
 						</div>
+						{ keyStatus[ id ] && (
+							<p
+								className={ `plume-key-status plume-key-status--${ keyStatus[ id ].type }` }
+								role={
+									keyStatus[ id ].type === 'error'
+										? 'alert'
+										: 'status'
+								}
+							>
+								{ keyStatus[ id ].text }
+							</p>
+						) }
 					</div>
 				) ) }
 			</section>

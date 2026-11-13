@@ -192,6 +192,7 @@ export default function GeneratorWizard() {
 					websiteUrl={
 						window.plumeData?.websiteUrl ?? 'https://wpaimind.com'
 					}
+					settingsUrl={ window.plumeData?.settingsUrl }
 				/>
 			) }
 

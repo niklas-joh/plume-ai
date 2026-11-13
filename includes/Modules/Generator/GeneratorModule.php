@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Admin\AdminMenu;
 use Plume\Providers\ProviderException;
 use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
@@ -85,6 +86,7 @@ class GeneratorModule {
 				'isPaid'        => TierManager::is_paid(),
 				'siteTitle'     => \get_bloginfo( 'name' ),
 				'websiteUrl'    => PLUME_WEBSITE_URL,
+				'settingsUrl'   => AdminMenu::settings_url(),
 			]
 		);
 	}

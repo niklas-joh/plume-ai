@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Admin\AdminMenu;
 use Plume\Providers\ProviderFactory;
 use Plume\Providers\CompletionRequest;
 use Plume\Providers\ProviderException;
@@ -73,11 +74,12 @@ class SeoModule {
 			'plume-seo',
 			'plumeData',
 			[
-				'nonce'      => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'    => \esc_url_raw( \rest_url( 'plume/v1' ) ),
-				'isPaid'     => TierManager::is_paid(),
-				'adminUrl'   => \esc_url_raw( \admin_url() ),
-				'websiteUrl' => PLUME_WEBSITE_URL,
+				'nonce'       => \wp_create_nonce( 'wp_rest' ),
+				'restUrl'     => \esc_url_raw( \rest_url( 'plume/v1' ) ),
+				'isPaid'      => TierManager::is_paid(),
+				'adminUrl'    => \esc_url_raw( \admin_url() ),
+				'websiteUrl'  => PLUME_WEBSITE_URL,
+				'settingsUrl' => AdminMenu::settings_url(),
 			]
 		);
 

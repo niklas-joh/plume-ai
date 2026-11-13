@@ -6,7 +6,8 @@
 		'wp-data',
 		'wp-edit-post',
 		'wp-element',
+		'wp-i18n',
 		'wp-plugins'
 	),
-	'version' => 'dc48eeb8536432200307'
+	'version' => '149a175cc09631ae5bd8'
 );

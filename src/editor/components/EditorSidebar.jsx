@@ -1,6 +1,7 @@
 import { registerPlugin } from '@wordpress/plugins';
 import { PluginSidebar, PluginSidebarMoreMenuItem } from '@wordpress/edit-post';
 import { useSelect } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 import { Sparkles } from 'lucide-react';
 import MiniChat from './MiniChat';
 import BlockActions from './BlockActions';
@@ -24,24 +25,30 @@ function PlumeSidebar() {
 	return (
 		<>
 			<PluginSidebarMoreMenuItem target="plume-sidebar">
-				AI Mind
+				{ __( 'Plume AI', 'plume' ) }
 			</PluginSidebarMoreMenuItem>
 			<PluginSidebar
 				name="plume-sidebar"
-				title="AI Mind"
+				title={ __( 'Plume AI', 'plume' ) }
 				icon={ <Sparkles size={ 16 } /> }
 			>
 				<div className="plume-editor-sidebar">
 					<div className="plume-editor-panel">
-						<h3 className="plume-panel__heading">Chat</h3>
+						<h3 className="plume-panel__heading">
+							{ __( 'Chat', 'plume' ) }
+						</h3>
 						<MiniChat postId={ postId } />
 					</div>
 					<div className="plume-editor-panel">
-						<h3 className="plume-panel__heading">Block Actions</h3>
+						<h3 className="plume-panel__heading">
+							{ __( 'Block actions', 'plume' ) }
+						</h3>
 						<BlockActions />
 					</div>
 					<div className="plume-editor-panel">
-						<h3 className="plume-panel__heading">SEO</h3>
+						<h3 className="plume-panel__heading">
+							{ __( 'SEO', 'plume' ) }
+						</h3>
 						<SeoPanel />
 					</div>
 				</div>

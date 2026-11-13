@@ -179,6 +179,13 @@
 	flex-shrink: 0;
 }
 
+/* While an action runs the buttons stay focusable (aria-disabled) but look and
+   behave as unavailable. */
+.plume-block-actions__btn.is-disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
 .plume-block-actions__btn:hover {
 	background: #f0f0f1;
 	border-color: rgba(var(--wp-admin-theme-color--rgb), 0.3);

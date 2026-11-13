@@ -12,8 +12,7 @@ import '../editor.css';
  * Block Editor plugin sidebar containing the mini chat, block actions, and SEO panels.
  *
  * Registered via `registerPlugin` so it appears in the editor's plugin sidebar
- * list. Block content updates are dispatched through `core/block-editor` rather
- * than returned to the component to avoid a React re-render cycle.
+ * list. BlockActions writes its results to the block itself.
  *
  * @return {ReactElement}
  */
@@ -21,20 +20,6 @@ function PlumeSidebar() {
 	const postId = useSelect( ( select ) =>
 		select( 'core/editor' ).getCurrentPostId()
 	);
-	const convId = null; // always creates a new conversation per block action
-
-	function handleBlockResult( content, clientId ) {
-		if ( ! clientId || ! content ) {
-			return;
-		}
-		// Dispatch block content update via wp.data.
-		const { dispatch } = window.wp?.data ?? {};
-		if ( dispatch ) {
-			dispatch( 'core/block-editor' ).updateBlockAttributes( clientId, {
-				content,
-			} );
-		}
-	}
 
 	return (
 		<>
@@ -53,10 +38,7 @@ function PlumeSidebar() {
 					</div>
 					<div className="plume-editor-panel">
 						<h3 className="plume-panel__heading">Block Actions</h3>
-						<BlockActions
-							convId={ convId }
-							onResult={ handleBlockResult }
-						/>
+						<BlockActions />
 					</div>
 					<div className="plume-editor-panel">
 						<h3 className="plume-panel__heading">SEO</h3>

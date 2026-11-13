@@ -55,7 +55,7 @@ export default function UsageDashboard() {
 		);
 	}
 
-	const { tier, used, limit, canUse: canUse } = data;
+	const { tier, used, limit, can_use: canUse } = data;
 
 	const hasLimit = limit !== null && limit !== undefined;
 	const usedPct = hasLimit ? Math.min( 100, ( used / limit ) * 100 ) : 0;

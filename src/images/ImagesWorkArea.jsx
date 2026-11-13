@@ -12,7 +12,11 @@ const {
 	restUrl,
 	adminUrl = '/wp-admin/',
 	websiteUrl = 'https://wpaimind.com',
+	imageProvider,
 } = window.plumeData ?? {};
+
+// Images need the site's own provider key; ImagesApp explains this in a notice.
+const IMAGE_KEY_MISSING = imageProvider?.hasKey === false;
 
 const ASPECT_RATIOS = [ '16:9', '1:1', '4:3', '9:16' ];
 
@@ -201,7 +205,9 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 					<button
 						className="button button-primary"
 						onClick={ handleGenerate }
-						disabled={ generating || ! prompt.trim() }
+						disabled={
+							generating || ! prompt.trim() || IMAGE_KEY_MISSING
+						}
 					>
 						{ generating ? (
 							<>

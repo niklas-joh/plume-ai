@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Admin\AdminMenu;
 use Plume\Providers\ProviderFactory;
 use Plume\Providers\ProviderException;
 use Plume\Settings\ProviderSettings;
@@ -70,18 +71,24 @@ class ImagesModule {
 			'plume-images',
 			'plumeData',
 			[
-				'nonce'      => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'    => \esc_url_raw( \rest_url( 'plume/v1' ) ),
-				'isPaid'     => TierManager::is_paid(),
-				'adminUrl'   => \esc_url_raw( \admin_url() ),
-				'websiteUrl' => PLUME_WEBSITE_URL,
+				'nonce'         => \wp_create_nonce( 'wp_rest' ),
+				'restUrl'       => \esc_url_raw( \rest_url( 'plume/v1' ) ),
+				'isPaid'        => TierManager::is_paid(),
+				'adminUrl'      => \esc_url_raw( \admin_url() ),
+				'websiteUrl'    => PLUME_WEBSITE_URL,
+				'settingsUrl'   => AdminMenu::settings_url(),
+				// Nested so the boolean survives: wp_localize_script() casts top-level
+				// scalars to strings.
+				'imageProvider' => self::image_provider_status(),
 			]
 		);
 
+		// wp-components: the screen renders a core Notice, whose styles are not
+		// loaded on every admin page in every supported WordPress version.
 		\wp_enqueue_style(
 			'plume-images',
 			PLUME_URL . 'assets/images/index.css',
-			[],
+			[ 'wp-components' ],
 			$asset['version']
 		);
 	}
@@ -152,8 +159,23 @@ class ImagesModule {
 			'size'         => $size_map[ $aspect_ratio ] ?? '1024x1024',
 		];
 
-		$factory  = new ProviderFactory( new ProviderSettings() );
+		$settings = new ProviderSettings();
+		$factory  = new ProviderFactory( $settings );
 		$provider = $factory->make_image_provider();
+
+		// Images never go through the managed service, so without the site's own key
+		// the provider call can only fail. Say what is missing instead.
+		if ( ! $settings->has_key( $provider->get_slug() ) ) {
+			return self::error_response(
+				sprintf(
+					/* translators: %s: AI provider name, e.g. "OpenAI". */
+					__( 'AI images use your own API key. Add a %s API key in Plume AI → Settings, then try again.', 'plume' ),
+					$factory->label( $provider->get_slug() )
+				),
+				'image_key_missing',
+				422
+			);
+		}
 
 		$images = [];
 		$errors = [];
@@ -177,9 +199,17 @@ class ImagesModule {
 		}
 
 		if ( empty( $images ) ) {
+			// `error` and `details` are kept as they were; `message` adds the first
+			// provider error so the screen can say why (content policy, billing, bad key).
+			$first_error = (string) ( $errors[0] ?? '' );
 			return new \WP_REST_Response(
 				[
 					'error'   => __( 'All image generation requests failed.', 'plume' ),
+					'message' => '' !== $first_error
+						/* translators: %s: error message returned by the image provider. */
+						? sprintf( __( 'Image generation failed: %s', 'plume' ), $first_error )
+						: __( 'All image generation requests failed.', 'plume' ),
+					'code'    => 'image_generation_failed',
 					'details' => $errors,
 				],
 				500
@@ -197,6 +227,47 @@ class ImagesModule {
 				'errors'   => $errors,
 				'provider' => $provider->get_slug(),
 				'count'    => count( $images ),
+			],
+			$status
+		);
+	}
+
+	/**
+	 * Describe the configured image provider for the Images screen.
+	 *
+	 * @since NEXT_VERSION
+	 * @return array{label: string, hasKey: bool} Brand name of the image provider and
+	 *                                            whether the site has its own key for it.
+	 */
+	private static function image_provider_status(): array {
+		$settings = new ProviderSettings();
+		$factory  = new ProviderFactory( $settings );
+		$slug     = $factory->make_image_provider()->get_slug();
+
+		return [
+			'label'  => $factory->label( $slug ),
+			'hasKey' => $settings->has_key( $slug ),
+		];
+	}
+
+	/**
+	 * Build a REST error response that carries the text under both keys.
+	 *
+	 * `error` is the key this route has always sent; `message` and `code` follow
+	 * the core REST error convention, which is what apiFetch consumers read.
+	 *
+	 * @since NEXT_VERSION
+	 * @param string $message Translated, user-facing error text.
+	 * @param string $code    Machine-readable error code.
+	 * @param int    $status  HTTP status code.
+	 * @return \WP_REST_Response
+	 */
+	private static function error_response( string $message, string $code, int $status ): \WP_REST_Response {
+		return new \WP_REST_Response(
+			[
+				'error'   => $message,
+				'message' => $message,
+				'code'    => $code,
 			],
 			$status
 		);

@@ -147,4 +147,32 @@ class GeneratorModuleTest extends TestCase {
         self::assertSame( 'Upstream provider unavailable.', $response->data['message'] );
         self::assertSame( 'Upstream provider unavailable.', $response->data['error'] );
     }
+
+    /**
+     * The request asks for enough output tokens to finish a long post.
+     *
+     * A flat 2000-token cap cut "Long (1200–1800 words)" drafts off mid-sentence.
+     *
+     * @since NEXT_VERSION
+     * @return void
+     */
+    public function test_handle_generate_requests_enough_tokens_for_a_long_post(): void {
+        $this->stub_managed_proxy( 429, [ 'error' => 'Monthly limit reached' ] );
+
+        $sent = null;
+        Functions\when( 'wp_remote_post' )->alias(
+            static function ( string $url, array $args ) use ( &$sent ) {
+                $sent = json_decode( $args['body'], true );
+                return [
+                    'response' => [ 'code' => 429 ],
+                    'body'     => '{}',
+                ];
+            }
+        );
+
+        GeneratorModule::handle_generate( $this->make_request( 'long' ) );
+
+        self::assertIsArray( $sent );
+        self::assertGreaterThanOrEqual( 4096, $sent['max_tokens'] );
+    }
 }

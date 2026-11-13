@@ -23,6 +23,19 @@ use Plume\Tiers\TierManager;
 class GeneratorModule {
 
 	/**
+	 * Output-token ceiling for one generated post.
+	 *
+	 * Sized for the longest option (1200–1800 words, with Markdown and non-English
+	 * text needing more tokens per word). The previous 2000 cut long drafts off
+	 * mid-sentence. This is a ceiling, not a cost: billing is on tokens actually
+	 * produced, and the managed service caps every plan above this value.
+	 *
+	 * @since NEXT_VERSION
+	 * @var int
+	 */
+	private const MAX_OUTPUT_TOKENS = 4096;
+
+	/**
 	 * Register WordPress hooks for this module.
 	 *
 	 * @since 1.0.0
@@ -170,7 +183,7 @@ class GeneratorModule {
 				system:      $voice->build_system_prompt( 'Post generation', \get_current_user_id() ),
 				model:       $provider->get_default_model(),
 				temperature: 0.7,
-				max_tokens:  2000,
+				max_tokens:  self::MAX_OUTPUT_TOKENS,
 				metadata:    [
 					'feature'    => 'generator',
 					'post_title' => $title,

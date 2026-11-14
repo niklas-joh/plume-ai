@@ -1687,7 +1687,9 @@ describe( 'handleChatProxy usage metrics', () => {
 		await worker.fetch( makeChatRequest( promptBody ), env );
 
 		// upstream error (body contains prompt and secrets)
-		vi.spyOn( console, 'error' ).mockImplementation( () => {} );
+		const errorSpy = vi
+			.spyOn( console, 'error' )
+			.mockImplementation( () => {} );
 		vi.stubGlobal(
 			'fetch',
 			vi.fn().mockResolvedValue(
@@ -1702,7 +1704,21 @@ describe( 'handleChatProxy usage metrics', () => {
 			)
 		);
 		const errRes = await worker.fetch( makeChatRequest( promptBody ), env );
-		expect( errRes.status ).toBe( 500 );
+		expect( errRes.status ).toBe( 503 );
+		expect( await errRes.json() ).toEqual( {
+			error: 'This AI model is temporarily unavailable.',
+			code: 'provider_unavailable',
+		} );
+		// Logs carry only the code, status and error name: no upstream body or prompt.
+		const logged = JSON.stringify( errorSpy.mock.calls );
+		for ( const forbidden of [
+			SECRET_SYNC,
+			SECRET_LICENCE,
+			PROMPT_TEXT,
+			UPSTREAM_ERR,
+		] ) {
+			expect( logged ).not.toContain( forbidden );
+		}
 
 		// 429
 		await env.USAGE_KV.put(
@@ -1742,6 +1758,27 @@ describe( 'handleChatProxy usage metrics', () => {
 		expect( points[ 1 ].blobs?.[ 5 ] ).toBe( 'upstream_error' );
 		expect( points[ 1 ].blobs?.[ 6 ] ).toBe( 'upstream_502' );
 		expect( points[ 4 ].blobs?.[ 5 ] ).toBe( 'byok_blocked' );
+	} );
+
+	it( 'statusless upstream failure falls back to a generic 500 with no code', async () => {
+		const { env } = makeMetricsEnv();
+		await seedSite( env, 'free' );
+
+		// Unlike an upstream HTTP error (which carries a `status` and maps to the
+		// neutral 503 provider_unavailable branch), a thrown error with no `status`
+		// — e.g. a network failure or a JSON.parse throw — hits the internal-error
+		// fallback. Both catch-block branches are thereby pinned.
+		vi.spyOn( console, 'error' ).mockImplementation( () => undefined );
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockRejectedValue( new Error( 'boom' ) )
+		);
+
+		const res = await worker.fetch( makeChatRequest( promptBody ), env );
+		expect( res.status ).toBe( 500 );
+		const json = ( await res.json() ) as Record< string, unknown >;
+		expect( json ).toEqual( { error: 'Internal proxy error' } );
+		expect( json ).not.toHaveProperty( 'code' );
 	} );
 
 	it( 'authenticated 413 emits one point with site key and too_large', async () => {

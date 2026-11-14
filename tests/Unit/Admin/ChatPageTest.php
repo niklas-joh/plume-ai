@@ -69,6 +69,8 @@ class ChatPageTest extends TestCase {
 				$this->localised = $data;
 			}
 		);
+		// AdminMenu::settings_url() builds the Settings link localised for the credits notice.
+		Functions\when( 'admin_url' )->alias( static fn( string $path = '' ): string => 'https://example.test/wp-admin/' . $path );
 	}
 
 	protected function tearDown(): void {

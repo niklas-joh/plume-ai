@@ -51,7 +51,60 @@ class TierFeatureMatrixTest extends IntegrationTestCase {
 		];
 	}
 
+	/**
+	 * Remove the image key the images rows set, so it cannot leak into other tests.
+	 *
+	 * @since NEXT_VERSION
+	 * @return void
+	 */
+	public function tearDown(): void {
+		putenv( 'GEMINI_API_KEY' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv -- test fixture.
+		parent::tearDown();
+	}
+
 	// ── Test ──────────────────────────────────────────────────────────────────
+
+	/**
+	 * Without an own image key, every tier gets the same 422 explanation.
+	 *
+	 * Complements the matrix: the images rows above run with a key, this pins
+	 * down what a keyless site sees, and that it is not a tier-dependent 403.
+	 *
+	 * @since NEXT_VERSION
+	 * @dataProvider managed_tiers
+	 * @param string $tier Tier slug to assign to the test user.
+	 * @return void
+	 */
+	public function test_images_without_an_own_key_explains_the_missing_key_on_every_tier( string $tier ): void {
+		$user_id = self::factory()->user->create(
+			[
+				'role'       => 'editor',
+				'user_login' => "no_image_key_{$tier}_" . uniqid(),
+			]
+		);
+		$this->set_user_tier( $user_id, $tier );
+		wp_set_current_user( $user_id );
+
+		$response = $this->rest_do( 'POST', '/plume/v1/images/generate', [ 'prompt' => 'A test image', 'count' => 1 ] );
+		$data     = $response->get_data();
+
+		$this->assertSame( 422, $response->get_status(), "Tier '{$tier}' without an image key must get 422, not a tier gate." );
+		$this->assertSame( 'image_key_missing', $data['code'] );
+		$this->assertNotEmpty( $data['message'] );
+	}
+
+	/**
+	 * Tiers that use the managed service for text and therefore may have no own key.
+	 *
+	 * @since NEXT_VERSION
+	 * @return array<string, array{string}>
+	 */
+	public static function managed_tiers(): array {
+		return [
+			'free'        => [ 'free' ],
+			'pro_managed' => [ 'pro_managed' ],
+		];
+	}
 
 	/**
 	 * Verify that every tier × feature combination is allowed (2xx, never 403).
@@ -163,6 +216,11 @@ class TierFeatureMatrixTest extends IntegrationTestCase {
 			// Images route through GeminiProvider, not the Claude proxy — use the
 			// Gemini-specific mock so the fixture origin is unambiguous.
 			$this->mock_http_with_gemini_fixture( $this->gemini_image_fixture() );
+			// Images are generated with the site's own key on every tier; without
+			// one the route answers 422 'image_key_missing' before any tier or
+			// provider logic runs. That is a setup requirement, not a tier gate, so
+			// the matrix gives the site a key and tests what it is here to test.
+			putenv( 'GEMINI_API_KEY=matrix-test-key' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv -- test fixture.
 			return;
 		}
 

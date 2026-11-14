@@ -3,6 +3,8 @@ import { __ } from '@wordpress/i18n';
 import { Cpu } from 'lucide-react';
 import MarkdownContent from '../../../shared/MarkdownContent';
 import PlanCard from './PlanCard';
+import OutOfCreditsNotice from '../../../shared/OutOfCreditsNotice';
+import { DEFAULT_WEBSITE_URL } from '../../../shared/constants';
 import { parseRevisionMessage } from './revisionMessage';
 
 const TOOL_LABELS = {
@@ -30,6 +32,7 @@ const TOOL_LABELS = {
  * @param {string}   [props.message.model]        Model slug displayed in the meta line for AI messages.
  * @param {number}   [props.message.credits] Credit cost displayed in the meta line for AI messages.
  * @param {boolean}  [props.message.isError]      When true, applies the error modifier class.
+ * @param {boolean}  [props.message.outOfCredits] When true, renders the out-of-credits notice instead of the error text.
  * @param {Object}   [props.message.pending_plan] Pending plan data; when present, renders a PlanCard.
  * @param {string[]} [props.message.tools_used]   Tool names called; shown as passive indicator chips.
  * @param {string}   [props.message.applyEditUrl] When present, renders a "View post" link after applying an update.
@@ -39,6 +42,19 @@ export default function MessageBubble( { message } ) {
 	const isAI = message.role === 'assistant';
 	const [ plan, setPlan ] = useState( message.pending_plan ?? null );
 	const revision = isAI ? null : parseRevisionMessage( message.content );
+
+	if ( message.outOfCredits ) {
+		const { websiteUrl = DEFAULT_WEBSITE_URL, settingsUrl = '' } =
+			window.plumeData ?? {};
+		return (
+			<div className="plume-bubble plume-bubble--ai">
+				<OutOfCreditsNotice
+					websiteUrl={ websiteUrl }
+					settingsUrl={ settingsUrl }
+				/>
+			</div>
+		);
+	}
 
 	return (
 		<div

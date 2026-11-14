@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Admin\AdminMenu;
+use Plume\Modules\Concerns\BuildsRestErrorResponse;
 use Plume\Providers\ProviderFactory;
 use Plume\Providers\ProviderException;
 use Plume\Settings\ProviderSettings;
@@ -24,6 +26,8 @@ use Plume\Tiers\TierManager;
  * via a 207 Multi-Status response rather than aborting the entire request.
  */
 class ImagesModule {
+
+	use BuildsRestErrorResponse;
 
 	/**
 	 * Register WordPress hooks for this module.
@@ -70,18 +74,24 @@ class ImagesModule {
 			'plume-images',
 			'plumeData',
 			[
-				'nonce'      => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'    => \esc_url_raw( \rest_url( 'plume/v1' ) ),
-				'isPaid'     => TierManager::is_paid(),
-				'adminUrl'   => \esc_url_raw( \admin_url() ),
-				'websiteUrl' => PLUME_WEBSITE_URL,
+				'nonce'         => \wp_create_nonce( 'wp_rest' ),
+				'restUrl'       => \esc_url_raw( \rest_url( 'plume/v1' ) ),
+				'isPaid'        => TierManager::is_paid(),
+				'adminUrl'      => \esc_url_raw( \admin_url() ),
+				'websiteUrl'    => PLUME_WEBSITE_URL,
+				'settingsUrl'   => AdminMenu::settings_url(),
+				// Nested so the boolean survives: wp_localize_script() casts top-level
+				// scalars to strings.
+				'imageProvider' => self::image_provider_status(),
 			]
 		);
 
+		// wp-components: the screen renders a core Notice, whose styles are not
+		// loaded on every admin page in every supported WordPress version.
 		\wp_enqueue_style(
 			'plume-images',
 			PLUME_URL . 'assets/images/index.css',
-			[],
+			[ 'wp-components' ],
 			$asset['version']
 		);
 	}
@@ -152,8 +162,24 @@ class ImagesModule {
 			'size'         => $size_map[ $aspect_ratio ] ?? '1024x1024',
 		];
 
-		$factory  = new ProviderFactory( new ProviderSettings() );
+		$settings = new ProviderSettings();
+		$factory  = new ProviderFactory( $settings );
 		$provider = $factory->make_image_provider();
+		$details  = self::image_provider_details( $settings, $factory, $provider->get_slug() );
+
+		// Images never go through the managed service, so without the site's own key
+		// the provider call can only fail. Say what is missing instead.
+		if ( ! $details['hasKey'] ) {
+			return self::error_response(
+				sprintf(
+					/* translators: %s: AI provider name, e.g. "OpenAI". */
+					__( 'AI images use your own API key. Add a %s API key in Plume AI → Settings, then try again.', 'plume' ),
+					$details['label']
+				),
+				'image_key_missing',
+				422
+			);
+		}
 
 		$images = [];
 		$errors = [];
@@ -177,9 +203,17 @@ class ImagesModule {
 		}
 
 		if ( empty( $images ) ) {
+			// `error` and `details` are kept as they were; `message` adds the first
+			// provider error so the screen can say why (content policy, billing, bad key).
+			$first_error = (string) ( $errors[0] ?? '' );
 			return new \WP_REST_Response(
 				[
 					'error'   => __( 'All image generation requests failed.', 'plume' ),
+					'message' => '' !== $first_error
+						/* translators: %s: error message returned by the image provider. */
+						? sprintf( __( 'Image generation failed: %s', 'plume' ), $first_error )
+						: __( 'All image generation requests failed.', 'plume' ),
+					'code'    => 'image_generation_failed',
 					'details' => $errors,
 				],
 				500
@@ -200,5 +234,44 @@ class ImagesModule {
 			],
 			$status
 		);
+	}
+
+	/**
+	 * Describe the configured image provider for the Images screen.
+	 *
+	 * @since NEXT_VERSION
+	 * @return array{label: string, hasKey: bool} Brand name of the image provider and
+	 *                                            whether the site has its own key for it.
+	 */
+	private static function image_provider_status(): array {
+		$settings = new ProviderSettings();
+		$factory  = new ProviderFactory( $settings );
+		$slug     = $factory->make_image_provider()->get_slug();
+		$details  = self::image_provider_details( $settings, $factory, $slug );
+
+		return [
+			'label'  => $details['label'],
+			'hasKey' => $details['hasKey'],
+		];
+	}
+
+	/**
+	 * Resolve the image provider's slug, brand label and key presence in one place.
+	 *
+	 * Both the enqueue-time status and the generate-time key check need the same
+	 * slug → label → has_key derivation; sharing it keeps the two in step.
+	 *
+	 * @since NEXT_VERSION
+	 * @param ProviderSettings $settings Provider settings used to check for a saved key.
+	 * @param ProviderFactory  $factory  Factory used to resolve the provider brand label.
+	 * @param string           $slug     Image provider slug.
+	 * @return array{slug: string, label: string, hasKey: bool}
+	 */
+	private static function image_provider_details( ProviderSettings $settings, ProviderFactory $factory, string $slug ): array {
+		return [
+			'slug'   => $slug,
+			'label'  => $factory->label( $slug ),
+			'hasKey' => $settings->has_key( $slug ),
+		];
 	}
 }

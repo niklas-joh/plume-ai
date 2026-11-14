@@ -297,6 +297,45 @@ describe( 'ChatApp', () => {
 				'Could not reach this site from the internet.'
 			);
 		} );
+
+		it( 'shows the credits notice with next steps, not a bare error, when credits run out', async () => {
+			const apiFetch = require( '@wordpress/api-fetch' );
+			apiFetch.mockImplementation( ( { path, method } ) => {
+				if ( path === '/plume/v1/conversations' && method === 'POST' ) {
+					return Promise.resolve( {
+						id: 1,
+						title: 'New conversation',
+					} );
+				}
+				if (
+					path === '/plume/v1/conversations/1/messages' &&
+					method === 'POST'
+				) {
+					// The body the chat route sends when the managed service's
+					// monthly credits are exhausted.
+					return Promise.reject( {
+						code: 'rate_limit_exceeded',
+						message: 'Monthly usage limit reached.',
+					} );
+				}
+				return Promise.resolve( [] );
+			} );
+
+			await act( async () => {
+				root.render( <ChatApp /> );
+			} );
+
+			await act( async () => {
+				typeAndSubmit( container, 'Hi there' );
+			} );
+
+			expect(
+				container.querySelector( '.plume-out-of-credits-banner' )
+			).not.toBeNull();
+			expect(
+				container.querySelectorAll( '.plume-bubble--error' ).length
+			).toBe( 0 );
+		} );
 	} );
 
 	describe( 'provider/model persistence', () => {

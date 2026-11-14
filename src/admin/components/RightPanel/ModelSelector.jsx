@@ -1,4 +1,5 @@
 import { useState } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import { Cpu, ChevronRight, ChevronLeft } from 'lucide-react';
 import { storageGet, storageSet } from '../../utils/storage';
 
@@ -41,7 +42,8 @@ export default function ModelSelector( {
 	onModelChange,
 	justSaved = false,
 } ) {
-	const { defaultModelLabel = 'AI' } = window.plumeData || {};
+	const { defaultModelLabel = 'AI', settingsUrl = '' } =
+		window.plumeData || {};
 
 	const [ isAdvanced, setIsAdvanced ] = useState(
 		() => storageGet( STORAGE_KEY ) === '1'
@@ -105,10 +107,15 @@ export default function ModelSelector( {
 					</div>
 					{ active && ! active.is_available && (
 						<p className="plume-model-no-key">
-							No API key configured —{ ' ' }
-							<a href="options-general.php?page=plume-settings">
-								Settings
-							</a>
+							{ __( 'No API key configured', 'plume' ) }
+							{ settingsUrl && (
+								<>
+									{ ' — ' }
+									<a href={ settingsUrl }>
+										{ __( 'Settings', 'plume' ) }
+									</a>
+								</>
+							) }
 						</p>
 					) }
 					{ models.length > 0 && active?.is_available && (

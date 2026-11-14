@@ -60,6 +60,23 @@ class AdminMenu {
 	}
 
 	/**
+	 * URL of the Plume settings screen for the current user.
+	 *
+	 * The settings page needs `manage_options`, while most Plume screens need only
+	 * `edit_posts`. Screens that link to Settings use this so that Authors and
+	 * Editors are not sent to a "not allowed" page.
+	 *
+	 * @since NEXT_VERSION
+	 * @return string Settings URL, or an empty string when the user cannot open it.
+	 */
+	public static function settings_url(): string {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return '';
+		}
+		return esc_url_raw( admin_url( 'admin.php?page=plume-settings' ) );
+	}
+
+	/**
 	 * Build the base64-encoded SVG data URI used as the menu icon.
 	 *
 	 * Inline SVG — Lucide `feather` icon, zinc-400 (#a1a1aa).

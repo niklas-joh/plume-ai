@@ -789,6 +789,25 @@
 	gap: var(--space-2);
 }
 
+/* Result of saving an API key, shown under its field. */
+.plume-key-status {
+	margin: var(--space-1) 0 0;
+	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+}
+
+.plume-key-status--success {
+	color: var(--color-success);
+}
+
+.plume-key-status--warning {
+	color: var(--color-warning);
+}
+
+.plume-key-status--error {
+	color: var(--color-error);
+}
+
 /* Voice footer */
 .plume-voice-footer {
 	display: flex;

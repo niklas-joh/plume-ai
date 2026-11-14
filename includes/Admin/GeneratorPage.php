@@ -65,6 +65,10 @@ class GeneratorPage {
 				'currentPostId' => 0,
 				'isPaid'        => TierManager::is_paid(),
 				'siteTitle'     => \get_bloginfo( 'name' ),
+				// Used by the out-of-credits notice. This localisation is printed after
+				// GeneratorModule::enqueue_assets()'s and wins, so both must carry them.
+				'websiteUrl'    => PLUME_WEBSITE_URL,
+				'settingsUrl'   => AdminMenu::settings_url(),
 			]
 		);
 

@@ -1,6 +1,6 @@
-import { useState } from '@wordpress/element';
+import { useState, useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { Cpu } from 'lucide-react';
+import { Cpu, Copy, Check, RotateCcw } from 'lucide-react';
 import MarkdownContent from '../../../shared/MarkdownContent';
 import PlanCard from './PlanCard';
 import OutOfCreditsNotice from '../../../shared/OutOfCreditsNotice';
@@ -36,10 +36,39 @@ const TOOL_LABELS = {
  * @param {Object}   [props.message.pending_plan] Pending plan data; when present, renders a PlanCard.
  * @param {string[]} [props.message.tools_used]   Tool names called; shown as passive indicator chips.
  * @param {string}   [props.message.applyEditUrl] When present, renders a "View post" link after applying an update.
+ * @param {Function} [props.onRetry]             When given on an error message, renders a "Try again" button that calls it.
+ * @param {boolean}  [props.isLoading]           Disables "Try again" while a reply is on its way.
  * @return {ReactElement}
  */
-export default function MessageBubble( { message } ) {
+export default function MessageBubble( { message, onRetry, isLoading = false } ) {
 	const isAI = message.role === 'assistant';
+	const [ copied, setCopied ] = useState( false );
+	const copiedTimerRef = useRef( null );
+	useEffect( () => () => clearTimeout( copiedTimerRef.current ), [] );
+
+	// navigator.clipboard only exists on secure origins; plain-HTTP admin sites
+	// get no Copy button rather than one that throws.
+	const canCopy =
+		isAI &&
+		! message.isError &&
+		!! message.content &&
+		typeof window.navigator?.clipboard?.writeText === 'function';
+
+	async function copyReply() {
+		try {
+			// The raw Markdown, so pasting into the editor or a Markdown field
+			// keeps headings, lists and emphasis.
+			await window.navigator.clipboard.writeText( message.content );
+			setCopied( true );
+			clearTimeout( copiedTimerRef.current );
+			copiedTimerRef.current = setTimeout(
+				() => setCopied( false ),
+				1500
+			);
+		} catch {
+			// Permission denied or document not focused: nothing useful to show.
+		}
+	}
 	const [ plan, setPlan ] = useState( message.pending_plan ?? null );
 	const revision = isAI ? null : parseRevisionMessage( message.content );
 
@@ -111,6 +140,19 @@ export default function MessageBubble( { message } ) {
 					) ) }
 				</div>
 			) }
+			{ message.isError && onRetry && (
+				<div className="plume-bubble__actions">
+					<button
+						type="button"
+						className="plume-btn plume-btn--ghost plume-btn--sm"
+						onClick={ onRetry }
+						disabled={ isLoading }
+					>
+						<RotateCcw size={ 12 } strokeWidth={ 1.5 } />
+						{ __( 'Try again', 'plume' ) }
+					</button>
+				</div>
+			) }
 			{ isAI && message.model && (
 				<div className="plume-bubble__meta">
 					<Cpu size={ 10 } strokeWidth={ 1.5 } />
@@ -120,6 +162,26 @@ export default function MessageBubble( { message } ) {
 							{ message.credits } { __( 'credits', 'plume' ) }
 						</span>
 					) }
+				</div>
+			) }
+			{ canCopy && (
+				<div className="plume-bubble__actions">
+					<button
+						type="button"
+						className="plume-btn plume-btn--ghost plume-btn--sm"
+						onClick={ copyReply }
+					>
+						{ copied ? (
+							<Check size={ 12 } strokeWidth={ 1.5 } />
+						) : (
+							<Copy size={ 12 } strokeWidth={ 1.5 } />
+						) }
+						<span aria-live="polite">
+							{ copied
+								? __( 'Copied', 'plume' )
+								: __( 'Copy', 'plume' ) }
+						</span>
+					</button>
 				</div>
 			) }
 			{ isAI && plan && plan.plan_type !== 'update' && (

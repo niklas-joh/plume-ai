@@ -54,9 +54,10 @@ function useWaitingText( isWaiting ) {
  * @param {Object}  props
  * @param {Array}   props.messages   Array of message objects passed to MessageBubble.
  * @param {boolean} props.isLoading  When true, shows the waiting indicator at the bottom.
+ * @param {Function} [props.onRetry] Called with a failed message to send it again; offered on the newest message only.
  * @return {ReactElement}
  */
-export default function MessageList( { messages, isLoading } ) {
+export default function MessageList( { messages, isLoading, onRetry } ) {
 	const bottomRef = useRef( null );
 	const waitingText = useWaitingText( isLoading );
 
@@ -67,7 +68,18 @@ export default function MessageList( { messages, isLoading } ) {
 	return (
 		<div className="plume-messages">
 			{ messages.map( ( msg, i ) => (
-				<MessageBubble key={ i } message={ msg } />
+				<MessageBubble
+					key={ i }
+					message={ msg }
+					isLoading={ isLoading }
+					// Only the newest failure can be retried: retrying an older one
+					// would answer a question out of order.
+					onRetry={
+						onRetry && msg.retry && i === messages.length - 1
+							? () => onRetry( msg )
+							: undefined
+					}
+				/>
 			) ) }
 			<div
 				className={ `plume-bubble plume-bubble--ai plume-waiting${

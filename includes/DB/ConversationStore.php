@@ -74,6 +74,33 @@ class ConversationStore {
 	}
 
 	/**
+	 * Delete one message from a conversation.
+	 *
+	 * Both ids are in the WHERE clause, so a message can only be removed from the
+	 * conversation it belongs to. An id of 0 (a failed insert) is ignored.
+	 *
+	 * @since NEXT_VERSION
+	 * @param int $conversation_id Conversation the message belongs to.
+	 * @param int $message_id      Message row ID, as returned by add_message().
+	 * @return void
+	 */
+	public function delete_message( int $conversation_id, int $message_id ): void {
+		if ( $message_id <= 0 ) {
+			return;
+		}
+		global $wpdb;
+		// $wpdb->delete handles its own preparation; no direct SQL string involved.
+		$wpdb->delete( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			Schema::table( 'messages' ),
+			[
+				'id'              => $message_id,
+				'conversation_id' => $conversation_id,
+			],
+			[ '%d', '%d' ]
+		);
+	}
+
+	/**
 	 * Retrieve all messages for a conversation in ascending ID order.
 	 *
 	 * @since 1.0.0

@@ -1051,6 +1051,26 @@
 	padding: 3px var(--space-2);
 }
 
+/* Copy / Try again under a bubble: quiet until hovered so they do not compete
+   with the reply itself. */
+.plume-bubble__actions {
+	display: flex;
+	gap: var(--space-1);
+	padding: var(--space-1) var(--space-2) 0;
+}
+
+.plume-bubble__actions .plume-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+	color: var(--color-text-muted);
+}
+
+.plume-bubble__actions .plume-btn:hover,
+.plume-bubble__actions .plume-btn:focus-visible {
+	color: var(--color-text-primary);
+}
+
 /* ── Shared input ── */
 .plume-input {
 	width: 100%;

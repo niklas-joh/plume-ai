@@ -67,3 +67,103 @@ describe( 'MessageBubble revision request', () => {
 		);
 	} );
 } );
+
+describe( 'MessageBubble actions', () => {
+	let container;
+	let root;
+
+	beforeEach( () => {
+		jest.useFakeTimers();
+		container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		root = createRoot( container );
+	} );
+
+	afterEach( () => {
+		act( () => {
+			root.unmount();
+		} );
+		document.body.removeChild( container );
+		jest.useRealTimers();
+		delete navigator.clipboard;
+	} );
+
+	const button = ( label ) =>
+		Array.from( container.querySelectorAll( 'button' ) ).find( ( b ) =>
+			b.textContent.includes( label )
+		);
+
+	it( 'copies a reply as its original Markdown', async () => {
+		const writeText = jest.fn( () => Promise.resolve() );
+		Object.defineProperty( navigator, 'clipboard', {
+			configurable: true,
+			value: { writeText },
+		} );
+		act( () => {
+			root.render(
+				<MessageBubble
+					message={ { role: 'assistant', content: '**Bold** idea' } }
+				/>
+			);
+		} );
+
+		await act( async () => {
+			button( 'Copy' ).click();
+		} );
+
+		expect( writeText ).toHaveBeenCalledWith( '**Bold** idea' );
+		expect( button( 'Copied' ) ).toBeDefined();
+	} );
+
+	it( 'offers no Copy button where the clipboard is unavailable', () => {
+		// navigator.clipboard is undefined on plain-HTTP admin sites.
+		act( () => {
+			root.render(
+				<MessageBubble
+					message={ { role: 'assistant', content: 'Reply' } }
+				/>
+			);
+		} );
+
+		expect( button( 'Copy' ) ).toBeUndefined();
+	} );
+
+	it( 'offers Retry on a failed message when a retry handler is given', () => {
+		const onRetry = jest.fn();
+		act( () => {
+			root.render(
+				<MessageBubble
+					message={ {
+						role: 'assistant',
+						content: 'Upstream unavailable',
+						isError: true,
+					} }
+					onRetry={ onRetry }
+				/>
+			);
+		} );
+
+		act( () => {
+			button( 'Try again' ).click();
+		} );
+
+		expect( onRetry ).toHaveBeenCalled();
+	} );
+
+	it( 'offers no Retry without a handler', () => {
+		act( () => {
+			root.render(
+				<MessageBubble
+					message={ {
+						role: 'assistant',
+						content: 'Upstream unavailable',
+						isError: true,
+					} }
+				/>
+			);
+		} );
+
+		expect( button( 'Try again' ) ).toBeUndefined();
+	} );
+} );
+

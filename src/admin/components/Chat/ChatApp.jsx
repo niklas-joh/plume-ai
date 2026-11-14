@@ -25,6 +25,13 @@ const NEW_CONVERSATION_TITLE = __( 'New conversation', 'plume' );
 const REGISTRATION_RETRY_CODES = new Set( [ 'not_registered', 'auth_failed' ] );
 const REGISTRATION_RETRY_DELAY_MS = 3000;
 
+// Failures that sending the same message again cannot fix, so no "Try again"
+// is offered: out of credits, and a provider the site has no key for.
+const NOT_RETRYABLE_CODES = new Set( [
+	'rate_limit_exceeded',
+	'provider_key_missing',
+] );
+
 const LAUNCH_SUGGESTIONS = [
 	{
 		...LAUNCH_ACTIONS[ 0 ],
@@ -295,6 +302,26 @@ export default function ChatApp() {
 		}
 	}
 
+	/**
+	 * Sends a failed message again.
+	 *
+	 * The server removes the stored question when a turn fails, so the failed
+	 * pair is taken off the screen and the message is simply sent again.
+	 *
+	 * @param {Object} failed Error message carrying `retry: { content, contextPostId }`.
+	 */
+	function retryMessage( failed ) {
+		setMessages( ( prev ) => {
+			const at = prev.indexOf( failed );
+			if ( at < 0 ) {
+				return prev;
+			}
+			const start = prev[ at - 1 ]?.role === 'user' ? at - 1 : at;
+			return [ ...prev.slice( 0, start ), ...prev.slice( at + 1 ) ];
+		} );
+		sendMessage( failed.retry.content, failed.retry.contextPostId );
+	}
+
 	async function sendMessage( content, contextPostId = null ) {
 		// Resolve conversation ID — create one if none active.
 		let convId = activeConvId;
@@ -326,9 +353,16 @@ export default function ChatApp() {
 
 		setMessages( ( prev ) => [ ...prev, { role: 'user', content } ] );
 		setIsLoading( true );
+		// Resolved now so a retry uses the post that was attached when the
+		// message was first sent, even if the attachment changed since.
+		const resolvedContextPostId = contextPostId ?? attachedPost?.id ?? null;
 
 		try {
-			const res = await sendChatMessage( convId, content, contextPostId );
+			const res = await sendChatMessage(
+				convId,
+				content,
+				resolvedContextPostId
+			);
 			// Filter out internal plumbing tools from the passive indicator.
 			const passiveTools = ( res.tools_called ?? [] ).filter(
 				( t ) =>
@@ -390,6 +424,9 @@ export default function ChatApp() {
 					// Rendered as the credits notice (with the ways forward)
 					// instead of a bare red error line.
 					outOfCredits: isOutOfCreditsError( err ),
+					retry: NOT_RETRYABLE_CODES.has( err?.code )
+						? null
+						: { content, contextPostId: resolvedContextPostId },
 				},
 			] );
 		} finally {
@@ -531,6 +568,7 @@ export default function ChatApp() {
 						<MessageList
 							messages={ messages }
 							isLoading={ isLoading }
+							onRetry={ retryMessage }
 						/>
 						<Composer
 							onSend={ sendMessage }

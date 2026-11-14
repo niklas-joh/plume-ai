@@ -298,6 +298,58 @@ describe( 'ChatApp', () => {
 			);
 		} );
 
+		it( 'retries a failed message without duplicating it', async () => {
+			const apiFetch = require( '@wordpress/api-fetch' );
+			let messageCalls = 0;
+			apiFetch.mockImplementation( ( { path, method } ) => {
+				if ( path === '/plume/v1/conversations' && method === 'POST' ) {
+					return Promise.resolve( {
+						id: 1,
+						title: 'New conversation',
+					} );
+				}
+				if (
+					path === '/plume/v1/conversations/1/messages' &&
+					method === 'POST'
+				) {
+					messageCalls += 1;
+					return messageCalls === 1
+						? Promise.reject( {
+								code: 'provider_error',
+								message: 'Upstream unavailable.',
+						  } )
+						: Promise.resolve( { content: 'Here you go.' } );
+				}
+				return Promise.resolve( [] );
+			} );
+
+			await act( async () => {
+				root.render( <ChatApp /> );
+			} );
+			await act( async () => {
+				typeAndSubmit( container, 'Five post ideas' );
+			} );
+
+			const retry = Array.from(
+				container.querySelectorAll( 'button' )
+			).find( ( b ) => b.textContent.includes( 'Try again' ) );
+			expect( retry ).toBeDefined();
+
+			await act( async () => {
+				retry.click();
+			} );
+
+			expect( messageCalls ).toBe( 2 );
+			expect(
+				container.querySelectorAll( '.plume-bubble--error' ).length
+			).toBe( 0 );
+			const userBubbles = Array.from(
+				container.querySelectorAll( '.plume-bubble--user' )
+			).filter( ( b ) => b.textContent.includes( 'Five post ideas' ) );
+			expect( userBubbles.length ).toBe( 1 );
+			expect( container.textContent ).toContain( 'Here you go.' );
+		} );
+
 		it( 'shows the credits notice with next steps, not a bare error, when credits run out', async () => {
 			const apiFetch = require( '@wordpress/api-fetch' );
 			apiFetch.mockImplementation( ( { path, method } ) => {

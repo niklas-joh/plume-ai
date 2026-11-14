@@ -186,12 +186,12 @@
 	margin: 0 0 var(--space-4);
 }
 
-/* Touch devices: 16px text in fields, so iOS Safari does not zoom the page in
-   on focus. */
+/* Phone form fields: enlarge to the no-zoom size (see --plume-touch-font-size
+   in tokens.css for why). */
 @media (pointer: coarse) {
 
 	.plume-prompt-input,
 	.plume-field-input {
-		font-size: 16px;
+		font-size: var(--plume-touch-font-size);
 	}
 }

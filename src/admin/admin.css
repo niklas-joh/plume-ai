@@ -2014,14 +2014,14 @@
 	opacity: 0.85;
 }
 
-/* Touch devices: 16px text in fields. Smaller text makes iOS Safari zoom the
-   whole page in on focus, which on a phone hides the rest of the screen. */
+/* Phone form fields: enlarge to the no-zoom size (see --plume-touch-font-size
+   in tokens.css for why). */
 @media (pointer: coarse) {
 
 	.plume-composer__input,
 	.plume-context-picker__input,
 	.plume-input,
 	.plume-select {
-		font-size: 16px;
+		font-size: var(--plume-touch-font-size);
 	}
 }

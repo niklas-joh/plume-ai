@@ -326,7 +326,7 @@ class ChatRestController {
 	 * @since 1.13.3 Returns 422 with code 'site_unreachable' instead of the generic
 	 *                      503 'not_registered' when a permanent site-verification failure
 	 *                      is on record (see SiteRegistration::get_unavailable_error()).
-	 * @since NEXT_VERSION Returns 422 with code 'provider_key_missing' when the site has its own
+	 * @since 2.1.0 Returns 422 with code 'provider_key_missing' when the site has its own
 	 *                      key for some provider but none for the requested one, which the managed
 	 *                      service does not serve; otherwise a disabled managed provider is
 	 *                      resolved to Claude at runtime (see ProviderFactory::resolve_text_slug()).
@@ -734,7 +734,7 @@ class ChatRestController {
 	 * key and Ollama are always listed with their own models.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Filtered by the Worker's managed catalogue.
+	 * @since 2.1.0 Filtered by the Worker's managed catalogue.
 	 * @param \WP_REST_Request $request Incoming REST request (unused).
 	 * @return \WP_REST_Response
 	 */
@@ -870,7 +870,7 @@ class ChatRestController {
 	/**
 	 * Current site tier slug — overridable in tests.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @return string
 	 */
 	protected function current_tier(): string {

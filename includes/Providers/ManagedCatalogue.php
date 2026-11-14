@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * | Unregistered site (no token)                 | FALLBACK_ENABLED         | none                    | none             |
  * | pro_byok tier                                | every PROXY_CAPABLE      | none                    | none             |
  *
- * @since NEXT_VERSION
+ * @since 2.1.0
  */
 final class ManagedCatalogue {
 
@@ -45,7 +45,7 @@ final class ManagedCatalogue {
 	 *
 	 * Short, because a KV override is an operational lever that should show up soon.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 */
 	public const LIVE_TTL = HOUR_IN_SECONDS;
 
@@ -55,21 +55,21 @@ final class ManagedCatalogue {
 	 * Short, so an unreachable Worker costs at most one timeout per tier per five
 	 * minutes rather than one per request, yet recovery is quick.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 */
 	public const FAILURE_TTL = 5 * MINUTE_IN_SECONDS;
 
 	/**
 	 * Transient key prefix; the normalised tier slug is appended.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 */
 	private const TRANSIENT_PREFIX = 'plume_managed_catalogue_';
 
 	/**
 	 * Most model ids kept per provider; a sanity bound on Worker data.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 */
 	private const MAX_MODELS_PER_PROVIDER = 20;
 
@@ -83,7 +83,7 @@ final class ManagedCatalogue {
 	 * On removal: return every provider (all of ProviderFactory::PROXY_CAPABLE) here
 	 * and update the parity tests on both sides together with the Worker default.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @var string[]
 	 */
 	public const FALLBACK_ENABLED = [ 'claude' ];
@@ -94,7 +94,7 @@ final class ManagedCatalogue {
 	 * Never throws and never returns a partial shape. An unregistered site fetches and
 	 * caches nothing, so it picks up the live catalogue as soon as it registers.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param string $tier Tier slug.
 	 * @return array{enabled_providers: string[], models: array<string, string[]>, default_models: array<string, string>}
 	 */
@@ -129,7 +129,7 @@ final class ManagedCatalogue {
 	/**
 	 * Whether the Worker serves a provider on a tier.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param string $provider Provider slug.
 	 * @param string $tier     Tier slug.
 	 * @return bool
@@ -141,7 +141,7 @@ final class ManagedCatalogue {
 	/**
 	 * Model ids the Worker allows for a provider on a tier.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param string $provider Provider slug.
 	 * @param string $tier     Tier slug.
 	 * @return string[]|null Null when the Worker gave no list, so callers use the
@@ -157,7 +157,7 @@ final class ManagedCatalogue {
 	 * Label precedence: the provider's own label, then ManagedDefaults::label(), then
 	 * the raw id (the Worker sends no display names).
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param string                $provider        Provider slug.
 	 * @param string                $tier            Tier slug.
 	 * @param array<string, string> $provider_models The provider's own id => label map.
@@ -180,7 +180,7 @@ final class ManagedCatalogue {
 	/**
 	 * The catalogue used when the Worker cannot be asked or answered badly.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @return array{enabled_providers: string[], models: array<string, string[]>, default_models: array<string, string>}
 	 */
 	private static function fallback(): array {
@@ -194,7 +194,7 @@ final class ManagedCatalogue {
 	/**
 	 * Whether a cached value is a complete catalogue entry.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param mixed $value Value read from the transient.
 	 * @return bool
 	 */
@@ -208,7 +208,7 @@ final class ManagedCatalogue {
 	/**
 	 * Validate a Worker response into a catalogue entry.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param array<string, mixed>|null $body Decoded /v1/config body, or null on failure.
 	 * @return array{enabled_providers: string[], models: array<string, string[]>, default_models: array<string, string>}|null
 	 *         Null when the body is missing or `enabled_providers` is present but not a list.
@@ -248,7 +248,7 @@ final class ManagedCatalogue {
 	/**
 	 * Keep only id-shaped model ids, for enabled providers, capped per provider.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param mixed    $models  The `models` value from the Worker response.
 	 * @param string[] $enabled Enabled provider slugs.
 	 * @return array<string, string[]> Non-empty valid lists only.
@@ -281,7 +281,7 @@ final class ManagedCatalogue {
 	/**
 	 * Keep only known providers whose model id looks like a model id.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.1.0
 	 * @param mixed $default_models The `default_models` value from the Worker response.
 	 * @return array<string, string> Valid entries only.
 	 */

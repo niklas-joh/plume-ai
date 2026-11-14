@@ -69,6 +69,9 @@ export default function ChatApp() {
 	const [ deletingIds, setDeletingIds ] = useState( new Set() );
 	const [ deleteErrors, setDeleteErrors ] = useState( {} );
 	const [ drawerPlan, setDrawerPlan ] = useState( null );
+	// A pending "New post" plan restored from the server after a reload; update
+	// plans go to the review drawer instead.
+	const [ restoredPlan, setRestoredPlan ] = useState( null );
 	const [ modelJustSaved, setModelJustSaved ] = useState( false );
 	const savedFlashTimeoutRef = useRef( null );
 	const skipLoadRef = useRef( false );
@@ -118,6 +121,7 @@ export default function ChatApp() {
 		let cancelled = false;
 		if ( ! activeConvId ) {
 			setDrawerPlan( null );
+			setRestoredPlan( null );
 		} else {
 			apiFetch( {
 				path: `/plume/v1/conversations/${ activeConvId }/pending-plan`,
@@ -127,11 +131,14 @@ export default function ChatApp() {
 						return;
 					}
 					const plan = res?.pending_plan ?? null;
-					setDrawerPlan( plan?.plan_type === 'update' ? plan : null );
+					const isUpdate = plan?.plan_type === 'update';
+					setDrawerPlan( isUpdate ? plan : null );
+					setRestoredPlan( plan && ! isUpdate ? plan : null );
 				} )
 				.catch( () => {
 					if ( ! cancelled ) {
 						setDrawerPlan( null );
+						setRestoredPlan( null );
 					}
 				} );
 		}
@@ -566,7 +573,7 @@ export default function ChatApp() {
 				) : (
 					<>
 						<MessageList
-							messages={ messages }
+							messages={ withRestoredPlan( messages, restoredPlan ) }
 							isLoading={ isLoading }
 							onRetry={ retryMessage }
 						/>
@@ -622,6 +629,32 @@ export default function ChatApp() {
 			) }
 		</div>
 	);
+}
+
+/**
+ * Attach a restored pending plan to the conversation's latest reply.
+ *
+ * Messages loaded from the server carry no plan, so after a reload the
+ * "New post" card would vanish although the plan is still waiting for
+ * approval. It is shown under the latest assistant message, unless a message
+ * already carries it (the plan arrived in this page session).
+ *
+ * @param {Array}       messages Conversation messages.
+ * @param {Object|null} plan     Pending plan restored from the server.
+ * @return {Array} The messages, with the plan attached where needed.
+ */
+function withRestoredPlan( messages, plan ) {
+	if ( ! plan || messages.some( ( m ) => m.pending_plan?.id === plan.id ) ) {
+		return messages;
+	}
+	for ( let i = messages.length - 1; i >= 0; i-- ) {
+		if ( messages[ i ].role === 'assistant' && ! messages[ i ].isError ) {
+			const next = [ ...messages ];
+			next[ i ] = { ...messages[ i ], pending_plan: plan };
+			return next;
+		}
+	}
+	return messages;
 }
 
 /**

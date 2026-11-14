@@ -390,6 +390,44 @@ describe( 'ChatApp', () => {
 		} );
 	} );
 
+	it( 'shows a pending "New post" plan again after a reload', async () => {
+		const storage = require( '../../src/admin/utils/storage' );
+		storage.storageGet.mockImplementation( ( key ) =>
+			key === 'plume-active-conv' ? '5' : null
+		);
+		const apiFetch = require( '@wordpress/api-fetch' );
+		apiFetch.mockImplementation( ( { path } ) => {
+			if ( path === '/plume/v1/conversations/5/pending-plan' ) {
+				return Promise.resolve( {
+					pending_plan: {
+						id: 'abc123',
+						plan_type: 'create',
+						title: 'Spring herbs',
+						outline: 'Basil, mint, chives.',
+						post_status: 'draft',
+						post_type: 'post',
+					},
+				} );
+			}
+			if ( path === '/plume/v1/conversations/5/messages' ) {
+				return Promise.resolve( [
+					{ role: 'user', content: 'Write about herbs' },
+					{ role: 'assistant', content: 'Here is a plan.' },
+				] );
+			}
+			return Promise.resolve( [] );
+		} );
+
+		await act( async () => {
+			root.render( <ChatApp /> );
+		} );
+
+		const card = container.querySelector( '.plume-plan-card' );
+		expect( card ).not.toBeNull();
+		expect( card.textContent ).toContain( 'Spring herbs' );
+		storage.storageGet.mockImplementation( () => null );
+	} );
+
 	describe( 'provider/model persistence', () => {
 		const PROVIDERS = [
 			{

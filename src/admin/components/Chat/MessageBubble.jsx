@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import apiFetch from '@wordpress/api-fetch';
 import { Cpu, Copy, Check, RotateCcw } from 'lucide-react';
 import MarkdownContent from '../../../shared/MarkdownContent';
 import PlanCard from './PlanCard';
@@ -70,6 +71,29 @@ export default function MessageBubble( { message, onRetry, isLoading = false } )
 		}
 	}
 	const [ plan, setPlan ] = useState( message.pending_plan ?? null );
+
+	// A plan can reach an already-rendered message: after a reload ChatApp
+	// attaches the conversation's pending plan to its latest reply.
+	const incomingPlanId = message.pending_plan?.id;
+	useEffect( () => {
+		if ( incomingPlanId ) {
+			setPlan( message.pending_plan );
+		}
+		// Keyed on the id: a new object for the same plan must not undo a dismiss.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ incomingPlanId ] );
+
+	function dismissPlan() {
+		const planId = plan?.id;
+		setPlan( null );
+		if ( planId ) {
+			// Best effort: without it the plan returns on reload until it expires.
+			apiFetch( {
+				path: `/plume/v1/plans/${ planId }`,
+				method: 'DELETE',
+			} ).catch( () => {} );
+		}
+	}
 	const revision = isAI ? null : parseRevisionMessage( message.content );
 
 	if ( message.outOfCredits ) {
@@ -185,7 +209,7 @@ export default function MessageBubble( { message, onRetry, isLoading = false } )
 				</div>
 			) }
 			{ isAI && plan && plan.plan_type !== 'update' && (
-				<PlanCard plan={ plan } onDismiss={ () => setPlan( null ) } />
+				<PlanCard plan={ plan } onDismiss={ dismissPlan } />
 			) }
 			{ isAI && message.applyEditUrl && (
 				<div className="plume-bubble__apply-success">

@@ -847,6 +847,16 @@
 	font-family: var(--font-sans);
 	font-size: var(--text-base);
 	min-height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
+
+	/* WordPress gives admin pages no right gutter on a phone. */
+	padding-right: var(--space-3);
+}
+
+@media (min-width: 783px) {
+
+	.plume-settings-shell {
+		padding-right: 0;
+	}
 }
 
 /* Header bar */
@@ -1356,6 +1366,9 @@
 /* ProvidersTab — TextControl + Button side-by-side alignment */
 .plume-field-input-group .components-base-control {
 	flex: 1;
+
+	/* Lets the field shrink on a phone so its Save button stays on screen. */
+	min-width: 0;
 	margin-bottom: 0;
 }
 
@@ -2000,3 +2013,16 @@
 .plume-btn--success:hover {
 	opacity: 0.85;
 }
+
+/* Touch devices: 16px text in fields. Smaller text makes iOS Safari zoom the
+   whole page in on focus, which on a phone hides the rest of the screen. */
+@media (pointer: coarse) {
+
+	.plume-composer__input,
+	.plume-context-picker__input,
+	.plume-input,
+	.plume-select {
+		font-size: 16px;
+	}
+}
+

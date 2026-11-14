@@ -231,13 +231,7 @@ export default function GeneratorWizard() {
 					__nextHasNoMarginBottom
 				/>
 
-				<div
-					style={ {
-						display: 'grid',
-						gridTemplateColumns: '1fr 1fr',
-						gap: 'var(--space-4)',
-					} }
-				>
+				<div className="plume-generator__options">
 					<SelectControl
 						label="Tone"
 						options={ TONES.map( ( t ) => ( {

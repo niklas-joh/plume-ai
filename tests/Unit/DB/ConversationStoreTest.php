@@ -13,6 +13,14 @@ class FakeWpdb {
     public string $prefix    = 'wp_';
     public int    $insert_id = 0;
 
+    /** @var array<int, array{0: string, 1: array}> Recorded delete() calls. */
+    public array $deleted = [];
+
+    public function delete( string $table, array $where, array $format = [] ): int {
+        $this->deleted[] = [ $table, $where ];
+        return 1;
+    }
+
     public function insert( string $table, array $data, array $format = [] ): int {
         return 1;
     }
@@ -49,5 +57,37 @@ class ConversationStoreTest extends TestCase {
         $store = new ConversationStore();
         $id    = $store->add_message( 42, 'user', 'Hello', 'gpt-4o', 10 );
         $this->assertSame( 99, $id );
+    }
+
+    /**
+     * A message is deleted only together with its conversation id, so a caller
+     * can never remove a message from someone else's conversation by id alone.
+     *
+     * @since NEXT_VERSION
+     */
+    public function test_delete_message_scopes_the_delete_to_its_conversation(): void {
+        global $wpdb;
+        $fake = new FakeWpdb();
+        $wpdb = $fake;
+
+        ( new ConversationStore() )->delete_message( 42, 99 );
+
+        $this->assertCount( 1, $fake->deleted );
+        $this->assertSame( [ 'id' => 99, 'conversation_id' => 42 ], $fake->deleted[0][1] );
+    }
+
+    /**
+     * An id of 0 (a failed insert) deletes nothing.
+     *
+     * @since NEXT_VERSION
+     */
+    public function test_delete_message_ignores_an_empty_id(): void {
+        global $wpdb;
+        $fake = new FakeWpdb();
+        $wpdb = $fake;
+
+        ( new ConversationStore() )->delete_message( 42, 0 );
+
+        $this->assertCount( 0, $fake->deleted );
     }
 }

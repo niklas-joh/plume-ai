@@ -28,7 +28,7 @@ const STATUS_LABELS = {
  * @param {string}   [props.plan.new_title]   Updated post title, if changing (update plans).
  * @param {string}   [props.plan.post_status] Publication status.
  * @param {string}   [props.plan.post_type]   Post type.
- * @param {Function} props.onDismiss     Called when the user dismisses the card (no server call).
+ * @param {Function} props.onDismiss     Called when the user dismisses the card; the parent discards the plan on the server.
  * @return {ReactElement}
  *
  * @example

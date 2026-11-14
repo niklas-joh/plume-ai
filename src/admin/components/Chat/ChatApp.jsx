@@ -34,6 +34,8 @@ const REGISTRATION_RETRY_DELAY_MS = 3000;
 
 // Failures that sending the same message again cannot fix, so no "Try again"
 // is offered: out of credits, and a provider the site has no key for.
+// Out-of-credits replies already show the credits notice instead of an error
+// bubble; the code is listed too so a Retry can never appear for it.
 const NOT_RETRYABLE_CODES = new Set( [
 	'rate_limit_exceeded',
 	'provider_key_missing',
@@ -683,9 +685,19 @@ export default function ChatApp() {
 				) : (
 					<>
 						<MessageList
-							messages={ withRestoredPlan( messages, restoredPlan ) }
+							messages={ withRestoredPlan(
+								messages,
+								restoredPlan
+							) }
 							isLoading={ isLoading }
 							onRetry={ retryMessage }
+							// Forget a restored plan once dismissed, or it would
+							// re-attach to the next reply.
+							onPlanDismiss={ ( planId ) =>
+								setRestoredPlan( ( current ) =>
+									current?.id === planId ? null : current
+								)
+							}
 						/>
 						<Composer
 							onSend={ sendMessage }

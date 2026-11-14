@@ -17,8 +17,9 @@ jest.mock( '@wordpress/element', () => ( {
 
 // lucide-react icons — stub every named export as a no-op span so the component
 // can render without importing the full SVG bundle.
-jest.mock( 'lucide-react', () =>
-	new Proxy( {}, { get: () => () => <span /> } )
+jest.mock(
+	'lucide-react',
+	() => new Proxy( {}, { get: () => () => <span /> } )
 );
 
 // Storage utility used by ChatApp to persist sidebar collapse state.
@@ -104,7 +105,9 @@ describe( 'ChatApp', () => {
 			root.render( <ChatApp /> );
 		} );
 
-		const { QUICK_ACTIONS } = require( '../../src/admin/components/Chat/actions' );
+		const {
+			QUICK_ACTIONS,
+		} = require( '../../src/admin/components/Chat/actions' );
 		const buttons = container.querySelectorAll( '.plume-quick-action' );
 		expect( buttons.length ).toBe( QUICK_ACTIONS.length );
 		expect( container.querySelector( '.plume-pro-teaser' ) ).toBeNull();
@@ -317,7 +320,7 @@ describe( 'ChatApp', () => {
 						? Promise.reject( {
 								code: 'provider_error',
 								message: 'Upstream unavailable.',
-						  } )
+							} )
 						: Promise.resolve( { content: 'Here you go.' } );
 				}
 				return Promise.resolve( [] );
@@ -425,6 +428,63 @@ describe( 'ChatApp', () => {
 		const card = container.querySelector( '.plume-plan-card' );
 		expect( card ).not.toBeNull();
 		expect( card.textContent ).toContain( 'Spring herbs' );
+		storage.storageGet.mockImplementation( () => null );
+	} );
+
+	it( 'keeps a dismissed restored plan away after the next reply', async () => {
+		const storage = require( '../../src/admin/utils/storage' );
+		storage.storageGet.mockImplementation( ( key ) =>
+			key === 'plume-active-conv' ? '5' : null
+		);
+		const apiFetch = require( '@wordpress/api-fetch' );
+		apiFetch.mockImplementation( ( { path, method } ) => {
+			if ( path === '/plume/v1/conversations/5/pending-plan' ) {
+				return Promise.resolve( {
+					pending_plan: {
+						id: 'abc123',
+						plan_type: 'create',
+						title: 'Spring herbs',
+						outline: 'Basil, mint, chives.',
+						post_status: 'draft',
+						post_type: 'post',
+					},
+				} );
+			}
+			if ( path === '/plume/v1/conversations/5/messages' ) {
+				return method === 'POST'
+					? Promise.resolve( { content: 'Anything else?' } )
+					: Promise.resolve( [
+							{ role: 'user', content: 'Write about herbs' },
+							{ role: 'assistant', content: 'Here is a plan.' },
+						] );
+			}
+			return Promise.resolve( [] );
+		} );
+
+		await act( async () => {
+			root.render( <ChatApp /> );
+		} );
+		await act( async () => {
+			container
+				.querySelector( '.plume-plan-card__dismiss' )
+				.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		} );
+		expect( container.querySelector( '.plume-plan-card' ) ).toBeNull();
+
+		const textarea = container.querySelector( '.plume-composer__input' );
+		Object.getOwnPropertyDescriptor(
+			window.HTMLTextAreaElement.prototype,
+			'value'
+		).set.call( textarea, 'Thanks' );
+		textarea.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+		await act( async () => {
+			textarea.dispatchEvent(
+				new KeyboardEvent( 'keydown', { key: 'Enter', bubbles: true } )
+			);
+		} );
+
+		expect( container.textContent ).toContain( 'Anything else?' );
+		expect( container.querySelector( '.plume-plan-card' ) ).toBeNull();
 		storage.storageGet.mockImplementation( () => null );
 	} );
 
@@ -537,7 +597,10 @@ describe( 'ChatApp', () => {
 					return Promise.resolve( [ PROVIDERS[ 0 ] ] );
 				}
 				if ( path === '/plume/v1/conversations' && method === 'POST' ) {
-					return Promise.resolve( { id: 1, title: 'New conversation' } );
+					return Promise.resolve( {
+						id: 1,
+						title: 'New conversation',
+					} );
 				}
 				if (
 					path === '/plume/v1/conversations/1/messages' &&
@@ -570,7 +633,9 @@ describe( 'ChatApp', () => {
 			).set;
 			await act( async () => {
 				setter.call( textarea, 'Hi there' );
-				textarea.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+				textarea.dispatchEvent(
+					new Event( 'input', { bubbles: true } )
+				);
 				textarea.dispatchEvent(
 					new KeyboardEvent( 'keydown', {
 						key: 'Enter',

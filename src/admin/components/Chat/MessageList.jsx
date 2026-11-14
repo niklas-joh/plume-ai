@@ -55,9 +55,15 @@ function useWaitingText( isWaiting ) {
  * @param {Array}   props.messages   Array of message objects passed to MessageBubble.
  * @param {boolean} props.isLoading  When true, shows the waiting indicator at the bottom.
  * @param {Function} [props.onRetry] Called with a failed message to send it again; offered on the newest message only.
+ * @param {Function} [props.onPlanDismiss] Called with the plan id when the user dismisses a plan card.
  * @return {ReactElement}
  */
-export default function MessageList( { messages, isLoading, onRetry } ) {
+export default function MessageList( {
+	messages,
+	isLoading,
+	onRetry,
+	onPlanDismiss,
+} ) {
 	const bottomRef = useRef( null );
 	const waitingText = useWaitingText( isLoading );
 
@@ -72,6 +78,7 @@ export default function MessageList( { messages, isLoading, onRetry } ) {
 					key={ i }
 					message={ msg }
 					isLoading={ isLoading }
+					onPlanDismiss={ onPlanDismiss }
 					// Only the newest failure can be retried: retrying an older one
 					// would answer a question out of order.
 					onRetry={

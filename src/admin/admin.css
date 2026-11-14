@@ -225,6 +225,28 @@
 	border-top-left-radius: var(--radius-sm);
 }
 
+/* Waiting indicator: spinner bubble with the stage text beside it. The row is
+   always mounted so its status region exists before it is needed; when idle it
+   takes no space but stays in the accessibility tree. */
+.plume-waiting {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+}
+
+.plume-waiting.is-idle {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+}
+
+.plume-waiting__text {
+	color: var(--color-text-muted);
+	font-size: var(--text-sm);
+}
+
 .plume-bubble--error .plume-bubble__content {
 	background: #fde8e8;
 	background: color-mix(in srgb, #cc1818 8%, #fff);

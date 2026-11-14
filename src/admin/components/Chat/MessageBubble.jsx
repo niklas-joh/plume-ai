@@ -209,7 +209,7 @@ export default function MessageBubble( {
 						) : (
 							<Copy size={ 12 } strokeWidth={ 1.5 } />
 						) }
-						<span aria-live="polite">
+						<span>
 							{ copied
 								? __( 'Copied', 'plume' )
 								: __( 'Copy', 'plume' ) }

@@ -64,6 +64,27 @@
 	max-width: 92%;
 }
 
+.plume-editor-mini-chat__bubble--error {
+	background: var(--color-surface);
+	border: 1px solid var(--color-error);
+	color: var(--color-error);
+}
+
+.plume-editor-mini-chat__empty {
+	color: var(--color-text-muted);
+	font-size: var(--text-sm);
+	text-align: center;
+	padding: var(--space-4);
+	margin: 0;
+}
+
+/* The credits notice is laid out for wide screens; in the narrow sidebar it
+   stacks and uses the sidebar's smaller text size. */
+.plume-editor-mini-chat .plume-out-of-credits-banner {
+	font-size: var(--text-sm);
+	padding: var(--space-2) var(--space-3);
+}
+
 .plume-editor-mini-chat__composer {
 	display: flex;
 	flex-direction: row;
@@ -156,6 +177,13 @@
 .plume-block-actions__btn > svg {
 	margin-right: var(--space-2);
 	flex-shrink: 0;
+}
+
+/* While an action runs the buttons stay focusable (aria-disabled) but look and
+   behave as unavailable. */
+.plume-block-actions__btn.is-disabled {
+	opacity: 0.6;
+	cursor: default;
 }
 
 .plume-block-actions__btn:hover {

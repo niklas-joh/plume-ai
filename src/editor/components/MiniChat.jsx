@@ -1,7 +1,12 @@
 import { useState, useRef, useEffect } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import { Send, Loader2 } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 import MarkdownContent from '../../shared/MarkdownContent';
+import OutOfCreditsNotice from '../../shared/OutOfCreditsNotice';
+import { getErrorMessage } from '../../shared/errors';
+import { isOutOfCreditsError } from '../../shared/credits';
+import { DEFAULT_WEBSITE_URL } from '../../shared/constants';
 
 /**
  * Compact chat interface embedded in the Block Editor plugin sidebar.
@@ -10,6 +15,9 @@ import MarkdownContent from '../../shared/MarkdownContent';
  * current post via `post_id`. The conversation ID is kept in local state so
  * subsequent messages append to the same thread without a second POST to
  * /conversations.
+ *
+ * A failed request is shown in the thread (or as the out-of-credits notice),
+ * so the author is never left looking at their own message with no answer.
  *
  * @param {Object}      props
  * @param {number|null} props.postId  Current post ID from `core/editor`; passed as `post_id` when creating a conversation and as `context_post_id` on every message to enable post-aware AI responses.
@@ -56,40 +64,72 @@ export default function MiniChat( { postId } ) {
 				...prev,
 				{ role: 'assistant', content: res.content },
 			] );
+		} catch ( e ) {
+			setMessages( ( prev ) => [
+				...prev,
+				{
+					role: 'assistant',
+					isError: true,
+					outOfCredits: isOutOfCreditsError( e ),
+					content: getErrorMessage(
+						e,
+						__( 'Something went wrong. Please try again.', 'plume' )
+					),
+				},
+			] );
 		} finally {
 			setIsLoading( false );
 		}
+	}
+
+	function renderMessage( m, i ) {
+		if ( m.outOfCredits ) {
+			const { websiteUrl = DEFAULT_WEBSITE_URL, settingsUrl = '' } =
+				window.plumeData ?? {};
+			return (
+				<OutOfCreditsNotice
+					key={ i }
+					websiteUrl={ websiteUrl }
+					settingsUrl={ settingsUrl }
+				/>
+			);
+		}
+		if ( m.isError ) {
+			return (
+				<div
+					key={ i }
+					role="alert"
+					className="plume-editor-mini-chat__bubble plume-editor-mini-chat__bubble--ai plume-editor-mini-chat__bubble--error"
+				>
+					{ m.content }
+				</div>
+			);
+		}
+		return (
+			<div
+				key={ i }
+				className={ `plume-editor-mini-chat__bubble plume-editor-mini-chat__bubble--${
+					m.role === 'user' ? 'user' : 'ai'
+				}` }
+			>
+				{ m.role === 'assistant' ? (
+					<MarkdownContent content={ m.content } />
+				) : (
+					m.content
+				) }
+			</div>
+		);
 	}
 
 	return (
 		<div className="plume-editor-mini-chat">
 			<div className="plume-editor-mini-chat__messages">
 				{ messages.length === 0 && (
-					<p
-						style={ {
-							color: 'var(--color-text-muted)',
-							fontSize: 'var(--text-sm)',
-							textAlign: 'center',
-							padding: 'var(--space-4)',
-						} }
-					>
-						Ask anything about this post…
+					<p className="plume-editor-mini-chat__empty">
+						{ __( 'Ask anything about this post…', 'plume' ) }
 					</p>
 				) }
-				{ messages.map( ( m, i ) => (
-					<div
-						key={ i }
-						className={ `plume-editor-mini-chat__bubble plume-editor-mini-chat__bubble--${
-							m.role === 'user' ? 'user' : 'ai'
-						}` }
-					>
-						{ m.role === 'assistant' ? (
-							<MarkdownContent content={ m.content } />
-						) : (
-							m.content
-						) }
-					</div>
-				) ) }
+				{ messages.map( renderMessage ) }
 				{ isLoading && (
 					<div className="plume-editor-mini-chat__bubble plume-editor-mini-chat__bubble--ai">
 						<Loader2 size={ 14 } className="plume-spin" />
@@ -107,13 +147,16 @@ export default function MiniChat( { postId } ) {
 						! e.shiftKey &&
 						( e.preventDefault(), send() )
 					}
-					placeholder="Ask AI…"
+					placeholder={ __( 'Ask AI…', 'plume' ) }
+					aria-label={ __( 'Message to the AI', 'plume' ) }
 					disabled={ isLoading }
 				/>
 				<button
+					type="button"
 					className="plume-editor-mini-chat__send"
 					onClick={ send }
 					disabled={ isLoading || ! input.trim() }
+					aria-label={ __( 'Send', 'plume' ) }
 				>
 					{ isLoading ? (
 						<Loader2 size={ 14 } className="plume-spin" />

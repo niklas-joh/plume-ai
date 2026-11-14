@@ -22,28 +22,79 @@
 	overflow: hidden;
 }
 
-/* ── Shell layout ── */
+/* ── Shell layout ──
+   Mobile first. On a phone the conversation fills the screen and both side
+   panels are drawers over it (opened from .plume-mobile-bar). From 783px, the
+   WordPress admin breakpoint, they become the fixed three-column layout.
+   Each min-width block sits right after the base rules it overrides. */
 .plume-shell {
 	display: grid;
-	grid-template-columns: var(--plume-sidebar-width) 1fr 240px;
+	grid-template-columns: minmax(0, 1fr);
 	height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
+
+	/* dvh follows the phone's collapsing browser toolbar; 100vh above is the
+	   fallback for browsers without it. */
+	height: calc(100dvh - var(--wp-admin--admin-bar--height, 32px));
 	background: #fff;
 	color: #1d2327;
 	font-family: var(--font-sans);
 	font-size: var(--text-base);
 	overflow: hidden;
 
-	/* Anchor for the absolutely-positioned review drawer overlay. */
+	/* Anchor for the absolutely-positioned drawers and review drawer. */
 	position: relative;
-	transition: grid-template-columns 0.15s ease;
 }
 
-.plume-shell--sidebar-collapsed {
-	grid-template-columns: var(--plume-sidebar-collapsed-width) 1fr 240px;
+@media (min-width: 783px) {
+
+	.plume-shell {
+		grid-template-columns: var(--plume-sidebar-width) minmax(0, 1fr) 240px;
+		transition: grid-template-columns 0.15s ease;
+	}
+
+	.plume-shell--sidebar-collapsed {
+		grid-template-columns: var(--plume-sidebar-collapsed-width) minmax(0, 1fr) 240px;
+	}
 }
 
-/* ── Sidebar ── */
+/* Phone bar above the conversation: drawer toggles and the conversation title. */
+.plume-mobile-bar {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-1) var(--space-2);
+	border-bottom: 1px solid var(--color-border);
+	background: var(--color-surface);
+}
+
+.plume-mobile-bar__title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-weight: 600;
+	text-align: center;
+}
+
+/* ── Sidebar and right panel ──
+   Side panels: drawers on a phone, columns from 783px. Closed drawers are
+   visibility: hidden, which also takes them out of the tab order. */
+.plume-sidebar,
+.plume-right-panel {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	z-index: 30;
+	width: min(85%, 320px);
+	visibility: hidden;
+	box-shadow: 0 0 24px rgba(0, 0, 0, 0.18);
+	transition: transform 0.2s ease, visibility 0.2s;
+}
+
 .plume-sidebar {
+	left: 0;
+	transform: translateX(-100%);
 	background: var(--color-surface-2);
 	border-right: 1px solid var(--color-border);
 	display: flex;
@@ -51,9 +102,59 @@
 	overflow: hidden;
 }
 
+.plume-right-panel {
+	right: 0;
+	transform: translateX(100%);
+	background: var(--color-surface);
+	border-left: 1px solid var(--color-border);
+	overflow-y: auto;
+	padding: var(--space-4);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-5);
+}
+
+.plume-shell--show-conversations .plume-sidebar,
+.plume-shell--show-tools .plume-right-panel {
+	visibility: visible;
+	transform: none;
+}
+
+.plume-drawer-backdrop {
+	position: absolute;
+	inset: 0;
+	z-index: 25;
+	background: rgba(0, 0, 0, 0.35);
+}
+
+@media (min-width: 783px) {
+
+	.plume-sidebar,
+	.plume-right-panel {
+		position: static;
+		z-index: auto;
+		width: auto;
+		visibility: visible;
+		box-shadow: none;
+		transform: none;
+		transition: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.plume-sidebar,
+	.plume-right-panel {
+		transition: none;
+	}
+}
+
+
 .plume-sidebar__toggle {
 	flex-shrink: 0;
-	display: flex;
+
+	/* Collapsing is a desktop feature; on a phone the list is a drawer. */
+	display: none;
 	align-items: center;
 	justify-content: center;
 	color: var(--color-text-muted);
@@ -97,23 +198,30 @@
 	padding: var(--space-2);
 }
 
-/* Collapsed sidebar: hide list and title, centre the toggle.
+/* Collapsed sidebar (desktop only): hide list and title, centre the toggle.
    Placed after all base selectors to satisfy no-descending-specificity. */
-.plume-shell--sidebar-collapsed .plume-sidebar__title,
-.plume-shell--sidebar-collapsed .plume-conv-list,
-.plume-shell--sidebar-collapsed .plume-sidebar__empty {
-	display: none;
-}
+@media (min-width: 783px) {
 
-.plume-shell--sidebar-collapsed .plume-sidebar__header {
-	justify-content: center;
-	padding: var(--space-2) 0;
-	border-bottom: none;
-}
+	.plume-sidebar__toggle {
+		display: flex;
+	}
 
-.plume-shell--sidebar-collapsed .plume-sidebar__toggle {
-	width: 100%;
-	height: 36px;
+	.plume-shell--sidebar-collapsed .plume-sidebar__title,
+	.plume-shell--sidebar-collapsed .plume-conv-list,
+	.plume-shell--sidebar-collapsed .plume-sidebar__empty {
+		display: none;
+	}
+
+	.plume-shell--sidebar-collapsed .plume-sidebar__header {
+		justify-content: center;
+		padding: var(--space-2) 0;
+		border-bottom: none;
+	}
+
+	.plume-shell--sidebar-collapsed .plume-sidebar__toggle {
+		width: 100%;
+		height: 36px;
+	}
 }
 
 .plume-conv-item {
@@ -194,10 +302,17 @@
 .plume-messages {
 	flex: 1;
 	overflow-y: auto;
-	padding: var(--space-6) var(--space-8);
+	padding: var(--space-4);
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-4);
+}
+
+@media (min-width: 783px) {
+
+	.plume-messages {
+		padding: var(--space-6) var(--space-8);
+	}
 }
 
 /* ── Bubbles ── */
@@ -542,15 +657,6 @@
 }
 
 /* ── Right panel ── */
-.plume-right-panel {
-	background: var(--color-surface);
-	border-left: 1px solid var(--color-border);
-	overflow-y: auto;
-	padding: var(--space-4);
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-5);
-}
 
 .plume-panel-section {
 	display: flex;
@@ -741,6 +847,16 @@
 	font-family: var(--font-sans);
 	font-size: var(--text-base);
 	min-height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
+
+	/* WordPress gives admin pages no right gutter on a phone. */
+	padding-right: var(--space-3);
+}
+
+@media (min-width: 783px) {
+
+	.plume-settings-shell {
+		padding-right: 0;
+	}
 }
 
 /* Header bar */
@@ -1051,6 +1167,13 @@
 	padding: 3px var(--space-2);
 }
 
+/* 44px touch targets for the phone bar's drawer toggles. */
+.plume-mobile-bar .plume-btn--icon {
+	min-width: 44px;
+	min-height: 44px;
+	justify-content: center;
+}
+
 /* Copy / Try again under a bubble: quiet until hovered so they do not compete
    with the reply itself. */
 .plume-bubble__actions {
@@ -1243,6 +1366,9 @@
 /* ProvidersTab — TextControl + Button side-by-side alignment */
 .plume-field-input-group .components-base-control {
 	flex: 1;
+
+	/* Lets the field shrink on a phone so its Save button stays on screen. */
+	min-width: 0;
 	margin-bottom: 0;
 }
 
@@ -1278,6 +1404,9 @@
 	--diff-revised-bg: color-mix( in srgb, var(--wp-admin-theme-color, #3858e9) 8%, #fff );
 	--diff-revised-border: color-mix( in srgb, var(--wp-admin-theme-color, #3858e9) 30%, transparent );
 	--drawer-resize-bg: var(--color-border);
+
+	/* The stored width (inline style) can exceed a phone's screen. */
+	max-width: 100%;
 	position: absolute;
 	top: 0;
 	bottom: 0;
@@ -1885,3 +2014,14 @@
 	opacity: 0.85;
 }
 
+/* Phone form fields: enlarge to the no-zoom size (see --plume-touch-font-size
+   in tokens.css for why). */
+@media (pointer: coarse) {
+
+	.plume-composer__input,
+	.plume-context-picker__input,
+	.plume-input,
+	.plume-select {
+		font-size: var(--plume-touch-font-size);
+	}
+}

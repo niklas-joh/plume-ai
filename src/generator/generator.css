@@ -133,3 +133,17 @@
 .plume-spin {
 	animation: plume-spin 0.8s linear infinite;
 }
+
+/* Tone and length: stacked on a phone, side by side from 480px. */
+.plume-generator__options {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: var(--space-4);
+}
+
+@media (min-width: 480px) {
+
+	.plume-generator__options {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	}
+}

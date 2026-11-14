@@ -135,7 +135,18 @@
 	font-size: 13px;
 	color: var(--color-text-primary);
 	background: #fff;
-	min-width: 220px;
+
+	/* Full width on a phone; a fixed comfortable width from 600px. */
+	flex: 1 1 100%;
+	min-width: 0;
+}
+
+@media (min-width: 600px) {
+
+	.plume-list-search {
+		flex: 0 1 auto;
+		min-width: 220px;
+	}
 }
 
 /* Post title link */
@@ -259,4 +270,26 @@
 	padding: 24px;
 	color: var(--color-text-muted);
 	font-size: 13px;
+}
+
+/* Phone form fields: enlarge to the no-zoom size (see --plume-touch-font-size
+   in tokens.css for why). */
+@media (pointer: coarse) {
+
+	.plume-list-search {
+		font-size: var(--plume-touch-font-size);
+	}
+}
+
+/* On a phone WordPress stacks each table row's cells, so the header row no
+   longer lines up with anything: it is shown from 783px only. */
+.plume-post-list thead {
+	display: none;
+}
+
+@media (min-width: 783px) {
+
+	.plume-post-list thead {
+		display: table-header-group;
+	}
 }

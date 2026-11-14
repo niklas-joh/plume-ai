@@ -48,4 +48,9 @@
 	--text-md: 14px;
 	--text-lg: 16px;
 	--text-xl: 20px;
+
+	/* Touch-device form fields. 16px is the threshold below which iOS Safari
+	   zooms the whole page in when a field is focused; every (pointer: coarse)
+	   block uses this token so phones never trigger that zoom. */
+	--plume-touch-font-size: 16px;
 }

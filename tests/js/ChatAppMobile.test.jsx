@@ -12,8 +12,9 @@ jest.mock( '@wordpress/element', () => ( {
 	...jest.requireActual( 'react' ),
 } ) );
 
-jest.mock( 'lucide-react', () =>
-	new Proxy( {}, { get: () => () => <span /> } )
+jest.mock(
+	'lucide-react',
+	() => new Proxy( {}, { get: () => () => <span /> } )
 );
 
 jest.mock( '../../src/admin/utils/storage', () => ( {
@@ -65,7 +66,9 @@ describe( 'ChatApp on a phone', () => {
 	} );
 
 	const toggle = ( label ) =>
-		container.querySelector( `.plume-mobile-bar button[aria-label="${ label }"]` );
+		container.querySelector(
+			`.plume-mobile-bar button[aria-label="${ label }"]`
+		);
 	const shell = () => container.querySelector( '.plume-shell' );
 	const main = () => container.querySelector( '.plume-main' );
 
@@ -83,10 +86,14 @@ describe( 'ChatApp on a phone', () => {
 			open.click();
 		} );
 
-		expect( shell().classList ).toContain( 'plume-shell--show-conversations' );
+		expect( shell().classList ).toContain(
+			'plume-shell--show-conversations'
+		);
 		expect( open.getAttribute( 'aria-expanded' ) ).toBe( 'true' );
 		expect(
-			container.querySelector( '.plume-sidebar' ).contains( document.activeElement )
+			container
+				.querySelector( '.plume-sidebar' )
+				.contains( document.activeElement )
 		).toBe( true );
 		// The rest of the screen cannot be reached while the drawer is open.
 		expect( main().hasAttribute( 'inert' ) ).toBe( true );
@@ -127,6 +134,35 @@ describe( 'ChatApp on a phone', () => {
 		} );
 
 		expect( shell().classList ).not.toContain( 'plume-shell--show-tools' );
+	} );
+
+	it( 'closes the tools drawer when a quick action fires', async () => {
+		await act( async () => {
+			root.render( <ChatApp /> );
+		} );
+		const count = container.querySelectorAll(
+			'.plume-quick-action'
+		).length;
+		expect( count ).toBeGreaterThan( 0 );
+
+		// Every action, so both paths are covered: sending straight away, and
+		// asking for a post to be attached first.
+		for ( let i = 0; i < count; i++ ) {
+			await act( async () => {
+				toggle( 'Model and quick actions' ).click();
+			} );
+			expect( shell().classList ).toContain( 'plume-shell--show-tools' );
+
+			await act( async () => {
+				container
+					.querySelectorAll( '.plume-quick-action' )
+					[ i ].click();
+			} );
+
+			expect( shell().classList ).not.toContain(
+				'plume-shell--show-tools'
+			);
+		}
 	} );
 
 	it( 'closes the list once a conversation is chosen', async () => {

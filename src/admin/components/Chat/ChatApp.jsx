@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { Plus, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import {
+	Plus,
+	PanelLeftClose,
+	PanelLeftOpen,
+	MessagesSquare,
+	SlidersHorizontal,
+} from 'lucide-react';
 import ConversationHistory from '../Sidebar/ConversationHistory';
 import MessageList from './MessageList';
 import Composer from './Composer';
@@ -10,6 +16,7 @@ import ReviewDrawer from './ReviewDrawer';
 import apiFetch from '@wordpress/api-fetch';
 import { LAUNCH_ACTIONS } from './actions';
 import { storageGet, storageSet } from '../../utils/storage';
+import { useMediaQuery, PHONE_LAYOUT_QUERY } from '../../utils/useMediaQuery';
 import { isOutOfCreditsError } from '../../../shared/credits';
 import { getErrorMessage } from '../../../shared/errors';
 
@@ -63,6 +70,14 @@ export default function ChatApp() {
 	const [ isSidebarCollapsed, setIsSidebarCollapsed ] = useState(
 		() => storageGet( 'plume-sidebar-collapsed' ) === '1'
 	);
+	// On a phone both side panels are drawers over the conversation; this holds
+	// the open one: 'conversations', 'tools' or null.
+	const isPhone = useMediaQuery( PHONE_LAYOUT_QUERY );
+	const [ openDrawer, setOpenDrawer ] = useState( null );
+	const drawerToggleRef = useRef( null );
+	const sidebarRef = useRef( null );
+	const toolsRef = useRef( null );
+	const mainRef = useRef( null );
 	const [ attachedPost, setAttachedPost ] = useState( null );
 	const [ pendingQuickAction, setPendingQuickAction ] = useState( null );
 	const [ forcePickerOpen, setForcePickerOpen ] = useState( false );
@@ -112,6 +127,59 @@ export default function ChatApp() {
 	useEffect( () => {
 		return () => clearTimeout( savedFlashTimeoutRef.current );
 	}, [] );
+
+	// Drawers exist only in the phone layout; leaving it (rotation, resize)
+	// closes whichever was open.
+	useEffect( () => {
+		if ( ! isPhone ) {
+			setOpenDrawer( null );
+		}
+	}, [ isPhone ] );
+
+	// While a drawer is open: move focus into it, make the conversation behind
+	// it inert (so Tab cannot leave the drawer and screen readers skip what is
+	// covered), and close it on Escape. On close, focus returns to the button
+	// that opened it. The drawers stay mounted for the desktop layout, which is
+	// why this uses `inert` rather than a focus trap that acts on mount.
+	useEffect( () => {
+		if ( ! openDrawer ) {
+			return;
+		}
+		const panel =
+			openDrawer === 'conversations' ? sidebarRef.current : toolsRef.current;
+		const main = mainRef.current;
+		const opener = drawerToggleRef.current;
+
+		main?.setAttribute( 'inert', '' );
+		panel
+			?.querySelector(
+				'button:not([disabled]), [href], select, input, textarea'
+			)
+			?.focus();
+
+		function onKeyDown( event ) {
+			if ( event.key === 'Escape' ) {
+				setOpenDrawer( null );
+			}
+		}
+		document.addEventListener( 'keydown', onKeyDown );
+
+		return () => {
+			document.removeEventListener( 'keydown', onKeyDown );
+			main?.removeAttribute( 'inert' );
+			opener?.focus();
+		};
+	}, [ openDrawer ] );
+
+	function toggleDrawer( name, event ) {
+		drawerToggleRef.current = event.currentTarget;
+		setOpenDrawer( ( current ) => ( current === name ? null : name ) );
+	}
+
+	function selectConversation( convId ) {
+		setActiveConvId( convId );
+		setOpenDrawer( null );
+	}
 
 	useEffect( () => {
 		// Re-hydrate the review drawer for whichever conversation is now active.
@@ -207,6 +275,7 @@ export default function ChatApp() {
 	}
 
 	async function newConversation() {
+		setOpenDrawer( null );
 		const conv = await apiFetch( {
 			path: '/plume/v1/conversations',
 			method: 'POST',
@@ -496,24 +565,37 @@ export default function ChatApp() {
 		flashModelSaved();
 	}
 
+	// The stored collapse state is a desktop preference; on a phone the list is
+	// a drawer and always shows in full.
+	const isCollapsed = isSidebarCollapsed && ! isPhone;
+	const shellClasses = [
+		'plume-shell',
+		isCollapsed && 'plume-shell--sidebar-collapsed',
+		openDrawer === 'conversations' && 'plume-shell--show-conversations',
+		openDrawer === 'tools' && 'plume-shell--show-tools',
+	]
+		.filter( Boolean )
+		.join( ' ' );
+
 	const toggleLabel = isSidebarCollapsed
 		? __( 'Expand sidebar', 'plume' )
 		: __( 'Collapse sidebar', 'plume' );
 
 	return (
-		<div
-			className={ `plume-shell${
-				isSidebarCollapsed ? ' plume-shell--sidebar-collapsed' : ''
-			}` }
-		>
-			<aside className="plume-sidebar">
+		<div className={ shellClasses }>
+			<aside
+				className="plume-sidebar"
+				id="plume-conversations"
+				ref={ sidebarRef }
+				aria-label={ __( 'Conversations', 'plume' ) }
+			>
 				<div className="plume-sidebar__header">
-					{ ! isSidebarCollapsed && (
+					{ ! isCollapsed && (
 						<span className="plume-sidebar__title">
 							{ __( 'Conversations', 'plume' ) }
 						</span>
 					) }
-					{ ! isSidebarCollapsed && (
+					{ ! isCollapsed && (
 						<button
 							className="plume-btn plume-btn--ghost plume-btn--icon"
 							onClick={ newConversation }
@@ -551,14 +633,42 @@ export default function ChatApp() {
 				<ConversationHistory
 					conversations={ conversations }
 					activeId={ activeConvId }
-					onSelect={ setActiveConvId }
+					onSelect={ selectConversation }
 					onDelete={ deleteConversation }
 					deletingIds={ deletingIds }
 					deleteErrors={ deleteErrors }
 				/>
 			</aside>
 
-			<main className="plume-main">
+			<main className="plume-main" ref={ mainRef }>
+				{ isPhone && (
+					<div className="plume-mobile-bar">
+						<button
+							type="button"
+							className="plume-btn plume-btn--ghost plume-btn--icon"
+							aria-label={ __( 'Conversations', 'plume' ) }
+							aria-controls="plume-conversations"
+							aria-expanded={ openDrawer === 'conversations' }
+							onClick={ ( e ) => toggleDrawer( 'conversations', e ) }
+						>
+							<MessagesSquare size={ 18 } strokeWidth={ 1.5 } />
+						</button>
+						<span className="plume-mobile-bar__title">
+							{ conversations.find( ( c ) => c.id === activeConvId )
+								?.title || NEW_CONVERSATION_TITLE }
+						</span>
+						<button
+							type="button"
+							className="plume-btn plume-btn--ghost plume-btn--icon"
+							aria-label={ __( 'Model and quick actions', 'plume' ) }
+							aria-controls="plume-tools"
+							aria-expanded={ openDrawer === 'tools' }
+							onClick={ ( e ) => toggleDrawer( 'tools', e ) }
+						>
+							<SlidersHorizontal size={ 18 } strokeWidth={ 1.5 } />
+						</button>
+					</div>
+				) }
 				{ messages.length === 0 && ! isLoading ? (
 					<CenteredLaunch
 						suggestions={ LAUNCH_SUGGESTIONS }
@@ -590,7 +700,12 @@ export default function ChatApp() {
 				) }
 			</main>
 
-			<aside className="plume-right-panel">
+			<aside
+				className="plume-right-panel"
+				id="plume-tools"
+				ref={ toolsRef }
+				aria-label={ __( 'Model and quick actions', 'plume' ) }
+			>
 				<ModelSelector
 					providers={ providers }
 					selectedProvider={ selectedProvider }
@@ -600,11 +715,28 @@ export default function ChatApp() {
 					justSaved={ modelJustSaved }
 				/>
 				<QuickActions
-					onAction={ sendMessage }
+					onAction={ ( prompt ) => {
+						setOpenDrawer( null );
+						sendMessage( prompt );
+					} }
 					attachedPost={ attachedPost }
-					onRequestAttach={ requestPostAttach }
+					onRequestAttach={ ( prompt ) => {
+						// The post picker opens in the composer, behind the drawer.
+						setOpenDrawer( null );
+						requestPostAttach( prompt );
+					} }
 				/>
 			</aside>
+
+			{ openDrawer && (
+				// Tapping the dimmed conversation closes the drawer; keyboard users
+				// have Escape, so the backdrop itself is not focusable.
+				// eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+				<div
+					className="plume-drawer-backdrop"
+					onClick={ () => setOpenDrawer( null ) }
+				/>
+			) }
 
 			{ drawerPlan && (
 				<ReviewDrawer

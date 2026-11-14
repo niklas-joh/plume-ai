@@ -209,7 +209,9 @@ export default function MessageBubble( {
 						) : (
 							<Copy size={ 12 } strokeWidth={ 1.5 } />
 						) }
-						<span>
+						{ /* The only place "Copied" is announced: MessageList's
+						status region carries the waiting text, not this. */ }
+						<span aria-live="polite">
 							{ copied
 								? __( 'Copied', 'plume' )
 								: __( 'Copy', 'plume' ) }

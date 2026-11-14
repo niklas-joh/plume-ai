@@ -10,6 +10,8 @@ import ReviewDrawer from './ReviewDrawer';
 import apiFetch from '@wordpress/api-fetch';
 import { LAUNCH_ACTIONS } from './actions';
 import { storageGet, storageSet } from '../../utils/storage';
+import { isOutOfCreditsError } from '../../../shared/credits';
+import { getErrorMessage } from '../../../shared/errors';
 
 const NEW_CONVERSATION_TITLE = __( 'New conversation', 'plume' );
 
@@ -375,11 +377,20 @@ export default function ChatApp() {
 				}
 			}
 		} catch ( err ) {
-			const errorText =
-				err?.message ?? 'Something went wrong. Please try again.';
+			const errorText = getErrorMessage(
+				err,
+				__( 'Something went wrong. Please try again.', 'plume' )
+			);
 			setMessages( ( prev ) => [
 				...prev,
-				{ role: 'assistant', content: errorText, isError: true },
+				{
+					role: 'assistant',
+					content: errorText,
+					isError: true,
+					// Rendered as the credits notice (with the ways forward)
+					// instead of a bare red error line.
+					outOfCredits: isOutOfCreditsError( err ),
+				},
 			] );
 		} finally {
 			setIsLoading( false );

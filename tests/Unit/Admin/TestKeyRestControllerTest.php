@@ -125,6 +125,105 @@ class TestKeyRestControllerTest extends TestCase {
 		$this->assertSame( 'invalid_key', $result->code );
 	}
 
+	// ── Rejected key vs. check that could not run ───────────────────────────────
+
+	/**
+	 * Run the handler against a stubbed upstream response.
+	 *
+	 * @since NEXT_VERSION
+	 * @param string $provider Provider slug.
+	 * @param int    $status   HTTP status the provider returns.
+	 * @param string $body     Raw response body the provider returns.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	private function handle_with_upstream( string $provider, int $status, string $body ) {
+		$response = [ 'response' => [ 'code' => $status ], 'body' => $body ];
+		Functions\when( 'wp_remote_get' )->justReturn( $response );
+		Functions\when( 'wp_remote_post' )->justReturn( $response );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'apply_filters' )->alias( fn( $hook, $value ) => $value );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( $status );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( $body );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$request = new \WP_REST_Request( 'POST' );
+		$request->set_param( 'provider', $provider );
+		$request->set_param( 'api_key', 'key-under-test' );
+
+		return TestKeyRestController::handle( $request );
+	}
+
+	/**
+	 * Only an authentication rejection means the key itself is wrong.
+	 *
+	 * @since NEXT_VERSION
+	 * @dataProvider rejected_key_responses
+	 * @param string $provider Provider slug.
+	 * @param int    $status   Upstream HTTP status.
+	 * @param string $body     Upstream body.
+	 * @return void
+	 */
+	public function test_authentication_rejection_is_reported_as_invalid_key( string $provider, int $status, string $body ): void {
+		$result = $this->handle_with_upstream( $provider, $status, $body );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'invalid_key', $result->code );
+		$this->assertSame( 400, $result->get_error_data()['status'] );
+	}
+
+	/**
+	 * Upstream responses that mean "this key was rejected".
+	 *
+	 * @since NEXT_VERSION
+	 * @return array<string, array{0: string, 1: int, 2: string}>
+	 */
+	public static function rejected_key_responses(): array {
+		return [
+			'openai 401'                => [ 'openai', 401, '{"error":{"message":"Incorrect API key provided"}}' ],
+			'claude 401'                => [ 'claude', 401, '{"error":{"message":"invalid x-api-key"}}' ],
+			'claude 403'                => [ 'claude', 403, '{"error":{"message":"forbidden"}}' ],
+			'gemini 400 API_KEY_INVALID' => [ 'gemini', 400, '{"error":{"code":400,"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT","details":[{"reason":"API_KEY_INVALID"}]}}' ],
+		];
+	}
+
+	/**
+	 * A provider outage, rate limit, billing problem or retired probe model says
+	 * nothing about the key, so it must not be reported as an invalid key: the
+	 * settings screen refuses to save a key reported as invalid.
+	 *
+	 * @since NEXT_VERSION
+	 * @dataProvider unverifiable_responses
+	 * @param string $provider Provider slug.
+	 * @param int    $status   Upstream HTTP status.
+	 * @param string $body     Upstream body.
+	 * @return void
+	 */
+	public function test_other_failures_are_reported_as_verification_failed( string $provider, int $status, string $body ): void {
+		$result = $this->handle_with_upstream( $provider, $status, $body );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'verification_failed', $result->code );
+		$this->assertSame( 502, $result->get_error_data()['status'] );
+	}
+
+	/**
+	 * Upstream responses that do not tell us whether the key is valid.
+	 *
+	 * @since NEXT_VERSION
+	 * @return array<string, array{0: string, 1: int, 2: string}>
+	 */
+	public static function unverifiable_responses(): array {
+		return [
+			'openai rate limited'      => [ 'openai', 429, '{"error":{"message":"Rate limit reached"}}' ],
+			'openai outage'            => [ 'openai', 503, '' ],
+			'claude overloaded'        => [ 'claude', 529, '{"error":{"message":"Overloaded"}}' ],
+			'claude low balance'       => [ 'claude', 400, '{"error":{"message":"Your credit balance is too low"}}' ],
+			'claude retired model'     => [ 'claude', 404, '{"error":{"message":"model: claude-haiku-4-5-20251001"}}' ],
+			'gemini bad request other' => [ 'gemini', 400, '{"error":{"code":400,"message":"Invalid page size","status":"INVALID_ARGUMENT"}}' ],
+		];
+	}
+
 	// ── Gemini — security regression: key must be in header, not URL ────────────
 
 	public function test_gemini_sends_api_key_as_header_not_query_param(): void {

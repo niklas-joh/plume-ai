@@ -68,6 +68,9 @@ class ImagesModuleUsageTest extends TestCase {
 		Functions\when( 'get_option' )->alias(
 			static fn( string $name, $default = false ) => 'plume_image_provider' === $name ? 'openai' : $default
 		);
+		// Images are generated with the site's own key; without one the handler
+		// answers 422 before reaching the provider.
+		putenv( 'OPENAI_API_KEY=sk-test' );
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ): bool => $v instanceof \WP_Error );
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 		Functions\stubs(
@@ -85,6 +88,7 @@ class ImagesModuleUsageTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		putenv( 'OPENAI_API_KEY' );
 		foreach ( $this->created_files as $file ) {
 			unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture.
 		}
@@ -175,6 +179,49 @@ class ImagesModuleUsageTest extends TestCase {
 
 		$this->assertSame( 500, $response->get_status() );
 		$this->assertCount( 3, $response->data['details'] );
+	}
+
+	/**
+	 * When every request fails, the body names the first provider error in
+	 * `message` so the screen can say why, and keeps the legacy `error` key.
+	 *
+	 * @since NEXT_VERSION
+	 * @return void
+	 */
+	public function test_all_fail_body_carries_message_and_code(): void {
+		$this->stub_generation( [ false, false ] );
+
+		$response = ImagesModule::handle_generate( $this->request( 2 ) );
+
+		$this->assertSame( 'image_generation_failed', $response->data['code'] );
+		$this->assertStringContainsString( 'boom', $response->data['message'] );
+		$this->assertArrayHasKey( 'error', $response->data );
+	}
+
+	/**
+	 * Without an own key for the image provider the handler says so (422) instead
+	 * of calling the provider with an empty key and reporting a generic failure.
+	 *
+	 * @since NEXT_VERSION
+	 * @return void
+	 */
+	public function test_missing_image_key_returns_422_without_calling_the_provider(): void {
+		putenv( 'OPENAI_API_KEY' );
+		$http_calls = 0;
+		Functions\when( 'wp_remote_post' )->alias(
+			static function () use ( &$http_calls ) {
+				++$http_calls;
+				return new \WP_Error( 'http_request_failed', 'boom' );
+			}
+		);
+
+		$response = ImagesModule::handle_generate( $this->request( 2 ) );
+
+		$this->assertSame( 0, $http_calls, 'The provider must not be called without a key.' );
+		$this->assertSame( 422, $response->get_status() );
+		$this->assertSame( 'image_key_missing', $response->data['code'] );
+		$this->assertNotSame( '', $response->data['message'] );
+		$this->assertSame( $response->data['message'], $response->data['error'] );
 	}
 
 	/**

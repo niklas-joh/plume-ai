@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Admin\AdminMenu;
+use Plume\Modules\Concerns\BuildsRestErrorResponse;
 use Plume\Providers\ProviderFactory;
 use Plume\Providers\CompletionRequest;
 use Plume\Providers\ProviderException;
@@ -26,6 +28,8 @@ use Plume\Tiers\TierManager;
  * appears when the REST request uses context=edit (e.g. PostListTable).
  */
 class SeoModule {
+
+	use BuildsRestErrorResponse;
 
 	/**
 	 * Register WordPress hooks for this module.
@@ -73,11 +77,12 @@ class SeoModule {
 			'plume-seo',
 			'plumeData',
 			[
-				'nonce'      => \wp_create_nonce( 'wp_rest' ),
-				'restUrl'    => \esc_url_raw( \rest_url( 'plume/v1' ) ),
-				'isPaid'     => TierManager::is_paid(),
-				'adminUrl'   => \esc_url_raw( \admin_url() ),
-				'websiteUrl' => PLUME_WEBSITE_URL,
+				'nonce'       => \wp_create_nonce( 'wp_rest' ),
+				'restUrl'     => \esc_url_raw( \rest_url( 'plume/v1' ) ),
+				'isPaid'      => TierManager::is_paid(),
+				'adminUrl'    => \esc_url_raw( \admin_url() ),
+				'websiteUrl'  => PLUME_WEBSITE_URL,
+				'settingsUrl' => AdminMenu::settings_url(),
 			]
 		);
 
@@ -203,6 +208,9 @@ class SeoModule {
 	 * result is discarded.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Returns the 'rate_limit_exceeded' error code (instead of
+	 *                      'provider_error') when the managed service's monthly credits
+	 *                      are exhausted.
 	 * @param int $post_id Post ID to generate metadata for.
 	 * @param int $user_id WordPress user ID on whose behalf generation is performed; must hold edit_post for $post_id.
 	 * @return array<string,mixed>|\WP_Error
@@ -262,7 +270,10 @@ class SeoModule {
 			// Surface the provider message when it is user-actionable (e.g. proxy auth, not registered).
 			$raw_msg = $e->getMessage();
 			$msg     = '' !== $raw_msg ? $raw_msg : __( 'Provider error. Please try again later.', 'plume' );
-			return new \WP_Error( 'provider_error', $msg );
+			// Credit exhaustion keeps its own code: the SEO screen shows the
+			// out-of-credits notice for it instead of a plain error line.
+			$code = 'rate_limit_exceeded' === $e->get_error_code() ? 'rate_limit_exceeded' : 'provider_error';
+			return new \WP_Error( $code, $msg );
 		} catch ( \Throwable $e ) {
 			return new \WP_Error( 'unexpected_error', __( 'An unexpected error occurred. Please try again later.', 'plume' ) );
 		}
@@ -292,6 +303,8 @@ class SeoModule {
 	 * to generate_for_post() and maps any WP_Error to the appropriate HTTP status.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Error bodies carry `message` and `code` alongside `error`;
+	 *                      credit exhaustion is returned as 429 'rate_limit_exceeded'.
 	 * @param \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response
 	 */
@@ -301,19 +314,20 @@ class SeoModule {
 
 		$post = \get_post( $post_id );
 		if ( ! $post ) {
-			return new \WP_REST_Response( [ 'error' => __( 'Post not found.', 'plume' ) ], 404 );
+			return self::error_response( __( 'Post not found.', 'plume' ), 'not_found', 404 );
 		}
 
 		$result = self::generate_for_post( $post_id, $user_id );
 		if ( \is_wp_error( $result ) ) {
 			$code_map = [
-				'not_found'      => 404,
-				'forbidden'      => 403,
-				'provider_error' => 502,
+				'not_found'           => 404,
+				'forbidden'           => 403,
+				'provider_error'      => 502,
+				'rate_limit_exceeded' => 429,
 				// 'invalid_json' and 'unexpected_error' intentionally fall through to 500.
 			];
-			$status = $code_map[ $result->get_error_code() ] ?? 500;
-			return new \WP_REST_Response( [ 'error' => $result->get_error_message() ], $status );
+			$code = (string) $result->get_error_code();
+			return self::error_response( $result->get_error_message(), $code, $code_map[ $code ] ?? 500 );
 		}
 
 		// Usage logged by the provider layer — do not call log_usage() here (see generate_for_post() docblock).
@@ -399,11 +413,11 @@ class SeoModule {
 		$post    = \get_post( $post_id );
 
 		if ( ! $post ) {
-			return new \WP_REST_Response( [ 'error' => __( 'Post not found.', 'plume' ) ], 404 );
+			return self::error_response( __( 'Post not found.', 'plume' ), 'not_found', 404 );
 		}
 
 		if ( ! \current_user_can( 'edit_post', $post_id ) ) {
-			return new \WP_REST_Response( [ 'error' => __( 'Forbidden.', 'plume' ) ], 403 );
+			return self::error_response( __( 'Forbidden.', 'plume' ), 'forbidden', 403 );
 		}
 
 		$fields = [

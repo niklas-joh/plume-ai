@@ -134,4 +134,43 @@ describe( 'ImagesWorkArea — out-of-credits handling', () => {
 			'Network error.'
 		);
 	} );
+
+	it( 'shows the server text sent in the `error` field', async () => {
+		// The envelope /plume/v1/images/generate really sends on failure.
+		apiFetch.mockRejectedValue( {
+			error: 'All image generation requests failed.',
+		} );
+
+		await act( async () => {
+			root.render(
+				<ImagesWorkArea
+					post={ POST }
+					onClose={ jest.fn() }
+					onUpdate={ jest.fn() }
+				/>
+			);
+		} );
+
+		const textarea = container.querySelector( '.plume-prompt-input' );
+		const nativeTextareaSetter = Object.getOwnPropertyDescriptor(
+			window.HTMLTextAreaElement.prototype,
+			'value'
+		).set;
+		await act( async () => {
+			nativeTextareaSetter.call( textarea, 'A sunset over mountains' );
+			textarea.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+		} );
+
+		const generateButton = Array.from(
+			container.querySelectorAll( 'button' )
+		).find( ( b ) => b.textContent.includes( 'Generate' ) );
+
+		await act( async () => {
+			generateButton.click();
+		} );
+
+		expect( container.querySelector( '.plume-work-error' ).textContent ).toBe(
+			'All image generation requests failed.'
+		);
+	} );
 } );

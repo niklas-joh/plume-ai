@@ -1,5 +1,6 @@
 import { useState, useEffect } from '@wordpress/element';
-import { TabPanel, Notice } from '@wordpress/components';
+import { TabPanel, Notice, Button } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 import { Settings } from 'lucide-react';
 import ProvidersTab from './ProvidersTab';
@@ -25,12 +26,16 @@ export default function SettingsApp() {
 	const [ settings, setSettings ] = useState( null );
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ saveResult, setSaveResult ] = useState( null ); // 'success' | 'error' | null
+	const [ loadFailed, setLoadFailed ] = useState( false );
 
-	useEffect( () => {
+	function loadSettings() {
+		setLoadFailed( false );
 		apiFetch( { path: '/plume/v1/settings' } )
 			.then( setSettings )
-			.catch( () => {} );
-	}, [] );
+			.catch( () => setLoadFailed( true ) );
+	}
+
+	useEffect( loadSettings, [] );
 
 	async function saveSettings( patch ) {
 		setIsSaving( true );
@@ -43,8 +48,10 @@ export default function SettingsApp() {
 			} );
 			setSettings( ( prev ) => ( { ...prev, ...patch } ) );
 			setSaveResult( 'success' );
+			return true;
 		} catch ( e ) {
 			setSaveResult( 'error' );
+			return false;
 		} finally {
 			setIsSaving( false );
 		}
@@ -90,6 +97,19 @@ export default function SettingsApp() {
 
 			<TabPanel tabs={ TABS } className="plume-settings-tabpanel">
 				{ ( tab ) => {
+					if ( settings === null && loadFailed ) {
+						return (
+							<Notice status="error" isDismissible={ false }>
+								{ __(
+									'Your settings could not be loaded. Check your connection and try again.',
+									'plume'
+								) }{ ' ' }
+								<Button variant="link" onClick={ loadSettings }>
+									{ __( 'Try again', 'plume' ) }
+								</Button>
+							</Notice>
+						);
+					}
 					if ( settings === null ) {
 						return (
 							<div className="plume-settings-loading">

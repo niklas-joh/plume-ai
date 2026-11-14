@@ -1,6 +1,8 @@
 /* global navigator */
 import { useState, useEffect } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import { __ } from '@wordpress/i18n';
+import { getErrorMessage } from './errors';
 import DOMPurify from 'dompurify';
 
 const PER_PAGE = 20;
@@ -78,7 +80,9 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 				);
 				setPosts( merged );
 			} catch ( e ) {
-				setError( e.message ?? 'Failed to load posts.' );
+				setError(
+					getErrorMessage( e, __( 'Failed to load posts.', 'plume' ) )
+				);
 			} finally {
 				setLoading( false );
 			}

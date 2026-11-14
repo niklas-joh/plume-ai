@@ -86,6 +86,8 @@ class ChatPage {
 				'defaultModelLabel' => $default_model_label,
 				'defaultProvider'   => $default_slug,
 				'publishCaps'       => self::publish_caps(),
+				'websiteUrl'        => PLUME_WEBSITE_URL,
+				'settingsUrl'       => AdminMenu::settings_url(),
 			]
 		);
 

@@ -39,9 +39,15 @@ const TOOL_LABELS = {
  * @param {string}   [props.message.applyEditUrl] When present, renders a "View post" link after applying an update.
  * @param {Function} [props.onRetry]             When given on an error message, renders a "Try again" button that calls it.
  * @param {boolean}  [props.isLoading]           Disables "Try again" while a reply is on its way.
+ * @param {Function} [props.onPlanDismiss]       Called with the plan id after the user dismisses its card.
  * @return {ReactElement}
  */
-export default function MessageBubble( { message, onRetry, isLoading = false } ) {
+export default function MessageBubble( {
+	message,
+	onRetry,
+	isLoading = false,
+	onPlanDismiss,
+} ) {
 	const isAI = message.role === 'assistant';
 	const [ copied, setCopied ] = useState( false );
 	const copiedTimerRef = useRef( null );
@@ -87,6 +93,7 @@ export default function MessageBubble( { message, onRetry, isLoading = false } )
 		const planId = plan?.id;
 		setPlan( null );
 		if ( planId ) {
+			onPlanDismiss?.( planId );
 			// Best effort: without it the plan returns on reload until it expires.
 			apiFetch( {
 				path: `/plume/v1/plans/${ planId }`,
@@ -129,7 +136,9 @@ export default function MessageBubble( { message, onRetry, isLoading = false } )
 						{ revision.comments.length > 0 && (
 							<ul className="plume-bubble__revision-list">
 								{ revision.comments.map( ( c ) => (
-									<li key={ `${ c.anchor ?? '' }:${ c.text }` }>
+									<li
+										key={ `${ c.anchor ?? '' }:${ c.text }` }
+									>
 										{ c.anchor && (
 											<blockquote className="plume-bubble__revision-anchor">
 												{ c.anchor }

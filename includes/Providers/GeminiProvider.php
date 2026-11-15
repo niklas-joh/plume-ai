@@ -320,9 +320,11 @@ class GeminiProvider extends AbstractProvider {
 	 * @since 1.0.0
 	 * @param string $path API endpoint path (e.g. '/models/gemini-3.6-flash:generateContent').
 	 * @param array  $body    Request payload.
-	 * @param int    $timeout Request timeout in seconds.
+	 * @param int    $timeout Request timeout in seconds; the default is a defensive fallback for callers that omit it (e.g. image generation).
 	 * @return array
 	 * @throws ProviderException On HTTP failure, timeout or non-2xx status.
+	 *
+	 * phpcs:ignore Squiz.Commenting.FunctionCommentThrowTag.WrongNumber -- HttpTimeout::to_exception() returns a ProviderException the sniff cannot resolve.
 	 */
 	private function post( string $path, array $body, int $timeout = PLUME_HTTP_TIMEOUT ): array {
 		$url      = self::API_BASE . $path . '?key=' . rawurlencode( $this->api_key );
@@ -337,7 +339,7 @@ class GeminiProvider extends AbstractProvider {
 
 		if ( is_wp_error( $response ) ) {
 			if ( HttpTimeout::is_timeout( $response ) ) {
-				throw new ProviderException( HttpTimeout::message(), 'gemini', 0, [], null, HttpTimeout::ERROR_CODE ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				throw HttpTimeout::to_exception( 'gemini' );
 			}
 			throw new ProviderException( $response->get_error_message(), 'gemini' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}

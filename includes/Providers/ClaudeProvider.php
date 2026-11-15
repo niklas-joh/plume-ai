@@ -310,9 +310,11 @@ class ClaudeProvider extends AbstractProvider {
 	 * @since 1.0.0
 	 * @param string $path API endpoint path (e.g. '/messages').
 	 * @param array  $body    Request payload.
-	 * @param int    $timeout Request timeout in seconds.
+	 * @param int    $timeout Request timeout in seconds; the default is a defensive fallback for callers that omit it.
 	 * @return array
 	 * @throws ProviderException On HTTP failure, timeout or non-2xx status.
+	 *
+	 * phpcs:ignore Squiz.Commenting.FunctionCommentThrowTag.WrongNumber -- HttpTimeout::to_exception() returns a ProviderException the sniff cannot resolve.
 	 */
 	private function post( string $path, array $body, int $timeout = PLUME_HTTP_TIMEOUT ): array {
 		$response = wp_remote_post(
@@ -330,7 +332,7 @@ class ClaudeProvider extends AbstractProvider {
 
 		if ( is_wp_error( $response ) ) {
 			if ( HttpTimeout::is_timeout( $response ) ) {
-				throw new ProviderException( HttpTimeout::message(), 'claude', 0, [], null, HttpTimeout::ERROR_CODE ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				throw HttpTimeout::to_exception( 'claude' );
 			}
 			throw new ProviderException( $response->get_error_message(), 'claude' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}

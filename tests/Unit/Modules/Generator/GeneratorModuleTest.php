@@ -217,7 +217,7 @@ class GeneratorModuleTest extends TestCase {
 
         self::assertSame( 502, $response->get_status() );
         self::assertSame( 'request_timeout', $response->data['code'] );
-        self::assertSame( 'The draft took too long to finish. Try a shorter length, or try again in a moment.', $response->data['message'] );
+        self::assertSame( 'The request took too long to finish. Try again in a moment.', $response->data['message'] );
         self::assertStringNotContainsString( 'cURL', $response->data['message'] );
     }
 

@@ -62,10 +62,27 @@ final class HttpTimeout {
 	/**
 	 * User-facing message for a timed-out request.
 	 *
+	 * Neutral wording so the single shared message reads correctly for every
+	 * feature (draft, chat, SEO) that can time out on the managed route.
+	 *
 	 * @since NEXT_VERSION
 	 * @return string
 	 */
 	public static function message(): string {
-		return __( 'The draft took too long to finish. Try a shorter length, or try again in a moment.', 'plume' );
+		return __( 'The request took too long to finish. Try again in a moment.', 'plume' );
+	}
+
+	/**
+	 * Build a ProviderException for a timed-out request.
+	 *
+	 * Centralises the timeout-to-exception mapping repeated verbatim across the
+	 * provider post() methods so the message and error code live in one place.
+	 *
+	 * @since NEXT_VERSION
+	 * @param string $slug Provider slug (e.g. 'claude', 'openai').
+	 * @return ProviderException
+	 */
+	public static function to_exception( string $slug ): ProviderException {
+		return new ProviderException( self::message(), $slug, 0, [], null, self::ERROR_CODE );
 	}
 }

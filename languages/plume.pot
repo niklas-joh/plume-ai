@@ -383,8 +383,8 @@ msgstr ""
 msgid "AI returned invalid JSON."
 msgstr ""
 
-#: includes/Providers/HttpTimeout.php:69
-msgid "The draft took too long to finish. Try a shorter length, or try again in a moment."
+#: includes/Providers/HttpTimeout.php:72
+msgid "The request took too long to finish. Try again in a moment."
 msgstr ""
 
 #. translators: %s: AI provider name, e.g. "OpenAI".

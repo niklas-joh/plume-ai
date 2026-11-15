@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from '@wordpress/element';
 import { Search } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
+import { __ } from '@wordpress/i18n';
 
 /**
  * Debounced search popover for attaching a post as chat context.
@@ -58,7 +59,7 @@ export default function ContextPicker( { onSelect, onClose } ) {
 		<div
 			className="plume-context-picker"
 			role="search"
-			aria-label="Search post context"
+			aria-label={ __( 'Search post context', 'plume' ) }
 		>
 			<div className="plume-context-picker__search">
 				<Search
@@ -69,7 +70,10 @@ export default function ContextPicker( { onSelect, onClose } ) {
 				<input
 					ref={ inputRef }
 					className="plume-context-picker__input"
-					placeholder="Search posts, pages, products…"
+					placeholder={ __(
+						'Search posts, pages, products…',
+						'plume'
+					) }
 					value={ query }
 					onChange={ ( e ) => setQuery( e.target.value ) }
 					onKeyDown={ handleKeyDown }
@@ -80,7 +84,7 @@ export default function ContextPicker( { onSelect, onClose } ) {
 					className="plume-context-picker__status"
 					aria-live="polite"
 				>
-					Searching…
+					{ __( 'Searching…', 'plume' ) }
 				</div>
 			) }
 			{ ! loading && results.length === 0 && query.length >= 2 && (
@@ -88,7 +92,7 @@ export default function ContextPicker( { onSelect, onClose } ) {
 					className="plume-context-picker__status"
 					aria-live="polite"
 				>
-					No results
+					{ __( 'No results', 'plume' ) }
 				</div>
 			) }
 			{ results.length > 0 && (

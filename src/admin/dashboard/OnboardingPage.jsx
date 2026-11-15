@@ -1,4 +1,5 @@
 import { useState, useCallback } from '@wordpress/element';
+import { __, sprintf } from '@wordpress/i18n';
 
 const PROVIDERS = [
 	{
@@ -6,24 +7,25 @@ const PROVIDERS = [
 		name: 'OpenAI',
 		keyUrl: 'https://platform.openai.com/api-keys',
 		docsUrl: 'https://platform.openai.com/docs/quickstart',
-		keyLabel: 'Get API key',
-		placeholder: 'sk-…  Paste your OpenAI API key',
+		keyLabel: __( 'Get API key ↗', 'plume' ),
+		// Key prefixes such as "sk-…" are not translatable, so they stay outside the msgid.
+		placeholder: `sk-…  ${ __( 'Paste your OpenAI API key', 'plume' ) }`,
 	},
 	{
 		id: 'claude',
 		name: 'Claude',
 		keyUrl: 'https://console.anthropic.com/settings/keys',
 		docsUrl: 'https://docs.anthropic.com/en/api/getting-started',
-		keyLabel: 'Get API key',
-		placeholder: 'sk-ant-…  Paste your Anthropic API key',
+		keyLabel: __( 'Get API key ↗', 'plume' ),
+		placeholder: `sk-ant-…  ${ __( 'Paste your Anthropic API key', 'plume' ) }`,
 	},
 	{
 		id: 'gemini',
 		name: 'Gemini',
 		keyUrl: 'https://aistudio.google.com/apikey',
 		docsUrl: 'https://ai.google.dev/gemini-api/docs/quickstart',
-		keyLabel: 'Get API key',
-		placeholder: 'AI…  Paste your Gemini API key',
+		keyLabel: __( 'Get API key ↗', 'plume' ),
+		placeholder: `AI…  ${ __( 'Paste your Gemini API key', 'plume' ) }`,
 	},
 ];
 
@@ -32,15 +34,23 @@ const IMAGE_PROVIDERS = [
 		id: 'openai',
 		name: 'OpenAI (DALL·E)',
 		docsUrl: 'https://platform.openai.com/docs/guides/images',
-		docsLabel: 'DALL·E docs',
-		placeholder: 'sk-…  Paste your OpenAI API key',
+		docsLabel: sprintf(
+			/* translators: %s: image model name, e.g. "DALL·E". */
+			__( '%s docs ↗', 'plume' ),
+			'DALL·E'
+		),
+		placeholder: `sk-…  ${ __( 'Paste your OpenAI API key', 'plume' ) }`,
 	},
 	{
 		id: 'gemini',
 		name: 'Gemini (Imagen 3)',
 		docsUrl: 'https://ai.google.dev/gemini-api/docs/image-generation',
-		docsLabel: 'Imagen docs',
-		placeholder: 'AI…  Paste your Gemini API key',
+		docsLabel: sprintf(
+			/* translators: %s: image model name, e.g. "DALL·E". */
+			__( '%s docs ↗', 'plume' ),
+			'Imagen'
+		),
+		placeholder: `AI…  ${ __( 'Paste your Gemini API key', 'plume' ) }`,
 		// DEV NOTE: Verify Imagen 3 endpoint before shipping.
 		// Confirm if imagen-3.0-generate-* uses generativelanguage.googleapis.com
 		// (same as text) or requires Vertex AI / a separate endpoint.
@@ -64,21 +74,30 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 	const choices = [
 		{
 			id: 'plugin',
-			title: 'Use Plugin API',
-			badge: 'Free',
-			desc: 'Start immediately. Built-in access with usage limits. No API key needed. Registers your site to run AI models.',
+			title: __( 'Use Plugin API', 'plume' ),
+			badge: __( 'Free', 'plume' ),
+			desc: __(
+				'Start immediately. Built-in access with usage limits. No API key needed. Registers your site to run AI models.',
+				'plume'
+			),
 		},
 		{
 			id: 'own_key',
-			title: 'Use my own API key',
+			title: __( 'Use my own API key', 'plume' ),
 			badge: null,
-			desc: 'Connect OpenAI, Claude, or Gemini directly. Unlimited usage.',
+			desc: __(
+				'Connect OpenAI, Claude, or Gemini directly. Unlimited usage.',
+				'plume'
+			),
 		},
 		{
 			id: 'pro',
-			title: 'Upgrade to Pro',
+			title: __( 'Upgrade to Pro', 'plume' ),
 			badge: 'Pro',
-			desc: 'Full access, priority support, and advanced features.',
+			desc: __(
+				'Full access, priority support, and advanced features.',
+				'plume'
+			),
 		},
 	];
 
@@ -92,11 +111,13 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 					{ /* Second pip only shown on own-key path — hidden here */ }
 				</div>
 				<div className="plume-ob-title">
-					Welcome to Plume - Write and Design
+					{ __( 'Welcome to Plume - Write and Design', 'plume' ) }
 				</div>
 				<div className="plume-ob-sub">
-					How would you like to connect? You can change this anytime
-					in Settings.
+					{ __(
+						'How would you like to connect? You can change this anytime in Settings.',
+						'plume'
+					) }
 				</div>
 			</div>
 
@@ -144,7 +165,7 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 
 			<div className="plume-ob-footer">
 				<button className="plume-ob-skip" onClick={ onSkip }>
-					Skip setup
+					{ __( 'Skip setup', 'plume' ) }
 				</button>
 				{ isPro ? (
 					<a
@@ -154,14 +175,14 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 						rel="nofollow noreferrer"
 						onClick={ onSkip }
 					>
-						Go to Upgrade &#x2197;
+						{ __( 'Go to Upgrade ↗', 'plume' ) }
 					</a>
 				) : (
 					<button
 						className="plume-dash-btn plume-dash-btn--primary"
 						onClick={ onContinue }
 					>
-						Get started &#x2192;
+						{ __( 'Get started →', 'plume' ) }
 					</button>
 				) }
 			</div>
@@ -219,12 +240,14 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 					...prev,
 					[ provider ]: data.success
 						? 'valid'
-						: `error:${ data.message ?? 'Invalid key' }`,
+						: `error:${
+								data.message ?? __( 'Invalid key', 'plume' )
+							}`,
 				} ) );
 			} catch {
 				setTestStatus( ( prev ) => ( {
 					...prev,
-					[ provider ]: 'error:Network error',
+					[ provider ]: `error:${ __( 'Network error', 'plume' ) }`,
 				} ) );
 			}
 		},
@@ -248,15 +271,21 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 					<div className="plume-ob-pip plume-ob-pip--done" />
 					<div className="plume-ob-pip plume-ob-pip--active" />
 				</div>
-				<div className="plume-ob-title">Choose your AI providers</div>
+				<div className="plume-ob-title">
+					{ __( 'Choose your AI providers', 'plume' ) }
+				</div>
 				<div className="plume-ob-sub">
-					Pick a text provider and paste your key. Image generation is
-					optional.
+					{ __(
+						'Pick a text provider and paste your key. Image generation is optional.',
+						'plume'
+					) }
 				</div>
 			</div>
 
 			<div className="plume-ob-body">
-				<div className="plume-ob-section-label">Text model</div>
+				<div className="plume-ob-section-label">
+					{ __( 'Text model', 'plume' ) }
+				</div>
 
 				<div className="plume-ob-providers">
 					{ PROVIDERS.map( ( p ) => (
@@ -291,7 +320,7 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 									rel="nofollow noreferrer"
 									onClick={ ( e ) => e.stopPropagation() }
 								>
-									Setup guide &#x2197;
+									{ __( 'Setup guide ↗', 'plume' ) }
 								</a>
 							) }
 							<a
@@ -301,7 +330,7 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 								rel="nofollow noreferrer"
 								onClick={ ( e ) => e.stopPropagation() }
 							>
-								{ p.keyLabel } &#x2197;
+								{ p.keyLabel }
 							</a>
 						</div>
 					) ) }
@@ -327,7 +356,8 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 								placeholder={
 									PROVIDERS.find(
 										( p ) => p.id === selectedProvider
-									)?.placeholder ?? 'Paste your API key'
+									)?.placeholder ??
+									__( 'Paste your API key', 'plume' )
 								}
 								autoComplete="off"
 							/>
@@ -344,12 +374,12 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 							>
 								{ testStatus[ selectedProvider ] === 'testing'
 									? '…'
-									: 'Test key' }
+									: __( 'Test key', 'plume' ) }
 							</button>
 						</div>
 						{ testStatus[ selectedProvider ] === 'valid' && (
 							<span className="plume-ob-key-status plume-ob-key-status--valid">
-								&#x2713; Valid
+								{ __( '✓ Valid', 'plume' ) }
 							</span>
 						) }
 						{ testStatus[ selectedProvider ]?.startsWith(
@@ -371,9 +401,11 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 						onClick={ () => setImageOpen( ( o ) => ! o ) }
 					>
 						<span className="plume-ob-optional__label">
-							Image model
+							{ __( 'Image model', 'plume' ) }
 						</span>
-						<span className="plume-ob-optional__tag">Optional</span>
+						<span className="plume-ob-optional__tag">
+							{ __( 'Optional', 'plume' ) }
+						</span>
 						<span
 							className={ `plume-ob-optional__chevron${
 								imageOpen
@@ -388,8 +420,10 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 					{ imageOpen && (
 						<div className="plume-ob-optional__body">
 							<p className="plume-ob-optional__desc">
-								Add an image generation provider. Can be
-								configured later in Settings.
+								{ __(
+									'Add an image generation provider. Can be configured later in Settings.',
+									'plume'
+								) }
 							</p>
 
 							<div className="plume-ob-providers">
@@ -435,7 +469,7 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 												e.stopPropagation()
 											}
 										>
-											{ p.docsLabel } &#x2197;
+											{ p.docsLabel }
 										</a>
 									</div>
 								) ) }
@@ -455,7 +489,7 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 											fontSize: '0.625rem',
 										} }
 									>
-										More coming
+										{ __( 'More coming', 'plume' ) }
 									</div>
 								</div>
 							</div>
@@ -485,7 +519,10 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 													( p ) =>
 														p.id === imageProvider
 												)?.placeholder ??
-												'Paste your image API key'
+												__(
+													'Paste your image API key',
+													'plume'
+												)
 											}
 											autoComplete="off"
 										/>
@@ -504,13 +541,13 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 											{ testStatus[ imageProvider ] ===
 											'testing'
 												? '…'
-												: 'Test key' }
+												: __( 'Test key', 'plume' ) }
 										</button>
 									</div>
 									{ testStatus[ imageProvider ] ===
 										'valid' && (
 										<span className="plume-ob-key-status plume-ob-key-status--valid">
-											&#x2713; Valid
+											{ __( '✓ Valid', 'plume' ) }
 										</span>
 									) }
 									{ testStatus[ imageProvider ]?.startsWith(
@@ -532,14 +569,16 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 
 			<div className="plume-ob-footer">
 				<button className="plume-ob-skip" onClick={ onBack }>
-					&#x2190; Back
+					{ __( '← Back', 'plume' ) }
 				</button>
 				<button
 					className="plume-dash-btn plume-dash-btn--primary"
 					onClick={ handleFinish }
 					disabled={ saving }
 				>
-					{ saving ? 'Saving…' : 'Finish setup \u2192' }
+					{ saving
+						? __( 'Saving…', 'plume' )
+						: __( 'Finish setup →', 'plume' ) }
 				</button>
 			</div>
 		</>
@@ -565,28 +604,37 @@ function DoneScreen( { apiTierLabel, urls, registered } ) {
 					<div className="plume-ob-pip plume-ob-pip--done" />
 					<div className="plume-ob-pip plume-ob-pip--done" />
 				</div>
-				<div className="plume-ob-title">You&apos;re all set</div>
+				<div className="plume-ob-title">
+					{ __( "You're all set", 'plume' ) }
+				</div>
 				<div className="plume-ob-sub">
-					Plume - Write and Design is ready to use.
+					{ __(
+						'Plume - Write and Design is ready to use.',
+						'plume'
+					) }
 				</div>
 			</div>
 
 			<div className="plume-ob-body">
 				<div className="plume-ob-success">
 					<div className="plume-ob-success__title">
-						Setup complete
+						{ __( 'Setup complete', 'plume' ) }
 					</div>
 					<div className="plume-ob-success__sub">
-						{ apiTierLabel }.<br />
-						Change this anytime in Settings.
+						{ apiTierLabel }
+						<br />
+						{ __( 'Change this anytime in Settings.', 'plume' ) }
 					</div>
 					{ false === registered && (
 						<div className="plume-ob-success__sub">
-							Finishing setup — this can take a few seconds.
+							{ __(
+								'Finishing setup — this can take a few seconds.',
+								'plume'
+							) }
 						</div>
 					) }
 					<a href={ urls.chat } className="plume-ob-success__cta">
-						Open Chat &#x2192;
+						{ __( 'Open Chat →', 'plume' ) }
 					</a>
 				</div>
 			</div>
@@ -604,7 +652,7 @@ function DoneScreen( { apiTierLabel, urls, registered } ) {
 					className="plume-ob-skip"
 					onClick={ () => window.location.reload() }
 				>
-					Go to Dashboard instead
+					{ __( 'Go to Dashboard instead', 'plume' ) }
 				</button>
 			</div>
 		</>
@@ -630,7 +678,7 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 	const [ step, setStep ] = useState( 'step1' ); // 'step1' | 'step2' | 'done'
 	const [ connection, setConnection ] = useState( 'plugin' ); // 'plugin' | 'own_key' | 'pro'
 	const [ apiTierLabel, setApiTierLabel ] = useState(
-		'Using Plugin API (free tier)'
+		__( 'Using Plugin API (free tier).', 'plume' )
 	);
 	const [ registered, setRegistered ] = useState( true );
 
@@ -661,7 +709,7 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 	const handleStep1Continue = useCallback( async () => {
 		if ( connection === 'plugin' ) {
 			const result = await postOnboarding( { seen: true } );
-			setApiTierLabel( 'Using Plugin API (free tier)' );
+			setApiTierLabel( __( 'Using Plugin API (free tier).', 'plume' ) );
 			setRegistered( result.registered !== false );
 			setStep( 'done' );
 		} else if ( connection === 'own_key' ) {
@@ -679,12 +727,14 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 				image_provider: imageProvider,
 			} );
 			setApiTierLabel(
-				`Using your own ${
+				sprintf(
+					/* translators: %s: AI provider name, e.g. "Openai". */
+					__( 'Using your own %s API key.', 'plume' ),
 					provider
 						? provider.charAt( 0 ).toUpperCase() +
-							provider.slice( 1 )
+								provider.slice( 1 )
 						: ''
-				} API key`
+				)
 			);
 			setRegistered( result.registered !== false );
 			setStep( 'done' );

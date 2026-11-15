@@ -36,7 +36,11 @@ export const MAX_ISSUES = 300;
 
 // Fix-session step outcomes that mean it did not complete ('skipped' and
 // 'success' are not failures; an empty value means unknown).
-export const SESSION_FAILED = new Set( [ 'failure', 'cancelled', 'timed_out' ] );
+export const SESSION_FAILED = new Set( [
+	'failure',
+	'cancelled',
+	'timed_out',
+] );
 
 // Reasons that are explicitly NOT a valid exclusion: the issue is force-queued.
 const DENY_REASON_RE =
@@ -49,7 +53,7 @@ const NOT_FIXED_LINE_RE = /^\*\*Not auto-fixed:\*\*[ \t]*(.*)$/m;
 /**
  * Makes untrusted free text safe for a one-line markdown reason: no control
  * characters or newlines, no backticks, angle brackets, square brackets or
- * pipes, no @mentions, capped length.
+ * pipes, no `@` mentions, capped length.
  *
  * @param {unknown} text Raw reason.
  * @param {number}  max  Maximum length.
@@ -57,7 +61,6 @@ const NOT_FIXED_LINE_RE = /^\*\*Not auto-fixed:\*\*[ \t]*(.*)$/m;
  */
 export function sanitiseReason( text, max = MAX_REASON ) {
 	let out = String( text ?? '' )
-		// eslint-disable-next-line no-control-regex -- stripping control characters is the point.
 		.replace( /[\u0000-\u001f\u007f]+/g, ' ' )
 		.replace( /[`<>[\]|]/g, '' )
 		.replace( /@/g, '' )
@@ -104,7 +107,9 @@ export function commitMentionsIssue( message, number ) {
  * @return {string|null} Raw reason, or null when the line is absent.
  */
 export function extractReason( body ) {
-	const m = NOT_FIXED_LINE_RE.exec( String( body ?? '' ).replace( /\r/g, '' ) );
+	const m = NOT_FIXED_LINE_RE.exec(
+		String( body ?? '' ).replace( /\r/g, '' )
+	);
 	return m ? m[ 1 ] : null;
 }
 
@@ -203,7 +208,9 @@ export function validatePayload( p ) {
 	} else if (
 		! Array.isArray( src.issue_numbers ) ||
 		src.issue_numbers.length > MAX_ISSUES ||
-		! src.issue_numbers.every( ( n ) => typeof n === 'number' && isNum( n ) )
+		! src.issue_numbers.every(
+			( n ) => typeof n === 'number' && isNum( n )
+		)
 	) {
 		errors.push( 'issue_numbers must be an array of positive integers' );
 	} else {
@@ -269,7 +276,9 @@ export function reasonFromComments( comments, sinceIso ) {
 	const since = Date.parse( sinceIso );
 	const recent = ( comments ?? [] )
 		.filter( ( c ) => Date.parse( c?.createdAt ) >= since )
-		.sort( ( a, b ) => Date.parse( a.createdAt ) - Date.parse( b.createdAt ) );
+		.sort(
+			( a, b ) => Date.parse( a.createdAt ) - Date.parse( b.createdAt )
+		);
 	const last = recent[ recent.length - 1 ];
 	const line = String( last?.body ?? '' )
 		.split( /\r?\n/ )
@@ -410,7 +419,8 @@ export function mergeManual( payload, live, dispatched ) {
 export function findOwnComment( comments, marker ) {
 	const hit = ( comments ?? [] ).find(
 		( c ) =>
-			c?.user?.login === BOT_LOGIN && String( c?.body ?? '' ).includes( marker )
+			c?.user?.login === BOT_LOGIN &&
+			String( c?.body ?? '' ).includes( marker )
 	);
 	return hit ? hit.id : null;
 }
@@ -473,7 +483,9 @@ export function renderReport( {
 		counts.push( `Fix pushed ${ fixPushed.length }` );
 	}
 	if ( closedNoCommit.length ) {
-		counts.push( `Closed without a matching pushed commit ${ closedNoCommit.length }` );
+		counts.push(
+			`Closed without a matching pushed commit ${ closedNoCommit.length }`
+		);
 	}
 	if ( unaccounted.length ) {
 		counts.push( `Unaccounted ${ unaccounted.length }` );
@@ -554,7 +566,10 @@ function need( name ) {
  * @return {{ok: boolean, out: string}} Result.
  */
 function run( cmd, args ) {
-	const r = spawnSync( cmd, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 } );
+	const r = spawnSync( cmd, args, {
+		encoding: 'utf8',
+		maxBuffer: 64 * 1024 * 1024,
+	} );
 	return { ok: r.status === 0, out: r.stdout ?? '' };
 }
 
@@ -595,16 +610,27 @@ function setOutput( name, value ) {
  */
 function liveReviewIssues( repo, prNumber ) {
 	const issues = ghJson( [
-		'issue', 'list', '--repo', repo, '--label', 'code-review',
-		'--state', 'open', '--limit', String( MAX_ISSUES ),
-		'--json', 'number,body,labels',
+		'issue',
+		'list',
+		'--repo',
+		repo,
+		'--label',
+		'code-review',
+		'--state',
+		'open',
+		'--limit',
+		String( MAX_ISSUES ),
+		'--json',
+		'number,body,labels',
 	] );
 	return partitionReviewIssues( issues, prNumber );
 }
 
 function cmdPartition() {
 	const prNumber = Number( need( 'PR_NUMBER' ) );
-	const issues = JSON.parse( fs.readFileSync( need( 'ISSUES_FILE' ), 'utf8' ) );
+	const issues = JSON.parse(
+		fs.readFileSync( need( 'ISSUES_FILE' ), 'utf8' )
+	);
 	const p = partitionReviewIssues( issues, prNumber );
 	for ( const f of p.forced ) {
 		console.log(
@@ -612,7 +638,9 @@ function cmdPartition() {
 		);
 	}
 	if ( p.matched === 0 ) {
-		console.log( `::notice::No open review issues reference PR #${ prNumber }.` );
+		console.log(
+			`::notice::No open review issues reference PR #${ prNumber }.`
+		);
 	}
 	setOutput( 'issues', JSON.stringify( p.queued ) );
 	setOutput( 'manual', JSON.stringify( p.manual ) );
@@ -620,7 +648,9 @@ function cmdPartition() {
 		need( 'FOOTER_FILE' ),
 		renderQueueFooter( { queued: p.queued, manual: p.manual } )
 	);
-	console.log( `Queued: ${ p.queued.join( ', ' ) || 'none' }; manual: ${ p.manual.map( ( m ) => m.number ).join( ', ' ) || 'none' }` );
+	console.log(
+		`Queued: ${ p.queued.join( ', ' ) || 'none' }; manual: ${ p.manual.map( ( m ) => m.number ).join( ', ' ) || 'none' }`
+	);
 }
 
 function cmdUpsertComment() {
@@ -635,10 +665,20 @@ function cmdUpsertComment() {
 		throw new Error( 'body does not contain the marker' );
 	}
 	const base = `repos/${ repo }/issues/${ pr }/comments`;
-	const pages = ghJson( [ 'api', '--paginate', '--slurp', `${ base }?per_page=100` ] );
+	const pages = ghJson( [
+		'api',
+		'--paginate',
+		'--slurp',
+		`${ base }?per_page=100`,
+	] );
 	const id = findOwnComment( [].concat( ...pages ), marker );
 	const args = id
-		? [ 'api', '--method', 'PATCH', `repos/${ repo }/issues/comments/${ id }` ]
+		? [
+				'api',
+				'--method',
+				'PATCH',
+				`repos/${ repo }/issues/comments/${ id }`,
+			]
 		: [ 'api', '--method', 'POST', base ];
 	// gh reads the body from a file to avoid argv limits and quoting.
 	const res = spawnSync(
@@ -683,23 +723,39 @@ function gather() {
 	const dispatched = JSON.parse( need( 'ISSUES_JSON' ) );
 	const payloadManual = JSON.parse( process.env.MANUAL_JSON || '[]' );
 	const sinceIso = process.env.START_TIME || '1970-01-01T00:00:00Z';
-	const tsv = process.env.UNFIXED_TSV && fs.existsSync( process.env.UNFIXED_TSV )
-		? parseUnfixedTsv( fs.readFileSync( process.env.UNFIXED_TSV, 'utf8' ) )
-		: {};
+	const tsv =
+		process.env.UNFIXED_TSV && fs.existsSync( process.env.UNFIXED_TSV )
+			? parseUnfixedTsv(
+					fs.readFileSync( process.env.UNFIXED_TSV, 'utf8' )
+				)
+			: {};
 
 	const issues = {};
 	const bodies = {};
 	for ( const n of dispatched ) {
 		try {
-			const d = ghJson( [ 'issue', 'view', String( n ), '--repo', repo, '--json', 'state,body,comments' ] );
+			const d = ghJson( [
+				'issue',
+				'view',
+				String( n ),
+				'--repo',
+				repo,
+				'--json',
+				'state,body,comments',
+			] );
 			bodies[ n ] = d.body ?? '';
 			issues[ n ] = {
 				state: d.state,
 				reason:
-					reasonFromComments( d.comments, sinceIso ) ?? tsv[ n ] ?? null,
+					reasonFromComments( d.comments, sinceIso ) ??
+					tsv[ n ] ??
+					null,
 			};
 		} catch {
-			issues[ n ] = { state: 'UNKNOWN', reason: 'issue state could not be read' };
+			issues[ n ] = {
+				state: 'UNKNOWN',
+				reason: 'issue state could not be read',
+			};
 		}
 	}
 
@@ -708,29 +764,59 @@ function gather() {
 	const startSha = process.env.START_SHA;
 	const branch = process.env.HEAD_BRANCH;
 	if ( startSha && branch && dispatched.length ) {
-		const log = run( 'git', [ 'log', `${ startSha }..HEAD`, '--format=%B%x00' ] );
-		commits = log.ok ? log.out.split( '\0' ).map( ( s ) => s.trim() ).filter( Boolean ) : [];
+		const log = run( 'git', [
+			'log',
+			`${ startSha }..HEAD`,
+			'--format=%B%x00',
+		] );
+		commits = log.ok
+			? log.out
+					.split( '\0' )
+					.map( ( s ) => s.trim() )
+					.filter( Boolean )
+			: [];
 		const head = run( 'git', [ 'rev-parse', 'HEAD' ] ).out.trim();
-		let remote = run( 'git', [ 'ls-remote', 'origin', `refs/heads/${ branch }` ] ).out.split( /\s/ )[ 0 ];
+		let remote = run( 'git', [
+			'ls-remote',
+			'origin',
+			`refs/heads/${ branch }`,
+		] ).out.split( /\s/ )[ 0 ];
 		if ( ! remote ) {
-			console.log( '::warning::git ls-remote failed; falling back to the GitHub API for the pushed SHA.' );
-			remote = run( 'gh', [ 'api', `repos/${ repo }/commits/${ branch }`, '--jq', '.sha' ] ).out.trim();
+			console.log(
+				'::warning::git ls-remote failed; falling back to the GitHub API for the pushed SHA.'
+			);
+			remote = run( 'gh', [
+				'api',
+				`repos/${ repo }/commits/${ branch }`,
+				'--jq',
+				'.sha',
+			] ).out.trim();
 		}
 		if ( remote && head ) {
 			pushed = head === remote;
 		} else {
 			pushed = null;
-			console.log( '::warning::Could not determine whether HEAD is pushed; not reporting fixes as unpushed.' );
+			console.log(
+				'::warning::Could not determine whether HEAD is pushed; not reporting fixes as unpushed.'
+			);
 		}
 	}
 
 	const sessionFailed = SESSION_FAILED.has( process.env.SESSION_OUTCOME );
-	const outcome = classifyOutcome( { dispatched, issues, commits, pushed, sessionFailed } );
+	const outcome = classifyOutcome( {
+		dispatched,
+		issues,
+		commits,
+		pushed,
+		sessionFailed,
+	} );
 	let live = { queued: [], manual: [] };
 	try {
 		live = liveReviewIssues( repo, prNumber );
 	} catch ( err ) {
-		console.log( `::warning::Could not list open review issues: ${ err.message }` );
+		console.log(
+			`::warning::Could not list open review issues: ${ err.message }`
+		);
 	}
 	const notQueued = mergeManual( payloadManual, live.manual, dispatched );
 	const unaccounted = findUnaccounted( live.queued, dispatched, notQueued );
@@ -744,18 +830,33 @@ function gather() {
  * @param {ReturnType<typeof gather>} g Gathered data.
  */
 function labelUnfixed( g ) {
-	for ( const n of g.outcome.notFixed.filter( ( x ) => ! x.hasCommit && ! x.retry ) ) {
-		const edit = [ 'issue', 'edit', String( n.number ), '--repo', g.repo, '--add-label', MANUAL_LABEL ];
+	for ( const n of g.outcome.notFixed.filter(
+		( x ) => ! x.hasCommit && ! x.retry
+	) ) {
+		const edit = [
+			'issue',
+			'edit',
+			String( n.number ),
+			'--repo',
+			g.repo,
+			'--add-label',
+			MANUAL_LABEL,
+		];
 		const body = g.bodies[ n.number ] ?? '';
 		if ( body && extractReason( body ) === null ) {
 			fs.writeFileSync(
 				`${ process.env.RUNNER_TEMP || '.' }/autofix-body-${ n.number }.txt`,
 				`${ body }\n\n**Not auto-fixed:** ${ n.reason }\n`
 			);
-			edit.push( '--body-file', `${ process.env.RUNNER_TEMP || '.' }/autofix-body-${ n.number }.txt` );
+			edit.push(
+				'--body-file',
+				`${ process.env.RUNNER_TEMP || '.' }/autofix-body-${ n.number }.txt`
+			);
 		}
 		if ( ! run( 'gh', edit ).ok ) {
-			console.log( `::warning::Could not label #${ n.number } ${ MANUAL_LABEL }.` );
+			console.log(
+				`::warning::Could not label #${ n.number } ${ MANUAL_LABEL }.`
+			);
 		}
 	}
 }
@@ -772,15 +873,40 @@ function addClosingKeywords( g ) {
 		return;
 	}
 	const pr = process.env.PR_NUMBER;
-	const view = run( 'gh', [ 'pr', 'view', pr, '--repo', g.repo, '--json', 'body', '--jq', '.body // ""' ] );
+	const view = run( 'gh', [
+		'pr',
+		'view',
+		pr,
+		'--repo',
+		g.repo,
+		'--json',
+		'body',
+		'--jq',
+		'.body // ""',
+	] );
 	if ( ! view.ok ) {
-		console.log( '::warning::Could not read the PR body to add closing keywords.' );
+		console.log(
+			'::warning::Could not read the PR body to add closing keywords.'
+		);
 		return;
 	}
 	const current = view.out.replace( /\n$/, '' );
 	const extra = closingKeywordsToAppend( current, numbers );
-	if ( extra && ! run( 'gh', [ 'pr', 'edit', pr, '--repo', g.repo, '--body', `${ current }${ extra }` ] ).ok ) {
-		console.log( '::warning::Could not add closing keywords to the PR body.' );
+	if (
+		extra &&
+		! run( 'gh', [
+			'pr',
+			'edit',
+			pr,
+			'--repo',
+			g.repo,
+			'--body',
+			`${ current }${ extra }`,
+		] ).ok
+	) {
+		console.log(
+			'::warning::Could not add closing keywords to the PR body.'
+		);
 	}
 }
 
@@ -803,7 +929,10 @@ function cmdReport() {
 		const msg = `Open review issues not in any list: ${ g.unaccounted.map( ( n ) => `#${ n }` ).join( ', ' ) }`;
 		console.log( `::warning::${ msg }` );
 		if ( process.env.GITHUB_STEP_SUMMARY ) {
-			fs.appendFileSync( process.env.GITHUB_STEP_SUMMARY, `**Warning:** ${ msg }\n` );
+			fs.appendFileSync(
+				process.env.GITHUB_STEP_SUMMARY,
+				`**Warning:** ${ msg }\n`
+			);
 		}
 	}
 	labelUnfixed( g );
@@ -822,8 +951,16 @@ function cmdReport() {
 function cmdRenderReport() {
 	const fixture = JSON.parse( fs.readFileSync( process.argv[ 3 ], 'utf8' ) );
 	const outcome = classifyOutcome( fixture );
-	const manual = mergeManual( fixture.payloadManual, fixture.liveManual, fixture.dispatched );
-	const unaccounted = findUnaccounted( fixture.openQueued, fixture.dispatched, manual );
+	const manual = mergeManual(
+		fixture.payloadManual,
+		fixture.liveManual,
+		fixture.dispatched
+	);
+	const unaccounted = findUnaccounted(
+		fixture.openQueued,
+		fixture.dispatched,
+		manual
+	);
 	console.log(
 		renderReport( {
 			...outcome,
@@ -860,11 +997,15 @@ export function main( name ) {
 		command();
 	} catch ( err ) {
 		if ( name === 'validate-payload' ) {
-			console.log( `::error::autofix-status ${ name }: ${ err.message }` );
+			console.log(
+				`::error::autofix-status ${ name }: ${ err.message }`
+			);
 			process.exitCode = 1;
 			return;
 		}
-		console.log( `::warning::autofix-status (${ name }) incomplete: ${ err.message }` );
+		console.log(
+			`::warning::autofix-status (${ name }) incomplete: ${ err.message }`
+		);
 		if ( name === 'partition' ) {
 			setOutput( 'issues', '[]' );
 			setOutput( 'manual', '[]' );

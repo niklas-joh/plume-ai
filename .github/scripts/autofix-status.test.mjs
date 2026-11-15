@@ -40,10 +40,22 @@ const issue = ( number, pr, { manual = false, reason = null } = {} ) => ( {
 // ── matching ────────────────────────────────────────────────────────────────
 
 test( 'PR #10 does not match issues for PR #1060 (and the reverse)', () => {
-	assert.equal( issueMentionsPr( 'Found during review of PR #1060\n', 10 ), false );
-	assert.equal( issueMentionsPr( 'Found during review of PR #10\n', 10 ), true );
-	assert.equal( issueMentionsPr( 'Found during review of PR #10', 10 ), true );
-	assert.equal( issueMentionsPr( 'Found during review of PR #10\n', 1060 ), false );
+	assert.equal(
+		issueMentionsPr( 'Found during review of PR #1060\n', 10 ),
+		false
+	);
+	assert.equal(
+		issueMentionsPr( 'Found during review of PR #10\n', 10 ),
+		true
+	);
+	assert.equal(
+		issueMentionsPr( 'Found during review of PR #10', 10 ),
+		true
+	);
+	assert.equal(
+		issueMentionsPr( 'Found during review of PR #10\n', 1060 ),
+		false
+	);
 	assert.equal( issueMentionsPr( undefined, 10 ), false );
 } );
 
@@ -81,14 +93,19 @@ test( 'partition: default is queue; only the label excludes', () => {
 	const p = partitionReviewIssues(
 		[
 			issue( 3, 9 ),
-			issue( 2, 9, { manual: true, reason: 'needs an API key (rule a)' } ),
+			issue( 2, 9, {
+				manual: true,
+				reason: 'needs an API key (rule a)',
+			} ),
 			// Reason line without the label does not exclude.
 			issue( 4, 9, { reason: 'looks big' } ),
 		],
 		9
 	);
 	assert.deepEqual( p.queued, [ 3, 4 ] );
-	assert.deepEqual( p.manual, [ { number: 2, reason: 'needs an API key (rule a)' } ] );
+	assert.deepEqual( p.manual, [
+		{ number: 2, reason: 'needs an API key (rule a)' },
+	] );
 } );
 
 test( 'partition: manual label with a missing reason is still manual', () => {
@@ -104,21 +121,38 @@ test( 'partition: manual label with a missing reason is still manual', () => {
 test( 'partition: "needs CI" / "human review" exclusions are force-queued and logged', () => {
 	const p = partitionReviewIssues(
 		[
-			issue( 2, 9, { manual: true, reason: 'needs a real CI run to verify' } ),
+			issue( 2, 9, {
+				manual: true,
+				reason: 'needs a real CI run to verify',
+			} ),
 			issue( 3, 9, { manual: true, reason: 'warrants human review' } ),
-			issue( 4, 9, { manual: true, reason: 'needs the account ID (rule a)' } ),
+			issue( 4, 9, {
+				manual: true,
+				reason: 'needs the account ID (rule a)',
+			} ),
 		],
 		9
 	);
 	assert.deepEqual( p.queued, [ 2, 3 ] );
-	assert.deepEqual( p.forced.map( ( f ) => f.number ), [ 2, 3 ] );
-	assert.deepEqual( p.manual.map( ( m ) => m.number ), [ 4 ] );
+	assert.deepEqual(
+		p.forced.map( ( f ) => f.number ),
+		[ 2, 3 ]
+	);
+	assert.deepEqual(
+		p.manual.map( ( m ) => m.number ),
+		[ 4 ]
+	);
 } );
 
 test( 'partition: de-duplicates, ignores malformed entries, handles 300 issues', () => {
 	const many = Array.from( { length: 300 }, ( _, i ) => issue( i + 1, 77 ) );
 	const p = partitionReviewIssues(
-		[ ...many, issue( 1, 77 ), { number: 'x', body: 'Found during review of PR #77' }, null ],
+		[
+			...many,
+			issue( 1, 77 ),
+			{ number: 'x', body: 'Found during review of PR #77' },
+			null,
+		],
 		77
 	);
 	assert.equal( p.queued.length, 300 );
@@ -127,9 +161,14 @@ test( 'partition: de-duplicates, ignores malformed entries, handles 300 issues',
 // ── sanitising ──────────────────────────────────────────────────────────────
 
 test( 'sanitiseReason strips newlines, backticks, mentions, html and links', () => {
-	const out = sanitiseReason( 'a\nb `rm -rf` @octocat <script>x</script> [l](http://e) | y\u0007' );
+	const out = sanitiseReason(
+		'a\nb `rm -rf` @octocat <script>x</script> [l](http://e) | y\u0007'
+	);
 	assert.equal( /[\n`@<>[\]|\u0007]/.test( out ), false );
-	assert.match( out, /^a b rm -rf octocat scriptx\/script l\(http:\/\/e\) y$/ );
+	assert.match(
+		out,
+		/^a b rm -rf octocat scriptx\/script l\(http:\/\/e\) y$/
+	);
 } );
 
 test( 'sanitiseReason caps length and falls back when empty', () => {
@@ -142,8 +181,14 @@ test( 'sanitiseReason caps length and falls back when empty', () => {
 } );
 
 test( 'extractReason reads the marker line only', () => {
-	assert.equal( extractReason( 'a\n**Not auto-fixed:** reason here\nb' ), 'reason here' );
-	assert.equal( extractReason( 'a\r\n**Not auto-fixed:** crlf\r\n' ), 'crlf' );
+	assert.equal(
+		extractReason( 'a\n**Not auto-fixed:** reason here\nb' ),
+		'reason here'
+	);
+	assert.equal(
+		extractReason( 'a\r\n**Not auto-fixed:** crlf\r\n' ),
+		'crlf'
+	);
 	assert.equal( extractReason( 'no marker' ), null );
 	assert.equal( extractReason( 'text **Not auto-fixed:** inline' ), null );
 } );
@@ -167,7 +212,12 @@ test( 'classifyOutcome: fixed needs closed AND matching commit AND pushed', () =
 		{ number: 2, note: 'closed, no matching pushed commit' },
 	] );
 	assert.deepEqual( o.notFixed, [
-		{ number: 3, reason: 'needs the variant ID', hasCommit: false, retry: false },
+		{
+			number: 3,
+			reason: 'needs the variant ID',
+			hasCommit: false,
+			retry: false,
+		},
 		{ number: 4, reason: NO_REASON, hasCommit: false, retry: false },
 	] );
 } );
@@ -229,15 +279,18 @@ test( 'classifyOutcome: unknown remote SHA (null) is not reported as unpushed', 
 test( 'classifyOutcome: failed session reports "session failed" and marks for retry', () => {
 	const o = classifyOutcome( {
 		dispatched: [ 1, 2 ],
-		issues: { 1: { state: 'OPEN', reason: 'needs key' }, 2: { state: 'OPEN' } },
+		issues: {
+			1: { state: 'OPEN', reason: 'needs key' },
+			2: { state: 'OPEN' },
+		},
 		commits: [],
 		pushed: null,
 		sessionFailed: true,
 	} );
-	assert.deepEqual( o.notFixed.map( ( n ) => n.reason ), [
-		'not fixed (session failed)',
-		'not fixed (session failed)',
-	] );
+	assert.deepEqual(
+		o.notFixed.map( ( n ) => n.reason ),
+		[ 'not fixed (session failed)', 'not fixed (session failed)' ]
+	);
 	assert.ok( o.notFixed.every( ( n ) => n.retry === true ) );
 	const ok = classifyOutcome( {
 		dispatched: [ 1 ],
@@ -259,49 +312,101 @@ test( 'SESSION_FAILED covers failure/cancelled/timed_out but not skipped/success
 } );
 
 test( 'renderReport: banner shows for failure, not for skipped or success', () => {
-	const base = { fixed: [], closedNoCommit: [], notFixed: [], notQueued: [], unaccounted: [] };
-	assert.match( renderReport( { ...base, sessionOutcome: 'failure' } ), /session ended with status/ );
-	assert.match( renderReport( { ...base, sessionOutcome: 'cancelled' } ), /session ended with status/ );
-	assert.doesNotMatch( renderReport( { ...base, sessionOutcome: 'skipped' } ), /session ended/ );
-	assert.doesNotMatch( renderReport( { ...base, sessionOutcome: 'success' } ), /session ended/ );
+	const base = {
+		fixed: [],
+		closedNoCommit: [],
+		notFixed: [],
+		notQueued: [],
+		unaccounted: [],
+	};
+	assert.match(
+		renderReport( { ...base, sessionOutcome: 'failure' } ),
+		/session ended with status/
+	);
+	assert.match(
+		renderReport( { ...base, sessionOutcome: 'cancelled' } ),
+		/session ended with status/
+	);
+	assert.doesNotMatch(
+		renderReport( { ...base, sessionOutcome: 'skipped' } ),
+		/session ended/
+	);
+	assert.doesNotMatch(
+		renderReport( { ...base, sessionOutcome: 'success' } ),
+		/session ended/
+	);
 	assert.doesNotMatch( renderReport( base ), /session ended/ );
 } );
 
 test( 'closingKeywordsToAppend adds only missing, boundary-safe keywords', () => {
-	assert.equal( closingKeywordsToAppend( 'Body', [ 1, 2 ] ), '\n\nCloses #1\n\nCloses #2' );
-	assert.equal( closingKeywordsToAppend( 'Closes #1\nfixes #2.', [ 1, 2 ] ), '' );
+	assert.equal(
+		closingKeywordsToAppend( 'Body', [ 1, 2 ] ),
+		'\n\nCloses #1\n\nCloses #2'
+	);
+	assert.equal(
+		closingKeywordsToAppend( 'Closes #1\nfixes #2.', [ 1, 2 ] ),
+		''
+	);
 	// "Closes #10" must not satisfy #1.
-	assert.equal( closingKeywordsToAppend( 'Closes #10', [ 1 ] ), '\n\nCloses #1' );
+	assert.equal(
+		closingKeywordsToAppend( 'Closes #10', [ 1 ] ),
+		'\n\nCloses #1'
+	);
 	assert.equal( closingKeywordsToAppend( 'x', [] ), '' );
 } );
 
 test( 'classifyOutcome: empty and unknown issues', () => {
-	assert.deepEqual( classifyOutcome( { dispatched: [], issues: {}, commits: [], pushed: false } ), {
-		fixed: [],
-		fixPushed: [],
-		closedNoCommit: [],
-		notFixed: [],
+	assert.deepEqual(
+		classifyOutcome( {
+			dispatched: [],
+			issues: {},
+			commits: [],
+			pushed: false,
+		} ),
+		{
+			fixed: [],
+			fixPushed: [],
+			closedNoCommit: [],
+			notFixed: [],
+		}
+	);
+	const o = classifyOutcome( {
+		dispatched: [ 9 ],
+		issues: {},
+		commits: [],
+		pushed: true,
 	} );
-	const o = classifyOutcome( { dispatched: [ 9 ], issues: {}, commits: [], pushed: true } );
 	assert.equal( o.notFixed[ 0 ].reason, NO_REASON );
 } );
 
 test( 'reasonFromComments uses the latest comment since the run start', () => {
 	const comments = [
 		{ body: 'old note', createdAt: '2026-01-01T00:00:00Z' },
-		{ body: 'Needs the account ID\nmore', createdAt: '2026-01-02T10:05:00Z' },
+		{
+			body: 'Needs the account ID\nmore',
+			createdAt: '2026-01-02T10:05:00Z',
+		},
 		{ body: 'Later @someone `x`', createdAt: '2026-01-02T10:09:00Z' },
 	];
-	assert.equal( reasonFromComments( comments, '2026-01-02T10:00:00Z' ), 'Later someone x' );
-	assert.equal( reasonFromComments( comments, '2026-02-01T00:00:00Z' ), null );
+	assert.equal(
+		reasonFromComments( comments, '2026-01-02T10:00:00Z' ),
+		'Later someone x'
+	);
+	assert.equal(
+		reasonFromComments( comments, '2026-02-01T00:00:00Z' ),
+		null
+	);
 	assert.equal( reasonFromComments( [], '2026-02-01T00:00:00Z' ), null );
 } );
 
 test( 'parseUnfixedTsv parses number<TAB>reason lines', () => {
-	assert.deepEqual( parseUnfixedTsv( '12\tneeds key\n#13\tother `x`\nbad line\n' ), {
-		12: 'needs key',
-		13: 'other x',
-	} );
+	assert.deepEqual(
+		parseUnfixedTsv( '12\tneeds key\n#13\tother `x`\nbad line\n' ),
+		{
+			12: 'needs key',
+			13: 'other x',
+		}
+	);
 	assert.deepEqual( parseUnfixedTsv( '' ), {} );
 } );
 
@@ -309,7 +414,11 @@ test( 'parseUnfixedTsv parses number<TAB>reason lines', () => {
 
 test( 'findUnaccounted lists open review issues in no list', () => {
 	assert.deepEqual(
-		findUnaccounted( [ 1, 2, 3, 4 ], [ 1 ], [ { number: 2, reason: 'r' } ] ),
+		findUnaccounted(
+			[ 1, 2, 3, 4 ],
+			[ 1 ],
+			[ { number: 2, reason: 'r' } ]
+		),
 		[ 3, 4 ]
 	);
 	assert.deepEqual( findUnaccounted( [], [], [] ), [] );
@@ -320,10 +429,17 @@ test( 'mergeManual de-duplicates and drops dispatched issues', () => {
 	assert.deepEqual(
 		mergeManual(
 			[ { number: 5, reason: 'payload' } ],
-			[ { number: 5, reason: 'live' }, { number: 3, reason: 'l3' }, { number: 9, reason: 'x' } ],
+			[
+				{ number: 5, reason: 'live' },
+				{ number: 3, reason: 'l3' },
+				{ number: 9, reason: 'x' },
+			],
 			[ 9 ]
 		),
-		[ { number: 3, reason: 'l3' }, { number: 5, reason: 'payload' } ]
+		[
+			{ number: 3, reason: 'l3' },
+			{ number: 5, reason: 'payload' },
+		]
 	);
 } );
 
@@ -331,10 +447,17 @@ test( 'findOwnComment requires marker AND the bot author (anti-spoof)', () => {
 	const comments = [
 		{ id: 1, body: `${ REPORT_MARKER } spoof`, user: { login: 'mallory' } },
 		{ id: 2, body: 'no marker', user: { login: 'github-actions[bot]' } },
-		{ id: 3, body: `${ REPORT_MARKER } real`, user: { login: 'github-actions[bot]' } },
+		{
+			id: 3,
+			body: `${ REPORT_MARKER } real`,
+			user: { login: 'github-actions[bot]' },
+		},
 	];
 	assert.equal( findOwnComment( comments, REPORT_MARKER ), 3 );
-	assert.equal( findOwnComment( comments.slice( 0, 2 ), REPORT_MARKER ), null );
+	assert.equal(
+		findOwnComment( comments.slice( 0, 2 ), REPORT_MARKER ),
+		null
+	);
 	assert.equal( findOwnComment( [], REPORT_MARKER ), null );
 } );
 
@@ -383,7 +506,11 @@ test( 'validatePayload rejects injection attempts', () => {
 		{ manual_issues: [ { number: 'x', reason: 'r' } ] },
 		{ manual_issues: 'x' },
 	] ) {
-		assert.equal( validatePayload( { ...goodPayload(), ...bad } ).ok, false, JSON.stringify( bad ) );
+		assert.equal(
+			validatePayload( { ...goodPayload(), ...bad } ).ok,
+			false,
+			JSON.stringify( bad )
+		);
 	}
 	assert.equal( validatePayload( null ).ok, false );
 } );
@@ -420,8 +547,14 @@ test( 'renderReport scenario: 1 fixed, 1 manual-not-queued, 1 open-unfixed', () 
 	assert.ok( md.startsWith( REPORT_MARKER ) );
 	assert.match( md, /Fixed 1 · Not fixed 1 · Not queued by review 1/ );
 	assert.match( md, /\*\*Fixed \(1\)\*\*\n- #10\n/ );
-	assert.match( md, /\*\*Not fixed \(1\)\*\*\n- #11: needs the variant ID\n/ );
-	assert.match( md, /\*\*Not queued by review \(1\)\*\*\n- #12: needs an API key \(rule a\)\n/ );
+	assert.match(
+		md,
+		/\*\*Not fixed \(1\)\*\*\n- #11: needs the variant ID\n/
+	);
+	assert.match(
+		md,
+		/\*\*Not queued by review \(1\)\*\*\n- #12: needs an API key \(rule a\)\n/
+	);
 	assert.doesNotMatch( md, /not accounted for/ );
 	assert.doesNotMatch( md, /Skipped: none/ );
 } );
@@ -437,13 +570,18 @@ test( 'renderReport with empty lists says none, and shows unaccounted and closed
 	assert.equal( ( empty.match( /- none/g ) || [] ).length, 3 );
 	const full = renderReport( {
 		fixed: [],
-		closedNoCommit: [ { number: 2, note: 'closed, no matching pushed commit' } ],
+		closedNoCommit: [
+			{ number: 2, note: 'closed, no matching pushed commit' },
+		],
 		notFixed: [],
 		notQueued: [],
 		unaccounted: [ 8, 9 ],
 		sessionOutcome: 'failure',
 	} );
-	assert.match( full, /Open review issues not accounted for \(2\)\*\*\n- #8\n- #9/ );
+	assert.match(
+		full,
+		/Open review issues not accounted for \(2\)\*\*\n- #8\n- #9/
+	);
 	assert.match( full, /Closed, no matching pushed commit \(1\)/ );
 	assert.match( full, /session ended with status `failure`/ );
 } );

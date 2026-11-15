@@ -152,7 +152,12 @@ while open review issues remain.
   issues it could not fix, so a re-run does not re-queue them.
 - Queueing, outcomes and reports are computed deterministically (no LLM prose) by
   `.github/scripts/autofix-status.mjs`, which always runs from a default-branch copy. The
-  PR gets one edit-in-place report comment (Fixed / Not fixed / Not queued by review).
+  PR gets exactly ONE edit-in-place status comment (marker `plume-review-status`): the
+  review posts the queued view, the batch run rewrites it with Fixed (each with a short
+  summary: the model's line in `/tmp/autofix-summary.tsv`, else the commit subject, else
+  the issue title) / Not fixed (with reason) / Not queued by review (with reason). Summaries
+  are display text only and never decide Fixed. Legacy `plume-review-queue` and
+  `plume-autofix-report` bot comments are upgraded or deleted automatically.
 - Review and reporting stay non-blocking, and review triggers on `opened` only (no loops).
 - `auto-fix-review-issue.yml` (label path) does not yet follow this contract: it can close
   an issue it could not fix. Tracked as a follow-up.

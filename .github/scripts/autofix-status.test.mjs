@@ -16,11 +16,16 @@ import {
 	SESSION_FAILED,
 	findUnaccounted,
 	mergeManual,
-	findOwnComment,
-	renderQueueFooter,
-	renderReport,
-	REPORT_MARKER,
-	REVIEW_MARKER,
+	findOwnComments,
+	selectStatusComments,
+	renderStatus,
+	parseSummaryTsv,
+	sanitiseSummary,
+	commitSubject,
+	commitSubjects,
+	resolveSummaries,
+	STATUS_MARKER,
+	LEGACY_MARKERS,
 	NO_REASON,
 	MAX_REASON,
 } from './autofix-status.mjs';
@@ -253,7 +258,12 @@ test( 'classifyOutcome: open issue with a pushed fix commit is "fix pushed", not
 	} );
 	assert.deepEqual( o.fixPushed, [ 1 ] );
 	assert.deepEqual( o.notFixed, [] );
-	const md = renderReport( { ...o, notQueued: [], unaccounted: [] } );
+	const md = renderStatus( {
+		...o,
+		phase: 'complete',
+		notQueued: [],
+		unaccounted: [],
+	} );
 	assert.match( md, /Fix pushed, issue closes on merge \(1\)\*\*\n- #1/ );
 	assert.match( md, /Not fixed 0/ );
 } );
@@ -311,8 +321,9 @@ test( 'SESSION_FAILED covers failure/cancelled/timed_out but not skipped/success
 	}
 } );
 
-test( 'renderReport: banner shows for failure, not for skipped or success', () => {
+test( 'renderStatus: banner shows for failure, not for skipped or success', () => {
 	const base = {
+		phase: 'complete',
 		fixed: [],
 		closedNoCommit: [],
 		notFixed: [],
@@ -320,22 +331,22 @@ test( 'renderReport: banner shows for failure, not for skipped or success', () =
 		unaccounted: [],
 	};
 	assert.match(
-		renderReport( { ...base, sessionOutcome: 'failure' } ),
+		renderStatus( { ...base, sessionOutcome: 'failure' } ),
 		/session ended with status/
 	);
 	assert.match(
-		renderReport( { ...base, sessionOutcome: 'cancelled' } ),
+		renderStatus( { ...base, sessionOutcome: 'cancelled' } ),
 		/session ended with status/
 	);
 	assert.doesNotMatch(
-		renderReport( { ...base, sessionOutcome: 'skipped' } ),
+		renderStatus( { ...base, sessionOutcome: 'skipped' } ),
 		/session ended/
 	);
 	assert.doesNotMatch(
-		renderReport( { ...base, sessionOutcome: 'success' } ),
+		renderStatus( { ...base, sessionOutcome: 'success' } ),
 		/session ended/
 	);
-	assert.doesNotMatch( renderReport( base ), /session ended/ );
+	assert.doesNotMatch( renderStatus( base ), /session ended/ );
 } );
 
 test( 'closingKeywordsToAppend adds only missing, boundary-safe keywords', () => {
@@ -443,24 +454,6 @@ test( 'mergeManual de-duplicates and drops dispatched issues', () => {
 	);
 } );
 
-test( 'findOwnComment requires marker AND the bot author (anti-spoof)', () => {
-	const comments = [
-		{ id: 1, body: `${ REPORT_MARKER } spoof`, user: { login: 'mallory' } },
-		{ id: 2, body: 'no marker', user: { login: 'github-actions[bot]' } },
-		{
-			id: 3,
-			body: `${ REPORT_MARKER } real`,
-			user: { login: 'github-actions[bot]' },
-		},
-	];
-	assert.equal( findOwnComment( comments, REPORT_MARKER ), 3 );
-	assert.equal(
-		findOwnComment( comments.slice( 0, 2 ), REPORT_MARKER ),
-		null
-	);
-	assert.equal( findOwnComment( [], REPORT_MARKER ), null );
-} );
-
 // ── validation ──────────────────────────────────────────────────────────────
 
 const goodPayload = () => ( {
@@ -517,18 +510,7 @@ test( 'validatePayload rejects injection attempts', () => {
 
 // ── rendering ───────────────────────────────────────────────────────────────
 
-test( 'renderQueueFooter lists queued and manual with the marker', () => {
-	const md = renderQueueFooter( {
-		queued: [ 4 ],
-		manual: [ { number: 5, reason: 'needs key' } ],
-	} );
-	assert.ok( md.startsWith( REVIEW_MARKER ) );
-	assert.match( md, /- #4/ );
-	assert.match( md, /- #5: needs key/ );
-	assert.match( renderQueueFooter( { queued: [], manual: [] } ), /- none/ );
-} );
-
-test( 'renderReport scenario: 1 fixed, 1 manual-not-queued, 1 open-unfixed', () => {
+test( 'renderStatus complete scenario: 1 fixed, 1 manual-not-queued, 1 open-unfixed', () => {
 	const outcome = classifyOutcome( {
 		dispatched: [ 10, 11 ],
 		issues: {
@@ -538,13 +520,14 @@ test( 'renderReport scenario: 1 fixed, 1 manual-not-queued, 1 open-unfixed', () 
 		commits: [ 'fix: x (closes #10)' ],
 		pushed: true,
 	} );
-	const md = renderReport( {
+	const md = renderStatus( {
 		...outcome,
+		phase: 'complete',
 		notQueued: [ { number: 12, reason: 'needs an API key (rule a)' } ],
 		unaccounted: [],
 		runUrl: 'https://github.com/o/r/actions/runs/1',
 	} );
-	assert.ok( md.startsWith( REPORT_MARKER ) );
+	assert.ok( md.startsWith( STATUS_MARKER ) );
 	assert.match( md, /Fixed 1 · Not fixed 1 · Not queued by review 1/ );
 	assert.match( md, /\*\*Fixed \(1\)\*\*\n- #10\n/ );
 	assert.match(
@@ -559,8 +542,9 @@ test( 'renderReport scenario: 1 fixed, 1 manual-not-queued, 1 open-unfixed', () 
 	assert.doesNotMatch( md, /Skipped: none/ );
 } );
 
-test( 'renderReport with empty lists says none, and shows unaccounted and closed-no-commit', () => {
-	const empty = renderReport( {
+test( 'renderStatus complete with empty lists says none, and shows unaccounted and closed-no-commit', () => {
+	const empty = renderStatus( {
+		phase: 'complete',
 		fixed: [],
 		closedNoCommit: [],
 		notFixed: [],
@@ -568,7 +552,8 @@ test( 'renderReport with empty lists says none, and shows unaccounted and closed
 		unaccounted: [],
 	} );
 	assert.equal( ( empty.match( /- none/g ) || [] ).length, 3 );
-	const full = renderReport( {
+	const full = renderStatus( {
+		phase: 'complete',
 		fixed: [],
 		closedNoCommit: [
 			{ number: 2, note: 'closed, no matching pushed commit' },
@@ -584,4 +569,330 @@ test( 'renderReport with empty lists says none, and shows unaccounted and closed
 	);
 	assert.match( full, /Closed, no matching pushed commit \(1\)/ );
 	assert.match( full, /session ended with status `failure`/ );
+} );
+
+// ── single status comment ───────────────────────────────────────────────────
+
+const bot = { login: 'github-actions[bot]' };
+const OLD_QUEUE = LEGACY_MARKERS[ 0 ];
+const OLD_REPORT = LEGACY_MARKERS[ 1 ];
+
+test( 'renderStatus queued phase: marker first, queued and not-queued, pending line', () => {
+	const md = renderStatus( {
+		phase: 'queued',
+		queued: [ 1067, 1068, 1070 ],
+		notQueued: [
+			{
+				number: 1069,
+				reason: 'needs the production variant ID (rule a)',
+			},
+		],
+	} );
+	assert.equal(
+		md,
+		[
+			'<!-- plume-review-status -->',
+			'### Review and auto-fix status',
+			'',
+			'Auto-fix queued: 3 · Not queued by review: 1',
+			'',
+			'**Queued for auto-fix (3)**',
+			'- #1067',
+			'- #1068',
+			'- #1070',
+			'',
+			'**Not queued by review (1)**',
+			'- #1069: needs the production variant ID (rule a)',
+			'',
+			'_Auto-fix has not reported yet. This comment updates in place when it finishes._',
+			'',
+		].join( '\n' )
+	);
+	assert.doesNotMatch( md, /Fixed/ );
+	assert.match(
+		renderStatus( { phase: 'queued', queued: [], notQueued: [] } ),
+		/- none/
+	);
+} );
+
+test( 'renderStatus complete phase: 2 fixed with summaries, 1 not fixed, 1 not queued', () => {
+	const md = renderStatus( {
+		phase: 'complete',
+		fixed: [ 1067, 1068 ],
+		fixPushed: [],
+		closedNoCommit: [],
+		notFixed: [
+			{
+				number: 1070,
+				reason: 'needs a design decision between a cache layer and a transient',
+				hasCommit: false,
+				retry: false,
+			},
+		],
+		notQueued: [
+			{
+				number: 1069,
+				reason: 'needs the production variant ID (rule a)',
+			},
+		],
+		unaccounted: [],
+		summaries: {
+			1067: 'Whitespace-only voice fields are now skipped.',
+			1068: 'Escape viewport title and label consistently.',
+		},
+		runUrl: 'https://github.com/o/r/actions/runs/123',
+	} );
+	assert.equal(
+		md,
+		[
+			'<!-- plume-review-status -->',
+			'### Review and auto-fix status',
+			'',
+			'Fixed 2 · Not fixed 1 · Not queued by review 1',
+			'',
+			'**Fixed (2)**',
+			'- #1067: Whitespace-only voice fields are now skipped.',
+			'- #1068: Escape viewport title and label consistently.',
+			'',
+			'**Not fixed (1)**',
+			'- #1070: needs a design decision between a cache layer and a transient',
+			'',
+			'**Not queued by review (1)**',
+			'- #1069: needs the production variant ID (rule a)',
+			'',
+			'[Workflow run](https://github.com/o/r/actions/runs/123)',
+			'',
+		].join( '\n' )
+	);
+} );
+
+test( 'renderStatus: fix-pushed list keeps summaries; fixed without a summary prints the bare number', () => {
+	const md = renderStatus( {
+		phase: 'complete',
+		fixed: [ 3 ],
+		fixPushed: [ 4 ],
+		summaries: { 4: 'Guard the empty array.' },
+	} );
+	assert.match(
+		md,
+		/Fix pushed, issue closes on merge \(1\)\*\*\n- #4: Guard the empty array\./
+	);
+	assert.match( md, /\*\*Fixed \(1\)\*\*\n- #3\n/ );
+} );
+
+test( 'parseSummaryTsv: last line wins, tolerates blanks, junk and empty input', () => {
+	const out = parseSummaryTsv(
+		'1\tfirst\n\n#2\tsecond\nnot a line\n1\trewritten\n3\t   \n'
+	);
+	assert.deepEqual( out, { 1: 'rewritten', 2: 'second' } );
+	assert.deepEqual( parseSummaryTsv( undefined ), {} );
+	assert.deepEqual( parseSummaryTsv( '' ), {} );
+} );
+
+test( 'commitSubject strips type, scope, closes and squash suffixes; first line only', () => {
+	assert.equal(
+		commitSubject(
+			'fix(api)!: guard empty voice fields (closes #1067)\n\nbody #9'
+		),
+		'guard empty voice fields'
+	);
+	assert.equal(
+		commitSubject( 'fix: tidy up (fixes #4) (#1066)' ),
+		'tidy up'
+	);
+	assert.equal( commitSubject( 'Merge branch main into x (#3)' ), '' );
+	assert.equal( commitSubject( 'fix: (closes #1)' ), '' );
+	assert.equal( commitSubject( '' ), '' );
+} );
+
+test( 'commitSubjects: whole-number match (#1 vs #10) and skips merge commits', () => {
+	const subjects = commitSubjects(
+		[ 1, 10 ],
+		[
+			'Merge remote-tracking branch for #1',
+			'fix: ten (closes #10)',
+			'fix(x): one (closes #1)',
+		]
+	);
+	assert.deepEqual( subjects, { 1: 'one', 10: 'ten' } );
+	assert.deepEqual( commitSubjects( [ 1 ], [ 'fix: x (closes #10)' ] ), {} );
+} );
+
+test( 'resolveSummaries order: tsv > commit subject > issue title > none', () => {
+	const out = resolveSummaries( {
+		numbers: [ 1, 2, 3, 4 ],
+		tsv: { 1: 'from tsv' },
+		subjects: { 1: 'subject 1', 2: 'subject 2' },
+		titles: { 1: 't1', 2: 't2', 3: 'Title `three` @x' },
+	} );
+	assert.deepEqual( out, {
+		1: 'from tsv',
+		2: 'subject 2',
+		3: 'Title three x',
+	} );
+	assert.deepEqual( resolveSummaries( { numbers: [ 1 ] } ), {} );
+} );
+
+test( 'summaries are sanitised for safety but NOT truncated', () => {
+	const out = sanitiseSummary(
+		'a\nb `rm` @octocat [x](http://e) | <!-- plume-review-status --> \u0007c'
+	);
+	assert.equal( /[\n`@<>[\]|\u0007]/.test( out ), false );
+	assert.equal( out.includes( STATUS_MARKER ), false );
+	const long = Array.from(
+		{ length: 40 },
+		( _, i ) => `Sentence number ${ i } explains why.`
+	).join( ' ' );
+	assert.ok( long.length > 1000 );
+	assert.equal( sanitiseSummary( long ), long );
+	const md = renderStatus( {
+		phase: 'complete',
+		fixed: [ 7 ],
+		summaries: { 7: sanitiseSummary( long ) },
+	} );
+	assert.ok( md.includes( `- #7: ${ long }\n` ) );
+	assert.equal( md.split( STATUS_MARKER ).length, 2 );
+} );
+
+test( 'summaries never change classification', () => {
+	// Open issue with a summary line: still not fixed.
+	const open = classifyOutcome( {
+		dispatched: [ 1 ],
+		issues: { 1: { state: 'OPEN', reason: 'needs key' } },
+		commits: [],
+		pushed: true,
+		summaries: { 1: 'Fixed it' },
+	} );
+	assert.deepEqual( open.fixed, [] );
+	assert.equal( open.notFixed.length, 1 );
+	// Closed with a summary but no commit: closed-no-commit, not fixed.
+	const closed = classifyOutcome( {
+		dispatched: [ 2 ],
+		issues: { 2: { state: 'CLOSED' } },
+		commits: [],
+		pushed: true,
+		summaries: { 2: 'Fixed it' },
+	} );
+	assert.deepEqual( closed.fixed, [] );
+	assert.equal( closed.closedNoCommit.length, 1 );
+} );
+
+test( 'comment-level fallback: oversized comment drops summaries, longest last', () => {
+	const numbers = Array.from( { length: 30 }, ( _, i ) => i + 1 );
+	const summaries = {};
+	for ( const n of numbers ) {
+		summaries[ n ] = `${ 'word '.repeat( 100 * n ) }end`.trim();
+	}
+	const md = renderStatus(
+		{ phase: 'complete', fixed: numbers, summaries },
+		20000
+	);
+	assert.ok( md.length <= 20000 );
+	assert.ok( md.startsWith( STATUS_MARKER ) );
+	assert.match( md, /summaries were left out/ );
+	// The shortest summary is dropped before the longest.
+	assert.match( md, /- #1\n/ );
+	assert.ok( md.includes( `- #30: ${ summaries[ 30 ] }` ) );
+	// Every issue number is still listed.
+	for ( const n of numbers ) {
+		assert.match( md, new RegExp( `- #${ n }(\\n|: )` ) );
+	}
+	// Within the default limit nothing is dropped.
+	const small = renderStatus( {
+		phase: 'complete',
+		fixed: [ 1 ],
+		summaries: { 1: 'ok' },
+	} );
+	assert.doesNotMatch( small, /left out/ );
+} );
+
+test( 'comment-level fallback: lists are shortened with a pointer when still too big', () => {
+	const notFixed = Array.from( { length: 300 }, ( _, i ) => ( {
+		number: i + 1,
+		reason: 'r'.repeat( 200 ),
+		hasCommit: false,
+		retry: false,
+	} ) );
+	const md = renderStatus( { phase: 'complete', notFixed }, 20000 );
+	assert.ok( md.length <= 20000 );
+	assert.match( md, /…and \d+ more, see the workflow run/ );
+	assert.ok( md.startsWith( STATUS_MARKER ) );
+} );
+
+test( 'findOwnComments: spoof, non-marker and legacy handling', () => {
+	const comments = [
+		{ id: 1, body: `${ STATUS_MARKER } spoof`, user: { login: 'mallory' } },
+		{ id: 2, body: 'no marker', user: bot },
+		{ id: 3, body: `${ STATUS_MARKER } real`, user: bot },
+	];
+	assert.deepEqual( findOwnComments( comments ), [ 3 ] );
+	assert.deepEqual( findOwnComments( comments.slice( 0, 2 ) ), [] );
+	assert.deepEqual( findOwnComments( [] ), [] );
+	assert.deepEqual( findOwnComments( undefined ), [] );
+	assert.deepEqual(
+		findOwnComments( [ { id: 9, body: OLD_QUEUE, user: bot } ] ),
+		[ 9 ]
+	);
+} );
+
+test( 'selectStatusComments: canonical > review-queue > report, oldest id first', () => {
+	const comments = [
+		{ id: 50, body: OLD_REPORT, user: bot },
+		{ id: 40, body: OLD_QUEUE, user: bot },
+		{ id: 30, body: STATUS_MARKER, user: bot },
+		{ id: 20, body: STATUS_MARKER, user: bot },
+		{ id: 10, body: OLD_QUEUE, user: { login: 'mallory' } },
+		{ id: 5, body: 'Claude review, no marker', user: bot },
+	];
+	assert.deepEqual( selectStatusComments( comments ), {
+		target: 20,
+		remove: [ 30, 40, 50 ],
+	} );
+	assert.deepEqual(
+		selectStatusComments( [ { id: 8, body: OLD_REPORT, user: bot } ] ),
+		{ target: 8, remove: [] }
+	);
+	assert.deepEqual( selectStatusComments( [] ), {
+		target: null,
+		remove: [],
+	} );
+} );
+
+test( 'a reason or summary cannot carry a marker into the comment', () => {
+	const evil = `<!-- ${ STATUS_MARKER } --> ${ OLD_QUEUE } x`;
+	const md = renderStatus( {
+		phase: 'complete',
+		fixed: [ 1 ],
+		notFixed: [
+			{
+				number: 2,
+				reason: sanitiseReason( evil ),
+				hasCommit: false,
+				retry: false,
+			},
+		],
+		summaries: { 1: sanitiseSummary( evil ) },
+	} );
+	assert.equal( md.split( STATUS_MARKER ).length, 2 );
+	assert.equal( md.includes( OLD_QUEUE ), false );
+} );
+
+test( 'tsv parsing tolerates TAB, colon, dash and space separators; junk ignored', () => {
+	const text = [
+		'11\ttab text',
+		'12: colon text',
+		'#13 - dash text',
+		'14 space text',
+		'junk without a number',
+		'',
+	].join( '\n' );
+	const expected = {
+		11: 'tab text',
+		12: 'colon text',
+		13: 'dash text',
+		14: 'space text',
+	};
+	assert.deepEqual( parseSummaryTsv( text ), expected );
+	assert.deepEqual( parseUnfixedTsv( text ), expected );
+	assert.deepEqual( parseSummaryTsv( '12: a\n12 - b' ), { 12: 'b' } );
 } );

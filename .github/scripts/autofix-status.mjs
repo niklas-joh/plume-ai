@@ -13,10 +13,11 @@
  *
  * Subcommands:
  *   partition         (review) Split open review issues into queued / manual.
- *   upsert-comment    Post or edit the marker comment on the PR (bot-owned only).
+ *   upsert-comment    Post or edit the ONE status comment on the PR (bot-owned
+ *                     only); legacy bot comments are upgraded or removed.
  *   validate-payload  (batch) Validate the repository_dispatch payload.
- *   report            (batch) Compute outcomes, post ONE report, label unfixed.
- *   render-report     Render a report from a fixture JSON file (dry run, no network).
+ *   report            (batch) Compute outcomes, update the status comment, label unfixed.
+ *   render-report     Render the status comment from a fixture JSON file (dry run, no network).
  *
  * Exclusions are recorded on the issue itself at creation time: label
  * `needs-manual-fix` plus a body line `**Not auto-fixed:** <reason>`.
@@ -27,12 +28,21 @@ import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
 export const MANUAL_LABEL = 'needs-manual-fix';
-export const REVIEW_MARKER = '<!-- plume-review-queue -->';
-export const REPORT_MARKER = '<!-- plume-autofix-report -->';
+// One comment per PR, owned by the bot and identified by this marker. The
+// review posts the "queued" view; the batch run rewrites it as "complete".
+export const STATUS_MARKER = '<!-- plume-review-status -->';
+// Markers of the two comments this one replaced. Still recognised so an open
+// PR's old comments are upgraded in place (first) or deleted (the rest).
+export const LEGACY_MARKERS = [
+	'<!-- plume-review-queue -->',
+	'<!-- plume-autofix-report -->',
+];
 export const BOT_LOGIN = 'github-actions[bot]';
 export const NO_REASON = '(no reason recorded)';
 export const MAX_REASON = 200;
 export const MAX_ISSUES = 300;
+// GitHub rejects comments over 65,536 characters; stay well below it.
+export const MAX_COMMENT = 60000;
 
 // Fix-session step outcomes that mean it did not complete ('skipped' and
 // 'success' are not failures; an empty value means unknown).
@@ -51,6 +61,24 @@ const NOT_FIXED_LINE_RE = /^\*\*Not auto-fixed:\*\*[ \t]*(.*)$/m;
 // ── Pure helpers (unit-tested) ──────────────────────────────────────────────
 
 /**
+ * Strips what could inject structure into markdown: control characters,
+ * backticks, angle and square brackets, pipes and `@` mentions. Newlines and
+ * runs of whitespace collapse to single spaces so the text stays one
+ * paragraph. This is a safety rule, never a length rule.
+ *
+ * @param {unknown} text Raw text.
+ * @return {string} Safe one-line text ('' when nothing is left).
+ */
+function stripUnsafe( text ) {
+	return String( text ?? '' )
+		.replace( /[\u0000-\u001f\u007f]+/g, ' ' )
+		.replace( /[`<>[\]|]/g, '' )
+		.replace( /@/g, '' )
+		.replace( /\s+/g, ' ' )
+		.trim();
+}
+
+/**
  * Makes untrusted free text safe for a one-line markdown reason: no control
  * characters or newlines, no backticks, angle brackets, square brackets or
  * pipes, no `@` mentions, capped length.
@@ -60,16 +88,22 @@ const NOT_FIXED_LINE_RE = /^\*\*Not auto-fixed:\*\*[ \t]*(.*)$/m;
  * @return {string} Sanitised reason, or NO_REASON when nothing is left.
  */
 export function sanitiseReason( text, max = MAX_REASON ) {
-	let out = String( text ?? '' )
-		.replace( /[\u0000-\u001f\u007f]+/g, ' ' )
-		.replace( /[`<>[\]|]/g, '' )
-		.replace( /@/g, '' )
-		.replace( /\s+/g, ' ' )
-		.trim();
+	let out = stripUnsafe( text );
 	if ( out.length > max ) {
 		out = `${ out.slice( 0, max - 1 ).trimEnd() }…`;
 	}
 	return out || NO_REASON;
+}
+
+/**
+ * Makes a per-issue summary safe for markdown. Same safety rules as a reason
+ * but NO length cap: the summary is shown exactly as written.
+ *
+ * @param {unknown} text Raw summary.
+ * @return {string} Safe one-line summary, or '' when nothing is left.
+ */
+export function sanitiseSummary( text ) {
+	return stripUnsafe( text );
 }
 
 /**
@@ -249,17 +283,113 @@ export function validatePayload( p ) {
 }
 
 /**
+ * Parses `number<TAB>text` lines, also tolerating `N: text`, `#N - text` and `N text`. A later line for the same number wins.
+ *
+ * @param {string}   text     File contents.
+ * @param {Function} sanitise Sanitiser; an empty result skips the line.
+ * @return {Record<number, string>} Text by issue number.
+ */
+function parseTsv( text, sanitise ) {
+	const out = {};
+	for ( const line of String( text ?? '' ).split( /\r?\n/ ) ) {
+		const m = /^\s*#?([0-9]+)\s*(?:\t|[:\-–—]\s*|\s+)(.+)$/.exec( line );
+		const value = m ? sanitise( m[ 2 ] ) : '';
+		if ( value ) {
+			out[ Number( m[ 1 ] ) ] = value;
+		}
+	}
+	return out;
+}
+
+/**
  * Parses `number<TAB>reason` lines written (optionally) by the fix session.
  *
  * @param {string} text File contents.
  * @return {Record<number, string>} Reasons by issue number.
  */
 export function parseUnfixedTsv( text ) {
+	return parseTsv( text, sanitiseReason );
+}
+
+/**
+ * Parses `number<TAB>summary` lines written (optionally) by the fix session.
+ * The last line for an issue wins, so the model may rewrite the whole file.
+ *
+ * @param {string} text File contents.
+ * @return {Record<number, string>} Summaries by issue number.
+ */
+export function parseSummaryTsv( text ) {
+	return parseTsv( text, sanitiseSummary );
+}
+
+/**
+ * Reduces a commit message to a plain summary: first line only, without the
+ * `type(scope)!:` prefix, trailing `(closes #N)` / `(#PR)` suffixes, or
+ * unsafe characters. Merge commits give ''. Commits fixing several issues
+ * share one subject, so those issues show the same text.
+ *
+ * @param {string} message Full commit message (%B).
+ * @return {string} Safe subject, or '' when none is usable.
+ */
+export function commitSubject( message ) {
+	let line = String( message ?? '' )
+		.split( /\r?\n/ )[ 0 ]
+		.trim();
+	if ( /^Merge\b/.test( line ) ) {
+		return '';
+	}
+	line = line.replace( /^[A-Za-z]+(?:\([^)]*\))?!?:\s*/, '' );
+	const suffix =
+		/\s*\((?:(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+)?#[0-9]+(?:\s*,\s*#[0-9]+)*\)\s*$/i;
+	while ( suffix.test( line ) ) {
+		line = line.replace( suffix, '' );
+	}
+	return sanitiseSummary( line );
+}
+
+/**
+ * First usable commit subject for each issue: the first non-merge commit whose
+ * full message references the issue as a whole number (#1 never matches #10).
+ *
+ * @param {number[]} numbers Issue numbers.
+ * @param {string[]} commits Full commit messages.
+ * @return {Record<number, string>} Subjects by issue number (only non-empty).
+ */
+export function commitSubjects( numbers, commits ) {
 	const out = {};
-	for ( const line of String( text ?? '' ).split( /\r?\n/ ) ) {
-		const m = /^\s*#?([0-9]+)\t(.+)$/.exec( line );
-		if ( m ) {
-			out[ Number( m[ 1 ] ) ] = sanitiseReason( m[ 2 ] );
+	for ( const n of numbers ?? [] ) {
+		for ( const message of commits ?? [] ) {
+			const subject = commitMentionsIssue( message, n )
+				? commitSubject( message )
+				: '';
+			if ( subject ) {
+				out[ n ] = subject;
+				break;
+			}
+		}
+	}
+	return out;
+}
+
+/**
+ * Display summary per issue: model-written line, else the matching commit
+ * subject, else the issue title. Display text only, it never decides whether
+ * an issue is fixed.
+ *
+ * @param {Object}                  args          Inputs.
+ * @param {number[]}                args.numbers  Issues to summarise.
+ * @param {Record<number, string>}  [args.tsv]    Parsed summary file.
+ * @param {Record<number, string>}  [args.subjects] Commit subjects.
+ * @param {Record<number, string>}  [args.titles] Raw issue titles.
+ * @return {Record<number, string>} Summaries (issues with none are absent).
+ */
+export function resolveSummaries( { numbers, tsv, subjects, titles } ) {
+	const out = {};
+	for ( const n of numbers ?? [] ) {
+		const s =
+			tsv?.[ n ] || subjects?.[ n ] || sanitiseSummary( titles?.[ n ] );
+		if ( s ) {
+			out[ n ] = s;
 		}
 	}
 	return out;
@@ -409,71 +539,140 @@ export function mergeManual( payload, live, dispatched ) {
 }
 
 /**
- * Finds the bot-owned marker comment. Anti-spoof: both the marker AND the
- * author must match, so a user cannot plant a marker to hijack edits.
+ * Finds every bot-owned status comment, current or legacy. Anti-spoof: both a
+ * marker AND the bot author must match, so a user cannot plant a marker to
+ * hijack edits or deletions. Order: current marker, then each legacy marker,
+ * oldest id first within a group.
  *
  * @param {Array<{id: number, body?: string, user?: {login?: string}}>} comments PR comments.
- * @param {string} marker Hidden marker.
- * @return {number|null} Comment id or null.
+ * @return {number[]} Comment ids, best edit target first.
  */
-export function findOwnComment( comments, marker ) {
-	const hit = ( comments ?? [] ).find(
-		( c ) =>
-			c?.user?.login === BOT_LOGIN &&
-			String( c?.body ?? '' ).includes( marker )
+export function findOwnComments( comments ) {
+	const markers = [ STATUS_MARKER, ...LEGACY_MARKERS ];
+	const own = ( comments ?? [] ).filter(
+		( c ) => c?.user?.login === BOT_LOGIN && Number.isInteger( c?.id )
 	);
-	return hit ? hit.id : null;
+	const ids = [];
+	for ( const marker of markers ) {
+		own.filter(
+			( c ) =>
+				String( c.body ?? '' ).includes( marker ) &&
+				! ids.includes( c.id )
+		)
+			.map( ( c ) => c.id )
+			.sort( ( a, b ) => a - b )
+			.forEach( ( id ) => ids.push( id ) );
+	}
+	return ids;
+}
+
+/**
+ * Chooses which comment to edit and which duplicates to delete afterwards.
+ *
+ * @param {Array<{id: number, body?: string, user?: {login?: string}}>} comments PR comments.
+ * @return {{target: number|null, remove: number[]}} Selection.
+ */
+export function selectStatusComments( comments ) {
+	const [ target = null, ...remove ] = findOwnComments( comments );
+	return { target, remove };
 }
 
 const list = ( items, fmt ) =>
 	items.length ? items.map( fmt ).join( '\n' ) : '- none';
 
 /**
- * Renders the footer the review workflow adds to the PR.
+ * Renders the one status comment, in either phase. `queued` is what the review
+ * posts before auto-fix runs; `complete` is what the batch run rewrites it to.
+ * If the result would exceed `maxChars`, summaries are dropped (longest ones
+ * last) and then lists are shortened with a pointer to the workflow run.
  *
- * @param {Object} args        Inputs.
- * @param {number[]} args.queued Queued issue numbers.
- * @param {Array<{number: number, reason: string}>} args.manual Exclusions.
+ * @param {Object}   args                 Inputs.
+ * @param {'queued'|'complete'} args.phase Which view to render.
+ * @param {number[]} [args.queued]        Queued issues (queued phase).
+ * @param {number[]} [args.fixed]         Fixed issues.
+ * @param {number[]} [args.fixPushed]     Open issues whose fix is pushed (close on merge).
+ * @param {Array<{number: number, note: string}>}   [args.closedNoCommit] Closed without a matching pushed commit.
+ * @param {Array<{number: number, reason: string}>} [args.notFixed]        Open and unfixed.
+ * @param {Array<{number: number, reason: string}>} [args.notQueued]       Excluded by review.
+ * @param {number[]} [args.unaccounted]   Open review issues in no list.
+ * @param {Record<number, string>} [args.summaries] Display summaries by issue number.
+ * @param {string}   [args.runUrl]        Link to the workflow run.
+ * @param {string}   [args.sessionOutcome] Outcome of the fix session step.
+ * @param {number}   [maxChars]           Size guard (default MAX_COMMENT).
  * @return {string} Markdown with hidden marker.
  */
-export function renderQueueFooter( { queued, manual } ) {
-	return [
-		REVIEW_MARKER,
-		'### Review follow-ups',
-		'',
-		`**Queued for auto-fix (${ queued.length }):**`,
-		list( queued, ( n ) => `- #${ n }` ),
-		'',
-		`**Not auto-fixed, needs manual follow-up (${ manual.length }):**`,
-		list( manual, ( m ) => `- #${ m.number }: ${ m.reason }` ),
-		'',
-	].join( '\n' );
+export function renderStatus( args, maxChars = MAX_COMMENT ) {
+	const summaries = { ...( args.summaries ?? {} ) };
+	// Shortest first, so the longest summaries are the last to go.
+	const dropOrder = Object.keys( summaries )
+		.map( Number )
+		.sort( ( a, b ) => summaries[ a ].length - summaries[ b ].length );
+	let note = '';
+	let cap = Infinity;
+	let body = buildStatus( args, summaries, cap, note );
+	while ( body.length > maxChars && dropOrder.length ) {
+		delete summaries[ dropOrder.shift() ];
+		note = 'Some summaries were left out to fit the comment size limit.';
+		body = buildStatus( args, summaries, cap, note );
+	}
+	while ( body.length > maxChars && cap > 1 ) {
+		cap = Math.min( cap, 1000 );
+		cap = Math.max( 1, Math.floor( cap / 2 ) );
+		body = buildStatus( args, summaries, cap, note );
+	}
+	return body;
 }
 
 /**
- * Renders the single auto-fix report comment.
+ * Builds the markdown for renderStatus.
  *
- * @param {Object} args Inputs.
- * @param {number[]} args.fixed Fixed issues.
- * @param {number[]} [args.fixPushed] Open issues whose fix is pushed (close on merge).
- * @param {Array<{number: number, note: string}>} args.closedNoCommit Closed without a matching pushed commit.
- * @param {Array<{number: number, reason: string}>} args.notFixed Open and unfixed.
- * @param {Array<{number: number, reason: string}>} args.notQueued Excluded by review.
- * @param {number[]} args.unaccounted Open review issues in no list.
- * @param {string} [args.runUrl] Link to the workflow run.
- * @param {string} [args.sessionOutcome] Outcome of the fix session step.
- * @return {string} Markdown with hidden marker.
+ * @param {Object}                 args      Inputs (see renderStatus).
+ * @param {Record<number, string>} summaries Summaries to show.
+ * @param {number}                 cap       Maximum items per list.
+ * @param {string}                 note      Optional degradation note.
+ * @return {string} Markdown.
  */
-export function renderReport( {
-	fixed,
-	fixPushed = [],
-	closedNoCommit,
-	notFixed,
-	notQueued,
-	unaccounted,
-	runUrl = '',
-	sessionOutcome = '',
-} ) {
+function buildStatus( args, summaries, cap, note ) {
+	const {
+		phase,
+		queued = [],
+		fixed = [],
+		fixPushed = [],
+		closedNoCommit = [],
+		notFixed = [],
+		notQueued = [],
+		unaccounted = [],
+		runUrl = '',
+		sessionOutcome = '',
+	} = args;
+	const withText = ( n ) =>
+		summaries[ n ] ? `- #${ n }: ${ summaries[ n ] }` : `- #${ n }`;
+	// Lists that overflow the cap end with a pointer instead of silently stopping.
+	const section = ( title, items, fmt, suffix = '' ) => [
+		`**${ title } (${ items.length })**${ suffix }`,
+		items.length > cap
+			? [
+					...items.slice( 0, cap ).map( fmt ),
+					`- …and ${ items.length - cap } more, see the workflow run`,
+				].join( '\n' )
+			: list( items, fmt ),
+		'',
+	];
+	const reasonLine = ( x ) => `- #${ x.number }: ${ x.reason }`;
+	const lines = [ STATUS_MARKER, '### Review and auto-fix status', '' ];
+
+	if ( phase === 'queued' ) {
+		lines.push(
+			`Auto-fix queued: ${ queued.length } · Not queued by review: ${ notQueued.length }`,
+			'',
+			...section( 'Queued for auto-fix', queued, ( n ) => `- #${ n }` ),
+			...section( 'Not queued by review', notQueued, reasonLine ),
+			'_Auto-fix has not reported yet. This comment updates in place when it finishes._',
+			''
+		);
+		return lines.join( '\n' );
+	}
+
 	const counts = [
 		`Fixed ${ fixed.length }`,
 		`Not fixed ${ notFixed.length }`,
@@ -490,52 +689,48 @@ export function renderReport( {
 	if ( unaccounted.length ) {
 		counts.push( `Unaccounted ${ unaccounted.length }` );
 	}
-	const lines = [
-		REPORT_MARKER,
-		'### Auto-fix report',
-		'',
-		counts.join( ' · ' ),
-		'',
-	];
+	lines.push( counts.join( ' · ' ), '' );
 	if ( SESSION_FAILED.has( sessionOutcome ) ) {
 		lines.push(
 			`> The auto-fix session ended with status \`${ sanitiseReason( sessionOutcome, 30 ) }\`; the lists below are computed from GitHub and git state.`,
 			''
 		);
 	}
-	lines.push(
-		`**Fixed (${ fixed.length })**`,
-		list( fixed, ( n ) => `- #${ n }` ),
-		''
-	);
+	lines.push( ...section( 'Fixed', fixed, withText ) );
 	if ( fixPushed.length ) {
 		lines.push(
-			`**Fix pushed, issue closes on merge (${ fixPushed.length })**`,
-			list( fixPushed, ( n ) => `- #${ n }` ),
-			''
+			...section(
+				'Fix pushed, issue closes on merge',
+				fixPushed,
+				withText
+			)
 		);
 	}
 	if ( closedNoCommit.length ) {
 		lines.push(
-			`**Closed, no matching pushed commit (${ closedNoCommit.length })** (not counted as fixed)`,
-			list( closedNoCommit, ( c ) => `- #${ c.number }: ${ c.note }` ),
-			''
+			...section(
+				'Closed, no matching pushed commit',
+				closedNoCommit,
+				( c ) => `- #${ c.number }: ${ c.note }`,
+				' (not counted as fixed)'
+			)
 		);
 	}
 	lines.push(
-		`**Not fixed (${ notFixed.length })**`,
-		list( notFixed, ( n ) => `- #${ n.number }: ${ n.reason }` ),
-		'',
-		`**Not queued by review (${ notQueued.length })**`,
-		list( notQueued, ( n ) => `- #${ n.number }: ${ n.reason }` ),
-		''
+		...section( 'Not fixed', notFixed, reasonLine ),
+		...section( 'Not queued by review', notQueued, reasonLine )
 	);
 	if ( unaccounted.length ) {
 		lines.push(
-			`**Open review issues not accounted for (${ unaccounted.length })**`,
-			list( unaccounted, ( n ) => `- #${ n }` ),
-			''
+			...section(
+				'Open review issues not accounted for',
+				unaccounted,
+				( n ) => `- #${ n }`
+			)
 		);
+	}
+	if ( note ) {
+		lines.push( `_${ note }_`, '' );
 	}
 	if ( runUrl ) {
 		lines.push( `[Workflow run](${ runUrl })`, '' );
@@ -646,7 +841,11 @@ function cmdPartition() {
 	setOutput( 'manual', JSON.stringify( p.manual ) );
 	fs.writeFileSync(
 		need( 'FOOTER_FILE' ),
-		renderQueueFooter( { queued: p.queued, manual: p.manual } )
+		renderStatus( {
+			phase: 'queued',
+			queued: p.queued,
+			notQueued: p.manual,
+		} )
 	);
 	console.log(
 		`Queued: ${ p.queued.join( ', ' ) || 'none' }; manual: ${ p.manual.map( ( m ) => m.number ).join( ', ' ) || 'none' }`
@@ -659,25 +858,25 @@ function cmdUpsertComment() {
 	if ( ! /^[0-9]+$/.test( pr ) ) {
 		throw new Error( 'PR_NUMBER must be numeric' );
 	}
-	const marker = need( 'MARKER' );
 	const body = fs.readFileSync( need( 'BODY_FILE' ), 'utf8' );
-	if ( ! body.includes( marker ) ) {
-		throw new Error( 'body does not contain the marker' );
+	if ( ! body.includes( STATUS_MARKER ) ) {
+		throw new Error( 'body does not contain the status marker' );
 	}
 	const base = `repos/${ repo }/issues/${ pr }/comments`;
+	// --slurp keeps pagination safe: one array of pages, flattened below.
 	const pages = ghJson( [
 		'api',
 		'--paginate',
 		'--slurp',
 		`${ base }?per_page=100`,
 	] );
-	const id = findOwnComment( [].concat( ...pages ), marker );
-	const args = id
+	const { target, remove } = selectStatusComments( [].concat( ...pages ) );
+	const args = target
 		? [
 				'api',
 				'--method',
 				'PATCH',
-				`repos/${ repo }/issues/comments/${ id }`,
+				`repos/${ repo }/issues/comments/${ target }`,
 			]
 		: [ 'api', '--method', 'POST', base ];
 	// gh reads the body from a file to avoid argv limits and quoting.
@@ -689,7 +888,24 @@ function cmdUpsertComment() {
 	if ( res.status !== 0 ) {
 		throw new Error( 'could not post the comment' );
 	}
-	console.log( id ? `Edited comment ${ id }.` : 'Posted a new comment.' );
+	console.log(
+		target ? `Edited comment ${ target }.` : 'Posted a new comment.'
+	);
+	// Duplicates (legacy or racing runs) go only after the edit succeeded, so a
+	// failure never leaves the PR without a status comment.
+	for ( const id of remove ) {
+		const del = run( 'gh', [
+			'api',
+			'--method',
+			'DELETE',
+			`repos/${ repo }/issues/comments/${ id }`,
+		] );
+		console.log(
+			del.ok
+				? `Deleted duplicate comment ${ id }.`
+				: `::warning::Could not delete duplicate comment ${ id }.`
+		);
+	}
 }
 
 function cmdValidatePayload() {
@@ -715,7 +931,7 @@ function cmdValidatePayload() {
 /**
  * Gathers state from GitHub and git, then classifies it.
  *
- * @return {Object} Data for renderReport plus the issues that need labelling.
+ * @return {Object} Data for renderStatus plus the issues that need labelling.
  */
 function gather() {
 	const repo = need( 'REPO' );
@@ -729,6 +945,13 @@ function gather() {
 					fs.readFileSync( process.env.UNFIXED_TSV, 'utf8' )
 				)
 			: {};
+	const summaryTsv =
+		process.env.SUMMARY_TSV && fs.existsSync( process.env.SUMMARY_TSV )
+			? parseSummaryTsv(
+					fs.readFileSync( process.env.SUMMARY_TSV, 'utf8' )
+				)
+			: {};
+	const titles = {};
 
 	const issues = {};
 	const bodies = {};
@@ -741,9 +964,10 @@ function gather() {
 				'--repo',
 				repo,
 				'--json',
-				'state,body,comments',
+				'state,title,body,comments',
 			] );
 			bodies[ n ] = d.body ?? '';
+			titles[ n ] = d.title ?? '';
 			issues[ n ] = {
 				state: d.state,
 				reason:
@@ -820,7 +1044,17 @@ function gather() {
 	}
 	const notQueued = mergeManual( payloadManual, live.manual, dispatched );
 	const unaccounted = findUnaccounted( live.queued, dispatched, notQueued );
-	return { outcome, notQueued, unaccounted, bodies, repo };
+	// Display only: classification above never looks at summaries.
+	const summaries = resolveSummaries( {
+		numbers: [ ...outcome.fixed, ...outcome.fixPushed ],
+		tsv: summaryTsv,
+		subjects: commitSubjects(
+			[ ...outcome.fixed, ...outcome.fixPushed ],
+			commits
+		),
+		titles,
+	} );
+	return { outcome, notQueued, unaccounted, bodies, repo, summaries };
 }
 
 /**
@@ -912,6 +1146,8 @@ function addClosingKeywords( g ) {
 
 function reportData( g ) {
 	return {
+		phase: 'complete',
+		summaries: g.summaries,
 		fixed: g.outcome.fixed,
 		fixPushed: g.outcome.fixPushed,
 		closedNoCommit: g.outcome.closedNoCommit,
@@ -937,19 +1173,28 @@ function cmdReport() {
 	}
 	labelUnfixed( g );
 	addClosingKeywords( g );
-	const body = renderReport( reportData( g ) );
+	const body = renderStatus( reportData( g ) );
 	const file = `${ process.env.RUNNER_TEMP || '.' }/autofix-report.md`;
 	fs.writeFileSync( file, body );
 	if ( process.env.GITHUB_STEP_SUMMARY ) {
 		fs.appendFileSync( process.env.GITHUB_STEP_SUMMARY, `${ body }\n` );
 	}
 	process.env.BODY_FILE = file;
-	process.env.MARKER = REPORT_MARKER;
 	cmdUpsertComment();
 }
 
 function cmdRenderReport() {
 	const fixture = JSON.parse( fs.readFileSync( process.argv[ 3 ], 'utf8' ) );
+	if ( fixture.phase === 'queued' ) {
+		console.log(
+			renderStatus( {
+				phase: 'queued',
+				queued: fixture.queued,
+				notQueued: fixture.notQueued,
+			} )
+		);
+		return;
+	}
 	const outcome = classifyOutcome( fixture );
 	const manual = mergeManual(
 		fixture.payloadManual,
@@ -961,12 +1206,20 @@ function cmdRenderReport() {
 		fixture.dispatched,
 		manual
 	);
+	const numbers = [ ...outcome.fixed, ...outcome.fixPushed ];
 	console.log(
-		renderReport( {
+		renderStatus( {
 			...outcome,
+			phase: 'complete',
 			notQueued: manual,
 			unaccounted,
 			sessionOutcome: fixture.sessionOutcome,
+			summaries: resolveSummaries( {
+				numbers,
+				tsv: parseSummaryTsv( fixture.summaryTsv ),
+				subjects: commitSubjects( numbers, fixture.commits ),
+				titles: fixture.titles,
+			} ),
 		} )
 	);
 }

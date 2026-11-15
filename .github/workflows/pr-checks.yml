@@ -510,6 +510,11 @@ jobs:
       # completing (PR #721 burnt the full 6-hour job limit). Caching the
       # browser binaries avoids the download entirely on most runs, and the
       # step-level timeout makes any remaining stall fail fast.
+      #
+      # On a cache hit nothing else is installed: the ubuntu runner image already
+      # ships Chromium's shared libraries, and `playwright install-deps` would only
+      # add CJK/Thai/emoji fonts (for cross-machine screenshot parity) via apt, which
+      # stalled for over 5 minutes on 2026-11-10. These tests assert on DOM, not pixels.
       - name: Cache Playwright browsers
         id: playwright-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -521,11 +526,6 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         timeout-minutes: 5
         run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright OS dependencies (cache hit)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        timeout-minutes: 5
-        run: npx playwright install-deps chromium
 
       - name: Start wp-env
         run: npx wp-env start

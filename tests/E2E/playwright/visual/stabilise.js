@@ -237,6 +237,9 @@ async function shoot(
 		// Runs in the page, where there is no node ref to read ownerDocument from.
 		// eslint-disable-next-line @wordpress/no-global-active-element
 		document.activeElement?.blur?.();
+		// Clicks and focus scroll the document; reset so every shot starts at
+		// the top (inner app scrollers, e.g. the chat thread, are left alone).
+		window.scrollTo( 0, 0 );
 	} );
 
 	expect(

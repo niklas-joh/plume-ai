@@ -7,6 +7,12 @@ on:
   repository_dispatch:
     types: [batch-auto-fix]
 
+# One run per PR at a time: a re-dispatch must not race the previous run on
+# git push or on the report comment. Queue (do not cancel) so no run is lost.
+concurrency:
+  group: batch-auto-fix-${{ github.event.client_payload.pr_number }}
+  cancel-in-progress: false
+
 jobs:
   batch-autofix:
     name: Claude Batch Auto-fix
@@ -27,15 +33,48 @@ jobs:
           # .github/workflows/ files. GITHUB_TOKEN cannot push workflow file changes.
           token: ${{ secrets.GH_PAT }}
 
+      - name: Stage trusted status script
+        # The checkout above is the default branch (repository_dispatch). Copy the
+        # script out before the PR branch replaces the working tree: it runs with
+        # write tokens and must never be PR-controlled code.
+        run: cp .github/scripts/autofix-status.mjs "$RUNNER_TEMP/autofix-status.mjs"
+
+      - name: Validate dispatch payload
+        # Every value from client_payload is untrusted. It is read via env only,
+        # validated here, and later steps (and the prompt) use these outputs.
+        id: payload
+        env:
+          PAYLOAD_JSON: ${{ toJson(github.event.client_payload) }}
+        run: node "$RUNNER_TEMP/autofix-status.mjs" validate-payload
+
+      - name: Ensure needs-manual-fix label exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh label create "needs-manual-fix" --color "#d93f0b" \
+            --description "Not auto-fixed: needs a human (reason is in the issue body)" \
+            --repo "$REPO" 2>/dev/null || true
+
       - name: Fetch and checkout PR head branch
+        if: steps.payload.outputs.has_issues == 'true'
         run: |
           git fetch origin "$HEAD_BRANCH"
           git checkout "$HEAD_BRANCH"
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
-          HEAD_BRANCH: ${{ github.event.client_payload.head_branch }}
+          HEAD_BRANCH: ${{ steps.payload.outputs.head_branch }}
+
+      - name: Record start commit
+        # After the head checkout, so START_SHA..HEAD holds only this run's commits.
+        id: start
+        if: steps.payload.outputs.has_issues == 'true'
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Composer deps
+        if: steps.payload.outputs.has_issues == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: vendor
@@ -43,6 +82,7 @@ jobs:
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Cache npm deps
+        if: steps.payload.outputs.has_issues == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.npm
@@ -50,25 +90,24 @@ jobs:
           restore-keys: ${{ runner.os }}-npm-
 
       - name: Install dependencies
+        if: steps.payload.outputs.has_issues == 'true'
         run: |
           npm ci
           composer install --no-interaction --prefer-dist
 
       - name: Add closing keywords to PR description
         # Safety net: put "Closes #N" in the PR body so GitHub auto-closes each issue
-        # when the PR is squash-merged, even if Claude's explicit gh issue close is missed.
-        if: >-
-          github.event.client_payload.pr_number != '' &&
-          github.event.client_payload.issue_numbers != null
+        # when the PR is squash-merged, even if the explicit gh issue close is missed.
+        if: steps.payload.outputs.has_issues == 'true'
         env:
           # GITHUB_TOKEN (not GH_PAT) — editing PR metadata only needs pull-requests: write,
           # which the job-level permissions already grant. GH_PAT is a fine-grained PAT scoped
           # for workflow-file pushes and does not carry pull-requests: write.
           GH_TOKEN: ${{ github.token }}
-          ISSUES_JSON: ${{ toJson(github.event.client_payload.issue_numbers) }}
+          PR: ${{ steps.payload.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+          ISSUES_JSON: ${{ steps.payload.outputs.issues }}
         run: |
-          PR="${{ github.event.client_payload.pr_number }}"
-          REPO="${{ github.repository }}"
           CURRENT=$(gh pr view "$PR" --repo "$REPO" --json body --jq '.body // ""')
           APPENDED=""
           for issue in $(printf '%s' "$ISSUES_JSON" | jq -r '.[]'); do
@@ -85,13 +124,15 @@ jobs:
 
       - name: Write issue bodies to files
         # Pre-fetch all issue bodies so Claude can cat them without extra gh calls.
+        if: steps.payload.outputs.has_issues == 'true'
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
-          ISSUES_JSON: ${{ toJson(github.event.client_payload.issue_numbers) }}
+          ISSUES_JSON: ${{ steps.payload.outputs.issues }}
+          REPO: ${{ github.repository }}
         run: |
           for issue_number in $(echo "$ISSUES_JSON" | jq -r '.[]'); do
             gh issue view "$issue_number" \
-              --repo "${{ github.repository }}" \
+              --repo "$REPO" \
               --json body --jq '.body' \
               > "/tmp/issue-${issue_number}-body.txt"
             echo "Wrote body for issue #${issue_number}"
@@ -99,23 +140,24 @@ jobs:
 
       - name: Run Claude batch auto-fix
         id: claude
+        if: steps.payload.outputs.has_issues == 'true'
         uses: anthropics/claude-code-action@d44caa1f5268e7643c11e317db4c2ad1e5ea3211 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
           prompt: |
-            You are fixing a batch of code-review issues found in PR #${{ github.event.client_payload.pr_number }}.
+            You are fixing a batch of code-review issues found in PR #${{ steps.payload.outputs.pr_number }}.
 
             **Already done — no further lookups needed:**
-            - Source PR: #${{ github.event.client_payload.pr_number }} (${{ github.event.client_payload.pr_url }})
+            - Source PR: #${{ steps.payload.outputs.pr_number }} (https://github.com/${{ github.repository }}/pull/${{ steps.payload.outputs.pr_number }})
             - PR state: OPEN
-            - Head branch: `${{ github.event.client_payload.head_branch }}` is already checked out
-            - Base branch: `${{ github.event.client_payload.base_branch }}`
+            - Head branch: `${{ steps.payload.outputs.head_branch }}` is already checked out
+            - Base branch: `${{ steps.payload.outputs.base_branch }}`
             - `node_modules/` and PHP vendor dependencies are already installed
             - Each issue body has been pre-fetched to `/tmp/issue-<N>-body.txt`
 
             **Issues to fix (process all of them):**
-            ${{ join(github.event.client_payload.issue_numbers, ', ') }}
+            ${{ steps.payload.outputs.issues_csv }}
 
             ---
 
@@ -138,14 +180,17 @@ jobs:
             ### Phase 2 — Fix and commit each issue individually
 
             Work through all issues in file-group order (all issues for file A, then file B,
-            etc.) but commit and close each issue as its own atomic unit:
+            etc.) but commit and close each fixed issue as its own atomic unit:
 
             **A — Apply the minimal fix for this issue**
             Use the file content already in memory from Phase 1. Make the smallest correct change.
             If this issue has the `nits` label, apply ALL listed nit items in a single edit.
-            If the fix requires an external value (API key, secret, account ID, business decision):
-            post a comment on the issue explaining what is needed, then move to the next issue
-            without committing. Do NOT stop — always process every issue in the list.
+            If you cannot fix it (it needs an external value such as an API key, secret,
+            account ID or business decision, or it turns out to be too large): post a comment
+            on the issue whose FIRST line is the reason in one sentence, and leave the issue
+            OPEN. Do NOT close it. Optionally also append one line `<number><TAB><reason>` to
+            `/tmp/autofix-unfixed.tsv`. Then move to the next issue without committing. Do NOT
+            stop — always process every issue in the list.
 
             **B — Run linting (PHP files only)**
             ```bash
@@ -160,16 +205,17 @@ jobs:
 
             **D — Push immediately**
             ```bash
-            git push origin ${{ github.event.client_payload.head_branch }}
+            git push origin ${{ steps.payload.outputs.head_branch }}
             ```
             Push after every individual commit so progress is never lost if the session ends early.
 
-            **E — Close the issue**
+            **E — Close the issue (only after its fix is pushed)**
             ```bash
             gh issue close <N> \
               --comment "✅ Fixed in $(git rev-parse --short HEAD). <One sentence summary.>" \
               --repo ${{ github.repository }}
             ```
+            Never close an issue you did not fix.
 
             **F — Move to the next issue**
             Repeat A–F for every remaining issue.
@@ -178,13 +224,8 @@ jobs:
 
             ## After ALL issues are processed
 
-            Post a single summary comment on the PR listing which issues were fixed
-            and which (if any) were skipped and why:
-            ```bash
-            gh pr comment ${{ github.event.client_payload.pr_number }} \
-              --body "🔧 Batch auto-fix complete. Fixed: #N, #M. Skipped: #P (reason)." \
-              --repo ${{ github.repository }}
-            ```
+            Do NOT post a summary comment: the workflow computes and posts the report itself
+            from GitHub and git state.
 
             ---
 
@@ -199,13 +240,25 @@ jobs:
 
           claude_args: "--model claude-opus-4-8 --allowedTools Bash(git:*),Bash(gh:*),Bash(composer:*),Bash(npm:*),Bash(npx:*),Bash(./vendor/bin/phpcs:*),Bash(./vendor/bin/phpunit:*),Read,Edit,MultiEdit,Write,Glob,Grep,LS"
 
-      - name: Report execution failure
-        if: failure() && steps.claude.outcome == 'failure'
+      - name: Report outcome (deterministic)
+        # No LLM. Fixed = issue closed AND a commit in START_SHA..HEAD references it
+        # AND HEAD is pushed. Also lists issues the review did not queue, guards
+        # against open review issues in no list, and labels unfixed ones so a
+        # re-run does not re-queue them forever. Never fails the job.
+        if: always() && steps.payload.outcome == 'success'
+        continue-on-error: true
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-          ISSUES_JSON: ${{ toJson(github.event.client_payload.issue_numbers) }}
-        run: |
-          MSG="❌ Batch auto-fix failed for issues ${ISSUES_JSON}. Please fix manually, or re-trigger per-issue auto-fix by re-applying the \`auto-fix\` label to each issue individually."
-          gh pr comment "${{ github.event.client_payload.pr_number }}" \
-            --body "$MSG" \
-            --repo "${{ github.repository }}"
+          # github.token (not GH_PAT): the report is authored by github-actions[bot],
+          # which is what the edit-in-place anti-spoof check matches.
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.payload.outputs.pr_number }}
+          HEAD_BRANCH: ${{ steps.payload.outputs.head_branch }}
+          ISSUES_JSON: ${{ steps.payload.outputs.issues }}
+          MANUAL_JSON: ${{ steps.payload.outputs.manual }}
+          START_SHA: ${{ steps.start.outputs.sha }}
+          START_TIME: ${{ steps.start.outputs.time }}
+          SESSION_OUTCOME: ${{ steps.claude.outcome }}
+          UNFIXED_TSV: /tmp/autofix-unfixed.tsv
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node "$RUNNER_TEMP/autofix-status.mjs" report

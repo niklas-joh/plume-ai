@@ -5,18 +5,22 @@ import ImagesBadge from './ImagesBadge';
 import ImagesWorkArea from './ImagesWorkArea';
 
 const IMAGES_TABS = [
-	{ id: 'all', label: 'All', filter: () => true },
-	{ id: 'no-image', label: 'No image', filter: ( p ) => ! p.featured_media },
+	{ id: 'all', label: __( 'All', 'plume' ), filter: () => true },
+	{
+		id: 'no-image',
+		label: __( 'No image', 'plume' ),
+		filter: ( p ) => ! p.featured_media,
+	},
 	{
 		id: 'has-image',
-		label: 'Has image',
+		label: __( 'Has image', 'plume' ),
 		filter: ( p ) => !! p.featured_media,
 	},
 ];
 
 const IMAGES_COLUMNS = [
 	{
-		label: 'Featured Image',
+		label: __( 'Featured Image', 'plume' ),
 		width: 180,
 		render: ( post ) => <ImagesBadge post={ post } />,
 	},
@@ -44,10 +48,12 @@ export default function ImagesApp() {
 	return (
 		<div className="plume-page">
 			<div className="plume-page-header">
-				<h1>Images</h1>
+				<h1>{ __( 'Images', 'plume' ) }</h1>
 				<p>
-					Generate beautiful featured images from a text prompt and
-					set them directly on any post or page.
+					{ __(
+						'Generate beautiful featured images from a text prompt and set them directly on any post or page.',
+						'plume'
+					) }
 				</p>
 			</div>
 			{ keyMissing && (

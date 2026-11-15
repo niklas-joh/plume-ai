@@ -13,15 +13,6 @@ jest.mock( '@wordpress/element', () => ( {
 	...jest.requireActual( 'react' ),
 } ) );
 
-// Real-enough sprintf so the provider name substitution can be asserted.
-jest.mock( '@wordpress/i18n', () => ( {
-	__: ( str ) => str,
-	sprintf: ( fmt, ...args ) =>
-		fmt.replace( /%(\d+\$)?s/g, ( match, pos ) =>
-			pos ? args[ parseInt( pos, 10 ) - 1 ] : args.shift()
-		),
-} ) );
-
 // The shared stub does not render per-option `disabled`; this one does.
 jest.mock( '@wordpress/components', () => {
 	const mockReact = require( 'react' );

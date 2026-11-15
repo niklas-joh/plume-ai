@@ -1,5 +1,6 @@
 import { useState } from '@wordpress/element';
 import { TextareaControl, Button } from '@wordpress/components';
+import { __, sprintf } from '@wordpress/i18n';
 import { Mic } from 'lucide-react';
 
 const MAX_CHARS = 2000;
@@ -46,12 +47,13 @@ export default function VoiceTab( { settings, saveSettings, isSaving } ) {
 				<div className="plume-settings-section-header">
 					<h3 className="plume-settings-section-title">
 						<Mic size={ 14 } />
-						Site Voice &amp; Persona
+						{ __( 'Site Voice & Persona', 'plume' ) }
 					</h3>
 					<p className="plume-settings-section-desc">
-						Define the writing style, tone, and persona the AI
-						should adopt across all features. These instructions are
-						applied site-wide.
+						{ __(
+							'Define the writing style, tone, and persona the AI should adopt across all features. These instructions are applied site-wide.',
+							'plume'
+						) }
 					</p>
 				</div>
 
@@ -63,7 +65,10 @@ export default function VoiceTab( { settings, saveSettings, isSaving } ) {
 					<TextareaControl
 						rows={ 10 }
 						value={ value }
-						placeholder="Describe the writing style and persona for AI responses…"
+						placeholder={ __(
+							'Describe the writing style and persona for AI responses…',
+							'plume'
+						) }
 						onChange={ handleChange }
 						__nextHasNoMarginBottom
 					/>
@@ -75,7 +80,12 @@ export default function VoiceTab( { settings, saveSettings, isSaving } ) {
 							isOverLimit ? ' plume-char-count--error' : ''
 						}` }
 					>
-						{ charCount } / { MAX_CHARS } characters
+						{ sprintf(
+							/* translators: 1: number of characters typed, 2: maximum number of characters allowed. */
+							__( '%1$d / %2$d characters', 'plume' ),
+							charCount,
+							MAX_CHARS
+						) }
 					</span>
 
 					<Button
@@ -84,7 +94,9 @@ export default function VoiceTab( { settings, saveSettings, isSaving } ) {
 						disabled={ isSaving || ! isDirty || isOverLimit }
 						onClick={ handleSave }
 					>
-						{ isSaving ? 'Saving…' : 'Save Voice' }
+						{ isSaving
+							? __( 'Saving…', 'plume' )
+							: __( 'Save Voice', 'plume' ) }
 					</Button>
 				</div>
 			</section>

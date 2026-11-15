@@ -1,3 +1,5 @@
+import { __ } from '@wordpress/i18n';
+
 /**
  * Footer navigation bar at the bottom of the dashboard page.
  *
@@ -10,11 +12,11 @@ export default function PageFooter( { urls, runSetupUrl } ) {
 	return (
 		<div className="plume-dash-footer">
 			<a href={ urls.settings } className="plume-dash-footer__link">
-				Settings
+				{ __( 'Settings', 'plume' ) }
 			</a>
 			<div className="plume-dash-footer__sep" />
 			<a href={ runSetupUrl } className="plume-dash-footer__link">
-				Run setup again
+				{ __( 'Run setup again', 'plume' ) }
 			</a>
 			<div className="plume-dash-footer__sep" />
 			<a
@@ -23,7 +25,7 @@ export default function PageFooter( { urls, runSetupUrl } ) {
 				target="_blank"
 				rel="nofollow noreferrer"
 			>
-				Documentation &#x2197;
+				{ __( 'Documentation ↗', 'plume' ) }
 			</a>
 			<div className="plume-dash-footer__sep" />
 			<a
@@ -32,7 +34,7 @@ export default function PageFooter( { urls, runSetupUrl } ) {
 				target="_blank"
 				rel="nofollow noreferrer"
 			>
-				Support &#x2197;
+				{ __( 'Support ↗', 'plume' ) }
 			</a>
 		</div>
 	);

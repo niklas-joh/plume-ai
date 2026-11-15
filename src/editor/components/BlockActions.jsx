@@ -8,6 +8,8 @@ import { getErrorMessage } from '../../shared/errors';
 // The reply replaces the block's text as-is, so the model must return the new
 // text and nothing else: an introduction ("Here is a rewritten version:") or
 // Markdown syntax would end up in the post.
+// These instructions are deliberately not translated: only the model reads them,
+// never the user, and one fixed English wording keeps the replies predictable.
 const OUTPUT_RULE =
 	'Return only the new text: no introduction, no explanation, no surrounding quotation marks and no Markdown.';
 

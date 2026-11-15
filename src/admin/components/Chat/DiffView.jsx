@@ -216,7 +216,7 @@ export default function DiffView( {
 
 					return (
 						<div key={ row.id } className="plume-diff-row">
-							{ /* eslint-disable-next-line react/no-danger */ }
+							{ /* row.html is sanitised with DOMPurify in computeDiff(). */ }
 							<div
 								className={ kindClass }
 								data-block-id={ row.id }
@@ -225,7 +225,7 @@ export default function DiffView( {
 										? kindLabel
 										: `${ kindLabel }: ${ htmlToText(
 												row.html
-										  ) }`
+											) }`
 								}
 								dangerouslySetInnerHTML={ { __html: row.html } }
 							/>

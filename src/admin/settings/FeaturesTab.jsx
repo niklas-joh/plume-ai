@@ -1,42 +1,63 @@
 import { useState } from '@wordpress/element';
 import { ToggleControl, CheckboxControl } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 
 const MODULES = [
 	{
 		slug: 'chat',
-		label: 'Chat',
-		description: 'AI chat assistant panel in the WordPress admin.',
+		label: __( 'Chat', 'plume' ),
+		description: __(
+			'AI chat assistant panel in the WordPress admin.',
+			'plume'
+		),
 	},
 	{
 		slug: 'text_rewrite',
-		label: 'Text Rewrite',
-		description: 'Rewrite and improve post content using AI.',
+		label: __( 'Text Rewrite', 'plume' ),
+		description: __(
+			'Rewrite and improve post content using AI.',
+			'plume'
+		),
 	},
 	{
 		slug: 'summaries',
-		label: 'Summaries',
-		description: 'Automatically generate post summaries and excerpts.',
+		label: __( 'Summaries', 'plume' ),
+		description: __(
+			'Automatically generate post summaries and excerpts.',
+			'plume'
+		),
 	},
 	{
 		slug: 'seo',
-		label: 'SEO',
-		description:
+		label: __( 'SEO', 'plume' ),
+		description: __(
 			'AI-assisted meta titles, descriptions, and keyword suggestions.',
+			'plume'
+		),
 	},
 	{
 		slug: 'images',
-		label: 'Images',
-		description: 'Generate and insert AI images directly into posts.',
+		label: __( 'Images', 'plume' ),
+		description: __(
+			'Generate and insert AI images directly into posts.',
+			'plume'
+		),
 	},
 	{
 		slug: 'generator',
-		label: 'Generator',
-		description: 'Full AI-driven post and page generation workflow.',
+		label: __( 'Generator', 'plume' ),
+		description: __(
+			'Full AI-driven post and page generation workflow.',
+			'plume'
+		),
 	},
 	{
 		slug: 'usage',
-		label: 'Usage',
-		description: 'Track token consumption and API usage across providers.',
+		label: __( 'Usage', 'plume' ),
+		description: __(
+			'Track token consumption and API usage across providers.',
+			'plume'
+		),
 	},
 ];
 
@@ -93,10 +114,13 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 			<section className="plume-settings-section">
 				<div className="plume-settings-section-header">
 					<h3 className="plume-settings-section-title">
-						Enabled Modules
+						{ __( 'Enabled Modules', 'plume' ) }
 					</h3>
 					<p className="plume-settings-section-desc">
-						Enable or disable individual AI modules.
+						{ __(
+							'Enable or disable individual AI modules.',
+							'plume'
+						) }
 					</p>
 				</div>
 
@@ -141,11 +165,13 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 			<section className="plume-settings-section">
 				<div className="plume-settings-section-header">
 					<h3 className="plume-settings-section-title">
-						Post Type Access
+						{ __( 'Post Type Access', 'plume' ) }
 					</h3>
 					<p className="plume-settings-section-desc">
-						Select which post types the AI assistant can read and
-						write.
+						{ __(
+							'Select which post types the AI assistant can read and write.',
+							'plume'
+						) }
 					</p>
 				</div>
 
@@ -169,8 +195,14 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 
 				<div style={ { marginTop: '1rem' } }>
 					<ToggleControl
-						label="Enable write tools — allow AI to create and update posts"
-						help="When enabled, the AI can draft and publish content directly."
+						label={ __(
+							'Enable write tools — allow AI to create and update posts',
+							'plume'
+						) }
+						help={ __(
+							'When enabled, the AI can draft and publish content directly.',
+							'plume'
+						) }
 						checked={ enableWriteTools }
 						onChange={ handleWriteToolsChange }
 						__nextHasNoMarginBottom

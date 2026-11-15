@@ -175,11 +175,11 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 							),
 							label
 						),
-				  }
+					}
 				: {
 						type: 'success',
 						text: __( 'Key verified and saved.', 'plume' ),
-				  }
+					}
 		);
 	}
 

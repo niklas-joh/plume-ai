@@ -1,4 +1,3 @@
-/* global navigator */
 import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Trash2, Check, X } from 'lucide-react';
@@ -58,11 +57,11 @@ export default function ConversationHistory( {
 							{ conv.updated_at
 								? new Date(
 										conv.updated_at
-								  ).toLocaleDateString( navigator.language, {
+									).toLocaleDateString( navigator.language, {
 										day: '2-digit',
 										month: '2-digit',
 										year: 'numeric',
-								  } )
+									} )
 								: '—' }
 						</span>
 					</button>

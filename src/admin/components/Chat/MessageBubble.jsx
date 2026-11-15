@@ -116,54 +116,62 @@ export default function MessageBubble( {
 		);
 	}
 
+	/**
+	 * Picks the bubble body: Markdown for replies, a summary for revision
+	 * requests, plain text otherwise.
+	 *
+	 * @return {ReactElement} Bubble content.
+	 */
+	function renderContent() {
+		if ( isAI ) {
+			return (
+				<MarkdownContent
+					content={ message.content }
+					className="plume-bubble__markdown"
+				/>
+			);
+		}
+		if ( revision ) {
+			return (
+				<div className="plume-bubble__revision">
+					<p className="plume-bubble__revision-title">
+						{ __( 'Revision requested', 'plume' ) }
+					</p>
+					{ revision.comments.length > 0 && (
+						<ul className="plume-bubble__revision-list">
+							{ revision.comments.map( ( c ) => (
+								<li key={ `${ c.anchor ?? '' }:${ c.text }` }>
+									{ c.anchor && (
+										<blockquote className="plume-bubble__revision-anchor">
+											{ c.anchor }
+										</blockquote>
+									) }
+									<span className="plume-bubble__revision-text">
+										{ c.text }
+									</span>
+								</li>
+							) ) }
+						</ul>
+					) }
+					{ revision.note && (
+						<p className="plume-bubble__revision-note">
+							<strong>{ __( 'Overall note:', 'plume' ) }</strong>{ ' ' }
+							{ revision.note }
+						</p>
+					) }
+				</div>
+			);
+		}
+		return <p>{ message.content }</p>;
+	}
+
 	return (
 		<div
 			className={ `plume-bubble plume-bubble--${ isAI ? 'ai' : 'user' }${
 				message.isError ? ' plume-bubble--error' : ''
 			}` }
 		>
-			<div className="plume-bubble__content">
-				{ isAI ? (
-					<MarkdownContent
-						content={ message.content }
-						className="plume-bubble__markdown"
-					/>
-				) : revision ? (
-					<div className="plume-bubble__revision">
-						<p className="plume-bubble__revision-title">
-							{ __( 'Revision requested', 'plume' ) }
-						</p>
-						{ revision.comments.length > 0 && (
-							<ul className="plume-bubble__revision-list">
-								{ revision.comments.map( ( c ) => (
-									<li
-										key={ `${ c.anchor ?? '' }:${ c.text }` }
-									>
-										{ c.anchor && (
-											<blockquote className="plume-bubble__revision-anchor">
-												{ c.anchor }
-											</blockquote>
-										) }
-										<span className="plume-bubble__revision-text">
-											{ c.text }
-										</span>
-									</li>
-								) ) }
-							</ul>
-						) }
-						{ revision.note && (
-							<p className="plume-bubble__revision-note">
-								<strong>
-									{ __( 'Overall note:', 'plume' ) }
-								</strong>{ ' ' }
-								{ revision.note }
-							</p>
-						) }
-					</div>
-				) : (
-					<p>{ message.content }</p>
-				) }
-			</div>
+			<div className="plume-bubble__content">{ renderContent() }</div>
 			{ isAI && message.tools_used && message.tools_used.length > 0 && (
 				<div className="plume-bubble__tools">
 					{ message.tools_used.map( ( t ) => (

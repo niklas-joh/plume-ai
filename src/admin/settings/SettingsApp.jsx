@@ -49,7 +49,7 @@ export default function SettingsApp() {
 			setSettings( ( prev ) => ( { ...prev, ...patch } ) );
 			setSaveResult( 'success' );
 			return true;
-		} catch ( e ) {
+		} catch {
 			setSaveResult( 'error' );
 			return false;
 		} finally {

@@ -21,6 +21,7 @@ on:
       - 'tests/E2E/playwright/visual/**'
       - 'playwright.config.visual.js'
       - '.github/scripts/pr-screenshots*'
+      - '.github/actions/capture-screenshots/**'
       - '.github/workflows/pr-screenshots.yml'
   pull_request:
     types: [closed]
@@ -123,19 +124,9 @@ jobs:
         if: ${{ steps.wp_ready.outcome == 'success' }}
         continue-on-error: true
         timeout-minutes: 3
-        env:
-          WP_BASE_URL: http://localhost:8888
-          WP_TEST_USER: nj_agent
-          WP_TEST_PASS: C8IcqAWJu8F3dOw6E4ndWhIe
-        run: |
-          start=$(date +%s)
-          if ! CI=true npx playwright test -c playwright.config.visual.js; then
-            echo "::warning::Baseline capture had failures; failed screens keep their previous baseline."
-          fi
-          mkdir -p .artifacts/screenshots/ci
-          node .github/scripts/pr-screenshots.mjs env > .artifacts/screenshots/ci/env.json || true
-          node .github/scripts/pr-screenshots.mjs summary || true
-          echo "Screenshot capture step took $(( $(date +%s) - start ))s (wall clock, including setup)." | tee -a "$GITHUB_STEP_SUMMARY"
+        uses: ./.github/actions/capture-screenshots
+        with:
+          warning: 'Baseline capture had failures; failed screens keep their previous baseline.'
 
       - name: Publish baseline
         if: ${{ !cancelled() && steps.capture.outcome != 'skipped' }}

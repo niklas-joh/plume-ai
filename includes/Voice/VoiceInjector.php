@@ -19,8 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class VoiceInjector {
 
-	private const SITE_OPTION = 'plume_site_voice';
-	private const USER_META   = 'plume_voice';
+	private const USER_META = 'plume_voice';
 
 	/**
 	 * Standing instruction against inserting unrequested hyperlinks.
@@ -42,23 +41,30 @@ class VoiceInjector {
 		$voice = $this->get_merged_voice( $user_id );
 		$parts = [];
 
-		if ( ! empty( $voice['tone'] ) ) {
-			$parts[] = 'Tone: ' . sanitize_text_field( $voice['tone'] );
+		// Sanitising trims and collapses whitespace, so a whitespace-only field
+		// becomes empty here and is skipped rather than injected as a blank line.
+		$labelled = [
+			'tone'     => 'Tone: ',
+			'style'    => 'Writing style: ',
+			'language' => 'Language: ',
+			'audience' => 'Target audience: ',
+			'avoid'    => 'Avoid: ',
+		];
+		foreach ( $labelled as $key => $prefix ) {
+			if ( empty( $voice[ $key ] ) ) {
+				continue;
+			}
+			$value = sanitize_text_field( (string) $voice[ $key ] );
+			if ( '' !== $value ) {
+				$parts[] = $prefix . $value;
+			}
 		}
-		if ( ! empty( $voice['style'] ) ) {
-			$parts[] = 'Writing style: ' . sanitize_text_field( $voice['style'] );
-		}
-		if ( ! empty( $voice['language'] ) ) {
-			$parts[] = 'Language: ' . sanitize_text_field( $voice['language'] );
-		}
-		if ( ! empty( $voice['audience'] ) ) {
-			$parts[] = 'Target audience: ' . sanitize_text_field( $voice['audience'] );
-		}
-		if ( ! empty( $voice['avoid'] ) ) {
-			$parts[] = 'Avoid: ' . sanitize_text_field( $voice['avoid'] );
-		}
+
 		if ( ! empty( $voice['extra'] ) ) {
-			$parts[] = sanitize_textarea_field( $voice['extra'] );
+			$extra = trim( sanitize_textarea_field( (string) $voice['extra'] ) );
+			if ( '' !== $extra ) {
+				$parts[] = $extra;
+			}
 		}
 
 		$parts[] = self::NO_LINKS_GUIDANCE;
@@ -80,14 +86,14 @@ class VoiceInjector {
 	 * @return array<string, string>
 	 */
 	private function get_merged_voice( int $user_id ): array {
-		$site = get_option( self::SITE_OPTION, [] );
-		$site = is_array( $site ) ? $site : [];
+		$site = SiteVoice::get();
 
 		if ( $user_id > 0 ) {
-			$user_raw = get_user_meta( $user_id, self::USER_META, true );
-			$user_raw = is_array( $user_raw ) ? $user_raw : [];
+			// Harden per-user meta through the same key/scalar filter as the site value,
+			// so a nested meta value cannot reach build_system_prompt() either (see #1067).
+			$user_voice = SiteVoice::normalise( get_user_meta( $user_id, self::USER_META, true ) );
 			// User values override site values only when non-empty.
-			foreach ( $user_raw as $k => $v ) {
+			foreach ( $user_voice as $k => $v ) {
 				if ( '' !== $v ) {
 					$site[ $k ] = $v;
 				}

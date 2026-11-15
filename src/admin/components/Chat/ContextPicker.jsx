@@ -40,7 +40,7 @@ export default function ContextPicker( { onSelect, onClose } ) {
 					) }`,
 				} );
 				setResults( data );
-			} catch ( e ) {
+			} catch {
 				setResults( [] );
 			} finally {
 				setLoading( false );

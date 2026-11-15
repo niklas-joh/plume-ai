@@ -221,7 +221,7 @@ function Step2( { onBack, onFinish, nonce, restUrl } ) {
 						? 'valid'
 						: `error:${ data.message ?? 'Invalid key' }`,
 				} ) );
-			} catch ( e ) {
+			} catch {
 				setTestStatus( ( prev ) => ( {
 					...prev,
 					[ provider ]: 'error:Network error',
@@ -646,7 +646,7 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 			} );
 			try {
 				return await res.json();
-			} catch ( e ) {
+			} catch {
 				return {};
 			}
 		},
@@ -682,7 +682,7 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 				`Using your own ${
 					provider
 						? provider.charAt( 0 ).toUpperCase() +
-						  provider.slice( 1 )
+							provider.slice( 1 )
 						: ''
 				} API key`
 			);

@@ -44,10 +44,12 @@ export default function PlanCard( { plan, onDismiss } ) {
 
 	const [ isEditing, setIsEditing ] = useState( false );
 	const [ editTitle, setEditTitle ] = useState(
-		isUpdate ? plan.new_title ?? '' : plan.title ?? ''
+		isUpdate ? ( plan.new_title ?? '' ) : ( plan.title ?? '' )
 	);
 	const [ editContent, setEditContent ] = useState(
-		isUpdate ? plan.new_content ?? '' : plan.content ?? plan.outline ?? ''
+		isUpdate
+			? ( plan.new_content ?? '' )
+			: ( plan.content ?? plan.outline ?? '' )
 	);
 	const [ editStatus, setEditStatus ] = useState(
 		plan.post_status || 'draft'
@@ -66,12 +68,12 @@ export default function PlanCard( { plan, onDismiss } ) {
 						new_content: editContent,
 						new_title: editTitle !== '' ? editTitle : undefined,
 						status: editStatus,
-				  }
+					}
 				: {
 						title: editTitle,
 						content: editContent,
 						status: editStatus,
-				  };
+					};
 
 			const result = await apiFetch( {
 				path: `/plume/v1/plans/${ plan.id }/execute`,

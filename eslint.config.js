@@ -28,6 +28,10 @@ module.exports = [
 		],
 	},
 
+	// Flat config only lints *.js, *.mjs and *.cjs by default. Without this
+	// entry `wp-scripts lint-js` silently skips every React component in src/.
+	{ name: 'plume/jsx', files: [ '**/*.jsx' ] },
+
 	// @wordpress/eslint-plugin bundles its own (older, v50.8.0) eslint-plugin-jsdoc
 	// copy and registers it under the `jsdoc` plugin key in one isolated entry of
 	// `configs.recommended` (name: 'jsdoc/flat/recommended'). Flat config throws if
@@ -48,6 +52,18 @@ module.exports = [
 
 	{
 		settings: {
+			// WordPress core provides these at runtime as webpack externals
+			// (see the `wp-*` dependencies in assets/*/index.asset.php), so they
+			// are not npm dependencies. Add a package here when a new
+			// `@wordpress/*` import is introduced.
+			'import/core-modules': [
+				'@wordpress/api-fetch',
+				'@wordpress/components',
+				'@wordpress/data',
+				'@wordpress/edit-post',
+				'@wordpress/i18n',
+				'@wordpress/plugins',
+			],
 			jsdoc: {
 				mode: 'typescript',
 				tagNamePreference: {
@@ -56,7 +72,11 @@ module.exports = [
 			},
 		},
 		rules: {
-			'import/no-unresolved': [ 'error', { ignore: [ '^@wordpress/' ] } ],
+			'import/no-unresolved': 'error',
+			'@wordpress/i18n-text-domain': [
+				'error',
+				{ allowedTextDomain: 'plume' },
+			],
 			'jsdoc/require-jsdoc': [
 				'error',
 				{

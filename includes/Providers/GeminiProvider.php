@@ -138,7 +138,7 @@ class GeminiProvider extends AbstractProvider {
 				$body['tool_config'] = [ 'function_calling_config' => [ 'mode' => 'ANY' ] ];
 			}
 		}
-		$raw = $this->post( "/models/{$model}:generateContent", $body );
+		$raw = $this->post( "/models/{$model}:generateContent", $body, HttpTimeout::resolve( $request->timeout, PLUME_HTTP_TIMEOUT ) );
 		return $this->parse_response( $raw, $model );
 	}
 
@@ -177,6 +177,7 @@ class GeminiProvider extends AbstractProvider {
 			'model'      => $model,
 			'max_tokens' => $request->max_tokens,
 			'system'     => '' !== $request->system ? $this->build_system_field( $request->system ) : null,
+			'timeout'    => $request->timeout > 0 ? $request->timeout : null,
 		];
 		$options     = array_filter( $raw_options, fn( $v ) => null !== $v );
 		if ( ! empty( $request->tools ) ) {
@@ -318,22 +319,26 @@ class GeminiProvider extends AbstractProvider {
 	 *
 	 * @since 1.0.0
 	 * @param string $path API endpoint path (e.g. '/models/gemini-3.6-flash:generateContent').
-	 * @param array  $body Request payload.
+	 * @param array  $body    Request payload.
+	 * @param int    $timeout Request timeout in seconds.
 	 * @return array
-	 * @throws ProviderException On HTTP failure or non-2xx status.
+	 * @throws ProviderException On HTTP failure, timeout or non-2xx status.
 	 */
-	private function post( string $path, array $body ): array {
+	private function post( string $path, array $body, int $timeout = PLUME_HTTP_TIMEOUT ): array {
 		$url      = self::API_BASE . $path . '?key=' . rawurlencode( $this->api_key );
 		$response = wp_remote_post(
 			$url,
 			[
-				'timeout' => PLUME_HTTP_TIMEOUT,
+				'timeout' => $timeout,
 				'headers' => [ 'Content-Type' => 'application/json' ],
 				'body'    => wp_json_encode( $body ),
 			]
 		);
 
 		if ( is_wp_error( $response ) ) {
+			if ( HttpTimeout::is_timeout( $response ) ) {
+				throw new ProviderException( HttpTimeout::message(), 'gemini', 0, [], null, HttpTimeout::ERROR_CODE ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
 			throw new ProviderException( $response->get_error_message(), 'gemini' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 

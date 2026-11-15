@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-15T10:28:51+00:00\n"
+"POT-Creation-Date: 2026-11-15T14:03:38+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: plume\n"
@@ -345,12 +345,12 @@ msgstr ""
 msgid "Sorry, you are not allowed to publish this content."
 msgstr ""
 
-#: includes/Modules/Generator/GeneratorModule.php:235
+#: includes/Modules/Generator/GeneratorModule.php:258
 #: includes/Modules/Seo/SeoModule.php:274
 msgid "Provider error. Please try again later."
 msgstr ""
 
-#: includes/Modules/Generator/GeneratorModule.php:248
+#: includes/Modules/Generator/GeneratorModule.php:271
 #: includes/Modules/Seo/SeoModule.php:280
 msgid "An unexpected error occurred. Please try again later."
 msgstr ""
@@ -383,30 +383,34 @@ msgstr ""
 msgid "AI returned invalid JSON."
 msgstr ""
 
+#: includes/Providers/HttpTimeout.php:69
+msgid "The draft took too long to finish. Try a shorter length, or try again in a moment."
+msgstr ""
+
 #. translators: %s: AI provider name, e.g. "OpenAI".
 #: includes/Providers/ProviderFactory.php:235
 #, php-format
 msgid "You have not added an API key for %s. Add one under Settings → Providers, or choose a different model."
 msgstr ""
 
-#: includes/Proxy/ProxyClient.php:89
+#: includes/Proxy/ProxyClient.php:90
 msgid "Failed to encode request payload."
 msgstr ""
 
-#: includes/Proxy/ProxyClient.php:112
+#: includes/Proxy/ProxyClient.php:119
 msgid "Monthly usage limit reached."
 msgstr ""
 
-#: includes/Proxy/ProxyClient.php:125
+#: includes/Proxy/ProxyClient.php:132
 msgid "Reconnecting this site to Plume AI - Write and Design. Please try sending your message again in a moment."
 msgstr ""
 
-#: includes/Proxy/ProxyClient.php:135
+#: includes/Proxy/ProxyClient.php:142
 msgid "This AI model is temporarily unavailable. Please try again later or choose another model."
 msgstr ""
 
 #. translators: %d is the HTTP status code returned by the service.
-#: includes/Proxy/ProxyClient.php:140
+#: includes/Proxy/ProxyClient.php:147
 #, php-format
 msgid "Plume AI - Write and Design returned HTTP %d"
 msgstr ""
@@ -1629,7 +1633,7 @@ msgid "Long (1200–1800 words)"
 msgstr ""
 
 #: assets/generator/index.js:1
-msgid "Generating your post — this may take a moment…"
+msgid "Generating your post — a long draft can take up to two minutes…"
 msgstr ""
 
 #: assets/generator/index.js:1

@@ -120,7 +120,7 @@ class ClaudeProvider extends AbstractProvider {
 		// Own key configured — direct Anthropic API call; AbstractProvider::complete() will log usage.
 		$this->proxy_logged = false;
 		$body               = $this->build_body( $request );
-		$raw                = $this->post( '/messages', $body );
+		$raw                = $this->post( '/messages', $body, HttpTimeout::resolve( $request->timeout, PLUME_HTTP_TIMEOUT ) );
 		return $this->parse_response( $raw, $request );
 	}
 
@@ -153,6 +153,7 @@ class ClaudeProvider extends AbstractProvider {
 			'model'      => ! empty( $request->model ) ? $request->model : null,
 			'max_tokens' => $request->max_tokens,
 			'system'     => '' !== $request->system ? $this->build_system_field( $request->system ) : null,
+			'timeout'    => $request->timeout > 0 ? $request->timeout : null,
 		];
 		$options     = array_filter( $raw_options, fn( $v ) => null !== $v );
 		if ( ! empty( $request->tools ) ) {
@@ -308,15 +309,16 @@ class ClaudeProvider extends AbstractProvider {
 	 *
 	 * @since 1.0.0
 	 * @param string $path API endpoint path (e.g. '/messages').
-	 * @param array  $body Request payload.
+	 * @param array  $body    Request payload.
+	 * @param int    $timeout Request timeout in seconds.
 	 * @return array
-	 * @throws ProviderException On HTTP failure or non-2xx status.
+	 * @throws ProviderException On HTTP failure, timeout or non-2xx status.
 	 */
-	private function post( string $path, array $body ): array {
+	private function post( string $path, array $body, int $timeout = PLUME_HTTP_TIMEOUT ): array {
 		$response = wp_remote_post(
 			self::API_BASE . $path,
 			[
-				'timeout' => PLUME_HTTP_TIMEOUT,
+				'timeout' => $timeout,
 				'headers' => [
 					'x-api-key'         => $this->api_key,
 					'anthropic-version' => self::API_VERSION,
@@ -327,6 +329,9 @@ class ClaudeProvider extends AbstractProvider {
 		);
 
 		if ( is_wp_error( $response ) ) {
+			if ( HttpTimeout::is_timeout( $response ) ) {
+				throw new ProviderException( HttpTimeout::message(), 'claude', 0, [], null, HttpTimeout::ERROR_CODE ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
 			throw new ProviderException( $response->get_error_message(), 'claude' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 

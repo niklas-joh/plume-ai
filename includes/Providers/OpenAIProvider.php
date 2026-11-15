@@ -150,7 +150,7 @@ class OpenAIProvider extends AbstractProvider {
 			$body['tools']       = $request->tools; // Already in OpenAI wire format from ToolRegistry.
 			$body['tool_choice'] = $request->force_tool_use ? 'required' : 'auto';
 		}
-		$raw = $this->post( '/chat/completions', $body );
+		$raw = $this->post( '/chat/completions', $body, HttpTimeout::resolve( $request->timeout, PLUME_HTTP_TIMEOUT ) );
 		return $this->parse_response( $raw, $model );
 	}
 
@@ -184,6 +184,7 @@ class OpenAIProvider extends AbstractProvider {
 			'model'      => $model,
 			'max_tokens' => $request->max_tokens,
 			'system'     => '' !== $request->system ? $this->build_system_field( $request->system ) : null,
+			'timeout'    => $request->timeout > 0 ? $request->timeout : null,
 		];
 		$options     = array_filter( $raw_options, fn( $v ) => null !== $v );
 		if ( ! empty( $request->tools ) ) {
@@ -262,15 +263,16 @@ class OpenAIProvider extends AbstractProvider {
 	 *
 	 * @since 1.0.0
 	 * @param string $path API endpoint path (e.g. '/chat/completions').
-	 * @param array  $body Request payload.
+	 * @param array  $body    Request payload.
+	 * @param int    $timeout Request timeout in seconds.
 	 * @return array
-	 * @throws ProviderException On HTTP failure or non-2xx status.
+	 * @throws ProviderException On HTTP failure, timeout or non-2xx status.
 	 */
-	private function post( string $path, array $body ): array {
+	private function post( string $path, array $body, int $timeout = PLUME_HTTP_TIMEOUT ): array {
 		$response = wp_remote_post(
 			self::API_BASE . $path,
 			[
-				'timeout' => PLUME_HTTP_TIMEOUT,
+				'timeout' => $timeout,
 				'headers' => [
 					'Authorization' => 'Bearer ' . $this->api_key,
 					'Content-Type'  => 'application/json',
@@ -280,6 +282,9 @@ class OpenAIProvider extends AbstractProvider {
 		);
 
 		if ( is_wp_error( $response ) ) {
+			if ( HttpTimeout::is_timeout( $response ) ) {
+				throw new ProviderException( HttpTimeout::message(), 'openai', 0, [], null, HttpTimeout::ERROR_CODE ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
 			throw new ProviderException( $response->get_error_message(), 'openai' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 

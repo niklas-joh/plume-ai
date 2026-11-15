@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use Plume\Admin\AdminMenu;
 use Plume\Modules\Concerns\BuildsRestErrorResponse;
+use Plume\Providers\HttpTimeout;
 use Plume\Providers\ProviderException;
 use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
@@ -38,6 +39,19 @@ class GeneratorModule {
 	 * @var int
 	 */
 	private const MAX_OUTPUT_TOKENS = 4096;
+
+	/**
+	 * HTTP timeout in seconds for one generation request.
+	 *
+	 * A full 4096-token draft takes about 55 s at ~78 tokens/s and 80–100 s on slower
+	 * 40–50 tokens/s models, so the 60 s default cut long drafts off. 120 s leaves
+	 * headroom. Hosts and CDNs that close connections at 60–100 s are unaffected by this
+	 * value; streaming (#1044) is the full fix for those.
+	 *
+	 * @since NEXT_VERSION
+	 * @var int
+	 */
+	private const REQUEST_TIMEOUT = 120;
 
 	/**
 	 * Register WordPress hooks for this module.
@@ -148,11 +162,14 @@ class GeneratorModule {
 	 * @since 1.0.0
 	 * @since NEXT_VERSION Error bodies carry `message` and `code` alongside `error`;
 	 *                      credit exhaustion is returned as 429 'rate_limit_exceeded' and
-	 *                      other provider failures as 502 'provider_error'.
+	 *                      other provider failures as 502 'provider_error'; a request that
+	 *                      times out is 502 'request_timeout'.
 	 * @param \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response 201 on success with post_id, edit_url, content, credits_used;
 	 *                           429 when the managed service's credits are exhausted; 502 on
-	 *                           other provider errors; 500 on unexpected errors.
+	 *                           other provider errors (code 'provider_error', or
+	 *                           'request_timeout' when the provider took too long); 500 on
+	 *                           unexpected errors.
 	 */
 	public static function handle_generate( \WP_REST_Request $request ): \WP_REST_Response {
 		$title    = $request->get_param( 'title' );
@@ -191,6 +208,7 @@ class GeneratorModule {
 				model:       $provider->get_default_model(),
 				temperature: 0.7,
 				max_tokens:  self::MAX_OUTPUT_TOKENS,
+				timeout:     self::REQUEST_TIMEOUT,
 				metadata:    [
 					'feature'    => 'generator',
 					'post_title' => $title,
@@ -231,6 +249,11 @@ class GeneratorModule {
 			// Provider messages are written for the user (out of credits, missing key,
 			// site still connecting), so they are passed on. Credit exhaustion keeps
 			// its own code and status so the wizard can show the out-of-credits notice.
+			if ( HttpTimeout::ERROR_CODE === $e->get_error_code() ) {
+				// 502, not 504: hosts and CDNs emit 504 themselves and may replace the JSON body.
+				return self::error_response( HttpTimeout::message(), HttpTimeout::ERROR_CODE, 502 );
+			}
+
 			$out_of_credits = 'rate_limit_exceeded' === $e->get_error_code();
 			$message        = '' !== $e->getMessage() ? $e->getMessage() : __( 'Provider error. Please try again later.', 'plume' );
 			return self::error_response(

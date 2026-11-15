@@ -10,6 +10,7 @@ declare( strict_types=1 );
 namespace Plume\Proxy;
 
 use WP_Error;
+use Plume\Providers\HttpTimeout;
 use Plume\Tiers\TierConfig;
 use Plume\Tiers\UsageTracker;
 
@@ -41,7 +42,7 @@ class ProxyClient {
 	 * @since 1.2.0
 	 * @param array<array{role: string, content: string}> $messages  Chat message history.
 	 * @param string                                      $feature  Feature tag the Worker uses for credit-cost lookup: 'chat', 'generator', or 'seo'. Image generation routes through generate_image() → post() directly and never reaches chat().
-	 * @param array<string, mixed>                        $options   Supports 'model', 'max_tokens', 'system', 'tools'.
+	 * @param array<string, mixed>                        $options   Supports 'model', 'max_tokens', 'system', 'tools', 'timeout' (seconds; defaults to PLUME_HTTP_TIMEOUT).
 	 * @param string                                      $provider  Provider slug: 'claude', 'openai', or 'gemini'. Defaults to 'claude'.
 	 * @return array<string, mixed>|WP_Error
 	 */
@@ -89,6 +90,9 @@ class ProxyClient {
 			return new WP_Error( 'json_encode_failed', __( 'Failed to encode request payload.', 'plume' ) );
 		}
 
+		// A client-side setting: deliberately not part of the payload sent to the Worker.
+		$timeout = HttpTimeout::resolve( (int) ( $options['timeout'] ?? 0 ), PLUME_HTTP_TIMEOUT );
+
 		$response = wp_remote_post(
 			TierConfig::get_proxy_url() . '/v1/chat',
 			[
@@ -97,11 +101,14 @@ class ProxyClient {
 					'Authorization' => 'Bearer ' . $token,
 				],
 				'body'    => $body_json,
-				'timeout' => 60,
+				'timeout' => $timeout,
 			]
 		);
 
 		if ( is_wp_error( $response ) ) {
+			if ( HttpTimeout::is_timeout( $response ) ) {
+				return new WP_Error( HttpTimeout::ERROR_CODE, HttpTimeout::message() );
+			}
 			return $response;
 		}
 

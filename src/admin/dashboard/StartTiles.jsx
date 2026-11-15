@@ -1,25 +1,36 @@
+import { __ } from '@wordpress/i18n';
+
 const TILES = [
 	{
-		verb: 'Write a new post',
-		desc: 'Describe what you want — AI drafts it for you.',
+		verb: __( 'Write a new post', 'plume' ),
+		desc: __( 'Describe what you want — AI drafts it for you.', 'plume' ),
 		urlKey: 'generator',
 		primary: true,
 	},
 	{
-		verb: 'Edit with AI',
-		desc: 'Open any post with the AI sidebar to rewrite or improve.',
+		verb: __( 'Edit with AI', 'plume' ),
+		desc: __(
+			'Open any post with the AI sidebar to rewrite or improve.',
+			'plume'
+		),
 		urlKey: 'posts',
 		primary: false,
 	},
 	{
-		verb: 'Generate an image',
-		desc: 'Create a featured image or illustration from a prompt.',
+		verb: __( 'Generate an image', 'plume' ),
+		desc: __(
+			'Create a featured image or illustration from a prompt.',
+			'plume'
+		),
 		urlKey: 'images',
 		primary: false,
 	},
 	{
-		verb: 'Chat',
-		desc: 'Brainstorm, research, or ask anything about your content.',
+		verb: __( 'Chat', 'plume' ),
+		desc: __(
+			'Brainstorm, research, or ask anything about your content.',
+			'plume'
+		),
 		urlKey: 'chat',
 		primary: false,
 	},
@@ -36,7 +47,9 @@ export default function StartTiles( { urls } ) {
 	return (
 		<div>
 			<div className="plume-dash-section-head">
-				<span className="plume-dash-section-title">Start</span>
+				<span className="plume-dash-section-title">
+					{ __( 'Start', 'plume' ) }
+				</span>
 			</div>
 			<div className="plume-dash-tiles">
 				{ TILES.map( ( tile ) => (

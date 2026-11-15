@@ -177,10 +177,10 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					{ generating ? (
 						<>
 							<Loader2 size={ 12 } className="plume-spin" />{ ' ' }
-							Generating…
+							{ __( 'Generating…', 'plume' ) }
 						</>
 					) : (
-						'✦ Generate SEO'
+						__( '✦ Generate SEO', 'plume' )
 					) }
 				</button>
 			</div>
@@ -190,21 +190,23 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					className="plume-confirm-replace"
 					role="alertdialog"
 					aria-live="assertive"
-					aria-label="Replace confirmation"
+					aria-label={ __( 'Replace confirmation', 'plume' ) }
 				>
-					<span>Replace current suggestions?</span>
+					<span>
+						{ __( 'Replace current suggestions?', 'plume' ) }
+					</span>
 					<button
 						className="button button-small"
 						onClick={ handleGenerate }
 						ref={ yesButtonRef }
 					>
-						Yes, replace
+						{ __( 'Yes, replace', 'plume' ) }
 					</button>
 					<button
 						className="button button-small"
 						onClick={ () => setConfirmReplace( false ) }
 					>
-						Cancel
+						{ __( 'Cancel', 'plume' ) }
 					</button>
 				</div>
 			) }
@@ -215,7 +217,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 						htmlFor="seo-meta-title"
 						className="plume-field-label"
 					>
-						Meta title
+						{ __( 'Meta title', 'plume' ) }
 						<span className="plume-char-count">
 							{ fields.meta_title.length } / 60
 						</span>
@@ -226,13 +228,13 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 						className={ inputClass() }
 						value={ fields.meta_title }
 						onChange={ setField( 'meta_title' ) }
-						placeholder="AI will generate this…"
+						placeholder={ __( 'AI will generate this…', 'plume' ) }
 					/>
 				</div>
 
 				<div className="plume-field">
 					<label htmlFor="seo-og-desc" className="plume-field-label">
-						OG description
+						{ __( 'OG description', 'plume' ) }
 						<span className="plume-char-count">
 							{ fields.og_description.length } / 160
 						</span>
@@ -243,27 +245,27 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 						className={ inputClass() }
 						value={ fields.og_description }
 						onChange={ setField( 'og_description' ) }
-						placeholder="AI will generate this…"
+						placeholder={ __( 'AI will generate this…', 'plume' ) }
 					/>
 				</div>
 
 				<div className="plume-field plume-field--full">
 					<label htmlFor="seo-excerpt" className="plume-field-label">
-						Excerpt
+						{ __( 'Excerpt', 'plume' ) }
 					</label>
 					<textarea
 						id="seo-excerpt"
 						className={ inputClass() }
 						value={ fields.excerpt }
 						onChange={ setField( 'excerpt' ) }
-						placeholder="AI will generate this…"
+						placeholder={ __( 'AI will generate this…', 'plume' ) }
 						rows={ 3 }
 					/>
 				</div>
 
 				<div className="plume-field plume-field--full">
 					<label htmlFor="seo-alt-text" className="plume-field-label">
-						Featured image alt text
+						{ __( 'Featured image alt text', 'plume' ) }
 					</label>
 					<input
 						id="seo-alt-text"
@@ -271,7 +273,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 						className={ inputClass() }
 						value={ fields.alt_text }
 						onChange={ setField( 'alt_text' ) }
-						placeholder="AI will generate this…"
+						placeholder={ __( 'AI will generate this…', 'plume' ) }
 					/>
 				</div>
 			</div>
@@ -291,7 +293,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					rel="noreferrer"
 					className="plume-action-link"
 				>
-					Edit post →
+					{ __( 'Edit post →', 'plume' ) }
 				</a>
 				<button
 					className="button"
@@ -301,14 +303,16 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 					} }
 					disabled={ applying }
 				>
-					Discard
+					{ __( 'Discard', 'plume' ) }
 				</button>
 				<button
 					className="button button-primary"
 					onClick={ handleApply }
 					disabled={ applying || ! hasGenerated }
 				>
-					{ applying ? 'Applying…' : '✓ Apply all' }
+					{ applying
+						? __( 'Applying…', 'plume' )
+						: __( '✓ Apply all', 'plume' ) }
 				</button>
 			</div>
 		</div>

@@ -148,7 +148,9 @@ export default function ChatApp() {
 			return;
 		}
 		const panel =
-			openDrawer === 'conversations' ? sidebarRef.current : toolsRef.current;
+			openDrawer === 'conversations'
+				? sidebarRef.current
+				: toolsRef.current;
 		const main = mainRef.current;
 		const opener = drawerToggleRef.current;
 
@@ -233,7 +235,7 @@ export default function ChatApp() {
 				path: '/plume/v1/conversations',
 			} );
 			setConversations( data );
-		} catch ( e ) {
+		} catch {
 			// Conversations failed to load — list stays empty.
 		}
 	}
@@ -264,7 +266,7 @@ export default function ChatApp() {
 			const storedDefault = window.plumeData?.defaultProvider;
 			const match = data.find( ( p ) => p.slug === storedDefault );
 			setSelectedProvider( ( match ?? data[ 0 ] ).slug );
-		} catch ( e ) {
+		} catch {
 			// Provider list is best-effort — don't crash if unavailable.
 		}
 	}
@@ -651,23 +653,32 @@ export default function ChatApp() {
 							aria-label={ __( 'Conversations', 'plume' ) }
 							aria-controls="plume-conversations"
 							aria-expanded={ openDrawer === 'conversations' }
-							onClick={ ( e ) => toggleDrawer( 'conversations', e ) }
+							onClick={ ( e ) =>
+								toggleDrawer( 'conversations', e )
+							}
 						>
 							<MessagesSquare size={ 18 } strokeWidth={ 1.5 } />
 						</button>
 						<span className="plume-mobile-bar__title">
-							{ conversations.find( ( c ) => c.id === activeConvId )
-								?.title || NEW_CONVERSATION_TITLE }
+							{ conversations.find(
+								( c ) => c.id === activeConvId
+							)?.title || NEW_CONVERSATION_TITLE }
 						</span>
 						<button
 							type="button"
 							className="plume-btn plume-btn--ghost plume-btn--icon"
-							aria-label={ __( 'Model and quick actions', 'plume' ) }
+							aria-label={ __(
+								'Model and quick actions',
+								'plume'
+							) }
 							aria-controls="plume-tools"
 							aria-expanded={ openDrawer === 'tools' }
 							onClick={ ( e ) => toggleDrawer( 'tools', e ) }
 						>
-							<SlidersHorizontal size={ 18 } strokeWidth={ 1.5 } />
+							<SlidersHorizontal
+								size={ 18 }
+								strokeWidth={ 1.5 }
+							/>
 						</button>
 					</div>
 				) }

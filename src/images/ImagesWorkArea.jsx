@@ -1,6 +1,6 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { __ } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { Loader2 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import OutOfCreditsNotice from '../shared/OutOfCreditsNotice';
@@ -71,9 +71,17 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 				const failCount = data.errors.length;
 				const okCount = data.images?.length ?? 0;
 				setWarning(
-					`${ failCount } of ${ failCount + okCount } image${
-						failCount > 1 ? 's' : ''
-					} failed to generate.`
+					sprintf(
+						/* translators: 1: number of images that failed, 2: number of images requested. */
+						_n(
+							'%1$d of %2$d image failed to generate.',
+							'%1$d of %2$d images failed to generate.',
+							failCount + okCount,
+							'plume'
+						),
+						failCount,
+						failCount + okCount
+					)
 				);
 			}
 		} catch ( e ) {
@@ -99,7 +107,14 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 			const selfHref = post._links?.self?.[ 0 ]?.href;
 			if ( ! selfHref ) {
 				throw new Error(
-					`Cannot determine the REST endpoint for post type "${ post.type }".`
+					sprintf(
+						/* translators: %s: post type slug, e.g. "post". */
+						__(
+							'Cannot determine the REST endpoint for post type "%s".',
+							'plume'
+						),
+						post.type
+					)
 				);
 			}
 			await apiFetch( {
@@ -159,7 +174,10 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 			<div className="plume-images-prompt-row">
 				<textarea
 					className="plume-prompt-input"
-					placeholder="Describe the image you want to generate…"
+					placeholder={ __(
+						'Describe the image you want to generate…',
+						'plume'
+					) }
 					value={ prompt }
 					onChange={ ( e ) => setPrompt( e.target.value ) }
 					rows={ 4 }
@@ -170,7 +188,7 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 							htmlFor="img-aspect-ratio"
 							className="plume-field-label"
 						>
-							Aspect ratio
+							{ __( 'Aspect ratio', 'plume' ) }
 						</label>
 						<select
 							id="img-aspect-ratio"
@@ -188,7 +206,9 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 						</select>
 					</div>
 					<div className="plume-control">
-						<span className="plume-field-label">Count</span>
+						<span className="plume-field-label">
+							{ __( 'Count', 'plume' ) }
+						</span>
 						<div className="plume-count-pills">
 							{ [ 1, 2, 3 ].map( ( n ) => (
 								<button
@@ -213,10 +233,10 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 						{ generating ? (
 							<>
 								<Loader2 size={ 12 } className="plume-spin" />{ ' ' }
-								Generating…
+								{ __( 'Generating…', 'plume' ) }
 							</>
 						) : (
-							'✦ Generate'
+							__( '✦ Generate', 'plume' )
 						) }
 					</button>
 				</div>
@@ -259,7 +279,7 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 							/>
 							{ selectedId === img.attachment_id && (
 								<span className="plume-selected-badge">
-									✓ Selected
+									{ __( '✓ Selected', 'plume' ) }
 								</span>
 							) }
 							<div className="plume-image-footer">
@@ -269,7 +289,7 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 									rel="noreferrer"
 									onClick={ ( e ) => e.stopPropagation() }
 								>
-									View →
+									{ __( 'View →', 'plume' ) }
 								</a>
 							</div>
 						</div>
@@ -287,21 +307,23 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 					rel="noreferrer"
 					className="plume-action-link"
 				>
-					Edit post →
+					{ __( 'Edit post →', 'plume' ) }
 				</a>
 				<button
 					className="button"
 					onClick={ onClose }
 					disabled={ setting }
 				>
-					Discard
+					{ __( 'Discard', 'plume' ) }
 				</button>
 				<button
 					className="button button-primary"
 					onClick={ handleSetFeatured }
 					disabled={ setting || ! selectedId }
 				>
-					{ setting ? 'Setting…' : '✓ Set as featured image' }
+					{ setting
+						? __( 'Setting…', 'plume' )
+						: __( '✓ Set as featured image', 'plume' ) }
 				</button>
 			</div>
 		</div>

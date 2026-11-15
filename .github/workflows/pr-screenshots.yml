@@ -77,9 +77,11 @@ jobs:
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Install npm dependencies
+        continue-on-error: true
         run: npm ci --no-audit --no-fund
 
       - name: Install Composer dependencies
+        continue-on-error: true
         run: composer install --prefer-dist --no-interaction --no-progress
 
       # Same cache key and install command as the e2e job. The font set can
@@ -94,13 +96,17 @@ jobs:
 
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
         timeout-minutes: 5
         run: npx playwright install --with-deps chromium
 
       - name: Start wp-env
+        continue-on-error: true
         run: npx wp-env start
 
       - name: Wait for WordPress
+        id: wp_ready
+        continue-on-error: true
         run: |
           for i in {1..30}; do
             if curl -fs http://localhost:8888 > /dev/null; then
@@ -109,11 +115,12 @@ jobs:
             fi
             sleep 2
           done
-          echo "::error::WordPress did not start within 60s"
+          echo "::warning::WordPress did not start within 60s; baseline not refreshed."
           exit 1
 
       - name: Capture screenshots
         id: capture
+        if: ${{ steps.wp_ready.outcome == 'success' }}
         continue-on-error: true
         timeout-minutes: 3
         env:
@@ -163,8 +170,11 @@ jobs:
       contents: write        # push to the ci-screenshots branch only
       pull-requests: read    # sweep lists open PRs
     steps:
+      # Always run the trusted script from the default branch: the PR's merge
+      # ref is missing for a PR closed with conflicts, and this job can write.
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
           sparse-checkout: |
             .github/scripts

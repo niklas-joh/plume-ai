@@ -55,6 +55,8 @@ jobs:
               - 'includes/**'
               - 'package.json'
               - 'playwright.config.*'
+              - 'plume.php'
+              - '.wp-env.json'
               - '.github/scripts/pr-screenshots*'
               - '.github/workflows/pr-checks.yml'
             proxy:

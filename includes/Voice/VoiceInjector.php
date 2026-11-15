@@ -41,23 +41,30 @@ class VoiceInjector {
 		$voice = $this->get_merged_voice( $user_id );
 		$parts = [];
 
-		if ( ! empty( $voice['tone'] ) ) {
-			$parts[] = 'Tone: ' . sanitize_text_field( $voice['tone'] );
+		// Sanitising trims and collapses whitespace, so a whitespace-only field
+		// becomes empty here and is skipped rather than injected as a blank line.
+		$labelled = [
+			'tone'     => 'Tone: ',
+			'style'    => 'Writing style: ',
+			'language' => 'Language: ',
+			'audience' => 'Target audience: ',
+			'avoid'    => 'Avoid: ',
+		];
+		foreach ( $labelled as $key => $prefix ) {
+			if ( empty( $voice[ $key ] ) ) {
+				continue;
+			}
+			$value = sanitize_text_field( (string) $voice[ $key ] );
+			if ( '' !== $value ) {
+				$parts[] = $prefix . $value;
+			}
 		}
-		if ( ! empty( $voice['style'] ) ) {
-			$parts[] = 'Writing style: ' . sanitize_text_field( $voice['style'] );
-		}
-		if ( ! empty( $voice['language'] ) ) {
-			$parts[] = 'Language: ' . sanitize_text_field( $voice['language'] );
-		}
-		if ( ! empty( $voice['audience'] ) ) {
-			$parts[] = 'Target audience: ' . sanitize_text_field( $voice['audience'] );
-		}
-		if ( ! empty( $voice['avoid'] ) ) {
-			$parts[] = 'Avoid: ' . sanitize_text_field( $voice['avoid'] );
-		}
+
 		if ( ! empty( $voice['extra'] ) ) {
-			$parts[] = sanitize_textarea_field( $voice['extra'] );
+			$extra = trim( sanitize_textarea_field( (string) $voice['extra'] ) );
+			if ( '' !== $extra ) {
+				$parts[] = $extra;
+			}
 		}
 
 		$parts[] = self::NO_LINKS_GUIDANCE;

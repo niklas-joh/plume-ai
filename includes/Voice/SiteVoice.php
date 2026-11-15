@@ -105,6 +105,8 @@ final class SiteVoice {
 		$raw = get_option( self::OPTION, [] );
 
 		// A legacy string or junk value starts afresh; an array keeps every key.
+		// Keys outside self::KEYS are deliberately preserved here for data-loss
+		// safety, even though normalise()/get() never read them back (write-only).
 		$voice = is_array( $raw ) ? $raw : [];
 
 		$voice['extra'] = sanitize_textarea_field( $text );

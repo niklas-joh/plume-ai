@@ -76,7 +76,7 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 						_n(
 							'%1$d of %2$d image failed to generate.',
 							'%1$d of %2$d images failed to generate.',
-							failCount,
+							failCount + okCount,
 							'plume'
 						),
 						failCount,

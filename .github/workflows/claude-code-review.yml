@@ -308,9 +308,11 @@ jobs:
           fi
           node .trusted/.github/scripts/autofix-status.mjs partition
 
-      - name: Post review queue footer on the PR
-        # Edited in place (hidden marker + bot author), so the PR always shows the
-        # truth even if the review comment's own table is wrong.
+      - name: Post review status on the PR
+        # ONE status comment per PR, edited in place (hidden marker + bot author).
+        # The batch auto-fix run rewrites the same comment with the outcome, and
+        # legacy review/report comments are upgraded or removed by the script.
+        # The marker lives in the script only, so it cannot drift from this file.
         if: |
           steps.guard.outputs.skip != 'true' &&
           (steps.collect.outputs.issues != '[]' || steps.collect.outputs.manual != '[]') &&
@@ -321,7 +323,6 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr_context.outputs.pr_number }}
           BODY_FILE: ${{ runner.temp }}/review-footer.md
-          MARKER: '<!-- plume-review-queue -->'
         run: node .trusted/.github/scripts/autofix-status.mjs upsert-comment
 
       - name: Trigger batch auto-fix via repository_dispatch

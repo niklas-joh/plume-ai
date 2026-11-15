@@ -145,6 +145,38 @@ class ProxyClientTest extends TestCase {
 		$this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
 	}
 
+	/**
+	 * @dataProvider provider_unavailable_responses
+	 */
+	public function test_chat_returns_neutral_error_when_upstream_provider_fails( int $status, string $body ): void {
+		Functions\expect( 'get_option' )
+			->with( SiteRegistration::OPTION_TOKEN, '' )
+			->andReturn( 'test-token' );
+		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_remote_post' )->justReturn( [] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( $status );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( $body );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		$result = ProxyClient::chat( [ [ 'role' => 'user', 'content' => 'hi' ] ], 'chat' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'provider_unavailable', $result->get_error_code() );
+		$this->assertStringNotContainsString( 'Internal proxy error', $result->get_error_message() );
+	}
+
+	/**
+	 * @return array<string, array{int, string}>
+	 */
+	public static function provider_unavailable_responses(): array {
+		return [
+			'new worker code'  => [ 503, '{"error":"This AI model is temporarily unavailable.","code":"provider_unavailable"}' ],
+			'legacy worker 500' => [ 500, '{"error":"Internal proxy error"}' ],
+		];
+	}
+
 	public function test_chat_returns_response_body_on_success(): void {
 		// Proxy normalises content to a flat string — NOT a Claude block array.
 		$body = json_encode(

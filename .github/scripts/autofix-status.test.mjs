@@ -12,6 +12,8 @@ import {
 	parseUnfixedTsv,
 	reasonFromComments,
 	classifyOutcome,
+	closingKeywordsToAppend,
+	SESSION_FAILED,
 	findUnaccounted,
 	mergeManual,
 	findOwnComment,
@@ -165,8 +167,8 @@ test( 'classifyOutcome: fixed needs closed AND matching commit AND pushed', () =
 		{ number: 2, note: 'closed, no matching pushed commit' },
 	] );
 	assert.deepEqual( o.notFixed, [
-		{ number: 3, reason: 'needs the variant ID', hasCommit: false },
-		{ number: 4, reason: NO_REASON, hasCommit: false },
+		{ number: 3, reason: 'needs the variant ID', hasCommit: false, retry: false },
+		{ number: 4, reason: NO_REASON, hasCommit: false, retry: false },
 	] );
 } );
 
@@ -192,20 +194,91 @@ test( 'classifyOutcome: #1 closed is not fixed by a commit for #10', () => {
 	assert.equal( o.closedNoCommit.length, 1 );
 } );
 
-test( 'classifyOutcome: open issue with a pushed fix commit is not labelled as unfixable', () => {
+test( 'classifyOutcome: open issue with a pushed fix commit is "fix pushed", not unfixed', () => {
 	const o = classifyOutcome( {
 		dispatched: [ 1 ],
 		issues: { 1: { state: 'OPEN' } },
 		commits: [ 'fix: a (closes #1)' ],
 		pushed: true,
 	} );
-	assert.equal( o.notFixed[ 0 ].hasCommit, true );
-	assert.match( o.notFixed[ 0 ].reason, /not closed/ );
+	assert.deepEqual( o.fixPushed, [ 1 ] );
+	assert.deepEqual( o.notFixed, [] );
+	const md = renderReport( { ...o, notQueued: [], unaccounted: [] } );
+	assert.match( md, /Fix pushed, issue closes on merge \(1\)\*\*\n- #1/ );
+	assert.match( md, /Not fixed 0/ );
+} );
+
+test( 'classifyOutcome: unknown remote SHA (null) is not reported as unpushed', () => {
+	const o = classifyOutcome( {
+		dispatched: [ 1 ],
+		issues: { 1: { state: 'CLOSED' } },
+		commits: [ 'fix: a (closes #1)' ],
+		pushed: null,
+	} );
+	assert.deepEqual( o.fixed, [ 1 ] );
+	const known = classifyOutcome( {
+		dispatched: [ 1 ],
+		issues: { 1: { state: 'CLOSED' } },
+		commits: [ 'fix: a (closes #1)' ],
+		pushed: false,
+	} );
+	assert.deepEqual( known.fixed, [] );
+	assert.match( known.closedNoCommit[ 0 ].note, /not pushed/ );
+} );
+
+test( 'classifyOutcome: failed session reports "session failed" and marks for retry', () => {
+	const o = classifyOutcome( {
+		dispatched: [ 1, 2 ],
+		issues: { 1: { state: 'OPEN', reason: 'needs key' }, 2: { state: 'OPEN' } },
+		commits: [],
+		pushed: null,
+		sessionFailed: true,
+	} );
+	assert.deepEqual( o.notFixed.map( ( n ) => n.reason ), [
+		'not fixed (session failed)',
+		'not fixed (session failed)',
+	] );
+	assert.ok( o.notFixed.every( ( n ) => n.retry === true ) );
+	const ok = classifyOutcome( {
+		dispatched: [ 1 ],
+		issues: { 1: { state: 'OPEN', reason: 'needs key' } },
+		commits: [],
+		pushed: null,
+	} );
+	assert.equal( ok.notFixed[ 0 ].retry, false );
+	assert.equal( ok.notFixed[ 0 ].reason, 'needs key' );
+} );
+
+test( 'SESSION_FAILED covers failure/cancelled/timed_out but not skipped/success', () => {
+	for ( const v of [ 'failure', 'cancelled', 'timed_out' ] ) {
+		assert.ok( SESSION_FAILED.has( v ) );
+	}
+	for ( const v of [ 'skipped', 'success', '', undefined ] ) {
+		assert.ok( ! SESSION_FAILED.has( v ) );
+	}
+} );
+
+test( 'renderReport: banner shows for failure, not for skipped or success', () => {
+	const base = { fixed: [], closedNoCommit: [], notFixed: [], notQueued: [], unaccounted: [] };
+	assert.match( renderReport( { ...base, sessionOutcome: 'failure' } ), /session ended with status/ );
+	assert.match( renderReport( { ...base, sessionOutcome: 'cancelled' } ), /session ended with status/ );
+	assert.doesNotMatch( renderReport( { ...base, sessionOutcome: 'skipped' } ), /session ended/ );
+	assert.doesNotMatch( renderReport( { ...base, sessionOutcome: 'success' } ), /session ended/ );
+	assert.doesNotMatch( renderReport( base ), /session ended/ );
+} );
+
+test( 'closingKeywordsToAppend adds only missing, boundary-safe keywords', () => {
+	assert.equal( closingKeywordsToAppend( 'Body', [ 1, 2 ] ), '\n\nCloses #1\n\nCloses #2' );
+	assert.equal( closingKeywordsToAppend( 'Closes #1\nfixes #2.', [ 1, 2 ] ), '' );
+	// "Closes #10" must not satisfy #1.
+	assert.equal( closingKeywordsToAppend( 'Closes #10', [ 1 ] ), '\n\nCloses #1' );
+	assert.equal( closingKeywordsToAppend( 'x', [] ), '' );
 } );
 
 test( 'classifyOutcome: empty and unknown issues', () => {
 	assert.deepEqual( classifyOutcome( { dispatched: [], issues: {}, commits: [], pushed: false } ), {
 		fixed: [],
+		fixPushed: [],
 		closedNoCommit: [],
 		notFixed: [],
 	} );

@@ -34,6 +34,10 @@ export const NO_REASON = '(no reason recorded)';
 export const MAX_REASON = 200;
 export const MAX_ISSUES = 300;
 
+// Fix-session step outcomes that mean it did not complete ('skipped' and
+// 'success' are not failures; an empty value means unknown).
+export const SESSION_FAILED = new Set( [ 'failure', 'cancelled', 'timed_out' ] );
+
 // Reasons that are explicitly NOT a valid exclusion: the issue is force-queued.
 const DENY_REASON_RE =
 	/\bCI\b|human review|manual review|needs? (?:a )?review|code review/i;
@@ -277,25 +281,36 @@ export function reasonFromComments( comments, sinceIso ) {
 /**
  * Classifies each dispatched issue. Fixed requires ALL of: issue closed, a
  * commit in the run range whose full message references it, and HEAD pushed.
+ * `pushed === null` means the remote SHA could not be determined: it is not
+ * evidence of a missing push, so only `false` counts as "not pushed".
  *
  * @param {Object}                                     args             Inputs.
  * @param {number[]}                                   args.dispatched  Issues handed to the fix session.
  * @param {Record<number, {state?: string, reason?: string}>} args.issues State and best-known reason by number.
  * @param {string[]}                                   args.commits     Full messages in START_SHA..HEAD.
- * @param {boolean}                                    args.pushed      Whether HEAD is on the remote branch.
- * @return {{fixed: number[], closedNoCommit: Array<{number: number, note: string}>, notFixed: Array<{number: number, reason: string, hasCommit: boolean}>}} Outcome.
+ * @param {boolean|null}                               args.pushed      Whether HEAD is on the remote branch (null: unknown).
+ * @param {boolean}                                    [args.sessionFailed] The fix session did not succeed.
+ * @return {{fixed: number[], fixPushed: number[], closedNoCommit: Array<{number: number, note: string}>, notFixed: Array<{number: number, reason: string, hasCommit: boolean, retry: boolean}>}} Outcome.
  */
-export function classifyOutcome( { dispatched, issues, commits, pushed } ) {
+export function classifyOutcome( {
+	dispatched,
+	issues,
+	commits,
+	pushed,
+	sessionFailed = false,
+} ) {
 	const fixed = [];
+	const fixPushed = [];
 	const closedNoCommit = [];
 	const notFixed = [];
+	const isPushed = pushed !== false;
 	for ( const n of dispatched ?? [] ) {
 		const info = issues?.[ n ] ?? {};
 		const hasCommit = ( commits ?? [] ).some( ( m ) =>
 			commitMentionsIssue( m, n )
 		);
 		const closed = String( info.state ).toUpperCase() === 'CLOSED';
-		if ( closed && hasCommit && pushed ) {
+		if ( closed && hasCommit && isPushed ) {
 			fixed.push( n );
 		} else if ( closed ) {
 			closedNoCommit.push( {
@@ -304,23 +319,48 @@ export function classifyOutcome( { dispatched, issues, commits, pushed } ) {
 					? 'closed, matching commit exists but was not pushed'
 					: 'closed, no matching pushed commit',
 			} );
+		} else if ( hasCommit && isPushed ) {
+			fixPushed.push( n );
 		} else if ( hasCommit ) {
 			notFixed.push( {
 				number: n,
-				reason: pushed
-					? 'fix commit pushed but the issue was not closed (it closes when the PR merges)'
-					: 'fix commit exists but was not pushed',
+				reason: 'fix commit exists but was not pushed',
 				hasCommit: true,
+				retry: false,
 			} );
 		} else {
 			notFixed.push( {
 				number: n,
-				reason: sanitiseReason( info.reason ),
+				reason: sessionFailed
+					? 'not fixed (session failed)'
+					: sanitiseReason( info.reason ),
 				hasCommit: false,
+				retry: sessionFailed,
 			} );
 		}
 	}
-	return { fixed, closedNoCommit, notFixed };
+	return { fixed, fixPushed, closedNoCommit, notFixed };
+}
+
+/**
+ * Text to append to a PR body so merging closes the given issues.
+ *
+ * @param {string}   body    Current PR body.
+ * @param {number[]} numbers Issues to close on merge.
+ * @return {string} Text to append ('' when nothing is missing).
+ */
+export function closingKeywordsToAppend( body, numbers ) {
+	let out = '';
+	for ( const n of numbers ?? [] ) {
+		const re = new RegExp(
+			`(close[sd]?|fix(e[sd])?|resolve[sd]?) #${ Number( n ) }([^0-9]|$)`,
+			'i'
+		);
+		if ( ! re.test( String( body ?? '' ) ) ) {
+			out += `\n\nCloses #${ Number( n ) }`;
+		}
+	}
+	return out;
 }
 
 /**
@@ -405,6 +445,7 @@ export function renderQueueFooter( { queued, manual } ) {
  *
  * @param {Object} args Inputs.
  * @param {number[]} args.fixed Fixed issues.
+ * @param {number[]} [args.fixPushed] Open issues whose fix is pushed (close on merge).
  * @param {Array<{number: number, note: string}>} args.closedNoCommit Closed without a matching pushed commit.
  * @param {Array<{number: number, reason: string}>} args.notFixed Open and unfixed.
  * @param {Array<{number: number, reason: string}>} args.notQueued Excluded by review.
@@ -415,6 +456,7 @@ export function renderQueueFooter( { queued, manual } ) {
  */
 export function renderReport( {
 	fixed,
+	fixPushed = [],
 	closedNoCommit,
 	notFixed,
 	notQueued,
@@ -427,6 +469,9 @@ export function renderReport( {
 		`Not fixed ${ notFixed.length }`,
 		`Not queued by review ${ notQueued.length }`,
 	];
+	if ( fixPushed.length ) {
+		counts.push( `Fix pushed ${ fixPushed.length }` );
+	}
 	if ( closedNoCommit.length ) {
 		counts.push( `Closed without a matching pushed commit ${ closedNoCommit.length }` );
 	}
@@ -440,7 +485,7 @@ export function renderReport( {
 		counts.join( ' · ' ),
 		'',
 	];
-	if ( sessionOutcome && sessionOutcome !== 'success' ) {
+	if ( SESSION_FAILED.has( sessionOutcome ) ) {
 		lines.push(
 			`> The auto-fix session ended with status \`${ sanitiseReason( sessionOutcome, 30 ) }\`; the lists below are computed from GitHub and git state.`,
 			''
@@ -451,6 +496,13 @@ export function renderReport( {
 		list( fixed, ( n ) => `- #${ n }` ),
 		''
 	);
+	if ( fixPushed.length ) {
+		lines.push(
+			`**Fix pushed, issue closes on merge (${ fixPushed.length })**`,
+			list( fixPushed, ( n ) => `- #${ n }` ),
+			''
+		);
+	}
 	if ( closedNoCommit.length ) {
 		lines.push(
 			`**Closed, no matching pushed commit (${ closedNoCommit.length })** (not counted as fixed)`,
@@ -652,18 +704,28 @@ function gather() {
 	}
 
 	let commits = [];
-	let pushed = false;
+	let pushed = null;
 	const startSha = process.env.START_SHA;
 	const branch = process.env.HEAD_BRANCH;
 	if ( startSha && branch && dispatched.length ) {
 		const log = run( 'git', [ 'log', `${ startSha }..HEAD`, '--format=%B%x00' ] );
 		commits = log.ok ? log.out.split( '\0' ).map( ( s ) => s.trim() ).filter( Boolean ) : [];
 		const head = run( 'git', [ 'rev-parse', 'HEAD' ] ).out.trim();
-		const remote = run( 'git', [ 'ls-remote', 'origin', `refs/heads/${ branch }` ] ).out.split( /\s/ )[ 0 ];
-		pushed = Boolean( head ) && head === remote;
+		let remote = run( 'git', [ 'ls-remote', 'origin', `refs/heads/${ branch }` ] ).out.split( /\s/ )[ 0 ];
+		if ( ! remote ) {
+			console.log( '::warning::git ls-remote failed; falling back to the GitHub API for the pushed SHA.' );
+			remote = run( 'gh', [ 'api', `repos/${ repo }/commits/${ branch }`, '--jq', '.sha' ] ).out.trim();
+		}
+		if ( remote && head ) {
+			pushed = head === remote;
+		} else {
+			pushed = null;
+			console.log( '::warning::Could not determine whether HEAD is pushed; not reporting fixes as unpushed.' );
+		}
 	}
 
-	const outcome = classifyOutcome( { dispatched, issues, commits, pushed } );
+	const sessionFailed = SESSION_FAILED.has( process.env.SESSION_OUTCOME );
+	const outcome = classifyOutcome( { dispatched, issues, commits, pushed, sessionFailed } );
 	let live = { queued: [], manual: [] };
 	try {
 		live = liveReviewIssues( repo, prNumber );
@@ -682,7 +744,7 @@ function gather() {
  * @param {ReturnType<typeof gather>} g Gathered data.
  */
 function labelUnfixed( g ) {
-	for ( const n of g.outcome.notFixed.filter( ( x ) => ! x.hasCommit ) ) {
+	for ( const n of g.outcome.notFixed.filter( ( x ) => ! x.hasCommit && ! x.retry ) ) {
 		const edit = [ 'issue', 'edit', String( n.number ), '--repo', g.repo, '--add-label', MANUAL_LABEL ];
 		const body = g.bodies[ n.number ] ?? '';
 		if ( body && extractReason( body ) === null ) {
@@ -698,9 +760,34 @@ function labelUnfixed( g ) {
 	}
 }
 
+/**
+ * Adds `Closes #N` to the PR body for issues whose fix is pushed only, so
+ * merging never auto-closes an issue that was not fixed.
+ *
+ * @param {ReturnType<typeof gather>} g Gathered data.
+ */
+function addClosingKeywords( g ) {
+	const numbers = [ ...g.outcome.fixed, ...g.outcome.fixPushed ];
+	if ( ! numbers.length ) {
+		return;
+	}
+	const pr = process.env.PR_NUMBER;
+	const view = run( 'gh', [ 'pr', 'view', pr, '--repo', g.repo, '--json', 'body', '--jq', '.body // ""' ] );
+	if ( ! view.ok ) {
+		console.log( '::warning::Could not read the PR body to add closing keywords.' );
+		return;
+	}
+	const current = view.out.replace( /\n$/, '' );
+	const extra = closingKeywordsToAppend( current, numbers );
+	if ( extra && ! run( 'gh', [ 'pr', 'edit', pr, '--repo', g.repo, '--body', `${ current }${ extra }` ] ).ok ) {
+		console.log( '::warning::Could not add closing keywords to the PR body.' );
+	}
+}
+
 function reportData( g ) {
 	return {
 		fixed: g.outcome.fixed,
+		fixPushed: g.outcome.fixPushed,
 		closedNoCommit: g.outcome.closedNoCommit,
 		notFixed: g.outcome.notFixed,
 		notQueued: g.notQueued,
@@ -720,6 +807,7 @@ function cmdReport() {
 		}
 	}
 	labelUnfixed( g );
+	addClosingKeywords( g );
 	const body = renderReport( reportData( g ) );
 	const file = `${ process.env.RUNNER_TEMP || '.' }/autofix-report.md`;
 	fs.writeFileSync( file, body );
@@ -741,6 +829,7 @@ function cmdRenderReport() {
 			...outcome,
 			notQueued: manual,
 			unaccounted,
+			sessionOutcome: fixture.sessionOutcome,
 		} )
 	);
 }

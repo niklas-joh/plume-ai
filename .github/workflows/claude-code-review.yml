@@ -301,8 +301,11 @@ jobs:
           FOOTER_FILE: ${{ runner.temp }}/review-footer.md
         run: |
           # List API (not search) so a just-created issue is never missed to index lag.
-          gh issue list --repo "$REPO" --label code-review --state open \
-            --limit 300 --json number,body,labels > "$ISSUES_FILE"
+          if ! gh issue list --repo "$REPO" --label code-review --state open \
+            --limit 300 --json number,body,labels > "$ISSUES_FILE"; then
+            echo "::warning::Could not list review issues; nothing will be queued or reported for this run."
+            echo '[]' > "$ISSUES_FILE"
+          fi
           node .trusted/.github/scripts/autofix-status.mjs partition
 
       - name: Post review queue footer on the PR

@@ -8,7 +8,9 @@ on:
     types: [batch-auto-fix]
 
 # One run per PR at a time: a re-dispatch must not race the previous run on
-# git push or on the report comment. Queue (do not cancel) so no run is lost.
+# git push or on the report comment. The running job is never cancelled, but
+# GitHub keeps only ONE pending run per group, so a third dispatch cancels the
+# queued second. Harmless: the report recomputes everything from live state.
 concurrency:
   group: batch-auto-fix-${{ github.event.client_payload.pr_number }}
   cancel-in-progress: false
@@ -94,33 +96,6 @@ jobs:
         run: |
           npm ci
           composer install --no-interaction --prefer-dist
-
-      - name: Add closing keywords to PR description
-        # Safety net: put "Closes #N" in the PR body so GitHub auto-closes each issue
-        # when the PR is squash-merged, even if the explicit gh issue close is missed.
-        if: steps.payload.outputs.has_issues == 'true'
-        env:
-          # GITHUB_TOKEN (not GH_PAT) — editing PR metadata only needs pull-requests: write,
-          # which the job-level permissions already grant. GH_PAT is a fine-grained PAT scoped
-          # for workflow-file pushes and does not carry pull-requests: write.
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ steps.payload.outputs.pr_number }}
-          REPO: ${{ github.repository }}
-          ISSUES_JSON: ${{ steps.payload.outputs.issues }}
-        run: |
-          CURRENT=$(gh pr view "$PR" --repo "$REPO" --json body --jq '.body // ""')
-          APPENDED=""
-          for issue in $(printf '%s' "$ISSUES_JSON" | jq -r '.[]'); do
-            if ! printf '%s' "$CURRENT" | grep -qiE "(close[sd]?|fix(e[sd])?|resolve[sd]?) #${issue}([^0-9]|$)"; then
-              APPENDED="${APPENDED}"$'\n\n'"Closes #${issue}"
-            fi
-          done
-          if [[ -n "$APPENDED" ]]; then
-            gh pr edit "$PR" --repo "$REPO" --body "${CURRENT}${APPENDED}"
-            echo "Updated PR #${PR} body with:${APPENDED}"
-          else
-            echo "PR #${PR} already references all issues — no update needed."
-          fi
 
       - name: Write issue bodies to files
         # Pre-fetch all issue bodies so Claude can cat them without extra gh calls.
@@ -244,7 +219,9 @@ jobs:
         # No LLM. Fixed = issue closed AND a commit in START_SHA..HEAD references it
         # AND HEAD is pushed. Also lists issues the review did not queue, guards
         # against open review issues in no list, and labels unfixed ones so a
-        # re-run does not re-queue them forever. Never fails the job.
+        # re-run does not re-queue them forever (not after a failed session, so a
+        # re-run can retry). It also adds `Closes #N` to the PR body, only for
+        # issues whose fix is pushed. Never fails the job.
         if: always() && steps.payload.outcome == 'success'
         continue-on-error: true
         env:

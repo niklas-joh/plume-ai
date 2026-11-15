@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * sends no display names; unknown ids are shown as the raw id by the caller.
  *
  * @since 2.0.0
- * @since NEXT_VERSION Live values come from ManagedCatalogue, which also caches the
+ * @since 2.1.0 Live values come from ManagedCatalogue, which also caches the
  *                     Worker's enabled providers and model lists.
  */
 final class ManagedDefaults {
@@ -41,7 +41,7 @@ final class ManagedDefaults {
 	 * Kept for backwards compatibility; the cache now lives in ManagedCatalogue.
 	 *
 	 * @since 2.0.0
-	 * @since NEXT_VERSION Alias of ManagedCatalogue::LIVE_TTL.
+	 * @since 2.1.0 Alias of ManagedCatalogue::LIVE_TTL.
 	 */
 	public const LIVE_TTL = ManagedCatalogue::LIVE_TTL;
 
@@ -51,7 +51,7 @@ final class ManagedDefaults {
 	 * Kept for backwards compatibility; the cache now lives in ManagedCatalogue.
 	 *
 	 * @since 2.0.0
-	 * @since NEXT_VERSION Alias of ManagedCatalogue::FAILURE_TTL.
+	 * @since 2.1.0 Alias of ManagedCatalogue::FAILURE_TTL.
 	 */
 	public const FAILURE_TTL = ManagedCatalogue::FAILURE_TTL;
 
@@ -141,7 +141,7 @@ final class ManagedDefaults {
 	 * means no live value is available (unregistered site or unreachable Worker).
 	 *
 	 * @since 2.0.0
-	 * @since NEXT_VERSION Reads ManagedCatalogue instead of a transient of its own.
+	 * @since 2.1.0 Reads ManagedCatalogue instead of a transient of its own.
 	 * @param string $tier Normalised tier slug: 'free' or 'pro_managed'.
 	 * @return array<string, string> Validated model id per provider; may be empty.
 	 */

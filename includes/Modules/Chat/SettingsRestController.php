@@ -72,9 +72,14 @@ class SettingsRestController {
 		$provider_settings = $this->make_provider_settings();
 		$tier              = TierManager::get_user_tier();
 
+		$image_provider = sanitize_text_field( (string) get_option( 'plume_image_provider', '' ) );
+
 		$data = [
 			'default_provider'     => sanitize_text_field( (string) get_option( 'plume_default_provider', 'claude' ) ),
-			'image_provider'       => sanitize_text_field( (string) get_option( 'plume_image_provider', '' ) ),
+			// An unset option means Gemini (ProviderFactory::make_image_provider()). Report
+			// that, so the Settings select shows the provider that is really used instead
+			// of falling back to its first entry.
+			'image_provider'       => '' !== $image_provider ? $image_provider : 'gemini',
 			'site_voice'           => sanitize_text_field( (string) get_option( 'plume_site_voice', '' ) ),
 			'enabled_modules'      => array_keys( array_filter( (array) get_option( 'plume_modules', [] ) ) ),
 			'api_keys'             => [

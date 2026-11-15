@@ -150,3 +150,9 @@
 	font-size: 11px;
 	text-align: right;
 }
+
+/* Missing-key notice above the list. Core's Notice ships margins meant for the
+   block editor header; align it with the page column instead. */
+.plume-images-key-notice {
+	margin: 0 0 var(--space-4);
+}

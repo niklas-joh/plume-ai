@@ -180,4 +180,36 @@ class AdminMenuTest extends TestCase {
 
 		$this->assertFalse( $upgrade_added, 'Upgrade submenu must not be registered for pro_byok-tier users.' );
 	}
+
+	// ── settings_url ──────────────────────────────────────────────────────────
+
+	/**
+	 * Administrators get the settings URL.
+	 *
+	 * @since NEXT_VERSION
+	 * @return void
+	 */
+	public function test_settings_url_returns_the_settings_page_for_administrators(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( string $cap ): bool => 'manage_options' === $cap );
+		Functions\when( 'admin_url' )->alias( static fn( string $path = '' ): string => 'https://example.test/wp-admin/' . $path );
+		Functions\when( 'esc_url_raw' )->returnArg();
+
+		$this->assertSame(
+			'https://example.test/wp-admin/admin.php?page=plume-settings',
+			AdminMenu::settings_url()
+		);
+	}
+
+	/**
+	 * Users who cannot open Settings get no link, so screens can omit it instead
+	 * of sending them to a "not allowed" page.
+	 *
+	 * @since NEXT_VERSION
+	 * @return void
+	 */
+	public function test_settings_url_is_empty_for_users_who_cannot_manage_options(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$this->assertSame( '', AdminMenu::settings_url() );
+	}
 }

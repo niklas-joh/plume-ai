@@ -1,0 +1,19 @@
+{
+	"$comment": "Single source of truth for the PR screenshot capture. Order = comment order. Read by screens.spec.js and .github/scripts/pr-screenshots.mjs; titles are the only screen text that reaches the PR comment.",
+	"viewports": [
+		{ "id": "desktop", "title": "Desktop", "label": "1440×900" },
+		{ "id": "phone", "title": "Phone", "label": "390×844 @2×" }
+	],
+	"screens": [
+		{ "id": "dashboard", "title": "Dashboard" },
+		{ "id": "chat", "title": "Chat" },
+		{ "id": "chat-reply", "title": "Chat — reply" },
+		{ "id": "chat-error", "title": "Chat — error" },
+		{ "id": "chat-out-of-credits", "title": "Chat — out of credits" },
+		{ "id": "generator", "title": "Generator" },
+		{ "id": "seo", "title": "SEO" },
+		{ "id": "images", "title": "Images" },
+		{ "id": "settings", "title": "Settings" },
+		{ "id": "editor-sidebar", "title": "Editor sidebar" }
+	]
+}

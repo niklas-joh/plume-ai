@@ -138,6 +138,27 @@ without explicit user instruction.
 
 ---
 
+## Review / Auto-fix Contract
+
+Every open `code-review` issue for a PR is either auto-fixed or reported as **not fixed
+with a reason**. Nothing is silently skipped, and the bots must never say "Skipped: none"
+while open review issues remain.
+
+- The review queues every issue by default. It may exclude one only for (a) an external
+  value or business decision, or (b) a genuinely large change (advisory). "Needs CI" and
+  "needs human review" are not valid reasons.
+- An exclusion is recorded on the issue when it is created: label `needs-manual-fix` plus a
+  body line `**Not auto-fixed:** <reason>`. The batch auto-fix also applies the label to
+  issues it could not fix, so a re-run does not re-queue them.
+- Queueing, outcomes and reports are computed deterministically (no LLM prose) by
+  `.github/scripts/autofix-status.mjs`, which always runs from a default-branch copy. The
+  PR gets one edit-in-place report comment (Fixed / Not fixed / Not queued by review).
+- Review and reporting stay non-blocking, and review triggers on `opened` only (no loops).
+- `auto-fix-review-issue.yml` (label path) does not yet follow this contract: it can close
+  an issue it could not fix. Tracked as a follow-up.
+
+---
+
 ## Code Documentation — @since Tags
 
 The `@since` PHPDoc tag marks the version in which a method or class was introduced.

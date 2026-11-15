@@ -54,8 +54,11 @@ module.exports = [
 		settings: {
 			// WordPress core provides these at runtime as webpack externals
 			// (see the `wp-*` dependencies in assets/*/index.asset.php), so they
-			// are not npm dependencies. Add a package here when a new
-			// `@wordpress/*` import is introduced.
+			// are not npm dependencies and cannot be resolved via node_modules.
+			// Add a package here only when a new `@wordpress/*` import is
+			// introduced that is NOT also an installed npm dependency — e.g.
+			// `@wordpress/element` is a real installed dependency (imported 24×)
+			// and resolves normally, so it is deliberately absent from this list.
 			'import/core-modules': [
 				'@wordpress/api-fetch',
 				'@wordpress/components',

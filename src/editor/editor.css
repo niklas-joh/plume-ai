@@ -253,3 +253,12 @@
 	color: var(--color-text-muted);
 	font-size: var(--text-xs);
 }
+
+/* Phone form fields: enlarge to the no-zoom size (see --plume-touch-font-size
+   in tokens.css for why). */
+@media (pointer: coarse) {
+
+	.plume-editor-mini-chat__input {
+		font-size: var(--plume-touch-font-size);
+	}
+}

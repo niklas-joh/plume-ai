@@ -19,9 +19,18 @@
 /* Prompt + controls layout */
 .plume-images-prompt-row {
 	display: flex;
+	flex-direction: column;
 	gap: var(--space-3);
 	margin-bottom: var(--space-3);
-	align-items: flex-start;
+}
+
+/* Prompt and controls side by side once there is room. */
+@media (min-width: 600px) {
+
+	.plume-images-prompt-row {
+		flex-direction: row;
+		align-items: flex-start;
+	}
 }
 
 .plume-prompt-input {
@@ -44,11 +53,17 @@
 }
 
 .plume-images-controls {
-	width: 160px;
 	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-3);
+}
+
+@media (min-width: 600px) {
+
+	.plume-images-controls {
+		width: 160px;
+	}
 }
 
 .plume-control {
@@ -103,9 +118,23 @@
 /* Image result grid */
 .plume-image-grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: minmax(0, 1fr);
 	gap: var(--space-3);
 	margin: var(--space-3) 0;
+}
+
+@media (min-width: 480px) {
+
+	.plume-image-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 783px) {
+
+	.plume-image-grid {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
 }
 
 .plume-image-card {
@@ -155,4 +184,14 @@
    block editor header; align it with the page column instead. */
 .plume-images-key-notice {
 	margin: 0 0 var(--space-4);
+}
+
+/* Phone form fields: enlarge to the no-zoom size (see --plume-touch-font-size
+   in tokens.css for why). */
+@media (pointer: coarse) {
+
+	.plume-prompt-input,
+	.plume-field-input {
+		font-size: var(--plume-touch-font-size);
+	}
 }

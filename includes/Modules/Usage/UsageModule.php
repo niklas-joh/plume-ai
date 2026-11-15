@@ -115,10 +115,10 @@ class UsageModule {
 			[
 				'tier'       => $usage['tier'],
 				'tier_label' => TierConfig::tier_label( (string) $usage['tier'] ),
-				'used'      => $usage['used'],
-				'limit'     => $usage['limit'],
-				'remaining' => $usage['remaining'],
-				'can_use'   => $usage['can_use'],
+				'used'       => $usage['used'],
+				'limit'      => $usage['limit'],
+				'remaining'  => $usage['remaining'],
+				'can_use'    => $usage['can_use'],
 			]
 		);
 	}

@@ -87,12 +87,18 @@ final class ModelLabels {
 	 * @return array<string, string> Model id => label.
 	 */
 	private static function known(): array {
-		return array_merge(
-			ManagedDefaults::labels(),
-			ClaudeProvider::MODELS,
-			OpenAIProvider::MODELS,
-			GeminiProvider::MODELS
-		);
+		static $known = null;
+
+		if ( null === $known ) {
+			$known = array_merge(
+				ManagedDefaults::labels(),
+				ClaudeProvider::MODELS,
+				OpenAIProvider::MODELS,
+				GeminiProvider::MODELS
+			);
+		}
+
+		return $known;
 	}
 
 	/**

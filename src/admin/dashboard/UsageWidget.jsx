@@ -36,7 +36,7 @@ export default function UsageWidget( { usage } ) {
 				</span>
 				<span className="plume-usage-widget__tier-badge">
 					{
-						/* translators: %s: the user's current subscription tier slug */
+						/* translators: %s: the user's current subscription tier slug. */
 						sprintf( __( 'Tier: %s', 'plume' ), tier )
 					}
 				</span>

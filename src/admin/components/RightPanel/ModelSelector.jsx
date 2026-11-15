@@ -42,7 +42,7 @@ export default function ModelSelector( {
 	onModelChange,
 	justSaved = false,
 } ) {
-	const { defaultModelLabel = 'AI', settingsUrl = '' } =
+	const { defaultModelLabel = __( 'AI', 'plume' ), settingsUrl = '' } =
 		window.plumeData || {};
 
 	const [ isAdvanced, setIsAdvanced ] = useState(

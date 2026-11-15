@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-15T10:13:09+00:00\n"
+"POT-Creation-Date: 2026-11-15T10:28:51+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: plume\n"
@@ -752,6 +752,10 @@ msgid "Quick actions"
 msgstr ""
 
 #: assets/admin/index.js:4
+msgid "AI"
+msgstr ""
+
+#: assets/admin/index.js:4
 msgid "Model"
 msgstr ""
 
@@ -1239,7 +1243,7 @@ msgstr ""
 msgid "Start"
 msgstr ""
 
-#. translators: %s: the user's current subscription tier slug
+#. translators: %s: the user's current subscription tier slug.
 #: assets/admin/index.js:16
 #: assets/usage/index.js:2
 #, js-format
@@ -1473,7 +1477,7 @@ msgstr ""
 msgid "Using Plugin API (free tier)."
 msgstr ""
 
-#. translators: %s: AI provider name, e.g. "Openai".
+#. translators: %s: AI provider name, e.g. "Claude".
 #: assets/admin/index.js:21
 #, js-format
 msgid "Using your own %s API key."

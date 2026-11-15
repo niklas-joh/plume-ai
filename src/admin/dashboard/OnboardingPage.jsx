@@ -728,7 +728,7 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 			} );
 			setApiTierLabel(
 				sprintf(
-					/* translators: %s: AI provider name, e.g. "Openai". */
+					/* translators: %s: AI provider name, e.g. "Claude". */
 					__( 'Using your own %s API key.', 'plume' ),
 					provider
 						? provider.charAt( 0 ).toUpperCase() +

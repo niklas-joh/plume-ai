@@ -82,7 +82,7 @@ export default function UsageDashboard() {
 				</h1>
 				<span className="plume-usage__period">
 					{ sprintf(
-						/* translators: %s: the user's current subscription tier slug */
+						/* translators: %s: the user's current subscription tier slug. */
 						__( 'Tier: %s', 'plume' ),
 						tier
 					) }

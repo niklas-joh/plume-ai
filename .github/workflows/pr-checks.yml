@@ -32,6 +32,7 @@ jobs:
       js: ${{ steps.filter.outputs.js }}
       e2e: ${{ steps.filter.outputs.e2e }}
       proxy: ${{ steps.filter.outputs.proxy }}
+      autofix: ${{ steps.filter.outputs.autofix }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
@@ -62,6 +63,26 @@ jobs:
               - '.github/workflows/pr-checks.yml'
             proxy:
               - 'plume-proxy/**'
+            autofix:
+              - '.github/scripts/autofix-status*'
+
+  # ── Auto-fix status script unit tests (dependency-free, seconds) ───────────
+  autofix-status-tests:
+    name: Auto-fix status script — unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: changes
+    if: needs.changes.outputs.autofix == 'true'
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24'
+
+      - name: Run autofix-status tests
+        run: node --test .github/scripts/autofix-status.test.mjs
 
   # ── Cloud: PHPStan ──────────────────────────────────────────────────────────
   phpstan:

@@ -1,0 +1,180 @@
+name: PR Screenshots — baseline & prune
+
+# Review-aid plumbing for the screenshots that pr-checks.yml posts on PRs.
+# - baseline: recaptures every screen from main, so PR comments can show
+#   "before" images. Runs when a merge touches the UI (path filter) or by hand.
+# - prune: deletes a closed PR's images from the CI-only ci-screenshots
+#   branch; a manual "sweep" catches any that a missed run left behind.
+# Neither job is a check, and failures only produce warnings.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'includes/**'
+      - 'assets/**'
+      - 'plume.php'
+      - 'composer.lock'
+      - 'package-lock.json'
+      - '.wp-env.json'
+      - 'tests/E2E/playwright/visual/**'
+      - 'playwright.config.visual.js'
+      - '.github/scripts/pr-screenshots*'
+      - '.github/workflows/pr-screenshots.yml'
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'baseline = recapture main; sweep = delete images of every closed PR'
+        type: choice
+        options: [baseline, sweep]
+        default: baseline
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    name: Screenshots — baseline from main
+    if: >-
+      github.ref == 'refs/heads/main' && (github.event_name == 'push'
+      || (github.event_name == 'workflow_dispatch' && inputs.task == 'baseline'))
+    runs-on: ubuntu-latest   # must match the e2e job in pr-checks.yml
+    timeout-minutes: 20
+    # Only the newest main matters.
+    concurrency:
+      group: pr-screenshots-baseline
+      cancel-in-progress: true
+    permissions:
+      contents: write        # push to the ci-screenshots branch only
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      # plume.php loads vendor/autoload.php unconditionally; without it the
+      # plugin fatals inside wp-env.
+      - name: Setup PHP
+        uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer deps
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install npm dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      # Same cache key and install command as the e2e job. The font set can
+      # still differ from a PR run (a cache miss installs extra apt fonts);
+      # the fingerprint in manifest.json lets the PR comment flag that.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5
+        run: npx playwright install --with-deps chromium
+
+      - name: Start wp-env
+        run: npx wp-env start
+
+      - name: Wait for WordPress
+        run: |
+          for i in {1..30}; do
+            if curl -fs http://localhost:8888 > /dev/null; then
+              echo "WordPress is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::WordPress did not start within 60s"
+          exit 1
+
+      - name: Capture screenshots
+        id: capture
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          WP_BASE_URL: http://localhost:8888
+          WP_TEST_USER: nj_agent
+          WP_TEST_PASS: C8IcqAWJu8F3dOw6E4ndWhIe
+        run: |
+          start=$(date +%s)
+          if ! CI=true npx playwright test -c playwright.config.visual.js; then
+            echo "::warning::Baseline capture had failures; failed screens keep their previous baseline."
+          fi
+          mkdir -p .artifacts/screenshots/ci
+          node .github/scripts/pr-screenshots.mjs env > .artifacts/screenshots/ci/env.json || true
+          node .github/scripts/pr-screenshots.mjs summary || true
+          echo "Screenshot capture step took $(( $(date +%s) - start ))s (wall clock, including setup)." | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish baseline
+        if: ${{ !cancelled() && steps.capture.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          MAIN_SHA: ${{ github.sha }}
+          SHOTS_DIR: .artifacts/screenshots/ci
+        run: node .github/scripts/pr-screenshots.mjs publish-baseline
+
+      - name: Stop wp-env
+        if: always()
+        run: npx wp-env stop || true
+
+  prune:
+    name: Screenshots — prune closed PRs
+    # Fork PRs get a read-only token, and their images were never published.
+    if: >-
+      (github.event_name == 'pull_request'
+       && github.event.pull_request.head.repo.full_name == github.repository)
+      || (github.event_name == 'workflow_dispatch' && inputs.task == 'sweep')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # One group per PR: a shared group keeps only one pending run, so prunes
+    # for PRs closed together would be dropped. The push retry loop handles
+    # races between groups.
+    concurrency:
+      group: pr-screenshots-prune-${{ github.event.pull_request.number || 'sweep' }}
+      cancel-in-progress: false
+    permissions:
+      contents: write        # push to the ci-screenshots branch only
+      pull-requests: read    # sweep lists open PRs
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts
+          sparse-checkout-cone-mode: false
+
+      - name: Prune
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          # Empty on workflow_dispatch: sweep every PR that is no longer open.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node .github/scripts/pr-screenshots.mjs prune

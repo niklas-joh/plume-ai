@@ -55,6 +55,8 @@ jobs:
               - 'includes/**'
               - 'package.json'
               - 'playwright.config.*'
+              - '.github/scripts/pr-screenshots*'
+              - '.github/workflows/pr-checks.yml'
             proxy:
               - 'plume-proxy/**'
 
@@ -477,6 +479,9 @@ jobs:
     timeout-minutes: 45
     needs: changes
     if: needs.changes.outputs.e2e == 'true'
+    outputs:
+      # 'true' when the pr-screenshots artefact was uploaded (review aid only).
+      screenshots: ${{ steps.shots_out.outputs.available }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
@@ -531,6 +536,7 @@ jobs:
         run: npx wp-env start
 
       - name: Wait for WordPress
+        id: wp_ready
         run: |
           for i in {1..30}; do
             if curl -fs http://localhost:8888 > /dev/null; then
@@ -561,9 +567,122 @@ jobs:
           path: .artifacts/playwright-report/
           retention-days: 7
 
+      # ── PR screenshots (review aid, never a pass/fail check) ──────────────
+      # Captures each Plume screen at desktop and phone size for the PR
+      # comment posted by the publish-screenshots job. Runs even when the
+      # suite above failed, so reviewers still see the UI; skipped when the
+      # run was cancelled. continue-on-error plus the swallowed exit code keep
+      # this job's result decided only by the steps above. Every Plume REST
+      # call is mocked and no API key is passed, so no AI call can happen.
+      - name: Capture PR screenshots (review aid)
+        id: capture
+        if: ${{ !cancelled() && steps.wp_ready.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          WP_BASE_URL: http://localhost:8888
+          WP_TEST_USER: nj_agent
+          WP_TEST_PASS: C8IcqAWJu8F3dOw6E4ndWhIe
+        run: |
+          start=$(date +%s)
+          if ! CI=true npx playwright test -c playwright.config.visual.js; then
+            echo "::warning::Screenshot capture had failures, so the PR comment may be partial. This is not a test failure."
+          fi
+          mkdir -p .artifacts/screenshots/ci
+          node .github/scripts/pr-screenshots.mjs env > .artifacts/screenshots/ci/env.json || true
+          node .github/scripts/pr-screenshots.mjs summary || true
+          echo "Screenshot capture step took $(( $(date +%s) - start ))s (wall clock, including setup)." | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload PR screenshots
+        id: upload_shots
+        if: ${{ !cancelled() && steps.capture.outcome != 'skipped' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pr-screenshots
+          path: |
+            .artifacts/screenshots/ci/desktop/*.png
+            .artifacts/screenshots/ci/phone/*.png
+            .artifacts/screenshots/ci/env.json
+            .artifacts/screenshots/ci/results.json
+          retention-days: 14
+          if-no-files-found: ignore
+          # A re-run of this job must replace, not collide with, the artefact.
+          overwrite: true
+
+      - name: Flag screenshots for the publish job
+        id: shots_out
+        if: ${{ !cancelled() }}
+        run: echo "available=${{ steps.upload_shots.outputs.artifact-id != '' }}" >> "$GITHUB_OUTPUT"
+
       - name: Stop wp-env
         if: always()
         run: npx wp-env stop || true
+
+  # ── PR screenshots: publish (review aid, never a pass/fail check) ─────────
+  # Separate from e2e so the write token never shares a job with `npm ci`,
+  # PR-authored specs or Docker images: this job installs nothing and runs
+  # only a zero-dependency Node script. Same-repo PRs only, since fork and
+  # Dependabot tokens are read-only. Pushes go to the CI-only ci-screenshots
+  # branch (main is ruleset-protected); GITHUB_TOKEN pushes trigger no runs.
+  publish-screenshots:
+    name: Screenshots — publish to PR (review aid)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: e2e
+    if: >-
+      ${{ !cancelled() && github.event_name == 'pull_request'
+          && needs.e2e.outputs.screenshots == 'true'
+          && github.event.pull_request.head.repo.full_name == github.repository
+          && github.actor != 'dependabot[bot]' }}
+    permissions:
+      contents: write        # push to the ci-screenshots branch
+      pull-requests: write   # sticky comment
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts
+            tests/E2E/playwright/visual/screens.json
+          sparse-checkout-cone-mode: false
+
+      - name: Download screenshots
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pr-screenshots
+          path: .artifacts/screenshots/ci
+
+      - name: Unit-test publish script
+        id: selftest
+        if: ${{ steps.download.outcome == 'success' }}
+        continue-on-error: true
+        run: node --test .github/scripts/pr-screenshots.test.mjs
+
+      - name: Publish screenshots
+        id: publish
+        if: ${{ steps.selftest.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHOTS_DIR: .artifacts/screenshots/ci
+        run: node .github/scripts/pr-screenshots.mjs publish-pr
+
+      - name: Post sticky comment
+        if: ${{ steps.publish.outcome == 'success' && steps.publish.outputs.skip == 'false' }}
+        continue-on-error: true
+        uses: marocchino/sticky-pull-request-comment@773744901bac0e8cbb5a0dc842800d45e9b2b405 # v2
+        with:
+          header: pr-screenshots
+          path: ${{ steps.publish.outputs.comment_path }}
+          # No changes: only refresh an existing comment, never open a new one.
+          only_update: ${{ steps.publish.outputs.changed_count == '0' }}
 
   # ── Vitest: Full proxy unit test suite ────────────────────────────────────
   # Runs the complete plume-proxy test suite (auth, webhook, tierSync,

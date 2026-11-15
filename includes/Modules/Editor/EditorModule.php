@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Admin\AdminMenu;
 use Plume\Tiers\TierManager;
 
 /**
@@ -55,6 +56,9 @@ class EditorModule {
 				'currentPostId' => isset( $GLOBALS['post'] ) ? (int) $GLOBALS['post']->ID : ( isset( $_GET['post'] ) ? \absint( $_GET['post'] ) : 0 ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only post ID for editor sidebar; no form processing.
 				'isPaid'        => TierManager::is_paid(),
 				'siteTitle'     => \get_bloginfo( 'name' ),
+				// For the out-of-credits notice in the sidebar chat.
+				'websiteUrl'    => PLUME_WEBSITE_URL,
+				'settingsUrl'   => AdminMenu::settings_url(),
 			]
 		);
 

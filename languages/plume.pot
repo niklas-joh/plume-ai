@@ -255,8 +255,6 @@ msgid "Plume Usage"
 msgstr ""
 
 #: includes/Admin/UsageWidget.php:87
-#: assets/admin/index.js:14
-#: assets/usage/index.js:1
 msgid "Plan"
 msgstr ""
 
@@ -462,7 +460,7 @@ msgstr ""
 
 #: includes/Tiers/TierConfig.php:85
 #: includes/Tiers/TierConfig.php:107
-msgid "Pro Managed"
+msgid "Pro"
 msgstr ""
 
 #: includes/Tiers/TierConfig.php:86

@@ -34,14 +34,16 @@ describe( 'UsageWidget', () => {
 	it( 'shows the plan name and never the tier slug', () => {
 		render( {
 			tier: 'pro_managed',
-			tier_label: 'Pro Managed',
+			tier_label: 'Pro',
 			used: 20,
 			limit: 100,
 			remaining: 80,
 			can_use: true,
 		} );
 
-		expect( container.textContent ).toContain( 'Pro Managed' );
+		expect(
+			container.querySelector( '.plume-usage-widget__plan' ).textContent
+		).toBe( 'Pro' );
 		expect( container.textContent ).not.toContain( 'pro_managed' );
 		expect( container.textContent ).not.toContain( 'Tier:' );
 	} );

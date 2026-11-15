@@ -344,6 +344,27 @@ class ManagedCatalogueTest extends TestCase {
 	}
 
 	/**
+	 * An id with no readable words falls through to the neutral name, never the raw id.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	public function test_labelled_models_uses_the_neutral_name_for_an_unreadable_id(): void {
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'get_transient' )->justReturn(
+			[
+				'enabled_providers' => [ 'claude' ],
+				'models'            => [ 'claude' => [ '1234' ] ],
+				'default_models'    => [],
+			]
+		);
+
+		$this->assertSame(
+			[ '1234' => 'AI model' ],
+			ManagedCatalogue::labelled_models( 'claude', 'free', [] )
+		);
+	}
+
+	/**
 	 * @since NEXT_VERSION
 	 */
 	public function test_labelled_models_returns_provider_models_when_worker_gave_no_list(): void {

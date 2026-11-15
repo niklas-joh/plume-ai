@@ -38,9 +38,6 @@ export default function UsageWidget( { usage } ) {
 				</span>
 				{ tierLabel && (
 					<span className="plume-usage-widget__plan">
-						<span className="plume-usage-widget__plan-caption">
-							{ __( 'Plan', 'plume' ) }
-						</span>
 						<span className="plume-usage-widget__tier-badge">
 							{ tierLabel }
 						</span>

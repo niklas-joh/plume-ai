@@ -81,9 +81,7 @@ export default function UsageDashboard() {
 					{ __( 'Usage', 'plume' ) }
 				</h1>
 				{ tierLabel && (
-					<span className="plume-usage__period">
-						<span>{ __( 'Plan', 'plume' ) }</span> { tierLabel }
-					</span>
+					<span className="plume-usage__period">{ tierLabel }</span>
 				) }
 			</div>
 

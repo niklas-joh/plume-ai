@@ -28,7 +28,7 @@ const UPDATED = '2026-01-12T09:30:00';
 
 const USAGE = {
 	tier: 'pro_managed',
-	tier_label: 'Pro Managed',
+	tier_label: 'Pro',
 	used: 1240,
 	limit: 5000,
 	remaining: 3760,

@@ -117,7 +117,7 @@ class DashboardPageTest extends TestCase {
 	public function test_dashboard_usage_carries_a_plan_label_for_admins(): void {
 		$data = $this->render_and_capture_payload( 'pro_managed' );
 		$this->assertSame( 'pro_managed', $data['usage']['tier'] );
-		$this->assertSame( 'Pro Managed', $data['usage']['tier_label'] );
+		$this->assertSame( 'Pro', $data['usage']['tier_label'] );
 
 		$data = $this->render_and_capture_payload( 'free' );
 		$this->assertSame( 'Free plan', $data['usage']['tier_label'] );

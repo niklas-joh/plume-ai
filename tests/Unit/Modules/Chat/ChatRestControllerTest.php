@@ -2962,6 +2962,17 @@ class ChatRestControllerTest extends TestCase {
         $this->assertSame( [ 'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5' ], $listed['claude']['models'] );
     }
 
+    public function test_list_providers_gives_ollama_a_readable_model_name_not_the_raw_tag(): void {
+        $this->stub_catalogue( [ 'claude' ], [ 'claude' => [ 'claude-haiku-4-5-20251001' ] ] );
+
+        $listed = $this->listed_providers( [] );
+
+        $tag = ( new \Plume\Providers\OllamaProvider() )->get_default_model();
+        $this->assertSame( [ $tag ], array_keys( $listed['ollama']['models'] ) );
+        $this->assertSame( \Plume\Providers\ModelLabels::for_id( $tag ), $listed['ollama']['models'][ $tag ] );
+        $this->assertNotSame( $tag, $listed['ollama']['models'][ $tag ] );
+    }
+
     public function test_list_providers_includes_a_provider_with_an_own_key_and_its_own_models(): void {
         $this->stub_catalogue( [ 'claude' ], [ 'claude' => [ 'claude-haiku-4-5-20251001' ] ] );
 

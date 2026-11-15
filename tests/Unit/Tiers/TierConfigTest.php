@@ -37,7 +37,7 @@ class TierConfigTest extends TestCase {
 	 */
 	public function test_known_tiers_have_standalone_plan_names(): void {
 		$this->assertSame( 'Free plan', TierConfig::tier_label( 'free' ) );
-		$this->assertSame( 'Pro Managed', TierConfig::tier_label( 'pro_managed' ) );
+		$this->assertSame( 'Pro', TierConfig::tier_label( 'pro_managed' ) );
 		$this->assertSame( 'Your own API key', TierConfig::tier_label( 'pro_byok' ) );
 	}
 

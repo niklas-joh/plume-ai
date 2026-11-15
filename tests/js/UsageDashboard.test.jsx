@@ -71,7 +71,7 @@ describe( 'UsageDashboard', () => {
 	it( 'shows the plan name, never the tier slug', async () => {
 		apiFetch.mockResolvedValue( {
 			tier: 'pro_managed',
-			tier_label: 'Pro Managed',
+			tier_label: 'Pro',
 			used: 10,
 			limit: 100,
 			remaining: 90,
@@ -82,7 +82,9 @@ describe( 'UsageDashboard', () => {
 			root.render( <UsageDashboard /> );
 		} );
 
-		expect( container.textContent ).toContain( 'Pro Managed' );
+		expect(
+			container.querySelector( '.plume-usage__period' ).textContent
+		).toBe( 'Pro' );
 		expect( container.textContent ).not.toContain( 'pro_managed' );
 		expect( container.textContent ).not.toContain( 'Tier:' );
 	} );

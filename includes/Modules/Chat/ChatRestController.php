@@ -779,11 +779,30 @@ class ChatRestController {
 				// requests go straight to the provider and keep its full list.
 				'models'       => $is_managed
 					? ManagedCatalogue::labelled_models( $slug, $tier, $provider->get_models() )
-					: $provider->get_models(),
+					: $this->humanise_model_labels( $provider->get_models() ),
 				'is_available' => $provider->is_available(),
 			];
 		}
 		return rest_ensure_response( $data );
+	}
+
+	/**
+	 * Replace labels that are just the raw model id with a readable name.
+	 *
+	 * Ollama lists each installed model under its own tag, so the dropdown would
+	 * otherwise show a value such as "llama3.2:latest".
+	 *
+	 * @since NEXT_VERSION
+	 * @param array<string, string> $models Model id => label.
+	 * @return array<string, string>
+	 */
+	private function humanise_model_labels( array $models ): array {
+		foreach ( $models as $id => $label ) {
+			if ( (string) $id === $label ) {
+				$models[ $id ] = ModelLabels::for_id( (string) $id );
+			}
+		}
+		return $models;
 	}
 
 	/**

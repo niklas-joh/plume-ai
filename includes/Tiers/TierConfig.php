@@ -82,7 +82,7 @@ class TierConfig {
 	public static function get_tier_labels(): array {
 		return [
 			'free'        => __( 'Free', 'plume' ),
-			'pro_managed' => __( 'Pro Managed', 'plume' ),
+			'pro_managed' => __( 'Pro', 'plume' ),
 			'pro_byok'    => __( 'Pro BYOK', 'plume' ),
 		];
 	}
@@ -104,7 +104,7 @@ class TierConfig {
 			case 'free':
 				return __( 'Free plan', 'plume' );
 			case 'pro_managed':
-				return __( 'Pro Managed', 'plume' );
+				return __( 'Pro', 'plume' );
 			case 'pro_byok':
 				return __( 'Your own API key', 'plume' );
 			default:

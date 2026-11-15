@@ -8,9 +8,9 @@ import VoiceTab from './VoiceTab';
 import FeaturesTab from './FeaturesTab';
 
 const TABS = [
-	{ name: 'providers', title: 'Providers' },
-	{ name: 'voice', title: 'Voice' },
-	{ name: 'features', title: 'Features' },
+	{ name: 'providers', title: __( 'Providers', 'plume' ) },
+	{ name: 'voice', title: __( 'Voice', 'plume' ) },
+	{ name: 'features', title: __( 'Features', 'plume' ) },
 ];
 
 /**
@@ -77,7 +77,7 @@ export default function SettingsApp() {
 			<div className="plume-settings-header">
 				<div className="plume-settings-title">
 					<Settings size={ 16 } />
-					<span>Plume — Settings</span>
+					<span>{ __( 'Plume — Settings', 'plume' ) }</span>
 				</div>
 
 				{ saveResult && (
@@ -89,8 +89,8 @@ export default function SettingsApp() {
 						onRemove={ () => setSaveResult( null ) }
 					>
 						{ saveResult === 'success'
-							? 'Saved successfully'
-							: 'Save failed — please try again' }
+							? __( 'Saved successfully', 'plume' )
+							: __( 'Save failed — please try again', 'plume' ) }
 					</Notice>
 				) }
 			</div>
@@ -113,7 +113,7 @@ export default function SettingsApp() {
 					if ( settings === null ) {
 						return (
 							<div className="plume-settings-loading">
-								Loading settings…
+								{ __( 'Loading settings…', 'plume' ) }
 							</div>
 						);
 					}
@@ -137,17 +137,21 @@ export default function SettingsApp() {
 					marginTop: 'var(--space-4)',
 				} }
 			>
-				<div className="plume-settings-label">Setup</div>
+				<div className="plume-settings-label">
+					{ __( 'Setup', 'plume' ) }
+				</div>
 				<p className="plume-settings-description">
-					Re-run the onboarding wizard to change your API connection
-					or provider settings.
+					{ __(
+						'Re-run the onboarding wizard to change your API connection or provider settings.',
+						'plume'
+					) }
 				</p>
 				<button
 					type="button"
 					className="plume-btn plume-btn--secondary"
 					onClick={ handleRunSetup }
 				>
-					Run setup again
+					{ __( 'Run setup again', 'plume' ) }
 				</button>
 			</div>
 		</div>

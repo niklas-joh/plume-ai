@@ -19,7 +19,7 @@ const PROVIDER_OPTIONS = [
 	{ value: 'claude', label: 'Claude' },
 	{ value: 'openai', label: 'OpenAI' },
 	{ value: 'gemini', label: 'Gemini' },
-	{ value: 'ollama', label: 'Ollama (local)' },
+	{ value: 'ollama', label: __( 'Ollama (local)', 'plume' ) },
 ];
 
 // Providers that can be served by the Plume service (mirrors ProviderFactory::PROXY_CAPABLE).
@@ -209,7 +209,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 			{ /* Default & image provider selects */ }
 			<section className="plume-settings-section">
 				<h3 className="plume-settings-section-title">
-					Default Providers
+					{ __( 'Default Providers', 'plume' ) }
 				</h3>
 
 				<fieldset>
@@ -265,7 +265,9 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 
 			{ /* API key inputs */ }
 			<section className="plume-settings-section">
-				<h3 className="plume-settings-section-title">API Keys</h3>
+				<h3 className="plume-settings-section-title">
+					{ __( 'API Keys', 'plume' ) }
+				</h3>
 
 				{ API_KEY_PROVIDERS.map( ( { id, label } ) => (
 					<div
@@ -280,7 +282,7 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 								placeholder={
 									apiKeys[ id ]
 										? '••••••••••••'
-										: 'Enter API key…'
+										: __( 'Enter API key…', 'plume' )
 								}
 								onChange={ ( val ) =>
 									handleKeyChange( id, val )
@@ -319,13 +321,13 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 			{ /* Ollama URL */ }
 			<section className="plume-settings-section">
 				<h3 className="plume-settings-section-title">
-					Ollama (Self-hosted)
+					{ __( 'Ollama (Self-hosted)', 'plume' ) }
 				</h3>
 
 				<div className="plume-field-row plume-field-row--key">
 					<div className="plume-field-input-group">
 						<TextControl
-							label="Ollama URL"
+							label={ __( 'Ollama URL', 'plume' ) }
 							type="url"
 							value={ dirty.ollama_url ?? '' }
 							placeholder={
@@ -341,7 +343,9 @@ export default function ProvidersTab( { settings, saveSettings, isSaving } ) {
 							}
 							onClick={ handleSaveUrl }
 						>
-							{ isSaving ? 'Saving…' : 'Save' }
+							{ isSaving
+								? __( 'Saving…', 'plume' )
+								: __( 'Save', 'plume' ) }
 						</Button>
 					</div>
 				</div>

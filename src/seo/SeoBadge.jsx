@@ -1,9 +1,10 @@
+import { __ } from '@wordpress/i18n';
 import Badge from '../shared/Badge';
 
 const STATUS_LABELS = {
-	complete: 'Complete',
-	partial: 'Partial',
-	missing: 'Missing',
+	complete: __( 'Complete', 'plume' ),
+	partial: __( 'Partial', 'plume' ),
+	missing: __( 'Missing', 'plume' ),
 };
 
 /**

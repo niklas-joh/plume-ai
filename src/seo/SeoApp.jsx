@@ -49,10 +49,12 @@ export default function SeoApp() {
 	return (
 		<div className="plume-page">
 			<div className="plume-page-header">
-				<h1>SEO</h1>
+				<h1>{ __( 'SEO', 'plume' ) }</h1>
 				<p>
-					Automatically generate meta titles, OG descriptions,
-					excerpts, and image alt text for every post — in one click.
+					{ __(
+						'Automatically generate meta titles, OG descriptions, excerpts, and image alt text for every post — in one click.',
+						'plume'
+					) }
 				</p>
 			</div>
 			<PostListTable

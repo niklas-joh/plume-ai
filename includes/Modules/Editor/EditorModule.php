@@ -47,6 +47,8 @@ class EditorModule {
 			true
 		);
 
+		wp_set_script_translations( 'plume-editor', 'plume', PLUME_DIR . 'languages' );
+
 		wp_localize_script(
 			'plume-editor',
 			'plumeData',

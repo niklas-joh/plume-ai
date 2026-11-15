@@ -1,5 +1,5 @@
 import { useState, useEffect } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { BarChart2, Zap, Loader2 } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 import { getErrorMessage } from '../../shared/errors';
@@ -78,9 +78,15 @@ export default function UsageDashboard() {
 						size={ 24 }
 						style={ { color: 'var(--wp-admin-theme-color)' } }
 					/>{ ' ' }
-					Usage
+					{ __( 'Usage', 'plume' ) }
 				</h1>
-				<span className="plume-usage__period">Tier: { tier }</span>
+				<span className="plume-usage__period">
+					{ sprintf(
+						/* translators: %s: the user's current subscription tier slug. */
+						__( 'Tier: %s', 'plume' ),
+						tier
+					) }
+				</span>
 			</div>
 
 			<div className="plume-usage__stats">
@@ -95,7 +101,9 @@ export default function UsageDashboard() {
 					<div className="plume-usage__stat-value">
 						{ hasLimit ? usedPctRounded + '%' : '∞' }
 					</div>
-					<div className="plume-usage__stat-label">of quota used</div>
+					<div className="plume-usage__stat-label">
+						{ __( 'of quota used', 'plume' ) }
+					</div>
 				</div>
 				<div className="plume-usage__stat-card">
 					<BarChart2
@@ -108,7 +116,9 @@ export default function UsageDashboard() {
 					<div className="plume-usage__stat-value">
 						{ hasLimit ? 100 - usedPctRounded + '%' : '∞' }
 					</div>
-					<div className="plume-usage__stat-label">remaining</div>
+					<div className="plume-usage__stat-label">
+						{ __( 'remaining', 'plume' ) }
+					</div>
 				</div>
 				<div className="plume-usage__stat-card">
 					<BarChart2
@@ -152,8 +162,10 @@ export default function UsageDashboard() {
 					</div>
 					{ ! canUse && (
 						<p style={ { color: '#d63638', margin: 0 } }>
-							Monthly limit reached. Upgrade your plan to
-							continue.
+							{ __(
+								'Monthly limit reached. Upgrade your plan to continue.',
+								'plume'
+							) }
 						</p>
 					) }
 				</div>

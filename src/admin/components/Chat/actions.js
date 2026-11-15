@@ -15,48 +15,61 @@
  * by the Worker, not a tier-based action split, so there is no longer a
  * Free/Pro distinction here.
  */
+import { __ } from '@wordpress/i18n';
 import { FilePenLine, Search, Image } from 'lucide-react';
 
 export const QUICK_ACTIONS = [
 	{
 		id: 'summarise',
-		label: 'Summarise this post',
-		prompt: 'Please summarise the current post in 2-3 sentences.',
+		label: __( 'Summarise this post', 'plume' ),
+		prompt: __(
+			'Please summarise the current post in 2–3 sentences.',
+			'plume'
+		),
 		icon: FilePenLine,
 		requiresPost: true,
 	},
 	{
 		id: 'readability',
-		label: 'Improve readability',
-		prompt: 'Review this content and suggest readability improvements.',
+		label: __( 'Improve readability', 'plume' ),
+		prompt: __(
+			'Review this content and suggest readability improvements.',
+			'plume'
+		),
 		icon: FilePenLine,
 		requiresPost: true,
 	},
 	{
 		id: 'write-post',
-		label: 'Write a post',
-		prompt: 'Help me write a new blog post. What topic should we start with?',
+		label: __( 'Write a post', 'plume' ),
+		prompt: __(
+			'Help me write a new blog post. What topic should we start with?',
+			'plume'
+		),
 		icon: FilePenLine,
 		requiresPost: false,
 	},
 	{
 		id: 'seo-title',
-		label: 'Generate SEO title',
-		prompt: 'Generate an optimised SEO title for this post.',
+		label: __( 'Generate SEO title', 'plume' ),
+		prompt: __( 'Generate an optimised SEO title for this post.', 'plume' ),
 		icon: Search,
 		requiresPost: true,
 	},
 	{
 		id: 'meta-description',
-		label: 'Write meta description',
-		prompt: 'Write a compelling 155-character meta description for this post.',
+		label: __( 'Write meta description', 'plume' ),
+		prompt: __(
+			'Write a compelling 155-character meta description for this post.',
+			'plume'
+		),
 		icon: Search,
 		requiresPost: true,
 	},
 	{
 		id: 'featured-image',
-		label: 'Create featured image',
-		prompt: 'Generate a featured image for this post.',
+		label: __( 'Create featured image', 'plume' ),
+		prompt: __( 'Generate a featured image for this post.', 'plume' ),
 		icon: Image,
 		requiresPost: true,
 	},

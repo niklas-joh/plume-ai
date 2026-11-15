@@ -56,6 +56,8 @@ class GeneratorPage {
 			true
 		);
 
+		\wp_set_script_translations( 'plume-generator', 'plume', PLUME_DIR . 'languages' );
+
 		\wp_localize_script(
 			'plume-generator',
 			'plumeData',

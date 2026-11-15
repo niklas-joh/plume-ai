@@ -1,4 +1,5 @@
 import { Button } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import { QUICK_ACTIONS } from '../Chat/actions';
 
 /**
@@ -30,7 +31,9 @@ export default function QuickActions( {
 
 	return (
 		<div className="plume-panel-section">
-			<div className="plume-panel-label">Quick actions</div>
+			<div className="plume-panel-label">
+				{ __( 'Quick actions', 'plume' ) }
+			</div>
 			<div className="plume-quick-actions">
 				{ QUICK_ACTIONS.map( ( action ) => (
 					<Button

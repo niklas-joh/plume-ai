@@ -19,8 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class VoiceInjector {
 
-	private const SITE_OPTION = 'plume_site_voice';
-	private const USER_META   = 'plume_voice';
+	private const USER_META = 'plume_voice';
 
 	/**
 	 * Standing instruction against inserting unrequested hyperlinks.
@@ -80,8 +79,7 @@ class VoiceInjector {
 	 * @return array<string, string>
 	 */
 	private function get_merged_voice( int $user_id ): array {
-		$site = get_option( self::SITE_OPTION, [] );
-		$site = is_array( $site ) ? $site : [];
+		$site = SiteVoice::get();
 
 		if ( $user_id > 0 ) {
 			$user_raw = get_user_meta( $user_id, self::USER_META, true );

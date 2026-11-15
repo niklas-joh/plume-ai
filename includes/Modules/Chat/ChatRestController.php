@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 use Plume\Core\RestApi;
 use Plume\DB\ConversationStore;
 use Plume\Providers\ManagedCatalogue;
+use Plume\Providers\ModelLabels;
 use Plume\Providers\ProviderFactory;
 use Plume\Providers\CompletionRequest;
 use Plume\Providers\CompletionResponse;
@@ -263,7 +264,19 @@ class ChatRestController {
 			return new \WP_REST_Response( [ 'message' => __( 'Forbidden.', 'plume' ) ], 403 );
 		}
 
-		return rest_ensure_response( $store->get_messages( $conv_id ) );
+		$messages = array_map(
+			static function ( $message ) {
+				// Reply rows carry the provider's own model id (possibly a dated snapshot);
+				// add a readable name beside it. Kept after the ownership check above.
+				if ( is_array( $message ) && isset( $message['model'] ) ) {
+					$message['model_label'] = ModelLabels::for_id( (string) $message['model'] );
+				}
+				return $message;
+			},
+			$store->get_messages( $conv_id )
+		);
+
+		return rest_ensure_response( $messages );
 	}
 
 	/**
@@ -646,6 +659,7 @@ class ChatRestController {
 				[
 					'content'           => $final_response->content,
 					'model'             => $final_response->model,
+					'model_label'       => ModelLabels::for_id( (string) $final_response->model ),
 					'credits'           => $credits_accumulated,
 					'prompt_tokens'     => $prompt_tokens_total,
 					'completion_tokens' => $completion_tokens_total,

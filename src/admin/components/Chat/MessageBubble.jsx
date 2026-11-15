@@ -30,7 +30,7 @@ const TOOL_LABELS = {
  * @param {Object}  props.message              Message object from the conversation history.
  * @param {string}   props.message.role           Either 'user' or 'assistant'.
  * @param {string}   props.message.content        Message text (Markdown for AI, plain text for user).
- * @param {string}   [props.message.model]        Model slug displayed in the meta line for AI messages.
+ * @param {string}   [props.message.model_label]  Human model name displayed in the meta line for AI messages. The raw model id is never shown.
  * @param {number}   [props.message.credits] Credit cost displayed in the meta line for AI messages.
  * @param {boolean}  [props.message.isError]      When true, applies the error modifier class.
  * @param {boolean}  [props.message.outOfCredits] When true, renders the out-of-credits notice instead of the error text.
@@ -194,10 +194,10 @@ export default function MessageBubble( {
 					</button>
 				</div>
 			) }
-			{ isAI && message.model && (
+			{ isAI && message.model_label && (
 				<div className="plume-bubble__meta">
 					<Cpu size={ 10 } strokeWidth={ 1.5 } />
-					<span>{ message.model }</span>
+					<span>{ message.model_label }</span>
 					{ message.credits > 0 && (
 						<span>
 							{ message.credits } { __( 'credits', 'plume' ) }

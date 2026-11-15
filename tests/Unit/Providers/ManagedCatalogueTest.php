@@ -27,6 +27,7 @@ class ManagedCatalogueTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		\Plume\Tiers\WorkerConfig::reset_memo();
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => $v );
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
 	}
 
@@ -336,7 +337,7 @@ class ManagedCatalogueTest extends TestCase {
 			[
 				'claude-haiku-4-5-20251001' => 'Provider Haiku',   // Provider list wins.
 				'claude-sonnet-4-6'         => 'Claude Sonnet 4.6', // Then ManagedDefaults label.
-				'claude-unknown-9'          => 'claude-unknown-9',  // Then the raw id.
+				'claude-unknown-9'          => 'Claude Unknown 9',  // Then a readable name, never the raw id.
 			],
 			$labelled
 		);

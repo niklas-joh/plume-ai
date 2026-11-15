@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Tiers\TierConfig;
 use Plume\Tiers\TierManager;
 use Plume\Tiers\UsageTracker;
 
@@ -112,7 +113,8 @@ class UsageModule {
 
 		return new \WP_REST_Response(
 			[
-				'tier'      => $usage['tier'],
+				'tier'       => $usage['tier'],
+				'tier_label' => TierConfig::tier_label( (string) $usage['tier'] ),
 				'used'      => $usage['used'],
 				'limit'     => $usage['limit'],
 				'remaining' => $usage['remaining'],

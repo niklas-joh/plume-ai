@@ -62,6 +62,8 @@ class ChatPageTest extends TestCase {
 				'current_user_can'   => true,
 			]
 		);
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $value ) => $value );
+		Functions\when( '__' )->returnArg();
 		// ManagedDefaults::model_id() checks its live-defaults transient first; a miss plus
 		// no site token (get_option returns '') means constants are used and nothing is fetched.
 		Functions\when( 'get_transient' )->justReturn( false );
@@ -171,7 +173,29 @@ class ChatPageTest extends TestCase {
 		ChatPage::render();
 		ob_end_clean();
 
-		$this->assertSame( 'llama3.2', $this->localised['defaultModelLabel'] );
+		$this->assertSame( 'Llama3.2', $this->localised['defaultModelLabel'] );
+	}
+
+	/**
+	 * @since NEXT_VERSION
+	 */
+	public function test_unknown_managed_model_id_is_never_shown_raw(): void {
+		Functions\when( 'get_transient' )->justReturn(
+			[
+				'enabled_providers' => [ 'claude' ],
+				'models'            => [],
+				'default_models'    => [ 'claude' => 'claude-sonnet-4-5' ],
+			]
+		);
+		$this->assertSame( 'Claude Sonnet 4.5', $this->label_for( 'free' ) );
+	}
+
+	/**
+	 * @since NEXT_VERSION
+	 */
+	public function test_generic_fallback_is_translated(): void {
+		Functions\when( '__' )->alias( static fn( string $text ): string => 'translated:' . $text );
+		$this->assertSame( 'translated:AI', $this->label_for( 'free', 'not-a-provider' ) );
 	}
 
 	/**

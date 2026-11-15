@@ -155,7 +155,7 @@ final class ManagedCatalogue {
 	 * Build the id => label map of managed models for a provider.
 	 *
 	 * Label precedence: the provider's own label, then ManagedDefaults::label(), then
-	 * the raw id (the Worker sends no display names).
+	 * a readable name from ModelLabels (the Worker sends no display names).
 	 *
 	 * @since 2.1.0
 	 * @param string                $provider        Provider slug.
@@ -172,7 +172,7 @@ final class ManagedCatalogue {
 
 		$labelled = [];
 		foreach ( $ids as $id ) {
-			$labelled[ $id ] = $provider_models[ $id ] ?? ManagedDefaults::label( $id ) ?? $id;
+			$labelled[ $id ] = $provider_models[ $id ] ?? ManagedDefaults::label( $id ) ?? ModelLabels::for_id( $id );
 		}
 		return $labelled;
 	}

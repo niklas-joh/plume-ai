@@ -35,6 +35,7 @@ class DashboardPageTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( '__' )->returnArg();
 	}
 
 	protected function tearDown(): void {
@@ -108,6 +109,26 @@ class DashboardPageTest extends TestCase {
 		$data = $this->render_and_capture_payload( 'free' );
 		$this->assertArrayHasKey( 'isPaid', $data );
 		$this->assertFalse( $data['isPaid'] );
+	}
+
+	/**
+	 * @since NEXT_VERSION
+	 */
+	public function test_dashboard_usage_carries_a_plan_label_for_admins(): void {
+		$data = $this->render_and_capture_payload( 'pro_managed' );
+		$this->assertSame( 'pro_managed', $data['usage']['tier'] );
+		$this->assertSame( 'Pro Managed', $data['usage']['tier_label'] );
+
+		$data = $this->render_and_capture_payload( 'free' );
+		$this->assertSame( 'Free plan', $data['usage']['tier_label'] );
+	}
+
+	/**
+	 * @since NEXT_VERSION
+	 */
+	public function test_dashboard_usage_stays_null_for_non_admins(): void {
+		$data = $this->render_and_capture_payload( 'free', false );
+		$this->assertNull( $data['usage'] );
 	}
 
 	public function test_dashboard_data_is_paid_true_for_pro_managed(): void {

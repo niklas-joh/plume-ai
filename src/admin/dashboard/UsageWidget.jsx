@@ -3,13 +3,15 @@ import { __, sprintf } from '@wordpress/i18n';
 /**
  * Compact usage widget embedded in the main Dashboard page.
  *
- * Displays a tier badge, a percentage-based quota indicator, and a progress
+ * Displays a plan badge, a percentage-based quota indicator, and a progress
  * bar. Visible only when the `usage` prop is truthy (i.e. the current user
  * has the `manage_options` capability, as gated by PHP before localisation).
  *
  * @param {Object}       props
  * @param {Object|null}  props.usage  Usage summary from `NJ_Usage_Tracker::get_usage()`:
- *                                    `{ tier, used, limit, remaining, can_use }`.
+ *                                    `{ tier, tier_label, used, limit, remaining, can_use }`.
+ *                                    Only `tier_label` (the plan's display name) is shown;
+ *                                    the `tier` slug is never rendered.
  *                                    When null or falsy the component renders nothing.
  * @return {ReactElement|null}
  *
@@ -21,7 +23,7 @@ export default function UsageWidget( { usage } ) {
 		return null;
 	}
 
-	const { tier, used, limit, can_use: canUse } = usage;
+	const { tier_label: tierLabel, used, limit, can_use: canUse } = usage;
 
 	const hasLimit = limit !== null && limit !== undefined;
 	const usedPct = hasLimit
@@ -34,12 +36,16 @@ export default function UsageWidget( { usage } ) {
 				<span className="plume-dash-section-title">
 					{ __( 'Usage', 'plume' ) }
 				</span>
-				<span className="plume-usage-widget__tier-badge">
-					{
-						/* translators: %s: the user's current subscription tier slug. */
-						sprintf( __( 'Tier: %s', 'plume' ), tier )
-					}
-				</span>
+				{ tierLabel && (
+					<span className="plume-usage-widget__plan">
+						<span className="plume-usage-widget__plan-caption">
+							{ __( 'Plan', 'plume' ) }
+						</span>
+						<span className="plume-usage-widget__tier-badge">
+							{ tierLabel }
+						</span>
+					</span>
+				) }
 			</div>
 
 			<div className="plume-usage-widget__value-row">

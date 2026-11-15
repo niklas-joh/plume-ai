@@ -792,8 +792,17 @@
 	background: var(--color-border-subtle);
 	color: var(--color-text-muted);
 	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
+}
+
+.plume-usage-widget__plan {
+	display: inline-flex;
+	align-items: baseline;
+	gap: var(--space-2);
+}
+
+.plume-usage-widget__plan-caption {
+	font-size: var(--text-xs);
+	color: var(--color-text-muted);
 }
 
 .plume-usage-widget__value-row {

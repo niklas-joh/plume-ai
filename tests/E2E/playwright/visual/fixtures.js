@@ -28,6 +28,7 @@ const UPDATED = '2026-01-12T09:30:00';
 
 const USAGE = {
 	tier: 'pro_managed',
+	tier_label: 'Pro Managed',
 	used: 1240,
 	limit: 5000,
 	remaining: 3760,
@@ -107,6 +108,7 @@ const REPLY = {
 		'```',
 	].join( '\n' ),
 	model: 'claude-sonnet-4-5',
+	model_label: 'Claude Sonnet 4.5',
 	tokens: 120,
 	credits: 2,
 };

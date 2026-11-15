@@ -163,8 +163,10 @@ jobs:
             If you cannot fix it (it needs an external value such as an API key, secret,
             account ID or business decision, or it turns out to be too large): post a comment
             on the issue whose FIRST line is the reason in one sentence, and leave the issue
-            OPEN. Do NOT close it. Optionally also append one line `<number><TAB><reason>` to
-            `/tmp/autofix-unfixed.tsv`. Then move to the next issue without committing. Do NOT
+            OPEN. Do NOT close it. Optionally also record one line `<number><TAB><reason>` (a
+            literal TAB character between the number and the text) in `/tmp/autofix-unfixed.tsv`:
+            if the file exists, Read it first, then Write the whole file with all previous
+            lines plus the new one; for a new file just Write it. Then move to the next issue without committing. Do NOT
             stop — always process every issue in the list.
 
             **B — Run linting (PHP files only)**
@@ -193,9 +195,10 @@ jobs:
             Never close an issue you did not fix.
 
             Then record the same short summary, in your own words, for the PR status
-            comment: one line `<N><TAB><summary>` in `/tmp/autofix-summary.tsv`. You only
-            have the Write tool for this (no `echo >>`), so REWRITE THE WHOLE FILE with
-            every line recorded so far plus the new one. Plain text, no backticks, one line
+            comment: one line `<N><TAB><summary>` (a literal TAB character between the number
+            and the text) in `/tmp/autofix-summary.tsv`. You cannot append (no `echo >>`): if
+            the file exists, Read it first, then Write the whole file with all previous lines
+            plus the new one; for a new file just Write it. Plain text, no backticks, one line
             per issue. The workflow shows it as written and uses it for display only.
 
             **F — Move to the next issue**
@@ -228,8 +231,8 @@ jobs:
         # re-run does not re-queue them forever (not after a failed session, so a
         # re-run can retry). Per-issue summaries come from /tmp/autofix-summary.tsv,
         # else the commit subject, else the issue title; they never decide Fixed.
-        # It also adds `Closes #N` to the PR body, only for
-        # issues whose fix is pushed. Never fails the job.
+        # It also adds `Closes #N` to the PR body, only for issues whose fix is
+        # pushed. Never fails the job.
         if: always() && steps.payload.outcome == 'success'
         continue-on-error: true
         env:

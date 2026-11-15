@@ -283,7 +283,7 @@ export function validatePayload( p ) {
 }
 
 /**
- * Parses `number<TAB>text` lines. A later line for the same number wins.
+ * Parses `number<TAB>text` lines, also tolerating `N: text`, `#N - text` and `N text`. A later line for the same number wins.
  *
  * @param {string}   text     File contents.
  * @param {Function} sanitise Sanitiser; an empty result skips the line.
@@ -292,7 +292,7 @@ export function validatePayload( p ) {
 function parseTsv( text, sanitise ) {
 	const out = {};
 	for ( const line of String( text ?? '' ).split( /\r?\n/ ) ) {
-		const m = /^\s*#?([0-9]+)\t(.+)$/.exec( line );
+		const m = /^\s*#?([0-9]+)\s*(?:\t|[:\-–—]\s*|\s+)(.+)$/.exec( line );
 		const value = m ? sanitise( m[ 2 ] ) : '';
 		if ( value ) {
 			out[ Number( m[ 1 ] ) ] = value;

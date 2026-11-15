@@ -876,3 +876,23 @@ test( 'a reason or summary cannot carry a marker into the comment', () => {
 	assert.equal( md.split( STATUS_MARKER ).length, 2 );
 	assert.equal( md.includes( OLD_QUEUE ), false );
 } );
+
+test( 'tsv parsing tolerates TAB, colon, dash and space separators; junk ignored', () => {
+	const text = [
+		'11\ttab text',
+		'12: colon text',
+		'#13 - dash text',
+		'14 space text',
+		'junk without a number',
+		'',
+	].join( '\n' );
+	const expected = {
+		11: 'tab text',
+		12: 'colon text',
+		13: 'dash text',
+		14: 'space text',
+	};
+	assert.deepEqual( parseSummaryTsv( text ), expected );
+	assert.deepEqual( parseUnfixedTsv( text ), expected );
+	assert.deepEqual( parseSummaryTsv( '12: a\n12 - b' ), { 12: 'b' } );
+} );

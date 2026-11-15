@@ -125,6 +125,16 @@ class ProxyClient {
 			return new WP_Error( 'auth_failed', __( 'Reconnecting this site to Plume AI - Write and Design. Please try sending your message again in a moment.', 'plume' ) );
 		}
 
+		// The Worker reports upstream provider failures (retired model, depleted provider
+		// credit, overload) with a neutral code. The 500 + 'Internal proxy error' pair is what
+		// Workers deployed before that code existed return, so both are treated the same.
+		if (
+			( 503 === $code && 'provider_unavailable' === ( $body['code'] ?? '' ) )
+			|| ( 500 === $code && 'Internal proxy error' === ( $body['error'] ?? '' ) )
+		) {
+			return new WP_Error( 'provider_unavailable', __( 'This AI model is temporarily unavailable. Please try again later or choose another model.', 'plume' ) );
+		}
+
 		if ( $code < 200 || $code >= 300 ) {
 			// translators: %d is the HTTP status code returned by the service.
 			return new WP_Error( 'service_error', $body['error'] ?? sprintf( __( 'Plume AI - Write and Design returned HTTP %d', 'plume' ), $code ) );

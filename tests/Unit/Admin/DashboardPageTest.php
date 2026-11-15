@@ -83,7 +83,7 @@ class DashboardPageTest extends TestCase {
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );
 		$this->translations = [];
 		Functions\when( 'wp_set_script_translations' )->alias(
-			function ( $handle, $domain, $path ) {
+			function ( string $handle, string $domain, string $path ): bool {
 				$this->translations[] = [ $handle, $domain, $path ];
 				return true;
 			}

@@ -70,6 +70,8 @@ class DashboardPage {
 			true
 		);
 
+		wp_set_script_translations( 'plume-admin', 'plume', PLUME_DIR . 'languages' );
+
 		wp_enqueue_style(
 			'plume-admin',
 			PLUME_URL . 'assets/admin/index.css',

@@ -38,6 +38,9 @@ class ChatPageTest extends TestCase {
 	/** @var array<string, mixed> Captured plumeData payload. */
 	private array $localised = [];
 
+	/** @var array<int, array<int, string>> Captured wp_set_script_translations() calls. */
+	private array $translations = [];
+
 	/** @var string|false Original CLAUDE_API_KEY environment value. */
 	private string|false $original_env;
 
@@ -67,6 +70,12 @@ class ChatPageTest extends TestCase {
 		Functions\when( 'wp_localize_script' )->alias(
 			function ( string $handle, string $name, array $data ): void {
 				$this->localised = $data;
+			}
+		);
+		Functions\when( 'wp_set_script_translations' )->alias(
+			function ( string $handle, string $domain, string $path ): bool {
+				$this->translations[] = [ $handle, $domain, $path ];
+				return true;
 			}
 		);
 		// AdminMenu::settings_url() builds the Settings link localised for the credits notice.
@@ -193,5 +202,15 @@ class ChatPageTest extends TestCase {
 		putenv( 'CLAUDE_API_KEY=sk-test' );
 		$this->assertSame( 'GPT-4.1 nano', $this->label_for( 'free', 'openai' ) );
 		$this->assertSame( 'openai', $this->localised['defaultProvider'] );
+	}
+
+	/**
+	 * The Chat screen's script must load the plugin's JSON translations.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	public function test_render_loads_script_translations(): void {
+		$this->label_for( 'free' );
+		$this->assertContains( [ 'plume-admin', 'plume', PLUME_DIR . 'languages' ], $this->translations );
 	}
 }

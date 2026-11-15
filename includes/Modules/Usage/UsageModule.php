@@ -60,6 +60,8 @@ class UsageModule {
 			true
 		);
 
+		\wp_set_script_translations( 'plume-usage', 'plume', PLUME_DIR . 'languages' );
+
 		\wp_localize_script(
 			'plume-usage',
 			'plumeData',

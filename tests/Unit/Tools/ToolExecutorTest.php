@@ -300,6 +300,7 @@ class ToolExecutorTest extends TestCase {
 		$post->ID           = 5;
 		$post->post_title   = 'Great Post';
 		$post->post_content = 'The post body content here.';
+		$post->post_excerpt = '';
 
 		Functions\when( 'get_post' )->justReturn( $post );
 		Functions\when( 'user_can' )->justReturn( true );
@@ -330,6 +331,7 @@ class ToolExecutorTest extends TestCase {
 		$post->ID           = 5;
 		$post->post_title   = 'Great Post';
 		$post->post_content = 'The post body content here.';
+		$post->post_excerpt = '';
 
 		Functions\when( 'get_post' )->justReturn( $post );
 		Functions\when( 'user_can' )->justReturn( true );

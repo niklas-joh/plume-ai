@@ -95,7 +95,7 @@ export default function GeneratorWizard() {
 						} }
 					>
 						{ __(
-							'Generating your post — this may take a moment…',
+							'Generating your post — a long draft can take up to two minutes…',
 							'plume'
 						) }
 					</p>

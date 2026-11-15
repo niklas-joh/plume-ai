@@ -25,6 +25,15 @@ const NEW_CONVERSATION_TITLE = __( 'New conversation', 'plume' );
 const REGISTRATION_RETRY_CODES = new Set( [ 'not_registered', 'auth_failed' ] );
 const REGISTRATION_RETRY_DELAY_MS = 3000;
 
+// Failures that sending the same message again cannot fix, so no "Try again"
+// is offered: out of credits, and a provider the site has no key for.
+// Out-of-credits replies already show the credits notice instead of an error
+// bubble; the code is listed too so a Retry can never appear for it.
+const NOT_RETRYABLE_CODES = new Set( [
+	'rate_limit_exceeded',
+	'provider_key_missing',
+] );
+
 const LAUNCH_SUGGESTIONS = [
 	{
 		...LAUNCH_ACTIONS[ 0 ],
@@ -62,6 +71,9 @@ export default function ChatApp() {
 	const [ deletingIds, setDeletingIds ] = useState( new Set() );
 	const [ deleteErrors, setDeleteErrors ] = useState( {} );
 	const [ drawerPlan, setDrawerPlan ] = useState( null );
+	// A pending "New post" plan restored from the server after a reload; update
+	// plans go to the review drawer instead.
+	const [ restoredPlan, setRestoredPlan ] = useState( null );
 	const [ modelJustSaved, setModelJustSaved ] = useState( false );
 	const savedFlashTimeoutRef = useRef( null );
 	const skipLoadRef = useRef( false );
@@ -111,6 +123,7 @@ export default function ChatApp() {
 		let cancelled = false;
 		if ( ! activeConvId ) {
 			setDrawerPlan( null );
+			setRestoredPlan( null );
 		} else {
 			apiFetch( {
 				path: `/plume/v1/conversations/${ activeConvId }/pending-plan`,
@@ -120,11 +133,14 @@ export default function ChatApp() {
 						return;
 					}
 					const plan = res?.pending_plan ?? null;
-					setDrawerPlan( plan?.plan_type === 'update' ? plan : null );
+					const isUpdate = plan?.plan_type === 'update';
+					setDrawerPlan( isUpdate ? plan : null );
+					setRestoredPlan( plan && ! isUpdate ? plan : null );
 				} )
 				.catch( () => {
 					if ( ! cancelled ) {
 						setDrawerPlan( null );
+						setRestoredPlan( null );
 					}
 				} );
 		}
@@ -295,6 +311,26 @@ export default function ChatApp() {
 		}
 	}
 
+	/**
+	 * Sends a failed message again.
+	 *
+	 * The server removes the stored question when a turn fails, so the failed
+	 * pair is taken off the screen and the message is simply sent again.
+	 *
+	 * @param {Object} failed Error message carrying `retry: { content, contextPostId }`.
+	 */
+	function retryMessage( failed ) {
+		setMessages( ( prev ) => {
+			const at = prev.indexOf( failed );
+			if ( at < 0 ) {
+				return prev;
+			}
+			const start = prev[ at - 1 ]?.role === 'user' ? at - 1 : at;
+			return [ ...prev.slice( 0, start ), ...prev.slice( at + 1 ) ];
+		} );
+		sendMessage( failed.retry.content, failed.retry.contextPostId );
+	}
+
 	async function sendMessage( content, contextPostId = null ) {
 		// Resolve conversation ID — create one if none active.
 		let convId = activeConvId;
@@ -326,9 +362,16 @@ export default function ChatApp() {
 
 		setMessages( ( prev ) => [ ...prev, { role: 'user', content } ] );
 		setIsLoading( true );
+		// Resolved now so a retry uses the post that was attached when the
+		// message was first sent, even if the attachment changed since.
+		const resolvedContextPostId = contextPostId ?? attachedPost?.id ?? null;
 
 		try {
-			const res = await sendChatMessage( convId, content, contextPostId );
+			const res = await sendChatMessage(
+				convId,
+				content,
+				resolvedContextPostId
+			);
 			// Filter out internal plumbing tools from the passive indicator.
 			const passiveTools = ( res.tools_called ?? [] ).filter(
 				( t ) =>
@@ -390,6 +433,9 @@ export default function ChatApp() {
 					// Rendered as the credits notice (with the ways forward)
 					// instead of a bare red error line.
 					outOfCredits: isOutOfCreditsError( err ),
+					retry: NOT_RETRYABLE_CODES.has( err?.code )
+						? null
+						: { content, contextPostId: resolvedContextPostId },
 				},
 			] );
 		} finally {
@@ -529,8 +575,19 @@ export default function ChatApp() {
 				) : (
 					<>
 						<MessageList
-							messages={ messages }
+							messages={ withRestoredPlan(
+								messages,
+								restoredPlan
+							) }
 							isLoading={ isLoading }
+							onRetry={ retryMessage }
+							// Forget a restored plan once dismissed, or it would
+							// re-attach to the next reply.
+							onPlanDismiss={ ( planId ) =>
+								setRestoredPlan( ( current ) =>
+									current?.id === planId ? null : current
+								)
+							}
 						/>
 						<Composer
 							onSend={ sendMessage }
@@ -584,6 +641,32 @@ export default function ChatApp() {
 			) }
 		</div>
 	);
+}
+
+/**
+ * Attach a restored pending plan to the conversation's latest reply.
+ *
+ * Messages loaded from the server carry no plan, so after a reload the
+ * "New post" card would vanish although the plan is still waiting for
+ * approval. It is shown under the latest assistant message, unless a message
+ * already carries it (the plan arrived in this page session).
+ *
+ * @param {Array}       messages Conversation messages.
+ * @param {Object|null} plan     Pending plan restored from the server.
+ * @return {Array} The messages, with the plan attached where needed.
+ */
+function withRestoredPlan( messages, plan ) {
+	if ( ! plan || messages.some( ( m ) => m.pending_plan?.id === plan.id ) ) {
+		return messages;
+	}
+	for ( let i = messages.length - 1; i >= 0; i-- ) {
+		if ( messages[ i ].role === 'assistant' && ! messages[ i ].isError ) {
+			const next = [ ...messages ];
+			next[ i ] = { ...messages[ i ], pending_plan: plan };
+			return next;
+		}
+	}
+	return messages;
 }
 
 /**

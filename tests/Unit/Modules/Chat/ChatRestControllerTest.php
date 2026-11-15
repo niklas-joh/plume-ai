@@ -659,6 +659,50 @@ class ChatRestControllerTest extends TestCase {
         $this->assertGreaterThanOrEqual( 0, (int) $headers['Retry-After'], 'Retry-After must be a non-negative number of seconds.' );
     }
 
+    /**
+     * A failed turn removes the user message it stored, so a retry does not
+     * duplicate it and a reload does not show a question with no answer.
+     *
+     * @since NEXT_VERSION
+     */
+    public function test_send_message_removes_the_stored_user_message_when_the_provider_fails(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [] );
+        $store_mock->method( 'add_message' )->willReturn( 77 );
+        $store_mock->expects( $this->once() )->method( 'delete_message' )->with( 10, 77 );
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+
+        $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( false );
+        $provider_mock->method( 'complete' )->willThrowException(
+            new \Plume\Providers\ProviderException( 'Upstream unavailable', 'claude', 503 )
+        );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $controller = $this->make_controller( $store_mock, $factory_mock, $voice_mock );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '10' ] );
+        $request->set_body_params( [ 'content' => 'Hi', 'provider' => 'claude', 'model' => '' ] );
+
+        $response = $controller->send_message( $request );
+
+        $this->assertSame( 503, $response->get_status() );
+    }
+
     public function test_send_message_maps_provider_403_to_502(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );

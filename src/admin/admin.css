@@ -225,6 +225,28 @@
 	border-top-left-radius: var(--radius-sm);
 }
 
+/* Waiting indicator: spinner bubble with the stage text beside it. The row is
+   always mounted so its status region exists before it is needed; when idle it
+   takes no space but stays in the accessibility tree. */
+.plume-waiting {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+}
+
+.plume-waiting.is-idle {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+}
+
+.plume-waiting__text {
+	color: var(--color-text-muted);
+	font-size: var(--text-sm);
+}
+
 .plume-bubble--error .plume-bubble__content {
 	background: #fde8e8;
 	background: color-mix(in srgb, #cc1818 8%, #fff);
@@ -1027,6 +1049,26 @@
 .plume-btn--sm {
 	font-size: var(--text-xs);
 	padding: 3px var(--space-2);
+}
+
+/* Copy / Try again under a bubble: quiet until hovered so they do not compete
+   with the reply itself. */
+.plume-bubble__actions {
+	display: flex;
+	gap: var(--space-1);
+	padding: var(--space-1) var(--space-2) 0;
+}
+
+.plume-bubble__actions .plume-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+	color: var(--color-text-muted);
+}
+
+.plume-bubble__actions .plume-btn:hover,
+.plume-bubble__actions .plume-btn:focus-visible {
+	color: var(--color-text-primary);
 }
 
 /* ── Shared input ── */

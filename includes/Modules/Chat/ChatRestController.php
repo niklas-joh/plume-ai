@@ -330,6 +330,8 @@ class ChatRestController {
 	 *                      key for some provider but none for the requested one, which the managed
 	 *                      service does not serve; otherwise a disabled managed provider is
 	 *                      resolved to Claude at runtime (see ProviderFactory::resolve_text_slug()).
+	 * @since NEXT_VERSION Removes the stored user message again when the provider fails, so a
+	 *                      failed turn leaves no unanswered message behind.
 	 * @param \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response 201 on success; 403 if the conversation is not owned by the caller;
 	 *                           422 with code 'provider_key_missing' when the requested provider has no
@@ -444,8 +446,8 @@ class ChatRestController {
 			);
 		}
 
-		$store->add_message( $conv_id, 'user', $content );
-		$history = $store->get_messages( $conv_id );
+		$user_message_id = $store->add_message( $conv_id, 'user', $content );
+		$history         = $store->get_messages( $conv_id );
 
 		$messages = array_map(
 			fn( $m ) => [
@@ -652,6 +654,11 @@ class ChatRestController {
 				]
 			);
 		} catch ( ProviderException $e ) {
+			// The turn produced no answer, so drop the question it stored: the client
+			// offers Retry, which would otherwise store it twice, and a reload would
+			// show a question with no reply.
+			$store->delete_message( $conv_id, $user_message_id );
+
 			$provider_status = $e->get_http_status();
 			// Never forward a provider 401/403 as-is — it would look like a WP auth failure to the client.
 			// Map those (and anything outside 4xx/5xx) to 502.

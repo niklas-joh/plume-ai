@@ -1,4 +1,5 @@
-import { useState, useEffect } from '@wordpress/element';
+import { useState, useEffect, useRef } from '@wordpress/element';
+import { __, sprintf } from '@wordpress/i18n';
 import { Button } from '@wordpress/components';
 import { CornerDownLeft, Loader2, Paperclip, FileText, X } from 'lucide-react';
 import ContextPicker from './ContextPicker';
@@ -10,9 +11,16 @@ import ContextPicker from './ContextPicker';
  * popover when the attach button is clicked, and renders an attachment pill
  * while a post is attached.
  *
+ * The box takes focus when it appears and keeps it after sending, so a
+ * conversation never needs a click back into the field. It stays editable
+ * while a reply is on its way (only sending waits), grows with its text up to
+ * the CSS max-height, and ignores the Enter that confirms an input-method
+ * composition (Japanese, Chinese, Korean), which would otherwise send a
+ * half-typed message.
+ *
  * @param {Object}        props
  * @param {Function}      props.onSend           Called with the trimmed message string when submitted.
- * @param {boolean}       props.isLoading        Disables the input and shows a spinner while true.
+ * @param {boolean}       props.isLoading        Blocks sending and shows a spinner while true.
  * @param {Object|null}   props.attachedPost     Currently attached post object (`{ id, title, edit_link }`) or null.
  * @param {Function}      props.onAttach         Called with the selected post object when context is chosen.
  * @param {Function}      props.onDetach         Called when the attachment pill dismiss button is clicked.
@@ -33,6 +41,25 @@ export default function Composer( {
 } ) {
 	const [ value, setValue ] = useState( '' );
 	const [ showPicker, setShowPicker ] = useState( false );
+	const inputRef = useRef( null );
+
+	// Focus on mount rather than with autoFocus: the composer remounts when the
+	// launch view gives way to the conversation, and a ref also lets submit()
+	// put the cursor back after sending.
+	useEffect( () => {
+		inputRef.current?.focus();
+	}, [] );
+
+	// Grow with the text. Resetting to auto first lets the box shrink again when
+	// text is deleted; max-height in CSS caps it and turns on scrolling.
+	useEffect( () => {
+		const el = inputRef.current;
+		if ( ! el ) {
+			return;
+		}
+		el.style.height = 'auto';
+		el.style.height = `${ el.scrollHeight }px`;
+	}, [ value ] );
 
 	// Allow a parent to imperatively open the picker (e.g. when a quick action
 	// fires but no post is yet attached).
@@ -43,6 +70,11 @@ export default function Composer( {
 	}, [ forcePickerOpen ] );
 
 	function handleKeyDown( e ) {
+		// keyCode 229: Safari fires the composition-confirming Enter after
+		// compositionend, so isComposing alone does not catch it.
+		if ( e.nativeEvent?.isComposing || e.keyCode === 229 ) {
+			return;
+		}
 		if ( e.key === 'Enter' && ! e.shiftKey ) {
 			e.preventDefault();
 			submit();
@@ -56,6 +88,7 @@ export default function Composer( {
 		}
 		setValue( '' );
 		onSend( text );
+		inputRef.current?.focus();
 	}
 
 	return (
@@ -85,7 +118,11 @@ export default function Composer( {
 								target="_blank"
 								rel="noopener noreferrer"
 								className="plume-composer__attachment-link"
-								aria-label={ `Edit "${ attachedPost.title }" (opens in new tab)` }
+								aria-label={ sprintf(
+									/* translators: %s: post title. */
+									__( 'Edit "%s" (opens in new tab)', 'plume' ),
+									attachedPost.title
+								) }
 							/>
 						) }
 						<FileText size={ 11 } strokeWidth={ 1.5 } />
@@ -93,8 +130,8 @@ export default function Composer( {
 						<button
 							className="plume-composer__attachment-dismiss"
 							onClick={ onDetach }
-							title="Remove context"
-							aria-label="Remove context"
+							title={ __( 'Remove context', 'plume' ) }
+							aria-label={ __( 'Remove context', 'plume' ) }
 							type="button"
 						>
 							<X size={ 10 } strokeWidth={ 2 } />
@@ -104,19 +141,23 @@ export default function Composer( {
 			) }
 			<div className="plume-composer__row">
 				<textarea
+					ref={ inputRef }
 					className="plume-composer__input"
-					placeholder="Ask anything, or describe what you want to create…"
+					placeholder={ __(
+						'Ask anything, or describe what you want to create…',
+						'plume'
+					) }
+					aria-label={ __( 'Message', 'plume' ) }
 					value={ value }
 					rows={ 1 }
 					onChange={ ( e ) => setValue( e.target.value ) }
 					onKeyDown={ handleKeyDown }
-					disabled={ isLoading }
 				/>
 				<button
 					className="plume-btn plume-btn--ghost plume-btn--icon"
 					onClick={ () => setShowPicker( ( prev ) => ! prev ) }
-					title="Attach post context"
-					aria-label="Attach post context"
+					title={ __( 'Attach post context', 'plume' ) }
+					aria-label={ __( 'Attach post context', 'plume' ) }
 					type="button"
 				>
 					<Paperclip size={ 14 } strokeWidth={ 1.5 } />
@@ -126,7 +167,7 @@ export default function Composer( {
 					className="plume-btn--icon"
 					onClick={ submit }
 					disabled={ ! value.trim() || isLoading }
-					label="Send (Enter)"
+					label={ __( 'Send (Enter)', 'plume' ) }
 				>
 					{ isLoading ? (
 						<Loader2

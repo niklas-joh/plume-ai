@@ -98,6 +98,23 @@ npm run test:e2e:debug     # step-through debug mode
 npm run test:e2e:report    # open the last HTML report
 ```
 
+### PR screenshots (review aid)
+
+On every PR that touches the UI, CI captures each Plume screen at desktop (1440×900) and phone (390×844 @2×) size and posts a comment with a before/after table for the screens that changed against `main`. It is a review aid, not a pass/fail check: a failed capture only adds a warning.
+
+Run the same capture locally against wp-env:
+
+```bash
+npm run env:start          # start wp-env if not running
+npm run test:e2e:screens   # PNGs land in .artifacts/screenshots/ci/{desktop,phone}/
+```
+
+- The setup step sets the wp-env site tier to `pro_managed`, marks onboarding as seen and turns off avatars, so the shots match CI. It never stores an API key.
+- Every `plume/v1` request is answered by a fixture and every other origin is blocked, so the capture never calls an AI provider. An unmocked Plume route fails that screen with `unmocked Plume route(s)` on purpose: add a fixture for it.
+- To add a screen, add an entry to `tests/E2E/playwright/visual/screens.json` and a matching capture in `screens.spec.js`.
+- Site-level admin notices are hidden and the WordPress version is masked, so they never show up as changes.
+- Images are stored on the CI-only `ci-screenshots` branch. Never merge it or base work on it.
+
 ## Git Hooks
 
 Hooks are installed automatically by `npm install`:
@@ -132,6 +149,7 @@ When you open a PR against `main`, two workflows run:
 - WP Plugin Check — WordPress.org's plugin auditor (general/security/performance/accessibility)
 - Lighthouse — front-end performance budget against a wp-env site
 - E2E Playwright tests (runs on `ubuntu-latest` via wp-env)
+- PR screenshots: desktop and phone screenshots of changed screens, posted as a PR comment (review aid, never fails the PR; see "PR screenshots (review aid)" above)
 
 ## Required GitHub Secrets
 

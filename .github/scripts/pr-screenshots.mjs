@@ -307,13 +307,15 @@ export function renderComment( {
 		for ( const v of def.viewports ) {
 			if ( row.cells[ v.id ] === 'missing' ) {
 				missing.push(
-					`${ escapeText( row.title ) } (${ v.title.toLowerCase() })`
+					`${ escapeText( row.title ) } (${ escapeText( v.title.toLowerCase() ) })`
 				);
 			}
 		}
 	}
 	const viewportText = def.viewports
-		.map( ( v ) => `${ v.title.toLowerCase() } ${ v.label }`.trim() )
+		.map( ( v ) =>
+			escapeText( `${ v.title.toLowerCase() } ${ v.label }`.trim() )
+		)
 		.join( ' and ' );
 	const basePath = ( viewport, id ) => `main/${ viewport }/${ id }.png`;
 	const prPath = ( viewport, id ) =>
@@ -437,7 +439,7 @@ export function renderComment( {
 							)
 							.map(
 								( v ) =>
-									`[${ v.title.toLowerCase() }](${ baseUrl( v.id, row.id ) })`
+									`[${ escapeText( v.title.toLowerCase() ) }](${ baseUrl( v.id, row.id ) })`
 							)
 							.join( ' · ' )
 				),

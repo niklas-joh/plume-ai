@@ -82,10 +82,11 @@ class VoiceInjector {
 		$site = SiteVoice::get();
 
 		if ( $user_id > 0 ) {
-			$user_raw = get_user_meta( $user_id, self::USER_META, true );
-			$user_raw = is_array( $user_raw ) ? $user_raw : [];
+			// Harden per-user meta through the same key/scalar filter as the site value,
+			// so a nested meta value cannot reach build_system_prompt() either (see #1067).
+			$user_voice = SiteVoice::normalise( get_user_meta( $user_id, self::USER_META, true ) );
 			// User values override site values only when non-empty.
-			foreach ( $user_raw as $k => $v ) {
+			foreach ( $user_voice as $k => $v ) {
 				if ( '' !== $v ) {
 					$site[ $k ] = $v;
 				}

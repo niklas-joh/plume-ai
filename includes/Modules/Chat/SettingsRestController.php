@@ -17,6 +17,7 @@ use Plume\Providers\ManagedCatalogue;
 use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
 use Plume\Tiers\TierManager;
+use Plume\Voice\SiteVoice;
 
 /**
  * REST controller for plugin settings.
@@ -80,7 +81,7 @@ class SettingsRestController {
 			// that, so the Settings select shows the provider that is really used instead
 			// of falling back to its first entry.
 			'image_provider'       => '' !== $image_provider ? $image_provider : 'gemini',
-			'site_voice'           => sanitize_text_field( (string) get_option( 'plume_site_voice', '' ) ),
+			'site_voice'           => sanitize_textarea_field( SiteVoice::get_free_text() ),
 			'enabled_modules'      => array_keys( array_filter( (array) get_option( 'plume_modules', [] ) ) ),
 			'api_keys'             => [
 				'claude'     => $this->mask_key( $provider_settings->has_key( 'claude' ) ),
@@ -128,8 +129,9 @@ class SettingsRestController {
 		}
 
 		$site_voice = $request->get_param( 'site_voice' );
-		if ( null !== $site_voice ) {
-			update_option( 'plume_site_voice', sanitize_text_field( (string) $site_voice ) );
+		// A non-scalar value (malformed client) is ignored rather than coerced.
+		if ( null !== $site_voice && is_scalar( $site_voice ) ) {
+			SiteVoice::save_free_text( (string) $site_voice );
 		}
 
 		// Module toggles — convert string list to boolean map matching ModuleRegistry.

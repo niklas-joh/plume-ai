@@ -93,7 +93,7 @@ class SettingsRestController {
 			'allowed_post_types'   => \get_option( 'plume_allowed_post_types', [ 'post', 'page' ] ),
 			'available_post_types' => $this->get_public_post_types(),
 			'enable_write_tools'   => (bool) \get_option( 'plume_enable_write_tools', true ),
-			'share_usage_stats'    => (bool) \get_option( ProxyClient::OPTION_SHARE_USAGE_STATS, true ),
+			'share_usage_stats'    => ProxyClient::shares_usage_stats(),
 			// Note: intentionally snake_case to match WP REST convention; JS reads this as `settings.is_paid`.
 			'is_paid'              => TierManager::is_paid(),
 			// Providers the Plume service serves; null on pro_byok (no restriction). The

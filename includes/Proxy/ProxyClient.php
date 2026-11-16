@@ -40,6 +40,19 @@ class ProxyClient {
 	public const OPTION_SHARE_USAGE_STATS = 'plume_share_usage_stats';
 
 	/**
+	 * Whether the site shares usage statistics with the managed service.
+	 *
+	 * Defaults to true when the option was never saved, so the option name and the
+	 * default-true semantics live in exactly one place for every reader.
+	 *
+	 * @since NEXT_VERSION
+	 * @return bool True when the site shares statistics (the default), false when it has opted out.
+	 */
+	public static function shares_usage_stats(): bool {
+		return (bool) get_option( self::OPTION_SHARE_USAGE_STATS, true );
+	}
+
+	/**
 	 * Request headers that tell the Worker not to record usage statistics.
 	 *
 	 * Only the statistics are skipped; the Worker still counts credits.
@@ -48,7 +61,7 @@ class ProxyClient {
 	 * @return array<string, string> The opt-out header when the site has opted out, otherwise empty.
 	 */
 	public static function stats_headers(): array {
-		if ( (bool) get_option( self::OPTION_SHARE_USAGE_STATS, true ) ) {
+		if ( self::shares_usage_stats() ) {
 			return [];
 		}
 		return [ 'X-Plume-No-Stats' => '1' ];

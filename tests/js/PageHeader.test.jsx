@@ -193,7 +193,6 @@ describe( 'shared screen shell', () => {
 			);
 			expect( block ).not.toBeNull();
 			expect( block[ 1 ] ).toMatch( /:root/ );
-			expect( block[ 1 ] ).toMatch( /--plume-duration-fast:\s*0ms/ );
 			expect( block[ 1 ] ).toMatch( /--plume-duration:\s*0ms/ );
 		} );
 

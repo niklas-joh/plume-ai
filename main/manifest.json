@@ -1,6 +1,6 @@
 {
-  "sha": "e20015341436559fa413625c62b794861d626d21",
-  "capturedAt": "2026-11-16T06:46:48.923Z",
+  "sha": "91c0a197e48ac6036c7daa33cd7a894bc62263e6",
+  "capturedAt": "2026-11-16T21:10:43.317Z",
   "env": {
     "runnerImage": "ubuntu26-20261111.196.1",
     "fonts": "c69d8910b3d007b4",
@@ -19,7 +19,7 @@
     "phone/chat-out-of-credits.png": "278387b43e17b0d7896ca42815407f43d1c83d6a6a4f3d127f0d390ed1191e2d",
     "desktop/generator.png": "ab8dfdbc0dc99123c3b94ada1069f0637ad7abe0f45b23b91f32437ea7cfda30",
     "phone/generator.png": "0b5857cae92234ffc7311f1bb46d9cf7e56a99cef7a1dac6447035e7aeb03901",
-    "desktop/seo.png": "8b4dcd4ca20001536e69a6f119874ba05474a36df88a170dac37083e7371fd7d",
+    "desktop/seo.png": "f217a90ba8533ce8590bca69519f34a658a3ba8ccf9d8498d04f186d3c9083d9",
     "phone/seo.png": "62bfd239f575dc15570124b50b923c6a635d2391546cfe6fd784f2bf5c40cfa7",
     "desktop/images.png": "12cffd32df465b46602004bfdaa4b7bd19a40cd552be9f95dba78f544fd8b95f",
     "phone/images.png": "0d42535dd288522f89c3d47229fb8bffe7bcc771051ffa5d523ecddffe73349f",

@@ -607,4 +607,23 @@ describe( 'handleRegistration usage metrics', () => {
 		expect( dump ).not.toContain( created.tier_sync_secret );
 		expect( dump ).not.toContain( '1'.repeat( 64 ) );
 	} );
+
+	it( 'records no datapoint but still registers when the site sends X-Plume-No-Stats (#1015)', async () => {
+		const challenge = '4'.repeat( 64 );
+		const env = await makeEnvWithChallenge( challenge );
+		const points = withMetrics( env );
+
+		const res = await handleRegistration(
+			makeRequest( {
+				body: { site_url: 'https://opted-out.example.com', challenge_token: challenge },
+				headers: { 'X-Plume-No-Stats': '1' },
+			} ),
+			env
+		);
+		const { token } = ( await res.json() ) as { token: string };
+
+		expect( res.status ).toBe( 201 );
+		expect( points ).toHaveLength( 0 );
+		expect( await env.USAGE_KV.get( `site:${ token }` ) ).not.toBeNull();
+	} );
 } );

@@ -11,6 +11,7 @@ import {
 	newChatMetric,
 	recordMetric,
 	siteKeyFromUrl,
+	statsOptedOut,
 } from '../src/metrics';
 import { makeEnv } from './helpers/kv-mock';
 
@@ -165,5 +166,19 @@ describe( 'recordMetric', () => {
 		).not.toThrow();
 		expect( warn ).toHaveBeenCalledWith( 'metrics: write failed' );
 		expect( JSON.stringify( warn.mock.calls ) ).not.toContain( 'SECRET' );
+	} );
+} );
+
+describe( 'statsOptedOut', () => {
+	const withHeader = ( value?: string ) =>
+		new Request( 'https://worker.example.com/v1/chat', {
+			headers: value === undefined ? {} : { 'X-Plume-No-Stats': value },
+		} );
+
+	it( 'is true only when X-Plume-No-Stats is exactly "1"', () => {
+		expect( statsOptedOut( withHeader( '1' ) ) ).toBe( true );
+		expect( statsOptedOut( withHeader() ) ).toBe( false );
+		expect( statsOptedOut( withHeader( '0' ) ) ).toBe( false );
+		expect( statsOptedOut( withHeader( '' ) ) ).toBe( false );
 	} );
 } );

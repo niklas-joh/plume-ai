@@ -61,7 +61,7 @@ const RUN = 'https://github.com/o/r/actions/runs/1';
 
 const tmp = () => fs.mkdtempSync( path.join( os.tmpdir(), 'pr-shots-' ) );
 
-test( 'the committed screens.json is valid and has the approved 10 screens', () => {
+test( 'the committed screens.json is valid and has the approved 11 screens', () => {
 	assert.deepEqual(
 		REAL_DEF.screens.map( ( s ) => s.id ),
 		[
@@ -73,6 +73,7 @@ test( 'the committed screens.json is valid and has the approved 10 screens', () 
 			'generator',
 			'seo',
 			'images',
+			'usage',
 			'settings',
 			'editor-sidebar',
 		]

@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use Plume\Admin\AdminMenu;
+use Plume\Admin\UsagePage;
 
 class AdminMenuTest extends TestCase {
 
@@ -123,6 +124,62 @@ class AdminMenuTest extends TestCase {
 		AdminMenu::register();
 
 		$this->assertSame( 'manage_options', $settings_capability );
+	}
+
+	// ── register() — Usage submenu ────────────────────────────────────────────
+
+	/**
+	 * The Usage screen is registered under the Plume menu with manage_options,
+	 * matching its REST endpoint, so the dashboard link to it can be opened.
+	 *
+	 * @since NEXT_VERSION
+	 * @return void
+	 */
+	public function test_register_adds_usage_submenu_with_manage_options_capability(): void {
+		$usage = null;
+
+		$this->stub_free_tier();
+		Functions\when( 'add_menu_page' )->justReturn( '' );
+		Functions\when( 'add_submenu_page' )->alias(
+			function ( $parent_slug, $page_title, $menu_title, $capability, $menu_slug, $callback = null ) use ( &$usage ): void {
+				if ( 'plume-usage' === $menu_slug ) {
+					$usage = [ $parent_slug, $capability, $callback ];
+				}
+			}
+		);
+
+		AdminMenu::register();
+
+		$this->assertSame( [ 'plume', 'manage_options', [ UsagePage::class, 'render' ] ], $usage );
+	}
+
+	/**
+	 * Disabling the Usage module removes the screen, as its assets and REST
+	 * route would not be loaded either.
+	 *
+	 * @since NEXT_VERSION
+	 * @return void
+	 */
+	public function test_register_omits_usage_submenu_when_the_usage_module_is_disabled(): void {
+		$usage_added = false;
+
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_meta' )->justReturn( '' );
+		Functions\when( 'get_option' )->alias(
+			fn( string $key, $default = false ) => 'plume_modules' === $key ? [ 'usage' => false ] : $default
+		);
+		Functions\when( 'add_menu_page' )->justReturn( '' );
+		Functions\when( 'add_submenu_page' )->alias(
+			function ( $parent_slug, $page_title, $menu_title, $capability, $menu_slug ) use ( &$usage_added ): void {
+				if ( 'plume-usage' === $menu_slug ) {
+					$usage_added = true;
+				}
+			}
+		);
+
+		AdminMenu::register();
+
+		$this->assertFalse( $usage_added );
 	}
 
 	// ── register() — conditional Upgrade submenu ───────────────────────────────

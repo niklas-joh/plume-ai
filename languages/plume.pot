@@ -95,10 +95,14 @@ msgid "Settings"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:53
+msgid "Usage"
+msgstr ""
+
+#: includes/Admin/AdminMenu.php:60
 msgid "Upgrade"
 msgstr ""
 
-#: includes/Admin/AdminMenu.php:54
+#: includes/Admin/AdminMenu.php:61
 msgid "Upgrade ✦"
 msgstr ""
 

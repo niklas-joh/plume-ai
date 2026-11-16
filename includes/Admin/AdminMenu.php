@@ -46,6 +46,13 @@ class AdminMenu {
 		add_submenu_page( 'plume', __( 'Images', 'plume' ), __( 'Images', 'plume' ), 'edit_posts', 'plume-images', [ ImagesPage::class, 'render' ] );
 		add_submenu_page( 'plume', __( 'Settings', 'plume' ), __( 'Settings', 'plume' ), 'manage_options', 'plume-settings', [ SettingsPage::class, 'render' ] );
 
+		// The Usage screen's REST endpoint needs `manage_options`, so the screen
+		// does too. It is only listed while the Usage module (which enqueues its
+		// assets and registers the endpoint) is enabled.
+		if ( ( new \Plume\Core\ModuleRegistry() )->is_enabled( 'usage' ) ) {
+			add_submenu_page( 'plume', __( 'Usage', 'plume' ), __( 'Usage', 'plume' ), 'manage_options', 'plume-usage', [ UsagePage::class, 'render' ] );
+		}
+
 		$tier = \Plume\Tiers\TierManager::get_user_tier();
 		if ( 'free' === $tier ) {
 			add_submenu_page(

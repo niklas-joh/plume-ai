@@ -1,4 +1,5 @@
 import { useState } from '@wordpress/element';
+import { __, sprintf } from '@wordpress/i18n';
 import { Cpu, ChevronRight, ChevronLeft } from 'lucide-react';
 import { storageGet, storageSet } from '../../utils/storage';
 
@@ -41,7 +42,8 @@ export default function ModelSelector( {
 	onModelChange,
 	justSaved = false,
 } ) {
-	const { defaultModelLabel = 'AI' } = window.plumeData || {};
+	const { defaultModelLabel = __( 'AI', 'plume' ), settingsUrl = '' } =
+		window.plumeData || {};
 
 	const [ isAdvanced, setIsAdvanced ] = useState(
 		() => storageGet( STORAGE_KEY ) === '1'
@@ -61,14 +63,18 @@ export default function ModelSelector( {
 
 	return (
 		<div className="plume-panel-section">
-			<div className="plume-panel-label">Model</div>
+			<div className="plume-panel-label">{ __( 'Model', 'plume' ) }</div>
 
 			{ ! isAdvanced ? (
 				<div className="plume-model-simple">
 					<div className="plume-model-selector__row">
 						<Cpu size={ 12 } strokeWidth={ 1.5 } />
 						<span className="plume-model-default-label">
-							Plugin default — { defaultModelLabel }
+							{ sprintf(
+								/* translators: %s: name of the default AI model. */
+								__( 'Plugin default — %s', 'plume' ),
+								defaultModelLabel
+							) }
 						</span>
 					</div>
 					<button
@@ -76,11 +82,13 @@ export default function ModelSelector( {
 						type="button"
 						onClick={ () => toggleAdvanced( true ) }
 					>
-						Advanced{ ' ' }
+						{ __( 'Advanced', 'plume' ) }{ ' ' }
 						<ChevronRight size={ 11 } strokeWidth={ 1.5 } />
 					</button>
 					{ justSaved && (
-						<span className="plume-model-saved">Saved</span>
+						<span className="plume-model-saved">
+							{ __( 'Saved', 'plume' ) }
+						</span>
 					) }
 				</div>
 			) : (
@@ -88,7 +96,7 @@ export default function ModelSelector( {
 					<div className="plume-model-selector__row">
 						<Cpu size={ 12 } strokeWidth={ 1.5 } />
 						<select
-							aria-label="AI provider"
+							aria-label={ __( 'AI provider', 'plume' ) }
 							className="plume-select"
 							value={ selectedProvider }
 							onChange={ ( e ) => {
@@ -105,22 +113,29 @@ export default function ModelSelector( {
 					</div>
 					{ active && ! active.is_available && (
 						<p className="plume-model-no-key">
-							No API key configured —{ ' ' }
-							<a href="options-general.php?page=plume-settings">
-								Settings
-							</a>
+							{ __( 'No API key configured', 'plume' ) }
+							{ settingsUrl && (
+								<>
+									{ ' — ' }
+									<a href={ settingsUrl }>
+										{ __( 'Settings', 'plume' ) }
+									</a>
+								</>
+							) }
 						</p>
 					) }
 					{ models.length > 0 && active?.is_available && (
 						<select
-							aria-label="Model"
+							aria-label={ __( 'Model', 'plume' ) }
 							className="plume-select plume-select--sm"
 							value={ selectedModel }
 							onChange={ ( e ) =>
 								onModelChange( e.target.value )
 							}
 						>
-							<option value="">Default model</option>
+							<option value="">
+								{ __( 'Default model', 'plume' ) }
+							</option>
 							{ models.map( ( [ id, label ] ) => (
 								<option key={ id } value={ id }>
 									{ label }
@@ -133,10 +148,13 @@ export default function ModelSelector( {
 						type="button"
 						onClick={ () => toggleAdvanced( false ) }
 					>
-						<ChevronLeft size={ 11 } strokeWidth={ 1.5 } /> Simple
+						<ChevronLeft size={ 11 } strokeWidth={ 1.5 } />{ ' ' }
+						{ __( 'Simple', 'plume' ) }
 					</button>
 					{ justSaved && (
-						<span className="plume-model-saved">Saved</span>
+						<span className="plume-model-saved">
+							{ __( 'Saved', 'plume' ) }
+						</span>
 					) }
 				</div>
 			) }

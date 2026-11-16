@@ -1,6 +1,7 @@
-/* global navigator */
 import { useState, useEffect } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import { __, _n, sprintf } from '@wordpress/i18n';
+import { getErrorMessage } from './errors';
 import DOMPurify from 'dompurify';
 
 const PER_PAGE = 20;
@@ -78,7 +79,9 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 				);
 				setPosts( merged );
 			} catch ( e ) {
-				setError( e.message ?? 'Failed to load posts.' );
+				setError(
+					getErrorMessage( e, __( 'Failed to load posts.', 'plume' ) )
+				);
 			} finally {
 				setLoading( false );
 			}
@@ -122,10 +125,22 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 	};
 
 	if ( loading ) {
-		return <div className="plume-list-loading">Loading posts…</div>;
+		return (
+			<div className="plume-list-loading">
+				{ __( 'Loading posts…', 'plume' ) }
+			</div>
+		);
 	}
 	if ( error ) {
-		return <div className="plume-list-error">Error: { error }</div>;
+		return (
+			<div className="plume-list-error">
+				{ sprintf(
+					/* translators: %s: error message. */
+					__( 'Error: %s', 'plume' ),
+					error
+				) }
+			</div>
+		);
 	}
 
 	return (
@@ -147,7 +162,7 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 				<input
 					type="search"
 					className="plume-list-search"
-					placeholder="Search posts…"
+					placeholder={ __( 'Search posts…', 'plume' ) }
 					value={ search }
 					onChange={ handleSearch }
 				/>
@@ -156,8 +171,10 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 			<table className="wp-list-table widefat fixed striped">
 				<thead>
 					<tr>
-						<th>Title</th>
-						<th style={ { width: 70 } }>Type</th>
+						<th>{ __( 'Title', 'plume' ) }</th>
+						<th style={ { width: 70 } }>
+							{ __( 'Type', 'plume' ) }
+						</th>
 						{ columns.map( ( col ) => (
 							<th
 								key={ col.label }
@@ -166,7 +183,9 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 								{ col.label }
 							</th>
 						) ) }
-						<th style={ { width: 90 } }>Updated</th>
+						<th style={ { width: 90 } }>
+							{ __( 'Updated', 'plume' ) }
+						</th>
 						<th style={ { width: 120 } }></th>
 					</tr>
 				</thead>
@@ -181,7 +200,7 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 									padding: '20px',
 								} }
 							>
-								No posts found.
+								{ __( 'No posts found.', 'plume' ) }
 							</td>
 						</tr>
 					) }
@@ -203,8 +222,17 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 			{ totalPages > 1 && (
 				<div className="plume-list-pagination">
 					<span className="plume-list-count">
-						Showing { visible.length } of { filtered.length } posts
-						and pages
+						{ sprintf(
+							/* translators: 1: number of posts shown on this page, 2: total number of posts and pages. */
+							_n(
+								'Showing %1$d of %2$d post or page',
+								'Showing %1$d of %2$d posts and pages',
+								filtered.length,
+								'plume'
+							),
+							visible.length,
+							filtered.length
+						) }
 					</span>
 					<div className="plume-list-page-btns">
 						<button
@@ -212,14 +240,14 @@ export default function PostListTable( { tabs, WorkArea, columns = [] } ) {
 							onClick={ () => setPage( ( p ) => p - 1 ) }
 							disabled={ page === 1 }
 						>
-							← Prev
+							{ __( '← Prev', 'plume' ) }
 						</button>
 						<button
 							className="button"
 							onClick={ () => setPage( ( p ) => p + 1 ) }
 							disabled={ page === totalPages }
 						>
-							Next →
+							{ __( 'Next →', 'plume' ) }
 						</button>
 					</div>
 				</div>
@@ -285,7 +313,9 @@ function PostRow( {
 						className="button button-small"
 						onClick={ onExpand }
 					>
-						{ expanded ? '▲ Close' : 'Generate ▼' }
+						{ expanded
+							? __( '▲ Close', 'plume' )
+							: __( 'Generate ▼', 'plume' ) }
 					</button>
 				</td>
 			</tr>

@@ -46,6 +46,13 @@ class AdminMenu {
 		add_submenu_page( 'plume', __( 'Images', 'plume' ), __( 'Images', 'plume' ), 'edit_posts', 'plume-images', [ ImagesPage::class, 'render' ] );
 		add_submenu_page( 'plume', __( 'Settings', 'plume' ), __( 'Settings', 'plume' ), 'manage_options', 'plume-settings', [ SettingsPage::class, 'render' ] );
 
+		// The Usage screen's REST endpoint needs `manage_options`, so the screen
+		// does too. It is only listed while the Usage module (which enqueues its
+		// assets and registers the endpoint) is enabled.
+		if ( ( new \Plume\Core\ModuleRegistry() )->is_enabled( 'usage' ) ) {
+			add_submenu_page( 'plume', __( 'Usage', 'plume' ), __( 'Usage', 'plume' ), 'manage_options', 'plume-usage', [ UsagePage::class, 'render' ] );
+		}
+
 		$tier = \Plume\Tiers\TierManager::get_user_tier();
 		if ( 'free' === $tier ) {
 			add_submenu_page(
@@ -57,6 +64,23 @@ class AdminMenu {
 				[ \Plume\Admin\TierStatusPage::class, 'render' ]
 			);
 		}
+	}
+
+	/**
+	 * URL of the Plume settings screen for the current user.
+	 *
+	 * The settings page needs `manage_options`, while most Plume screens need only
+	 * `edit_posts`. Screens that link to Settings use this so that Authors and
+	 * Editors are not sent to a "not allowed" page.
+	 *
+	 * @since NEXT_VERSION
+	 * @return string Settings URL, or an empty string when the user cannot open it.
+	 */
+	public static function settings_url(): string {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return '';
+		}
+		return esc_url_raw( admin_url( 'admin.php?page=plume-settings' ) );
 	}
 
 	/**

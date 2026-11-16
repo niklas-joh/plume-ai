@@ -174,17 +174,21 @@ class GeneratorModuleTest extends IntegrationTestCase {
 	}
 
 	/**
-	 * Verify that a proxy-level error returns 500 with an 'error' key.
+	 * Verify that a proxy-level error returns 502 with the provider's message.
 	 *
 	 * An HTTP filter returns a proxy 401 (stale/missing site token). This causes
 	 * ProxyClient to return WP_Error → ProviderException → the generator
-	 * handler catches it and returns 500. Importantly, this validates that the
-	 * handler does NOT crash PHP (i.e. the catch block works correctly).
+	 * handler catches it and returns 502 'provider_error'. Importantly, this
+	 * validates that the handler does NOT crash PHP (i.e. the catch block works
+	 * correctly) and that the body carries `message` and `code` next to the
+	 * legacy `error` key, which is what the wizard reads.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Provider failures are 502 'provider_error' (500 is kept
+	 *                      for unexpected errors).
 	 * @return void
 	 */
-	public function test_generate_returns_500_on_provider_failure(): void {
+	public function test_generate_returns_502_on_provider_failure(): void {
 		$this->set_user_tier( self::$editor_user_id, 'free' );
 		wp_set_current_user( self::$editor_user_id );
 
@@ -208,8 +212,10 @@ class GeneratorModuleTest extends IntegrationTestCase {
 
 		remove_filter( 'pre_http_request', $error_mock, 5 );
 
-		$this->assertSame( 500, $response->get_status(), 'Generator must return 500 when the provider fails.' );
+		$this->assertSame( 502, $response->get_status(), 'Generator must return 502 when the provider fails.' );
 		$data = $response->get_data();
-		$this->assertArrayHasKey( 'error', $data, 'Error response must include an error key.' );
+		$this->assertArrayHasKey( 'error', $data, 'Error response must keep the legacy error key.' );
+		$this->assertSame( 'provider_error', $data['code'], 'Error response must carry a machine-readable code.' );
+		$this->assertSame( $data['error'], $data['message'], 'Error response must carry the text under message too.' );
 	}
 }

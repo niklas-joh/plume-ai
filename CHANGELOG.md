@@ -1,3 +1,15 @@
+## [2.1.0](https://github.com/niklas-joh/plume-ai/compare/v2.0.0...v2.1.0) (2026-11-13)
+
+### New Features
+
+* **providers:** show only enabled managed providers from the Worker config ([#1024](https://github.com/niklas-joh/plume-ai/issues/1024)) ([e68b179](https://github.com/niklas-joh/plume-ai/commit/e68b1796784de79eea80fca7592cc5691d0d6467)), closes [#1020](https://github.com/niklas-joh/plume-ai/issues/1020) [#1020](https://github.com/niklas-joh/plume-ai/issues/1020) [#1021](https://github.com/niklas-joh/plume-ai/issues/1021) [#1020](https://github.com/niklas-joh/plume-ai/issues/1020) [#1023](https://github.com/niklas-joh/plume-ai/issues/1023) [#1025](https://github.com/niklas-joh/plume-ai/issues/1025)
+
+### Bug Fixes
+
+* **proxy:** serve managed chats for disabled providers with Claude ([#1021](https://github.com/niklas-joh/plume-ai/issues/1021)) ([98fd9bd](https://github.com/niklas-joh/plume-ai/commit/98fd9bd046a9ccf6a191b909637cbd02068c747b))
+* **readme:** disclose managed-service usage statistics ([#1009](https://github.com/niklas-joh/plume-ai/issues/1009)) ([531f23e](https://github.com/niklas-joh/plume-ai/commit/531f23e7f519f1bc0d80eb3d08c3159d04328254))
+* **readme:** link the managed-service terms to the real page ([#1026](https://github.com/niklas-joh/plume-ai/issues/1026)) ([38607df](https://github.com/niklas-joh/plume-ai/commit/38607df542c69e2675e71c4097774c144952e1a7))
+
 ## [2.0.0](https://github.com/niklas-joh/plume-ai/compare/v1.15.0...v2.0.0) (2026-11-06)
 
 ### ⚠ BREAKING CHANGES

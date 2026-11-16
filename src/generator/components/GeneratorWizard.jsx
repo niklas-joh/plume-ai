@@ -1,20 +1,24 @@
 import { useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { TextControl, SelectControl, Button } from '@wordpress/components';
 import { Wand2, Loader2, CheckCircle2, ExternalLink } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
+import { getErrorMessage } from '../../shared/errors';
+import { isOutOfCreditsError } from '../../shared/credits';
+import OutOfCreditsNotice from '../../shared/OutOfCreditsNotice';
+import { DEFAULT_WEBSITE_URL } from '../../shared/constants';
 
 const TONES = [
-	'professional',
-	'casual',
-	'friendly',
-	'authoritative',
-	'witty',
+	{ value: 'professional', label: __( 'Professional', 'plume' ) },
+	{ value: 'casual', label: __( 'Casual', 'plume' ) },
+	{ value: 'friendly', label: __( 'Friendly', 'plume' ) },
+	{ value: 'authoritative', label: __( 'Authoritative', 'plume' ) },
+	{ value: 'witty', label: __( 'Witty', 'plume' ) },
 ];
 const LENGTHS = [
-	{ value: 'short', label: 'Short (300–500 words)' },
-	{ value: 'medium', label: 'Medium (600–900 words)' },
-	{ value: 'long', label: 'Long (1200–1800 words)' },
+	{ value: 'short', label: __( 'Short (300–500 words)', 'plume' ) },
+	{ value: 'medium', label: __( 'Medium (600–900 words)', 'plume' ) },
+	{ value: 'long', label: __( 'Long (1200–1800 words)', 'plume' ) },
 ];
 
 /**
@@ -36,6 +40,7 @@ export default function GeneratorWizard() {
 	} );
 	const [ result, setResult ] = useState( null ); // { post_id, edit_url, content, credits_used }
 	const [ error, setError ] = useState( null );
+	const [ outOfCredits, setOutOfCredits ] = useState( false );
 
 	function update( field, value ) {
 		setForm( ( prev ) => ( { ...prev, [ field ]: value } ) );
@@ -47,6 +52,7 @@ export default function GeneratorWizard() {
 		}
 		setStep( 2 );
 		setError( null );
+		setOutOfCredits( false );
 		try {
 			const res = await apiFetch( {
 				path: '/plume/v1/generate',
@@ -56,7 +62,16 @@ export default function GeneratorWizard() {
 			setResult( res );
 			setStep( 3 );
 		} catch ( e ) {
-			setError( e?.message || 'Generation failed. Please try again.' );
+			if ( isOutOfCreditsError( e ) ) {
+				setOutOfCredits( true );
+			} else {
+				setError(
+					getErrorMessage(
+						e,
+						__( 'Generation failed. Please try again.', 'plume' )
+					)
+				);
+			}
 			setStep( 1 );
 		}
 	}
@@ -79,7 +94,10 @@ export default function GeneratorWizard() {
 							color: 'var(--color-text-muted)',
 						} }
 					>
-						Generating your post — this may take a moment…
+						{ __(
+							'Generating your post — a long draft can take up to two minutes…',
+							'plume'
+						) }
 					</p>
 				</div>
 			</div>
@@ -95,11 +113,19 @@ export default function GeneratorWizard() {
 						style={ { color: 'var(--wp-admin-theme-color)' } }
 					/>
 					<h2 style={ { marginTop: 'var(--space-3)' } }>
-						Post Generated!
+						{ __( 'Post Generated!', 'plume' ) }
 					</h2>
 					<p style={ { color: 'var(--color-text-muted)' } }>
-						{ result.credits_used }{ ' ' }
-						{ __( 'credits used', 'plume' ) }
+						{ sprintf(
+							/* translators: %s: number of credits the generation used. */
+							_n(
+								'%s credit used',
+								'%s credits used',
+								result.credits_used,
+								'plume'
+							),
+							result.credits_used
+						) }
 					</p>
 					<a
 						href={ result.edit_url }
@@ -112,7 +138,8 @@ export default function GeneratorWizard() {
 							textDecoration: 'none',
 						} }
 					>
-						<ExternalLink size={ 14 } /> Edit in WordPress
+						<ExternalLink size={ 14 } />{ ' ' }
+						{ __( 'Edit in WordPress', 'plume' ) }
 					</a>
 				</div>
 				<div
@@ -126,7 +153,7 @@ export default function GeneratorWizard() {
 							color: 'var(--color-text-muted)',
 						} }
 					>
-						Preview
+						{ __( 'Preview', 'plume' ) }
 					</h3>
 					<div
 						className="plume-generator__preview"
@@ -144,7 +171,7 @@ export default function GeneratorWizard() {
 							setResult( null );
 						} }
 					>
-						Generate another
+						{ __( 'Generate another', 'plume' ) }
 					</Button>
 				</div>
 			</div>
@@ -166,12 +193,24 @@ export default function GeneratorWizard() {
 						size={ 24 }
 						style={ { color: 'var(--wp-admin-theme-color)' } }
 					/>{ ' ' }
-					Post Generator
+					{ __( 'Post Generator', 'plume' ) }
 				</h1>
 				<p style={ { color: 'var(--color-text-muted)' } }>
-					Describe your post and AI will write a full draft.
+					{ __(
+						'Describe your post and AI will write a full draft.',
+						'plume'
+					) }
 				</p>
 			</div>
+
+			{ outOfCredits && (
+				<OutOfCreditsNotice
+					websiteUrl={
+						window.plumeData?.websiteUrl ?? DEFAULT_WEBSITE_URL
+					}
+					settingsUrl={ window.plumeData?.settingsUrl }
+				/>
+			) }
 
 			{ error && (
 				<div
@@ -192,40 +231,37 @@ export default function GeneratorWizard() {
 
 			<div className="plume-generator__card">
 				<TextControl
-					label="Post title *"
+					label={ __( 'Post title *', 'plume' ) }
 					value={ form.title }
 					onChange={ ( val ) => update( 'title', val ) }
-					placeholder="e.g. 10 Tips for Better Sleep"
+					placeholder={ __(
+						'e.g. 10 Tips for Better Sleep',
+						'plume'
+					) }
 					__nextHasNoMarginBottom
 				/>
 
 				<TextControl
-					label="Keywords"
+					label={ __( 'Keywords', 'plume' ) }
 					value={ form.keywords }
 					onChange={ ( val ) => update( 'keywords', val ) }
-					placeholder="e.g. sleep hygiene, circadian rhythm, melatonin"
+					placeholder={ __(
+						'e.g. sleep hygiene, circadian rhythm, melatonin',
+						'plume'
+					) }
 					__nextHasNoMarginBottom
 				/>
 
-				<div
-					style={ {
-						display: 'grid',
-						gridTemplateColumns: '1fr 1fr',
-						gap: 'var(--space-4)',
-					} }
-				>
+				<div className="plume-generator__options">
 					<SelectControl
-						label="Tone"
-						options={ TONES.map( ( t ) => ( {
-							value: t,
-							label: t.charAt( 0 ).toUpperCase() + t.slice( 1 ),
-						} ) ) }
+						label={ __( 'Tone', 'plume' ) }
+						options={ TONES }
 						value={ form.tone }
 						onChange={ ( val ) => update( 'tone', val ) }
 						__nextHasNoMarginBottom
 					/>
 					<SelectControl
-						label="Length"
+						label={ __( 'Length', 'plume' ) }
 						options={ LENGTHS }
 						value={ form.length }
 						onChange={ ( val ) => update( 'length', val ) }
@@ -245,7 +281,7 @@ export default function GeneratorWizard() {
 							gap: 'var(--space-2)',
 						} }
 					>
-						<Wand2 size={ 14 } /> Generate Post
+						<Wand2 size={ 14 } /> { __( 'Generate Post', 'plume' ) }
 					</Button>
 				</div>
 			</div>

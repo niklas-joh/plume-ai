@@ -41,6 +41,7 @@ class SettingsRestControllerTest extends TestCase {
 
     public function test_get_settings_returns_masked_keys_when_set(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
@@ -91,6 +92,7 @@ class SettingsRestControllerTest extends TestCase {
 
     public function test_get_settings_returns_empty_string_when_key_not_set(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
@@ -114,6 +116,10 @@ class SettingsRestControllerTest extends TestCase {
         $this->assertSame( '', $data['api_keys']['claude'] );
         $this->assertSame( '', $data['api_keys']['openai'] );
         $this->assertSame( '', $data['api_keys']['gemini'] );
+
+        // An unset image provider means Gemini (ProviderFactory::make_image_provider());
+        // the Settings select must show that, not fall back to its first entry.
+        $this->assertSame( 'gemini', $response->data['image_provider'] );
     }
 
     // ── GET /settings — is_paid field ─────────────────────────────────────────
@@ -140,6 +146,7 @@ class SettingsRestControllerTest extends TestCase {
 
     public function test_get_settings_is_paid_field_is_present(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
@@ -151,6 +158,7 @@ class SettingsRestControllerTest extends TestCase {
 
     public function test_get_settings_is_paid_is_always_boolean(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
@@ -163,6 +171,7 @@ class SettingsRestControllerTest extends TestCase {
 
     public function test_get_settings_is_paid_reflects_tier(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
@@ -188,6 +197,7 @@ class SettingsRestControllerTest extends TestCase {
             return true;
         } );
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'esc_url_raw' )->alias( fn( $v ) => $v );
         // ModuleRegistry::__construct() calls get_option to load saved state.
         // pro_byok is now a site-level entitlement, so the SITE_OPTION returns it
@@ -246,7 +256,7 @@ class SettingsRestControllerTest extends TestCase {
         // Options updated.
         $this->assertSame( 'claude',                     $stored['plume_default_provider'] );
         $this->assertSame( 'gemini',                     $stored['plume_image_provider'] );
-        $this->assertSame( 'professional',               $stored['plume_site_voice'] );
+        $this->assertSame( [ 'extra' => 'professional' ], $stored['plume_site_voice'] );
         $this->assertArrayHasKey( 'plume_modules', $stored );
         $modules_map = $stored['plume_modules'];
         $this->assertTrue( $modules_map['chat'] );
@@ -270,6 +280,7 @@ class SettingsRestControllerTest extends TestCase {
 
     public function test_get_settings_returns_allowed_post_types(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
         Functions\when( 'get_option' )->alias( function( $key, $default = '' ) {
@@ -302,6 +313,7 @@ class SettingsRestControllerTest extends TestCase {
 
     public function test_get_settings_returns_available_post_types(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'get_user_meta' )->alias( fn( $uid, $key, $single ) => $key === 'plume_tier' ? 'free' : null );
         Functions\when( 'get_option' )->alias( function( $key, $default = '' ) {
@@ -353,6 +365,7 @@ class SettingsRestControllerTest extends TestCase {
             return true;
         } );
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'sanitize_key' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [ 'post' => true, 'page' => true ] );
 
@@ -382,6 +395,7 @@ class SettingsRestControllerTest extends TestCase {
             return true;
         } );
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
 
         $controller = new class extends SettingsRestController {
@@ -407,6 +421,7 @@ class SettingsRestControllerTest extends TestCase {
 
     public function test_get_settings_includes_is_paid_field(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_option' )->alias(
             fn( $key, $default = false ) =>
@@ -436,6 +451,7 @@ class SettingsRestControllerTest extends TestCase {
 
     public function test_get_settings_is_paid_false_for_free_user(): void {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_option' )->justReturn( '' );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
@@ -463,6 +479,7 @@ class SettingsRestControllerTest extends TestCase {
     public function test_save_settings_skips_masked_api_keys(): void {
         Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( '__' )->returnArg();
 
         $api_key_calls = [];
@@ -502,6 +519,7 @@ class SettingsRestControllerTest extends TestCase {
         // free-tier site must be able to store a key like any other tier.
         Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( '__' )->alias( fn( $s ) => $s );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'get_option' )->alias(
@@ -543,6 +561,7 @@ class SettingsRestControllerTest extends TestCase {
 
     private function get_settings_for_tier( string $tier ): array {
         Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
         Functions\when( 'get_post_types' )->justReturn( [] );
         Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => 'plume_site_tier' === $key ? $tier : $default );
         Functions\when( 'get_transient' )->justReturn(
@@ -570,5 +589,122 @@ class SettingsRestControllerTest extends TestCase {
 
     public function test_get_settings_managed_providers_is_null_for_pro_byok(): void {
         $this->assertNull( $this->get_settings_for_tier( 'pro_byok' )['managed_providers'] );
+    }
+
+    // ── site_voice: stored shapes and round trip ──────────────────────────────
+
+    private function make_voice_controller(): SettingsRestController {
+        return new class extends SettingsRestController {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                return new class extends \Plume\Settings\ProviderSettings {
+                    public function __construct() {}
+                    public function has_key( string $provider ): bool { return false; }
+                    public function get_api_key( string $provider ): string { return ''; }
+                    public function set_api_key( string $provider, string $key ): void {}
+                };
+            }
+        };
+    }
+
+    /** Stateful option store; returns it by reference for assertions. */
+    private function stub_voice_options( array &$stored ): void {
+        Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'esc_url_raw' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_post_types' )->justReturn( [] );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_user_meta' )->justReturn( 'free' );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'get_option' )->alias( function ( $key, $fallback = false ) use ( &$stored ) {
+            return array_key_exists( $key, $stored ) ? $stored[ $key ] : $fallback;
+        } );
+        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$stored ) {
+            $stored[ $key ] = $value;
+            return true;
+        } );
+        Functions\when( 'delete_option' )->alias( function ( $key ) use ( &$stored ) {
+            unset( $stored[ $key ] );
+            return true;
+        } );
+    }
+
+    /**
+     * @dataProvider stored_voice_shapes
+     * @param mixed $value    Stored option value.
+     * @param string $expected Expected site_voice in the response.
+     */
+    public function test_get_settings_site_voice_for_each_stored_shape( $value, string $expected ): void {
+        $stored = [ 'plume_site_voice' => $value ];
+        $this->stub_voice_options( $stored );
+
+        $data = $this->make_voice_controller()->get_settings( new \WP_REST_Request() )->data;
+
+        $this->assertSame( $expected, $data['site_voice'] );
+    }
+
+    /** @return array<string,array{0:mixed,1:string}> */
+    public static function stored_voice_shapes(): array {
+        return [
+            'legacy string'        => [ 'friendly', 'friendly' ],
+            'array with extra'     => [ [ 'extra' => 'Warm and direct' ], 'Warm and direct' ],
+            'array without extra'  => [ [ 'tone' => 'Formal', 'language' => 'British English' ], '' ],
+            'array nested junk'    => [ [ 'extra' => [ 'x' ] ], '' ],
+            'empty array'          => [ [], '' ],
+            'false'                => [ false, '' ],
+        ];
+    }
+
+    private function post_voice( SettingsRestController $controller, array $params ): void {
+        $request = new \WP_REST_Request();
+        $request->set_body_params( $params );
+        $controller->save_settings( $request );
+    }
+
+    public function test_save_then_get_round_trips_site_voice(): void {
+        $stored = [];
+        $this->stub_voice_options( $stored );
+        $controller = $this->make_voice_controller();
+
+        $this->post_voice( $controller, [ 'site_voice' => 'professional' ] );
+
+        $this->assertSame( 'professional', $controller->get_settings( new \WP_REST_Request() )->data['site_voice'] );
+    }
+
+    public function test_save_site_voice_preserves_other_array_keys(): void {
+        $stored = [ 'plume_site_voice' => [ 'tone' => 'Formal', 'language' => 'British English', 'extra' => 'old' ] ];
+        $this->stub_voice_options( $stored );
+
+        $this->post_voice( $this->make_voice_controller(), [ 'site_voice' => 'new text' ] );
+
+        $this->assertSame( 'Formal', $stored['plume_site_voice']['tone'] );
+        $this->assertSame( 'British English', $stored['plume_site_voice']['language'] );
+        $this->assertSame( 'new text', $stored['plume_site_voice']['extra'] );
+    }
+
+    public function test_save_without_site_voice_leaves_option_untouched(): void {
+        $stored = [ 'plume_site_voice' => [ 'extra' => 'keep' ] ];
+        $this->stub_voice_options( $stored );
+
+        $this->post_voice( $this->make_voice_controller(), [ 'default_provider' => 'claude' ] );
+
+        $this->assertSame( [ 'extra' => 'keep' ], $stored['plume_site_voice'] );
+    }
+
+    public function test_save_ignores_non_scalar_site_voice(): void {
+        $stored = [ 'plume_site_voice' => [ 'extra' => 'keep' ] ];
+        $this->stub_voice_options( $stored );
+
+        $this->post_voice( $this->make_voice_controller(), [ 'site_voice' => [ 'extra' => 'hijack' ] ] );
+
+        $this->assertSame( [ 'extra' => 'keep' ], $stored['plume_site_voice'] );
+    }
+
+    public function test_save_site_voice_keeps_line_breaks(): void {
+        $stored = [];
+        $this->stub_voice_options( $stored );
+
+        $this->post_voice( $this->make_voice_controller(), [ 'site_voice' => "One\nTwo" ] );
+
+        $this->assertSame( "One\nTwo", $stored['plume_site_voice']['extra'] );
     }
 }

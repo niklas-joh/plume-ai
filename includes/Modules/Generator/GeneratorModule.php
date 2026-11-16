@@ -12,6 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Admin\AdminMenu;
+use Plume\Modules\Concerns\BuildsRestErrorResponse;
+use Plume\Providers\HttpTimeout;
+use Plume\Providers\ProviderException;
 use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
 use Plume\Tiers\TierManager;
@@ -20,6 +24,34 @@ use Plume\Tiers\TierManager;
  * Registers the post-generator admin assets and REST route.
  */
 class GeneratorModule {
+
+	use BuildsRestErrorResponse;
+
+	/**
+	 * Output-token ceiling for one generated post.
+	 *
+	 * Sized for the longest option (1200–1800 words, with Markdown and non-English
+	 * text needing more tokens per word). The previous 2000 cut long drafts off
+	 * mid-sentence. This is a ceiling, not a cost: billing is on tokens actually
+	 * produced, and the managed service caps every plan above this value.
+	 *
+	 * @since NEXT_VERSION
+	 * @var int
+	 */
+	private const MAX_OUTPUT_TOKENS = 4096;
+
+	/**
+	 * HTTP timeout in seconds for one generation request.
+	 *
+	 * A full 4096-token draft takes about 55 s at ~78 tokens/s and 80–100 s on slower
+	 * 40–50 tokens/s models, so the 60 s default cut long drafts off. 120 s leaves
+	 * headroom. Hosts and CDNs that close connections at 60–100 s are unaffected by this
+	 * value; streaming (#1044) is the full fix for those.
+	 *
+	 * @since NEXT_VERSION
+	 * @var int
+	 */
+	private const REQUEST_TIMEOUT = 120;
 
 	/**
 	 * Register WordPress hooks for this module.
@@ -61,6 +93,8 @@ class GeneratorModule {
 			true
 		);
 
+		\wp_set_script_translations( 'plume-generator', 'plume', PLUME_DIR . 'languages' );
+
 		\wp_localize_script(
 			'plume-generator',
 			'plumeData',
@@ -70,6 +104,8 @@ class GeneratorModule {
 				'currentPostId' => 0,
 				'isPaid'        => TierManager::is_paid(),
 				'siteTitle'     => \get_bloginfo( 'name' ),
+				'websiteUrl'    => PLUME_WEBSITE_URL,
+				'settingsUrl'   => AdminMenu::settings_url(),
 			]
 		);
 	}
@@ -124,8 +160,16 @@ class GeneratorModule {
 	 * Generate a draft post from the request parameters using the default AI provider.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Error bodies carry `message` and `code` alongside `error`;
+	 *                      credit exhaustion is returned as 429 'rate_limit_exceeded' and
+	 *                      other provider failures as 502 'provider_error'; a request that
+	 *                      times out is 502 'request_timeout'.
 	 * @param \WP_REST_Request $request Incoming REST request.
-	 * @return \WP_REST_Response 201 on success with post_id, edit_url, content, credits_used; 500 on error.
+	 * @return \WP_REST_Response 201 on success with post_id, edit_url, content, credits_used;
+	 *                           429 when the managed service's credits are exhausted; 502 on
+	 *                           other provider errors (code 'provider_error', or
+	 *                           'request_timeout' when the provider took too long); 500 on
+	 *                           unexpected errors.
 	 */
 	public static function handle_generate( \WP_REST_Request $request ): \WP_REST_Response {
 		$title    = $request->get_param( 'title' );
@@ -163,7 +207,8 @@ class GeneratorModule {
 				system:      $voice->build_system_prompt( 'Post generation', \get_current_user_id() ),
 				model:       $provider->get_default_model(),
 				temperature: 0.7,
-				max_tokens:  2000,
+				max_tokens:  self::MAX_OUTPUT_TOKENS,
+				timeout:     self::REQUEST_TIMEOUT,
 				metadata:    [
 					'feature'    => 'generator',
 					'post_title' => $title,
@@ -187,7 +232,7 @@ class GeneratorModule {
 			);
 
 			if ( \is_wp_error( $post_id ) ) {
-				return new \WP_REST_Response( [ 'error' => $post_id->get_error_message() ], 500 );
+				return self::error_response( $post_id->get_error_message(), 'post_insert_failed', 500 );
 			}
 
 			return new \WP_REST_Response(
@@ -200,12 +245,30 @@ class GeneratorModule {
 				201
 			);
 
+		} catch ( ProviderException $e ) {
+			// Provider messages are written for the user (out of credits, missing key,
+			// site still connecting), so they are passed on. Credit exhaustion keeps
+			// its own code and status so the wizard can show the out-of-credits notice.
+			if ( HttpTimeout::ERROR_CODE === $e->get_error_code() ) {
+				// 502, not 504: hosts and CDNs emit 504 themselves and may replace the JSON body.
+				return self::error_response( HttpTimeout::message(), HttpTimeout::ERROR_CODE, 502 );
+			}
+
+			$out_of_credits = 'rate_limit_exceeded' === $e->get_error_code();
+			$message        = '' !== $e->getMessage() ? $e->getMessage() : __( 'Provider error. Please try again later.', 'plume' );
+			return self::error_response(
+				$message,
+				$out_of_credits ? 'rate_limit_exceeded' : 'provider_error',
+				$out_of_credits ? 429 : 502
+			);
 		} catch ( \Throwable $e ) {
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				\error_log( '[Plume][Generator] ' . get_class( $e ) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
 			}
-			return new \WP_REST_Response( [ 'error' => $e->getMessage() ], 500 );
+			// An unexpected exception's text is for developers (and the debug log
+			// above), not for the person waiting for a draft.
+			return self::error_response( __( 'An unexpected error occurred. Please try again later.', 'plume' ), 'unexpected_error', 500 );
 		}
 	}
 }

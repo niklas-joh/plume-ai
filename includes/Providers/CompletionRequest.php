@@ -31,6 +31,8 @@ final class CompletionRequest {
 	 * @param array  $tools           Tool definitions in provider wire format (empty = no tools).
 	 * @param bool   $force_tool_use  When true, instructs the provider to always call a tool rather
 	 *                                than returning a bare text response. Requires tools to be non-empty.
+	 * @param int    $timeout         Per-request HTTP timeout in seconds; 0 = use the provider default
+	 *                                (PLUME_HTTP_TIMEOUT, or 120 s for Ollama). Added NEXT_VERSION.
 	 */
 	public function __construct(
 		public readonly array $messages,
@@ -41,5 +43,6 @@ final class CompletionRequest {
 		public readonly array $metadata = [],
 		public readonly array $tools = [],
 		public readonly bool $force_tool_use = false,
+		public readonly int $timeout = 0,
 	) {}
 }

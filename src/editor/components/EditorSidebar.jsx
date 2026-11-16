@@ -1,6 +1,7 @@
 import { registerPlugin } from '@wordpress/plugins';
 import { PluginSidebar, PluginSidebarMoreMenuItem } from '@wordpress/edit-post';
 import { useSelect } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 import { Sparkles } from 'lucide-react';
 import MiniChat from './MiniChat';
 import BlockActions from './BlockActions';
@@ -12,8 +13,7 @@ import '../editor.css';
  * Block Editor plugin sidebar containing the mini chat, block actions, and SEO panels.
  *
  * Registered via `registerPlugin` so it appears in the editor's plugin sidebar
- * list. Block content updates are dispatched through `core/block-editor` rather
- * than returned to the component to avoid a React re-render cycle.
+ * list. BlockActions writes its results to the block itself.
  *
  * @return {ReactElement}
  */
@@ -21,45 +21,34 @@ function PlumeSidebar() {
 	const postId = useSelect( ( select ) =>
 		select( 'core/editor' ).getCurrentPostId()
 	);
-	const convId = null; // always creates a new conversation per block action
-
-	function handleBlockResult( content, clientId ) {
-		if ( ! clientId || ! content ) {
-			return;
-		}
-		// Dispatch block content update via wp.data.
-		const { dispatch } = window.wp?.data ?? {};
-		if ( dispatch ) {
-			dispatch( 'core/block-editor' ).updateBlockAttributes( clientId, {
-				content,
-			} );
-		}
-	}
 
 	return (
 		<>
 			<PluginSidebarMoreMenuItem target="plume-sidebar">
-				AI Mind
+				{ __( 'Plume AI', 'plume' ) }
 			</PluginSidebarMoreMenuItem>
 			<PluginSidebar
 				name="plume-sidebar"
-				title="AI Mind"
+				title={ __( 'Plume AI', 'plume' ) }
 				icon={ <Sparkles size={ 16 } /> }
 			>
 				<div className="plume-editor-sidebar">
 					<div className="plume-editor-panel">
-						<h3 className="plume-panel__heading">Chat</h3>
+						<h3 className="plume-panel__heading">
+							{ __( 'Chat', 'plume' ) }
+						</h3>
 						<MiniChat postId={ postId } />
 					</div>
 					<div className="plume-editor-panel">
-						<h3 className="plume-panel__heading">Block Actions</h3>
-						<BlockActions
-							convId={ convId }
-							onResult={ handleBlockResult }
-						/>
+						<h3 className="plume-panel__heading">
+							{ __( 'Block actions', 'plume' ) }
+						</h3>
+						<BlockActions />
 					</div>
 					<div className="plume-editor-panel">
-						<h3 className="plume-panel__heading">SEO</h3>
+						<h3 className="plume-panel__heading">
+							{ __( 'SEO', 'plume' ) }
+						</h3>
 						<SeoPanel />
 					</div>
 				</div>

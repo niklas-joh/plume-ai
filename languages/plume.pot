@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-03-25T12:43:36+00:00\n"
+"POT-Creation-Date: 2026-11-15T14:03:38+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: plume\n"
@@ -39,15 +39,15 @@ msgstr ""
 msgid "https://github.com/niklas-joh"
 msgstr ""
 
-#: includes/Admin/ActivationNotice.php:61
+#: includes/Admin/ActivationNotice.php:74
 msgid "Plume AI - Write and Design — External Services & Privacy Notice"
 msgstr ""
 
-#: includes/Admin/ActivationNotice.php:65
-msgid "This plugin connects to Plume AI - Write and Design and to third-party AI providers (Anthropic Claude, OpenAI, Google Gemini). Only your site address is shared during setup — no content leaves your site until you start a conversation. Your messages are then forwarded to the AI provider on your behalf."
+#: includes/Admin/ActivationNotice.php:78
+msgid "This plugin connects to Plume AI - Write and Design and to third-party AI providers (Anthropic Claude, OpenAI, Google Gemini). Nothing is transmitted until you first use an AI feature — at that point your site address is shared once to connect to the service, and the content you submit is forwarded to the AI provider on your behalf."
 msgstr ""
 
-#: includes/Admin/ActivationNotice.php:75
+#: includes/Admin/ActivationNotice.php:88
 msgid "Learn more"
 msgstr ""
 
@@ -56,6 +56,7 @@ msgid "Plume AI — Write and Design"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:32
+#: assets/editor/index.js:5
 msgid "Plume AI"
 msgstr ""
 
@@ -64,52 +65,1901 @@ msgid "Dashboard"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:43
+#: assets/admin/index.js:15
+#: assets/editor/index.js:5
 msgid "Chat"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:44
+#: assets/admin/index.js:15
 msgid "Generator"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:45
+#: assets/admin/index.js:15
+#: assets/editor/index.js:5
+#: assets/seo/index.js:3
 msgid "SEO"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:46
+#: assets/admin/index.js:15
+#: assets/images/index.js:5
 msgid "Images"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:47
+#: assets/admin/index.js:4
+#: assets/admin/index.js:18
 msgid "Settings"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:53
+msgid "Usage"
+msgstr ""
+
+#: includes/Admin/AdminMenu.php:60
 msgid "Upgrade"
 msgstr ""
 
-#: includes/Admin/AdminMenu.php:54
+#: includes/Admin/AdminMenu.php:61
 msgid "Upgrade ✦"
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:282
-#: includes/Modules/Chat/SettingsRestController.php:155
-msgid "Insufficient permissions."
+#: includes/Admin/OnboardingRestController.php:155
+#: includes/Admin/TestKeyRestController.php:197
+msgid "You do not have permission to manage plugin settings."
 msgstr ""
 
-#: includes/Modules/Images/ImagesModule.php:132
-msgid "All image generation requests failed."
+#: includes/Admin/SiteUnreachableNotice.php:136
+msgid "Plume AI - Write and Design — This site could not be connected"
 msgstr ""
 
-#: includes/Modules/Seo/SeoModule.php:121
-#: includes/Modules/Seo/SeoModule.php:201
-msgid "Post not found."
+#: includes/Admin/SiteUnreachableNotice.php:144
+msgid "Retry verification now"
 msgstr ""
 
-#: includes/Modules/Seo/SeoModule.php:125
-#: includes/Modules/Seo/SeoModule.php:205
+#: includes/Admin/SiteUnreachableNotice.php:177
+msgid "Plume AI - Write and Design — This site is now connected."
+msgstr ""
+
+#: includes/Admin/SiteUnreachableNotice.php:194
+msgid "Plume AI - Write and Design — Verification failed again. See the message below for details."
+msgstr ""
+
+#: includes/Admin/SiteUnreachableNotice.php:203
+msgid "Plume AI - Write and Design — Verification failed again. Please try again later."
+msgstr ""
+
+#: includes/Admin/SiteUnreachableNotice.php:225
+#: includes/Admin/TierSyncBackfillNotice.php:288
+msgid "You do not have permission to perform this action."
+msgstr ""
+
+#: includes/Admin/TestKeyRestController.php:126
+msgid "Unsupported provider."
+msgstr ""
+
+#. translators: generic API key error
+#: includes/Admin/TestKeyRestController.php:146
+#: assets/admin/index.js:13
+msgid "Invalid API key."
+msgstr ""
+
+#. translators: %s: error message returned by the AI provider.
+#: includes/Admin/TestKeyRestController.php:158
+#, php-format
+msgid "The key could not be verified: %s"
+msgstr ""
+
+#: includes/Admin/TestKeyRestController.php:159
+msgid "The key could not be verified. The provider did not give a reason."
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:85
+msgid "Current plan"
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:89
+msgid "Service connection"
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:92
+msgid "Connected"
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:94
+msgid "Not connected — connects automatically the first time you use an AI feature"
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:100
+msgid "Credits used this month"
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:116
+msgid "Credits remaining"
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:121
+msgid "Credit usage"
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:122
+msgid "No credit limit (your API key, your cost)"
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:129
+msgid "Upgrade your plan"
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:130
+msgid "Pro Managed gives you 500 credits/month on the managed service and access to more models. Alternatively, enter your own API key in Settings — free on every plan — for no credit limit, billed directly by your provider."
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:133
+msgid "Pro Managed — Monthly"
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:136
+msgid "Pro Managed — Annual"
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:139
+msgid "Use your own API key"
+msgstr ""
+
+#: includes/Admin/TierStatusPage.php:147
+msgid "Manage your API keys →"
+msgstr ""
+
+#: includes/Admin/TierSyncBackfillNotice.php:142
+msgid "Plume AI - Write and Design — Plan sync setup required"
+msgstr ""
+
+#: includes/Admin/TierSyncBackfillNotice.php:146
+msgid "Your site is connected to Plume AI - Write and Design, but the connection has not been fully set up yet. Without this step, plan upgrades and cancellations will not take effect automatically. Click the button below to complete the one-time setup."
+msgstr ""
+
+#: includes/Admin/TierSyncBackfillNotice.php:157
+msgid "Complete setup"
+msgstr ""
+
+#: includes/Admin/TierSyncBackfillNotice.php:193
+msgid "Plume AI - Write and Design — Plan verification required"
+msgstr ""
+
+#: includes/Admin/TierSyncBackfillNotice.php:197
+msgid "Your site shows a paid plan in the database, but the plan integrity signature is missing or does not match. This can happen after a direct database edit or a migration. Until re-verified, the plugin will treat your site as free. Click below to re-sync your plan with Plume AI - Write and Design."
+msgstr ""
+
+#: includes/Admin/TierSyncBackfillNotice.php:208
+msgid "Re-sync plan now"
+msgstr ""
+
+#: includes/Admin/TierSyncBackfillNotice.php:241
+msgid "Plume AI - Write and Design — Plan sync is now active. Your site will automatically receive plan updates."
+msgstr ""
+
+#: includes/Admin/TierSyncBackfillNotice.php:257
+msgid "Plume AI - Write and Design — Setup failed."
+msgstr ""
+
+#: includes/Admin/TierSyncBackfillNotice.php:265
+msgid "If this persists, please try again in a few minutes. Contact support if the problem continues."
+msgstr ""
+
+#: includes/Admin/UsageWidget.php:67
+msgid "Plume Usage"
+msgstr ""
+
+#: includes/Admin/UsageWidget.php:87
+msgid "Plan"
+msgstr ""
+
+#: includes/Admin/UsageWidget.php:109
+#: assets/admin/index.js:3
+msgid "credits"
+msgstr ""
+
+#: includes/Admin/UsageWidget.php:111
+#: assets/usage/index.js:2
+msgid "remaining"
+msgstr ""
+
+#: includes/Admin/UsageWidget.php:114
+msgid "Over 80% of monthly credits used. Consider upgrading."
+msgstr ""
+
+#: includes/Admin/UsageWidget.php:117
+msgid "No credit limit — using your own API key."
+msgstr ""
+
+#: includes/Modules/Chat/ChatRestController.php:232
+msgid "Failed to create conversation."
+msgstr ""
+
+#: includes/Modules/Chat/ChatRestController.php:236
+msgid "Failed to retrieve conversation."
+msgstr ""
+
+#: includes/Modules/Chat/ChatRestController.php:263
+#: includes/Modules/Chat/ChatRestController.php:360
+#: includes/Modules/Seo/SeoModule.php:228
+#: includes/Modules/Seo/SeoModule.php:422
 msgid "Forbidden."
 msgstr ""
 
-#: includes/Modules/Seo/SeoModule.php:180
+#. translators: %s: provider slug
+#: includes/Modules/Chat/ChatRestController.php:441
+#, php-format
+msgid "No API key configured for \"%s\". Please add one in Plume → Settings."
+msgstr ""
+
+#: includes/Modules/Chat/ChatRestController.php:534
+msgid "I've reached this turn's usage limit while working on your request. Here's what I was able to complete before stopping."
+msgstr ""
+
+#: includes/Modules/Chat/ChatRestController.php:605
+msgid "I've prepared the changes for your review."
+msgstr ""
+
+#: includes/Modules/Chat/ChatRestController.php:618
+msgid "The assistant reached the maximum number of steps without finishing. Please try rephrasing your request or breaking it into smaller tasks."
+msgstr ""
+
+#: includes/Modules/Chat/ChatRestController.php:698
+#: includes/Modules/Chat/ChatRestController.php:726
+msgid "Not found."
+msgstr ""
+
+#: includes/Modules/Chat/ChatRestController.php:701
+msgid "You cannot update this conversation."
+msgstr ""
+
+#: includes/Modules/Chat/ChatRestController.php:708
+msgid "Failed to update conversation."
+msgstr ""
+
+#: includes/Modules/Chat/ChatRestController.php:729
+msgid "You cannot delete this conversation."
+msgstr ""
+
+#: includes/Modules/Chat/ChatRestController.php:847
+#: includes/Modules/Chat/PlansRestController.php:203
+#: includes/Modules/Chat/SettingsRestController.php:189
+#: includes/Tools/ToolExecutor.php:559
+msgid "Insufficient permissions."
+msgstr ""
+
+#: includes/Modules/Chat/PlansRestController.php:127
+msgid "This plan has expired or does not exist. Please ask the assistant again."
+msgstr ""
+
+#: includes/Modules/Chat/PlansRestController.php:249
+#: includes/Modules/Seo/SeoModule.php:184
+msgid "Sorry, you are not allowed to edit this content."
+msgstr ""
+
+#: includes/Modules/Chat/PlansRestController.php:257
+#: includes/Modules/Chat/PlansRestController.php:261
+msgid "Sorry, you are not allowed to create content of this type."
+msgstr ""
+
+#: includes/Modules/Chat/PlansRestController.php:269
+msgid "Sorry, you are not allowed to publish this content."
+msgstr ""
+
+#: includes/Modules/Generator/GeneratorModule.php:258
+#: includes/Modules/Seo/SeoModule.php:274
+msgid "Provider error. Please try again later."
+msgstr ""
+
+#: includes/Modules/Generator/GeneratorModule.php:271
+#: includes/Modules/Seo/SeoModule.php:280
+msgid "An unexpected error occurred. Please try again later."
+msgstr ""
+
+#. translators: %s: AI provider name, e.g. "OpenAI".
+#: includes/Modules/Images/ImagesModule.php:178
+#, php-format
+msgid "AI images use your own API key. Add a %s API key in Plume AI → Settings, then try again."
+msgstr ""
+
+#: includes/Modules/Images/ImagesModule.php:213
+#: includes/Modules/Images/ImagesModule.php:217
+msgid "All image generation requests failed."
+msgstr ""
+
+#. translators: %s: error message returned by the image provider.
+#: includes/Modules/Images/ImagesModule.php:216
+#, php-format
+msgid "Image generation failed: %s"
+msgstr ""
+
+#: includes/Modules/Seo/SeoModule.php:224
+#: includes/Modules/Seo/SeoModule.php:319
+#: includes/Modules/Seo/SeoModule.php:418
+#: includes/Tools/ToolExecutor.php:555
+msgid "Post not found."
+msgstr ""
+
+#: includes/Modules/Seo/SeoModule.php:289
 msgid "AI returned invalid JSON."
+msgstr ""
+
+#: includes/Providers/HttpTimeout.php:72
+msgid "The request took too long to finish. Try again in a moment."
+msgstr ""
+
+#. translators: %s: AI provider name, e.g. "OpenAI".
+#: includes/Providers/ProviderFactory.php:235
+#, php-format
+msgid "You have not added an API key for %s. Add one under Settings → Providers, or choose a different model."
+msgstr ""
+
+#: includes/Proxy/ProxyClient.php:90
+msgid "Failed to encode request payload."
+msgstr ""
+
+#: includes/Proxy/ProxyClient.php:119
+msgid "Monthly usage limit reached."
+msgstr ""
+
+#: includes/Proxy/ProxyClient.php:132
+msgid "Reconnecting this site to Plume AI - Write and Design. Please try sending your message again in a moment."
+msgstr ""
+
+#: includes/Proxy/ProxyClient.php:142
+msgid "This AI model is temporarily unavailable. Please try again later or choose another model."
+msgstr ""
+
+#. translators: %d is the HTTP status code returned by the service.
+#: includes/Proxy/ProxyClient.php:147
+#, php-format
+msgid "Plume AI - Write and Design returned HTTP %d"
+msgstr ""
+
+#: includes/Proxy/SiteRegistration.php:249
+msgid "Plume AI - Write and Design could not reach this site from the internet. This usually means the site is only available locally (e.g. localhost or a development environment) and has no public address."
+msgstr ""
+
+#: includes/Proxy/SiteRegistration.php:251
+msgid "Plume AI - Write and Design could not verify this site's security certificate. Please check that the site has a valid, trusted SSL/TLS certificate."
+msgstr ""
+
+#: includes/Proxy/SiteRegistration.php:253
+msgid "Plume AI - Write and Design could not reach this site because it is protected by a login wall (HTTP Basic Auth). Please allow public access to the verification endpoint, or remove the login wall."
+msgstr ""
+
+#: includes/Proxy/SiteRegistration.php:255
+msgid "Plume AI - Write and Design could not reach this site because it appears to be blocked by a firewall, VPN, IP allow-list, or security plugin. Please allow outside access to the verification endpoint."
+msgstr ""
+
+#: includes/Proxy/SiteRegistration.php:257
+msgid "Plume AI - Write and Design could not verify that this site is publicly reachable, and this issue is unlikely to resolve on its own."
+msgstr ""
+
+#: includes/Proxy/SiteRegistration.php:313
+msgid "Connecting this site to Plume AI - Write and Design. Please try sending your message again in a moment."
+msgstr ""
+
+#: includes/Proxy/SiteRegistration.php:371
+msgid "This site is not registered with Plume AI - Write and Design."
+msgstr ""
+
+#: includes/Tiers/TierConfig.php:84
+#: assets/admin/index.js:20
+msgid "Free"
+msgstr ""
+
+#: includes/Tiers/TierConfig.php:85
+msgid "Pro Managed"
+msgstr ""
+
+#: includes/Tiers/TierConfig.php:86
+msgid "Pro BYOK"
+msgstr ""
+
+#: includes/Tools/ToolExecutor.php:550
+msgid "A valid post_id is required."
+msgstr ""
+
+#: assets/admin/index.js:1
+msgid "No conversations yet."
+msgstr ""
+
+#: assets/admin/index.js:1
+#: assets/admin/index.js:2
+#: assets/admin/index.js:3
+msgid "Untitled"
+msgstr ""
+
+#: assets/admin/index.js:1
+msgid "Confirm delete"
+msgstr ""
+
+#. translators: %s: conversation title.
+#: assets/admin/index.js:2
+#, js-format
+msgid "Confirm delete conversation: %s"
+msgstr ""
+
+#: assets/admin/index.js:2
+msgid "Cancel delete"
+msgstr ""
+
+#: assets/admin/index.js:2
+msgid "Delete conversation"
+msgstr ""
+
+#. translators: %s: conversation title.
+#: assets/admin/index.js:3
+#, js-format
+msgid "Delete conversation: %s"
+msgstr ""
+
+#: assets/admin/index.js:3
+#: assets/seo/index.js:3
+msgid "Draft"
+msgstr ""
+
+#: assets/admin/index.js:3
+#: assets/seo/index.js:3
+msgid "Published"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Pending review"
+msgstr ""
+
+#: assets/admin/index.js:3
+#: assets/admin/index.js:9
+msgid "Apply update"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Create post"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Post updated."
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Post created."
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Edit post"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Proposed update"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "New post"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Dismiss plan"
+msgstr ""
+
+#: assets/admin/index.js:3
+#: assets/images/index.js:2
+#: assets/seo/index.js:2
+msgid "Title"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Updated content"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Content"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Status"
+msgstr ""
+
+#: assets/admin/index.js:3
+#: assets/admin/index.js:9
+#: assets/editor/index.js:1
+msgid "Something went wrong. Please try again."
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Cancel edit"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Edit"
+msgstr ""
+
+#: assets/admin/index.js:3
+#: assets/editor/index.js:1
+#: assets/generator/index.js:1
+#: assets/images/index.js:3
+#: assets/seo/index.js:3
+msgid "You’ve used all your credits for this billing period."
+msgstr ""
+
+#: assets/admin/index.js:3
+#: assets/editor/index.js:1
+#: assets/generator/index.js:1
+#: assets/images/index.js:3
+#: assets/seo/index.js:3
+msgid "Use your own API key (free)"
+msgstr ""
+
+#: assets/admin/index.js:3
+#: assets/editor/index.js:1
+#: assets/generator/index.js:1
+#: assets/images/index.js:3
+#: assets/seo/index.js:3
+msgid "Get more credits →"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Fetched recent posts"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Read post content"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Searched posts"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Fetched pages"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Read site info"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Generated SEO data"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Revision requested"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Overall note:"
+msgstr ""
+
+#: assets/admin/index.js:3
+#: assets/admin/index.js:15
+msgid "Try again"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Copied"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Copy"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "View post"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Thinking…"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Still working on it…"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Longer answers and post edits can take up to a minute."
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Search post context"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Search posts, pages, products…"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "Searching…"
+msgstr ""
+
+#: assets/admin/index.js:3
+msgid "No results"
+msgstr ""
+
+#. translators: %s: post title.
+#: assets/admin/index.js:4
+#, js-format
+msgid "Edit \"%s\" (opens in new tab)"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Remove context"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Ask anything, or describe what you want to create…"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Message"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Attach post context"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Send (Enter)"
+msgstr ""
+
+#: assets/admin/index.js:4
+#: assets/admin/index.js:9
+msgid "Summarise this post"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Please summarise the current post in 2–3 sentences."
+msgstr ""
+
+#: assets/admin/index.js:4
+#: assets/admin/index.js:9
+msgid "Improve readability"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Review this content and suggest readability improvements."
+msgstr ""
+
+#: assets/admin/index.js:4
+#: assets/admin/index.js:9
+msgid "Write a post"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Help me write a new blog post. What topic should we start with?"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Generate SEO title"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Generate an optimised SEO title for this post."
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Write meta description"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Write a compelling 155-character meta description for this post."
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Create featured image"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Generate a featured image for this post."
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Quick actions"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "AI"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Model"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "AI provider"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "No API key configured"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Default model"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Simple"
+msgstr ""
+
+#: assets/admin/index.js:4
+#: assets/admin/index.js:5
+msgid "Saved"
+msgstr ""
+
+#. translators: %s: name of the default AI model.
+#: assets/admin/index.js:5
+#, js-format
+msgid "Plugin default — %s"
+msgstr ""
+
+#: assets/admin/index.js:5
+msgid "Advanced"
+msgstr ""
+
+#. translators: %d: number of comments
+#: assets/admin/index.js:6
+#, js-format
+msgid "%d comment on this change"
+msgid_plural "%d comments on this change"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/admin/index.js:6
+msgid "Comments on this change"
+msgstr ""
+
+#: assets/admin/index.js:6
+msgid "Delete"
+msgstr ""
+
+#: assets/admin/index.js:6
+msgid "Cancel comment"
+msgstr ""
+
+#: assets/admin/index.js:6
+msgid "Add a comment…"
+msgstr ""
+
+#: assets/admin/index.js:6
+#: assets/admin/index.js:14
+msgid "Save"
+msgstr ""
+
+#: assets/admin/index.js:6
+#: assets/images/index.js:4
+#: assets/seo/index.js:3
+msgid "Discard"
+msgstr ""
+
+#: assets/admin/index.js:6
+msgid "Unchanged"
+msgstr ""
+
+#: assets/admin/index.js:6
+msgid "Removed text"
+msgstr ""
+
+#: assets/admin/index.js:6
+msgid "Proposed text"
+msgstr ""
+
+#: assets/admin/index.js:6
+msgid "Changed text"
+msgstr ""
+
+#: assets/admin/index.js:6
+msgid "Add comment"
+msgstr ""
+
+#: assets/admin/index.js:6
+msgid "Removed"
+msgstr ""
+
+#: assets/admin/index.js:6
+msgid "Added"
+msgstr ""
+
+#: assets/admin/index.js:6
+msgid "Commented"
+msgstr ""
+
+#: assets/admin/index.js:6
+msgid "Discard your comments and cancel?"
+msgstr ""
+
+#. translators: %d: number of proposed changes
+#: assets/admin/index.js:7
+#, js-format
+msgid "%d change — drag to select text and comment"
+msgid_plural "%d changes — drag to select text and comment"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of saved comments
+#: assets/admin/index.js:8
+#, js-format
+msgid "%d comment — not yet submitted"
+msgid_plural "%d comments — not yet submitted"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of saved comments
+#: assets/admin/index.js:9
+#, js-format
+msgid "%d comment"
+msgid_plural "%d comments"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/admin/index.js:9
+msgid "Review Update Drawer"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Drag to resize"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Review Update"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Revised"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Close drawer"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Dismiss"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "AI response"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "AI is revising…"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Summary of changes"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Overall feedback"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Any overall notes for the AI…"
+msgstr ""
+
+#: assets/admin/index.js:9
+#: assets/seo/index.js:3
+msgid "Cancel"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "No revised plan was returned. Please try again."
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Something went wrong. Your comments are saved — try again."
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Request revision"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "New conversation"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Expand sidebar"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Collapse sidebar"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Conversations"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Failed to delete. Please try again."
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Model and quick actions"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "How can I help you today?"
+msgstr ""
+
+#: assets/admin/index.js:9
+msgid "Ollama (local)"
+msgstr ""
+
+#. translators: %s: AI provider name, e.g. "OpenAI".
+#: assets/admin/index.js:10
+#, js-format
+msgid "%s (needs your own API key)"
+msgstr ""
+
+#: assets/admin/index.js:10
+msgid "Default Providers"
+msgstr ""
+
+#: assets/admin/index.js:10
+msgid "Default AI Provider"
+msgstr ""
+
+#. translators: %1$s: AI provider name, e.g. "OpenAI".
+#: assets/admin/index.js:11
+#, js-format
+msgid "%1$s is not available through the Plume service. Add your own %1$s API key or choose a different provider."
+msgstr ""
+
+#. translators: %1$s: AI provider name, e.g. "OpenAI".
+#: assets/admin/index.js:12
+#, js-format
+msgid "%1$s is temporarily unavailable through the Plume service. Chats use Claude until you add your own %1$s API key below."
+msgstr ""
+
+#: assets/admin/index.js:12
+msgid "Image Provider"
+msgstr ""
+
+#: assets/admin/index.js:12
+msgid "API Keys"
+msgstr ""
+
+#: assets/admin/index.js:12
+msgid "Enter API key…"
+msgstr ""
+
+#. translators: 1: AI provider name, e.g. "OpenAI". 2: error message from that provider.
+#: assets/admin/index.js:13
+#, js-format
+msgid "%1$s rejected this key, so it was not saved: %2$s"
+msgstr ""
+
+#. translators: %s: AI provider name, e.g. "OpenAI".
+#: assets/admin/index.js:14
+#, js-format
+msgid "Saved, but the key could not be checked with %s just now. If chats fail, check the key."
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Key verified and saved."
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Checking…"
+msgstr ""
+
+#: assets/admin/index.js:14
+#: assets/admin/index.js:15
+#: assets/admin/index.js:20
+msgid "Saving…"
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Ollama (Self-hosted)"
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Ollama URL"
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Site Voice & Persona"
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Define the writing style, tone, and persona the AI should adopt across all features. These instructions are applied site-wide."
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Describe the writing style and persona for AI responses…"
+msgstr ""
+
+#. translators: 1: number of characters typed, 2: maximum number of characters allowed.
+#: assets/admin/index.js:15
+#, js-format
+msgid "%1$d / %2$d characters"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Save Voice"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "AI chat assistant panel in the WordPress admin."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Text Rewrite"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Rewrite and improve post content using AI."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Summaries"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Automatically generate post summaries and excerpts."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "AI-assisted meta titles, descriptions, and keyword suggestions."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Generate and insert AI images directly into posts."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Full AI-driven post and page generation workflow."
+msgstr ""
+
+#: assets/admin/index.js:15
+#: assets/usage/index.js:1
+msgid "Usage"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Track token consumption and API usage across providers."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Enabled Modules"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Enable or disable individual AI modules."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Post Type Access"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Select which post types the AI assistant can read and write."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Enable write tools — allow AI to create and update posts"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "When enabled, the AI can draft and publish content directly."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Providers"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Voice"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Features"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Plume — Settings"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Saved successfully"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Save failed — please try again"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Your settings could not be loaded. Check your connection and try again."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Loading settings…"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Setup"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Re-run the onboarding wizard to change your API connection or provider settings."
+msgstr ""
+
+#: assets/admin/index.js:15
+#: assets/admin/index.js:18
+msgid "Run setup again"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Your API key appears to be invalid."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Check your Settings."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "You're running low on free credits."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Add your own key for unlimited access, or upgrade to Pro."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Add API key"
+msgstr ""
+
+#: assets/admin/index.js:15
+#: assets/admin/index.js:20
+msgid "Upgrade to Pro"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Go to Settings"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Write a new post"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Describe what you want — AI drafts it for you."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Edit with AI"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Open any post with the AI sidebar to rewrite or improve."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Generate an image"
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Create a featured image or illustration from a prompt."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Brainstorm, research, or ask anything about your content."
+msgstr ""
+
+#: assets/admin/index.js:15
+msgid "Start"
+msgstr ""
+
+#. translators: %s: the user's current subscription tier slug.
+#: assets/admin/index.js:16
+#: assets/usage/index.js:2
+#, js-format
+msgid "Tier: %s"
+msgstr ""
+
+#: assets/admin/index.js:16
+msgid "Unlimited"
+msgstr ""
+
+#: assets/admin/index.js:16
+#: assets/usage/index.js:2
+msgid "of quota used"
+msgstr ""
+
+#. translators: 1: credits used, 2: monthly credit limit
+#: assets/admin/index.js:17
+#, js-format
+msgid "%1$s / %2$s credits"
+msgstr ""
+
+#: assets/admin/index.js:17
+#: assets/usage/index.js:2
+msgid "Monthly limit reached. Upgrade your plan to continue."
+msgstr ""
+
+#: assets/admin/index.js:17
+msgid "Getting started guide"
+msgstr ""
+
+#: assets/admin/index.js:17
+msgid "Five minutes to your first AI-generated post."
+msgstr ""
+
+#: assets/admin/index.js:17
+msgid "Prompt writing tips"
+msgstr ""
+
+#: assets/admin/index.js:17
+msgid "How to write prompts that consistently produce better output."
+msgstr ""
+
+#: assets/admin/index.js:17
+msgid "API key setup"
+msgstr ""
+
+#: assets/admin/index.js:17
+msgid "Connect OpenAI, Claude, or Gemini to remove usage limits."
+msgstr ""
+
+#: assets/admin/index.js:17
+msgid "Changelog"
+msgstr ""
+
+#: assets/admin/index.js:17
+msgid "Resources"
+msgstr ""
+
+#. translators: %s: plugin version number, e.g. "1.2.0".
+#: assets/admin/index.js:18
+#, js-format
+msgid "What's new in v%s."
+msgstr ""
+
+#: assets/admin/index.js:18
+msgid "Documentation ↗"
+msgstr ""
+
+#: assets/admin/index.js:18
+msgid "Support ↗"
+msgstr ""
+
+#: assets/admin/index.js:18
+msgid "Get API key ↗"
+msgstr ""
+
+#: assets/admin/index.js:18
+#: assets/admin/index.js:19
+msgid "Paste your OpenAI API key"
+msgstr ""
+
+#: assets/admin/index.js:18
+msgid "Paste your Anthropic API key"
+msgstr ""
+
+#: assets/admin/index.js:18
+#: assets/admin/index.js:20
+msgid "Paste your Gemini API key"
+msgstr ""
+
+#. translators: %s: image model name, e.g. "DALL·E".
+#: assets/admin/index.js:19
+#: assets/admin/index.js:20
+#, js-format
+msgid "%s docs ↗"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Use Plugin API"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Start immediately. Built-in access with usage limits. No API key needed. Registers your site to run AI models."
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Use my own API key"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Connect OpenAI, Claude, or Gemini directly. Unlimited usage."
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Full access, priority support, and advanced features."
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Welcome to Plume - Write and Design"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "How would you like to connect? You can change this anytime in Settings."
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Skip setup"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Go to Upgrade ↗"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Get started →"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Invalid key"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Network error"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Choose your AI providers"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Pick a text provider and paste your key. Image generation is optional."
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Text model"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Setup guide ↗"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Paste your API key"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Test key"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "✓ Valid"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Image model"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Optional"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Add an image generation provider. Can be configured later in Settings."
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "More coming"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Paste your image API key"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "← Back"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Finish setup →"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "You're all set"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Plume - Write and Design is ready to use."
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Setup complete"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Change this anytime in Settings."
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Finishing setup — this can take a few seconds."
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Open Chat →"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Go to Dashboard instead"
+msgstr ""
+
+#: assets/admin/index.js:20
+msgid "Using Plugin API (free tier)."
+msgstr ""
+
+#. translators: %s: AI provider name, e.g. "Claude".
+#: assets/admin/index.js:21
+#, js-format
+msgid "Using your own %s API key."
+msgstr ""
+
+#: assets/admin/index.js:21
+msgid "Plume - Write and Design"
+msgstr ""
+
+#: assets/admin/index.js:21
+msgid "AI-powered content creation for WordPress"
+msgstr ""
+
+#. translators: %s: plugin version number, e.g. "1.2.0".
+#: assets/admin/index.js:22
+#, js-format
+msgid "v%s"
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Ask anything about this post…"
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Ask AI…"
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Message to the AI"
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Send"
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Rewrite block"
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Block rewritten."
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Make it shorter"
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Block shortened."
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Elaborate"
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Block expanded."
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Select a text block to use AI actions."
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "The AI returned no text. Please try again."
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Undo"
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "The AI action failed. Please try again."
+msgstr ""
+
+#: assets/editor/index.js:1
+msgid "Working…"
+msgstr ""
+
+#. translators: %d: number of SEO checks passed, out of three.
+#: assets/editor/index.js:2
+#, js-format
+msgid "%d/3"
+msgstr ""
+
+#. translators: %d: number of words in the post.
+#: assets/editor/index.js:3
+#: assets/editor/index.js:5
+#, js-format
+msgid "%d word"
+msgid_plural "%d words"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/editor/index.js:3
+msgid "Title length 30–60 chars"
+msgstr ""
+
+#. translators: %d: number of characters in the post title.
+#: assets/editor/index.js:4
+#, js-format
+msgid "%d char"
+msgid_plural "%d chars"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/editor/index.js:4
+msgid "Excerpt present"
+msgstr ""
+
+#: assets/editor/index.js:4
+msgid "300+ words"
+msgstr ""
+
+#: assets/editor/index.js:5
+msgid "Block actions"
+msgstr ""
+
+#: assets/generator/index.js:1
+msgid "Professional"
+msgstr ""
+
+#: assets/generator/index.js:1
+msgid "Casual"
+msgstr ""
+
+#: assets/generator/index.js:1
+msgid "Friendly"
+msgstr ""
+
+#: assets/generator/index.js:1
+msgid "Authoritative"
+msgstr ""
+
+#: assets/generator/index.js:1
+msgid "Witty"
+msgstr ""
+
+#: assets/generator/index.js:1
+msgid "Short (300–500 words)"
+msgstr ""
+
+#: assets/generator/index.js:1
+msgid "Medium (600–900 words)"
+msgstr ""
+
+#: assets/generator/index.js:1
+msgid "Long (1200–1800 words)"
+msgstr ""
+
+#: assets/generator/index.js:1
+msgid "Generating your post — a long draft can take up to two minutes…"
+msgstr ""
+
+#: assets/generator/index.js:1
+msgid "Post Generated!"
+msgstr ""
+
+#. translators: %s: number of credits the generation used.
+#: assets/generator/index.js:2
+#, js-format
+msgid "%s credit used"
+msgid_plural "%s credits used"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/generator/index.js:2
+msgid "Edit in WordPress"
+msgstr ""
+
+#: assets/generator/index.js:2
+msgid "Preview"
+msgstr ""
+
+#: assets/generator/index.js:2
+msgid "Generate another"
+msgstr ""
+
+#: assets/generator/index.js:2
+msgid "Post Generator"
+msgstr ""
+
+#: assets/generator/index.js:2
+msgid "Describe your post and AI will write a full draft."
+msgstr ""
+
+#: assets/generator/index.js:2
+msgid "Post title *"
+msgstr ""
+
+#: assets/generator/index.js:2
+msgid "e.g. 10 Tips for Better Sleep"
+msgstr ""
+
+#: assets/generator/index.js:2
+msgid "Keywords"
+msgstr ""
+
+#: assets/generator/index.js:2
+msgid "e.g. sleep hygiene, circadian rhythm, melatonin"
+msgstr ""
+
+#: assets/generator/index.js:2
+msgid "Tone"
+msgstr ""
+
+#: assets/generator/index.js:2
+msgid "Length"
+msgstr ""
+
+#: assets/generator/index.js:2
+msgid "Generation failed. Please try again."
+msgstr ""
+
+#: assets/generator/index.js:2
+msgid "Generate Post"
+msgstr ""
+
+#: assets/images/index.js:1
+#: assets/seo/index.js:1
+msgid "Failed to load posts."
+msgstr ""
+
+#: assets/images/index.js:1
+#: assets/seo/index.js:1
+msgid "Loading posts…"
+msgstr ""
+
+#. translators: %s: error message.
+#: assets/images/index.js:2
+#: assets/seo/index.js:2
+#, js-format
+msgid "Error: %s"
+msgstr ""
+
+#: assets/images/index.js:2
+#: assets/seo/index.js:2
+msgid "Search posts…"
+msgstr ""
+
+#: assets/images/index.js:2
+#: assets/seo/index.js:2
+msgid "Type"
+msgstr ""
+
+#: assets/images/index.js:2
+#: assets/seo/index.js:2
+msgid "Updated"
+msgstr ""
+
+#: assets/images/index.js:2
+#: assets/seo/index.js:2
+msgid "No posts found."
+msgstr ""
+
+#. translators: 1: number of posts shown on this page, 2: total number of posts and pages.
+#: assets/images/index.js:3
+#: assets/seo/index.js:3
+#, js-format
+msgid "Showing %1$d of %2$d post or page"
+msgid_plural "Showing %1$d of %2$d posts and pages"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/images/index.js:3
+#: assets/seo/index.js:3
+msgid "← Prev"
+msgstr ""
+
+#: assets/images/index.js:3
+#: assets/seo/index.js:3
+msgid "Next →"
+msgstr ""
+
+#: assets/images/index.js:3
+#: assets/seo/index.js:3
+msgid "▲ Close"
+msgstr ""
+
+#: assets/images/index.js:3
+#: assets/seo/index.js:3
+msgid "Generate ▼"
+msgstr ""
+
+#: assets/images/index.js:3
+#: assets/images/index.js:5
+msgid "Has image"
+msgstr ""
+
+#: assets/images/index.js:3
+#: assets/images/index.js:5
+msgid "No image"
+msgstr ""
+
+#: assets/images/index.js:3
+msgid "Describe the image you want to generate…"
+msgstr ""
+
+#: assets/images/index.js:3
+msgid "Aspect ratio"
+msgstr ""
+
+#: assets/images/index.js:3
+msgid "Count"
+msgstr ""
+
+#. translators: 1: number of images that failed, 2: number of images requested.
+#: assets/images/index.js:4
+#, js-format
+msgid "%1$d of %2$d image failed to generate."
+msgid_plural "%1$d of %2$d images failed to generate."
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/images/index.js:4
+#: assets/seo/index.js:3
+msgid "Generation failed."
+msgstr ""
+
+#: assets/images/index.js:4
+#: assets/seo/index.js:3
+msgid "Generating…"
+msgstr ""
+
+#: assets/images/index.js:4
+msgid "✦ Generate"
+msgstr ""
+
+#: assets/images/index.js:4
+msgid "✓ Selected"
+msgstr ""
+
+#: assets/images/index.js:4
+msgid "View →"
+msgstr ""
+
+#: assets/images/index.js:4
+#: assets/seo/index.js:3
+msgid "Edit post →"
+msgstr ""
+
+#. translators: %s: post type slug, e.g. "post".
+#: assets/images/index.js:5
+#, js-format
+msgid "Cannot determine the REST endpoint for post type \"%s\"."
+msgstr ""
+
+#: assets/images/index.js:5
+msgid "Failed to set featured image."
+msgstr ""
+
+#: assets/images/index.js:5
+msgid "Setting…"
+msgstr ""
+
+#: assets/images/index.js:5
+msgid "✓ Set as featured image"
+msgstr ""
+
+#: assets/images/index.js:5
+#: assets/seo/index.js:3
+msgid "All"
+msgstr ""
+
+#: assets/images/index.js:5
+msgid "Featured Image"
+msgstr ""
+
+#: assets/images/index.js:5
+msgid "Generate beautiful featured images from a text prompt and set them directly on any post or page."
+msgstr ""
+
+#. translators: %s: AI provider name, e.g. "OpenAI".
+#: assets/images/index.js:6
+#, js-format
+msgid "AI images use your own API key, and no %s key has been added yet. Adding one is free on any plan; you pay the provider directly."
+msgstr ""
+
+#: assets/images/index.js:6
+msgid "Add a key in Settings"
+msgstr ""
+
+#: assets/images/index.js:6
+msgid "Ask a site administrator to add one in Plume AI → Settings."
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Pending"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Scheduled"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Private"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Complete"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Partial"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Missing"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "✦ Generate SEO"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Replace confirmation"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Replace current suggestions?"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Yes, replace"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Meta title"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "AI will generate this…"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "OG description"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Excerpt"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Featured image alt text"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Apply failed."
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Applying…"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "✓ Apply all"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Post Status"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "SEO Status"
+msgstr ""
+
+#: assets/seo/index.js:3
+msgid "Automatically generate meta titles, OG descriptions, excerpts, and image alt text for every post — in one click."
+msgstr ""
+
+#: assets/usage/index.js:1
+msgid "Failed to load usage data."
+msgstr ""
+
+#: assets/usage/index.js:2
+msgid "Monthly limit (credits)"
 msgstr ""

@@ -24,6 +24,9 @@ class OllamaProvider extends AbstractProvider {
 
 	private const DEFAULT_MODEL = 'llama3.2';
 
+	/** Seconds; Ollama can be slow on first run. */
+	private const DEFAULT_TIMEOUT = 120;
+
 	/**
 	 * Constructor.
 	 *
@@ -111,7 +114,7 @@ class OllamaProvider extends AbstractProvider {
 			'stream'   => false,
 			'options'  => [ 'temperature' => $request->temperature ],
 		];
-		$raw  = $this->post( '/api/chat', $body );
+		$raw  = $this->post( '/api/chat', $body, HttpTimeout::resolve( $request->timeout, self::DEFAULT_TIMEOUT ) );
 
 		$content    = $raw['message']['content'] ?? '';
 		$in_tokens  = (int) ( $raw['prompt_eval_count'] ?? 0 );
@@ -164,21 +167,27 @@ class OllamaProvider extends AbstractProvider {
 	 *
 	 * @since 1.0.0
 	 * @param string $path API endpoint path (e.g. '/api/chat').
-	 * @param array  $body Request payload.
+	 * @param array  $body    Request payload.
+	 * @param int    $timeout Request timeout in seconds; the default is a defensive fallback for callers that omit it.
 	 * @return array
-	 * @throws ProviderException On HTTP failure or non-2xx status.
+	 * @throws ProviderException On HTTP failure, timeout or non-2xx status.
+	 *
+	 * phpcs:ignore Squiz.Commenting.FunctionCommentThrowTag.WrongNumber -- HttpTimeout::to_exception() returns a ProviderException the sniff cannot resolve.
 	 */
-	private function post( string $path, array $body ): array {
+	private function post( string $path, array $body, int $timeout = self::DEFAULT_TIMEOUT ): array {
 		$response = wp_remote_post(
 			rtrim( $this->base_url, '/' ) . $path,
 			[
-				'timeout' => 120, // Ollama can be slow on first run.
+				'timeout' => $timeout,
 				'headers' => [ 'Content-Type' => 'application/json' ],
 				'body'    => wp_json_encode( $body ),
 			]
 		);
 
 		if ( is_wp_error( $response ) ) {
+			if ( HttpTimeout::is_timeout( $response ) ) {
+				throw HttpTimeout::to_exception( 'ollama' );
+			}
 			throw new ProviderException( $response->get_error_message(), 'ollama' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 

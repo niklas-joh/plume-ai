@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { Plus, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import {
+	Plus,
+	PanelLeftClose,
+	PanelLeftOpen,
+	MessagesSquare,
+	SlidersHorizontal,
+} from 'lucide-react';
 import ConversationHistory from '../Sidebar/ConversationHistory';
 import MessageList from './MessageList';
 import Composer from './Composer';
@@ -10,6 +16,9 @@ import ReviewDrawer from './ReviewDrawer';
 import apiFetch from '@wordpress/api-fetch';
 import { LAUNCH_ACTIONS } from './actions';
 import { storageGet, storageSet } from '../../utils/storage';
+import { useMediaQuery, PHONE_LAYOUT_QUERY } from '../../utils/useMediaQuery';
+import { isOutOfCreditsError } from '../../../shared/credits';
+import { getErrorMessage } from '../../../shared/errors';
 
 const NEW_CONVERSATION_TITLE = __( 'New conversation', 'plume' );
 
@@ -22,6 +31,15 @@ const NEW_CONVERSATION_TITLE = __( 'New conversation', 'plume' );
 // immediately as an error bubble instead of being silently retried like a transient blip.
 const REGISTRATION_RETRY_CODES = new Set( [ 'not_registered', 'auth_failed' ] );
 const REGISTRATION_RETRY_DELAY_MS = 3000;
+
+// Failures that sending the same message again cannot fix, so no "Try again"
+// is offered: out of credits, and a provider the site has no key for.
+// Out-of-credits replies already show the credits notice instead of an error
+// bubble; the code is listed too so a Retry can never appear for it.
+const NOT_RETRYABLE_CODES = new Set( [
+	'rate_limit_exceeded',
+	'provider_key_missing',
+] );
 
 const LAUNCH_SUGGESTIONS = [
 	{
@@ -54,12 +72,23 @@ export default function ChatApp() {
 	const [ isSidebarCollapsed, setIsSidebarCollapsed ] = useState(
 		() => storageGet( 'plume-sidebar-collapsed' ) === '1'
 	);
+	// On a phone both side panels are drawers over the conversation; this holds
+	// the open one: 'conversations', 'tools' or null.
+	const isPhone = useMediaQuery( PHONE_LAYOUT_QUERY );
+	const [ openDrawer, setOpenDrawer ] = useState( null );
+	const drawerToggleRef = useRef( null );
+	const sidebarRef = useRef( null );
+	const toolsRef = useRef( null );
+	const mainRef = useRef( null );
 	const [ attachedPost, setAttachedPost ] = useState( null );
 	const [ pendingQuickAction, setPendingQuickAction ] = useState( null );
 	const [ forcePickerOpen, setForcePickerOpen ] = useState( false );
 	const [ deletingIds, setDeletingIds ] = useState( new Set() );
 	const [ deleteErrors, setDeleteErrors ] = useState( {} );
 	const [ drawerPlan, setDrawerPlan ] = useState( null );
+	// A pending "New post" plan restored from the server after a reload; update
+	// plans go to the review drawer instead.
+	const [ restoredPlan, setRestoredPlan ] = useState( null );
 	const [ modelJustSaved, setModelJustSaved ] = useState( false );
 	const savedFlashTimeoutRef = useRef( null );
 	const skipLoadRef = useRef( false );
@@ -101,6 +130,61 @@ export default function ChatApp() {
 		return () => clearTimeout( savedFlashTimeoutRef.current );
 	}, [] );
 
+	// Drawers exist only in the phone layout; leaving it (rotation, resize)
+	// closes whichever was open.
+	useEffect( () => {
+		if ( ! isPhone ) {
+			setOpenDrawer( null );
+		}
+	}, [ isPhone ] );
+
+	// While a drawer is open: move focus into it, make the conversation behind
+	// it inert (so Tab cannot leave the drawer and screen readers skip what is
+	// covered), and close it on Escape. On close, focus returns to the button
+	// that opened it. The drawers stay mounted for the desktop layout, which is
+	// why this uses `inert` rather than a focus trap that acts on mount.
+	useEffect( () => {
+		if ( ! openDrawer ) {
+			return;
+		}
+		const panel =
+			openDrawer === 'conversations'
+				? sidebarRef.current
+				: toolsRef.current;
+		const main = mainRef.current;
+		const opener = drawerToggleRef.current;
+
+		main?.setAttribute( 'inert', '' );
+		panel
+			?.querySelector(
+				'button:not([disabled]), [href], select, input, textarea'
+			)
+			?.focus();
+
+		function onKeyDown( event ) {
+			if ( event.key === 'Escape' ) {
+				setOpenDrawer( null );
+			}
+		}
+		document.addEventListener( 'keydown', onKeyDown );
+
+		return () => {
+			document.removeEventListener( 'keydown', onKeyDown );
+			main?.removeAttribute( 'inert' );
+			opener?.focus();
+		};
+	}, [ openDrawer ] );
+
+	function toggleDrawer( name, event ) {
+		drawerToggleRef.current = event.currentTarget;
+		setOpenDrawer( ( current ) => ( current === name ? null : name ) );
+	}
+
+	function selectConversation( convId ) {
+		setActiveConvId( convId );
+		setOpenDrawer( null );
+	}
+
 	useEffect( () => {
 		// Re-hydrate the review drawer for whichever conversation is now active.
 		// The server holds the source of truth (a still-live update plan), so a
@@ -109,6 +193,7 @@ export default function ChatApp() {
 		let cancelled = false;
 		if ( ! activeConvId ) {
 			setDrawerPlan( null );
+			setRestoredPlan( null );
 		} else {
 			apiFetch( {
 				path: `/plume/v1/conversations/${ activeConvId }/pending-plan`,
@@ -118,11 +203,14 @@ export default function ChatApp() {
 						return;
 					}
 					const plan = res?.pending_plan ?? null;
-					setDrawerPlan( plan?.plan_type === 'update' ? plan : null );
+					const isUpdate = plan?.plan_type === 'update';
+					setDrawerPlan( isUpdate ? plan : null );
+					setRestoredPlan( plan && ! isUpdate ? plan : null );
 				} )
 				.catch( () => {
 					if ( ! cancelled ) {
 						setDrawerPlan( null );
+						setRestoredPlan( null );
 					}
 				} );
 		}
@@ -147,7 +235,7 @@ export default function ChatApp() {
 				path: '/plume/v1/conversations',
 			} );
 			setConversations( data );
-		} catch ( e ) {
+		} catch {
 			// Conversations failed to load — list stays empty.
 		}
 	}
@@ -178,7 +266,7 @@ export default function ChatApp() {
 			const storedDefault = window.plumeData?.defaultProvider;
 			const match = data.find( ( p ) => p.slug === storedDefault );
 			setSelectedProvider( ( match ?? data[ 0 ] ).slug );
-		} catch ( e ) {
+		} catch {
 			// Provider list is best-effort — don't crash if unavailable.
 		}
 	}
@@ -191,6 +279,7 @@ export default function ChatApp() {
 	}
 
 	async function newConversation() {
+		setOpenDrawer( null );
 		const conv = await apiFetch( {
 			path: '/plume/v1/conversations',
 			method: 'POST',
@@ -293,6 +382,26 @@ export default function ChatApp() {
 		}
 	}
 
+	/**
+	 * Sends a failed message again.
+	 *
+	 * The server removes the stored question when a turn fails, so the failed
+	 * pair is taken off the screen and the message is simply sent again.
+	 *
+	 * @param {Object} failed Error message carrying `retry: { content, contextPostId }`.
+	 */
+	function retryMessage( failed ) {
+		setMessages( ( prev ) => {
+			const at = prev.indexOf( failed );
+			if ( at < 0 ) {
+				return prev;
+			}
+			const start = prev[ at - 1 ]?.role === 'user' ? at - 1 : at;
+			return [ ...prev.slice( 0, start ), ...prev.slice( at + 1 ) ];
+		} );
+		sendMessage( failed.retry.content, failed.retry.contextPostId );
+	}
+
 	async function sendMessage( content, contextPostId = null ) {
 		// Resolve conversation ID — create one if none active.
 		let convId = activeConvId;
@@ -324,9 +433,16 @@ export default function ChatApp() {
 
 		setMessages( ( prev ) => [ ...prev, { role: 'user', content } ] );
 		setIsLoading( true );
+		// Resolved now so a retry uses the post that was attached when the
+		// message was first sent, even if the attachment changed since.
+		const resolvedContextPostId = contextPostId ?? attachedPost?.id ?? null;
 
 		try {
-			const res = await sendChatMessage( convId, content, contextPostId );
+			const res = await sendChatMessage(
+				convId,
+				content,
+				resolvedContextPostId
+			);
 			// Filter out internal plumbing tools from the passive indicator.
 			const passiveTools = ( res.tools_called ?? [] ).filter(
 				( t ) =>
@@ -375,11 +491,23 @@ export default function ChatApp() {
 				}
 			}
 		} catch ( err ) {
-			const errorText =
-				err?.message ?? 'Something went wrong. Please try again.';
+			const errorText = getErrorMessage(
+				err,
+				__( 'Something went wrong. Please try again.', 'plume' )
+			);
 			setMessages( ( prev ) => [
 				...prev,
-				{ role: 'assistant', content: errorText, isError: true },
+				{
+					role: 'assistant',
+					content: errorText,
+					isError: true,
+					// Rendered as the credits notice (with the ways forward)
+					// instead of a bare red error line.
+					outOfCredits: isOutOfCreditsError( err ),
+					retry: NOT_RETRYABLE_CODES.has( err?.code )
+						? null
+						: { content, contextPostId: resolvedContextPostId },
+				},
 			] );
 		} finally {
 			setIsLoading( false );
@@ -441,24 +569,37 @@ export default function ChatApp() {
 		flashModelSaved();
 	}
 
+	// The stored collapse state is a desktop preference; on a phone the list is
+	// a drawer and always shows in full.
+	const isCollapsed = isSidebarCollapsed && ! isPhone;
+	const shellClasses = [
+		'plume-shell',
+		isCollapsed && 'plume-shell--sidebar-collapsed',
+		openDrawer === 'conversations' && 'plume-shell--show-conversations',
+		openDrawer === 'tools' && 'plume-shell--show-tools',
+	]
+		.filter( Boolean )
+		.join( ' ' );
+
 	const toggleLabel = isSidebarCollapsed
 		? __( 'Expand sidebar', 'plume' )
 		: __( 'Collapse sidebar', 'plume' );
 
 	return (
-		<div
-			className={ `plume-shell${
-				isSidebarCollapsed ? ' plume-shell--sidebar-collapsed' : ''
-			}` }
-		>
-			<aside className="plume-sidebar">
+		<div className={ shellClasses }>
+			<aside
+				className="plume-sidebar"
+				id="plume-conversations"
+				ref={ sidebarRef }
+				aria-label={ __( 'Conversations', 'plume' ) }
+			>
 				<div className="plume-sidebar__header">
-					{ ! isSidebarCollapsed && (
+					{ ! isCollapsed && (
 						<span className="plume-sidebar__title">
 							{ __( 'Conversations', 'plume' ) }
 						</span>
 					) }
-					{ ! isSidebarCollapsed && (
+					{ ! isCollapsed && (
 						<button
 							className="plume-btn plume-btn--ghost plume-btn--icon"
 							onClick={ newConversation }
@@ -496,14 +637,51 @@ export default function ChatApp() {
 				<ConversationHistory
 					conversations={ conversations }
 					activeId={ activeConvId }
-					onSelect={ setActiveConvId }
+					onSelect={ selectConversation }
 					onDelete={ deleteConversation }
 					deletingIds={ deletingIds }
 					deleteErrors={ deleteErrors }
 				/>
 			</aside>
 
-			<main className="plume-main">
+			<main className="plume-main" ref={ mainRef }>
+				{ isPhone && (
+					<div className="plume-mobile-bar">
+						<button
+							type="button"
+							className="plume-btn plume-btn--ghost plume-btn--icon"
+							aria-label={ __( 'Conversations', 'plume' ) }
+							aria-controls="plume-conversations"
+							aria-expanded={ openDrawer === 'conversations' }
+							onClick={ ( e ) =>
+								toggleDrawer( 'conversations', e )
+							}
+						>
+							<MessagesSquare size={ 18 } strokeWidth={ 1.5 } />
+						</button>
+						<span className="plume-mobile-bar__title">
+							{ conversations.find(
+								( c ) => c.id === activeConvId
+							)?.title || NEW_CONVERSATION_TITLE }
+						</span>
+						<button
+							type="button"
+							className="plume-btn plume-btn--ghost plume-btn--icon"
+							aria-label={ __(
+								'Model and quick actions',
+								'plume'
+							) }
+							aria-controls="plume-tools"
+							aria-expanded={ openDrawer === 'tools' }
+							onClick={ ( e ) => toggleDrawer( 'tools', e ) }
+						>
+							<SlidersHorizontal
+								size={ 18 }
+								strokeWidth={ 1.5 }
+							/>
+						</button>
+					</div>
+				) }
 				{ messages.length === 0 && ! isLoading ? (
 					<CenteredLaunch
 						suggestions={ LAUNCH_SUGGESTIONS }
@@ -518,8 +696,19 @@ export default function ChatApp() {
 				) : (
 					<>
 						<MessageList
-							messages={ messages }
+							messages={ withRestoredPlan(
+								messages,
+								restoredPlan
+							) }
 							isLoading={ isLoading }
+							onRetry={ retryMessage }
+							// Forget a restored plan once dismissed, or it would
+							// re-attach to the next reply.
+							onPlanDismiss={ ( planId ) =>
+								setRestoredPlan( ( current ) =>
+									current?.id === planId ? null : current
+								)
+							}
 						/>
 						<Composer
 							onSend={ sendMessage }
@@ -534,7 +723,12 @@ export default function ChatApp() {
 				) }
 			</main>
 
-			<aside className="plume-right-panel">
+			<aside
+				className="plume-right-panel"
+				id="plume-tools"
+				ref={ toolsRef }
+				aria-label={ __( 'Model and quick actions', 'plume' ) }
+			>
 				<ModelSelector
 					providers={ providers }
 					selectedProvider={ selectedProvider }
@@ -544,11 +738,28 @@ export default function ChatApp() {
 					justSaved={ modelJustSaved }
 				/>
 				<QuickActions
-					onAction={ sendMessage }
+					onAction={ ( prompt ) => {
+						setOpenDrawer( null );
+						sendMessage( prompt );
+					} }
 					attachedPost={ attachedPost }
-					onRequestAttach={ requestPostAttach }
+					onRequestAttach={ ( prompt ) => {
+						// The post picker opens in the composer, behind the drawer.
+						setOpenDrawer( null );
+						requestPostAttach( prompt );
+					} }
 				/>
 			</aside>
+
+			{ openDrawer && (
+				// Tapping the dimmed conversation closes the drawer; keyboard users
+				// have Escape, so the backdrop itself is not focusable.
+				// eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+				<div
+					className="plume-drawer-backdrop"
+					onClick={ () => setOpenDrawer( null ) }
+				/>
+			) }
 
 			{ drawerPlan && (
 				<ReviewDrawer
@@ -573,6 +784,32 @@ export default function ChatApp() {
 			) }
 		</div>
 	);
+}
+
+/**
+ * Attach a restored pending plan to the conversation's latest reply.
+ *
+ * Messages loaded from the server carry no plan, so after a reload the
+ * "New post" card would vanish although the plan is still waiting for
+ * approval. It is shown under the latest assistant message, unless a message
+ * already carries it (the plan arrived in this page session).
+ *
+ * @param {Array}       messages Conversation messages.
+ * @param {Object|null} plan     Pending plan restored from the server.
+ * @return {Array} The messages, with the plan attached where needed.
+ */
+function withRestoredPlan( messages, plan ) {
+	if ( ! plan || messages.some( ( m ) => m.pending_plan?.id === plan.id ) ) {
+		return messages;
+	}
+	for ( let i = messages.length - 1; i >= 0; i-- ) {
+		if ( messages[ i ].role === 'assistant' && ! messages[ i ].isError ) {
+			const next = [ ...messages ];
+			next[ i ] = { ...messages[ i ], pending_plan: plan };
+			return next;
+		}
+	}
+	return messages;
 }
 
 /**

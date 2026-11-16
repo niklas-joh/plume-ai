@@ -1,8 +1,11 @@
-import { useState } from '@wordpress/element';
+import { useState, useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { Cpu } from 'lucide-react';
+import apiFetch from '@wordpress/api-fetch';
+import { Cpu, Copy, Check, RotateCcw } from 'lucide-react';
 import MarkdownContent from '../../../shared/MarkdownContent';
 import PlanCard from './PlanCard';
+import OutOfCreditsNotice from '../../../shared/OutOfCreditsNotice';
+import { DEFAULT_WEBSITE_URL } from '../../../shared/constants';
 import { parseRevisionMessage } from './revisionMessage';
 
 const TOOL_LABELS = {
@@ -30,15 +33,137 @@ const TOOL_LABELS = {
  * @param {string}   [props.message.model]        Model slug displayed in the meta line for AI messages.
  * @param {number}   [props.message.credits] Credit cost displayed in the meta line for AI messages.
  * @param {boolean}  [props.message.isError]      When true, applies the error modifier class.
+ * @param {boolean}  [props.message.outOfCredits] When true, renders the out-of-credits notice instead of the error text.
  * @param {Object}   [props.message.pending_plan] Pending plan data; when present, renders a PlanCard.
  * @param {string[]} [props.message.tools_used]   Tool names called; shown as passive indicator chips.
  * @param {string}   [props.message.applyEditUrl] When present, renders a "View post" link after applying an update.
+ * @param {Function} [props.onRetry]             When given on an error message, renders a "Try again" button that calls it.
+ * @param {boolean}  [props.isLoading]           Disables "Try again" while a reply is on its way.
+ * @param {Function} [props.onPlanDismiss]       Called with the plan id after the user dismisses its card.
  * @return {ReactElement}
  */
-export default function MessageBubble( { message } ) {
+export default function MessageBubble( {
+	message,
+	onRetry,
+	isLoading = false,
+	onPlanDismiss,
+} ) {
 	const isAI = message.role === 'assistant';
+	const [ copied, setCopied ] = useState( false );
+	const copiedTimerRef = useRef( null );
+	useEffect( () => () => clearTimeout( copiedTimerRef.current ), [] );
+
+	// navigator.clipboard only exists on secure origins; plain-HTTP admin sites
+	// get no Copy button rather than one that throws.
+	const canCopy =
+		isAI &&
+		! message.isError &&
+		!! message.content &&
+		typeof window.navigator?.clipboard?.writeText === 'function';
+
+	async function copyReply() {
+		try {
+			// The raw Markdown, so pasting into the editor or a Markdown field
+			// keeps headings, lists and emphasis.
+			await window.navigator.clipboard.writeText( message.content );
+			setCopied( true );
+			clearTimeout( copiedTimerRef.current );
+			copiedTimerRef.current = setTimeout(
+				() => setCopied( false ),
+				1500
+			);
+		} catch {
+			// Permission denied or document not focused: nothing useful to show.
+		}
+	}
 	const [ plan, setPlan ] = useState( message.pending_plan ?? null );
+
+	// A plan can reach an already-rendered message: after a reload ChatApp
+	// attaches the conversation's pending plan to its latest reply.
+	const incomingPlanId = message.pending_plan?.id;
+	useEffect( () => {
+		if ( incomingPlanId ) {
+			setPlan( message.pending_plan );
+		}
+		// Keyed on the id: a new object for the same plan must not undo a dismiss.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ incomingPlanId ] );
+
+	function dismissPlan() {
+		const planId = plan?.id;
+		setPlan( null );
+		if ( planId ) {
+			onPlanDismiss?.( planId );
+			// Best effort: without it the plan returns on reload until it expires.
+			apiFetch( {
+				path: `/plume/v1/plans/${ planId }`,
+				method: 'DELETE',
+			} ).catch( () => {} );
+		}
+	}
 	const revision = isAI ? null : parseRevisionMessage( message.content );
+
+	if ( message.outOfCredits ) {
+		const { websiteUrl = DEFAULT_WEBSITE_URL, settingsUrl = '' } =
+			window.plumeData ?? {};
+		return (
+			<div className="plume-bubble plume-bubble--ai">
+				<OutOfCreditsNotice
+					websiteUrl={ websiteUrl }
+					settingsUrl={ settingsUrl }
+				/>
+			</div>
+		);
+	}
+
+	/**
+	 * Picks the bubble body: Markdown for replies, a summary for revision
+	 * requests, plain text otherwise.
+	 *
+	 * @return {ReactElement} Bubble content.
+	 */
+	function renderContent() {
+		if ( isAI ) {
+			return (
+				<MarkdownContent
+					content={ message.content }
+					className="plume-bubble__markdown"
+				/>
+			);
+		}
+		if ( revision ) {
+			return (
+				<div className="plume-bubble__revision">
+					<p className="plume-bubble__revision-title">
+						{ __( 'Revision requested', 'plume' ) }
+					</p>
+					{ revision.comments.length > 0 && (
+						<ul className="plume-bubble__revision-list">
+							{ revision.comments.map( ( c ) => (
+								<li key={ `${ c.anchor ?? '' }:${ c.text }` }>
+									{ c.anchor && (
+										<blockquote className="plume-bubble__revision-anchor">
+											{ c.anchor }
+										</blockquote>
+									) }
+									<span className="plume-bubble__revision-text">
+										{ c.text }
+									</span>
+								</li>
+							) ) }
+						</ul>
+					) }
+					{ revision.note && (
+						<p className="plume-bubble__revision-note">
+							<strong>{ __( 'Overall note:', 'plume' ) }</strong>{ ' ' }
+							{ revision.note }
+						</p>
+					) }
+				</div>
+			);
+		}
+		return <p>{ message.content }</p>;
+	}
 
 	return (
 		<div
@@ -46,46 +171,7 @@ export default function MessageBubble( { message } ) {
 				message.isError ? ' plume-bubble--error' : ''
 			}` }
 		>
-			<div className="plume-bubble__content">
-				{ isAI ? (
-					<MarkdownContent
-						content={ message.content }
-						className="plume-bubble__markdown"
-					/>
-				) : revision ? (
-					<div className="plume-bubble__revision">
-						<p className="plume-bubble__revision-title">
-							{ __( 'Revision requested', 'plume' ) }
-						</p>
-						{ revision.comments.length > 0 && (
-							<ul className="plume-bubble__revision-list">
-								{ revision.comments.map( ( c ) => (
-									<li key={ `${ c.anchor ?? '' }:${ c.text }` }>
-										{ c.anchor && (
-											<blockquote className="plume-bubble__revision-anchor">
-												{ c.anchor }
-											</blockquote>
-										) }
-										<span className="plume-bubble__revision-text">
-											{ c.text }
-										</span>
-									</li>
-								) ) }
-							</ul>
-						) }
-						{ revision.note && (
-							<p className="plume-bubble__revision-note">
-								<strong>
-									{ __( 'Overall note:', 'plume' ) }
-								</strong>{ ' ' }
-								{ revision.note }
-							</p>
-						) }
-					</div>
-				) : (
-					<p>{ message.content }</p>
-				) }
-			</div>
+			<div className="plume-bubble__content">{ renderContent() }</div>
 			{ isAI && message.tools_used && message.tools_used.length > 0 && (
 				<div className="plume-bubble__tools">
 					{ message.tools_used.map( ( t ) => (
@@ -93,6 +179,19 @@ export default function MessageBubble( { message } ) {
 							{ TOOL_LABELS[ t ] ?? t }
 						</span>
 					) ) }
+				</div>
+			) }
+			{ message.isError && onRetry && (
+				<div className="plume-bubble__actions">
+					<button
+						type="button"
+						className="plume-btn plume-btn--ghost plume-btn--sm"
+						onClick={ onRetry }
+						disabled={ isLoading }
+					>
+						<RotateCcw size={ 12 } strokeWidth={ 1.5 } />
+						{ __( 'Try again', 'plume' ) }
+					</button>
 				</div>
 			) }
 			{ isAI && message.model && (
@@ -106,8 +205,30 @@ export default function MessageBubble( { message } ) {
 					) }
 				</div>
 			) }
+			{ canCopy && (
+				<div className="plume-bubble__actions">
+					<button
+						type="button"
+						className="plume-btn plume-btn--ghost plume-btn--sm"
+						onClick={ copyReply }
+					>
+						{ copied ? (
+							<Check size={ 12 } strokeWidth={ 1.5 } />
+						) : (
+							<Copy size={ 12 } strokeWidth={ 1.5 } />
+						) }
+						{ /* The only place "Copied" is announced: MessageList's
+						status region carries the waiting text, not this. */ }
+						<span aria-live="polite">
+							{ copied
+								? __( 'Copied', 'plume' )
+								: __( 'Copy', 'plume' ) }
+						</span>
+					</button>
+				</div>
+			) }
 			{ isAI && plan && plan.plan_type !== 'update' && (
-				<PlanCard plan={ plan } onDismiss={ () => setPlan( null ) } />
+				<PlanCard plan={ plan } onDismiss={ dismissPlan } />
 			) }
 			{ isAI && message.applyEditUrl && (
 				<div className="plume-bubble__apply-success">

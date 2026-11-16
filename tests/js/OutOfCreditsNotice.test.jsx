@@ -65,4 +65,37 @@ describe( 'OutOfCreditsNotice', () => {
 
 		expect( container.textContent ).not.toContain( 'Upgrade to Pro' );
 	} );
+
+	it( 'offers the free own-key route when a settings URL is supplied', async () => {
+		await act( async () => {
+			root.render(
+				<OutOfCreditsNotice
+					websiteUrl="https://wpaimind.com"
+					settingsUrl="https://example.test/wp-admin/admin.php?page=plume-settings"
+				/>
+			);
+		} );
+
+		const links = Array.from( container.querySelectorAll( 'a' ) );
+		const ownKey = links.find( ( a ) =>
+			a.textContent.includes( 'own API key' )
+		);
+		expect( ownKey ).toBeDefined();
+		expect( ownKey.getAttribute( 'href' ) ).toBe(
+			'https://example.test/wp-admin/admin.php?page=plume-settings'
+		);
+	} );
+
+	it( 'omits the own-key link when the user cannot open Settings', async () => {
+		await act( async () => {
+			root.render(
+				<OutOfCreditsNotice
+					websiteUrl="https://wpaimind.com"
+					settingsUrl=""
+				/>
+			);
+		} );
+
+		expect( container.querySelectorAll( 'a' ).length ).toBe( 1 );
+	} );
 } );

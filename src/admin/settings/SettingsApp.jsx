@@ -1,5 +1,6 @@
 import { useState, useEffect } from '@wordpress/element';
-import { TabPanel, Notice } from '@wordpress/components';
+import { TabPanel, Notice, Button } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 import { Settings } from 'lucide-react';
 import ProvidersTab from './ProvidersTab';
@@ -7,9 +8,9 @@ import VoiceTab from './VoiceTab';
 import FeaturesTab from './FeaturesTab';
 
 const TABS = [
-	{ name: 'providers', title: 'Providers' },
-	{ name: 'voice', title: 'Voice' },
-	{ name: 'features', title: 'Features' },
+	{ name: 'providers', title: __( 'Providers', 'plume' ) },
+	{ name: 'voice', title: __( 'Voice', 'plume' ) },
+	{ name: 'features', title: __( 'Features', 'plume' ) },
 ];
 
 /**
@@ -25,12 +26,16 @@ export default function SettingsApp() {
 	const [ settings, setSettings ] = useState( null );
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ saveResult, setSaveResult ] = useState( null ); // 'success' | 'error' | null
+	const [ loadFailed, setLoadFailed ] = useState( false );
 
-	useEffect( () => {
+	function loadSettings() {
+		setLoadFailed( false );
 		apiFetch( { path: '/plume/v1/settings' } )
 			.then( setSettings )
-			.catch( () => {} );
-	}, [] );
+			.catch( () => setLoadFailed( true ) );
+	}
+
+	useEffect( loadSettings, [] );
 
 	async function saveSettings( patch ) {
 		setIsSaving( true );
@@ -43,8 +48,10 @@ export default function SettingsApp() {
 			} );
 			setSettings( ( prev ) => ( { ...prev, ...patch } ) );
 			setSaveResult( 'success' );
-		} catch ( e ) {
+			return true;
+		} catch {
 			setSaveResult( 'error' );
+			return false;
 		} finally {
 			setIsSaving( false );
 		}
@@ -70,7 +77,7 @@ export default function SettingsApp() {
 			<div className="plume-settings-header">
 				<div className="plume-settings-title">
 					<Settings size={ 16 } />
-					<span>Plume — Settings</span>
+					<span>{ __( 'Plume — Settings', 'plume' ) }</span>
 				</div>
 
 				{ saveResult && (
@@ -82,18 +89,31 @@ export default function SettingsApp() {
 						onRemove={ () => setSaveResult( null ) }
 					>
 						{ saveResult === 'success'
-							? 'Saved successfully'
-							: 'Save failed — please try again' }
+							? __( 'Saved successfully', 'plume' )
+							: __( 'Save failed — please try again', 'plume' ) }
 					</Notice>
 				) }
 			</div>
 
 			<TabPanel tabs={ TABS } className="plume-settings-tabpanel">
 				{ ( tab ) => {
+					if ( settings === null && loadFailed ) {
+						return (
+							<Notice status="error" isDismissible={ false }>
+								{ __(
+									'Your settings could not be loaded. Check your connection and try again.',
+									'plume'
+								) }{ ' ' }
+								<Button variant="link" onClick={ loadSettings }>
+									{ __( 'Try again', 'plume' ) }
+								</Button>
+							</Notice>
+						);
+					}
 					if ( settings === null ) {
 						return (
 							<div className="plume-settings-loading">
-								Loading settings…
+								{ __( 'Loading settings…', 'plume' ) }
 							</div>
 						);
 					}
@@ -117,17 +137,21 @@ export default function SettingsApp() {
 					marginTop: 'var(--space-4)',
 				} }
 			>
-				<div className="plume-settings-label">Setup</div>
+				<div className="plume-settings-label">
+					{ __( 'Setup', 'plume' ) }
+				</div>
 				<p className="plume-settings-description">
-					Re-run the onboarding wizard to change your API connection
-					or provider settings.
+					{ __(
+						'Re-run the onboarding wizard to change your API connection or provider settings.',
+						'plume'
+					) }
 				</p>
 				<button
 					type="button"
 					className="plume-btn plume-btn--secondary"
 					onClick={ handleRunSetup }
 				>
-					Run setup again
+					{ __( 'Run setup again', 'plume' ) }
 				</button>
 			</div>
 		</div>

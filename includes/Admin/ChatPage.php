@@ -63,6 +63,8 @@ class ChatPage {
 			true
 		);
 
+		wp_set_script_translations( 'plume-admin', 'plume', PLUME_DIR . 'languages' );
+
 		$settings = new ProviderSettings();
 		$factory  = new ProviderFactory( $settings );
 		$tier     = TierManager::get_user_tier();
@@ -86,6 +88,8 @@ class ChatPage {
 				'defaultModelLabel' => $default_model_label,
 				'defaultProvider'   => $default_slug,
 				'publishCaps'       => self::publish_caps(),
+				'websiteUrl'        => PLUME_WEBSITE_URL,
+				'settingsUrl'       => AdminMenu::settings_url(),
 			]
 		);
 

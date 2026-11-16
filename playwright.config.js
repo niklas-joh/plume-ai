@@ -5,6 +5,8 @@ const { defineConfig, devices } = require( '@playwright/test' );
 
 module.exports = defineConfig( {
 	testDir: './tests/E2E/playwright',
+	// PR screenshot capture has its own config (playwright.config.visual.js).
+	testIgnore: '**/visual/**',
 	timeout: 60_000,
 	retries: process.env.CI ? 2 : 0,
 	workers: process.env.CI ? 1 : undefined,

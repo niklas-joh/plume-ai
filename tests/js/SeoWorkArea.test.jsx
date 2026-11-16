@@ -54,9 +54,11 @@ describe( 'SeoWorkArea — out-of-credits handling', () => {
 	} );
 
 	it( 'renders OutOfCreditsNotice when generation fails with a rate_limit_exceeded error', async () => {
+		// The envelope /plume/v1/seo/generate sends when credits run out.
 		apiFetch.mockRejectedValue( {
-			code: 'rate_limit_exceeded',
+			error: 'Monthly usage limit reached.',
 			message: 'Monthly usage limit reached.',
+			code: 'rate_limit_exceeded',
 		} );
 
 		await act( async () => {
@@ -108,6 +110,33 @@ describe( 'SeoWorkArea — out-of-credits handling', () => {
 		).toBeNull();
 		expect( container.querySelector( '.plume-work-error' ).textContent ).toBe(
 			'Network error.'
+		);
+	} );
+
+	it( 'shows the server text sent in the `error` field', async () => {
+		// The envelope /plume/v1/seo/generate really sends on failure.
+		apiFetch.mockRejectedValue( { error: 'Post not found.' } );
+
+		await act( async () => {
+			root.render(
+				<SeoWorkArea
+					post={ POST }
+					onClose={ jest.fn() }
+					onUpdate={ jest.fn() }
+				/>
+			);
+		} );
+
+		const generateButton = Array.from(
+			container.querySelectorAll( 'button' )
+		).find( ( b ) => b.textContent.includes( 'Generate SEO' ) );
+
+		await act( async () => {
+			generateButton.click();
+		} );
+
+		expect( container.querySelector( '.plume-work-error' ).textContent ).toBe(
+			'Post not found.'
 		);
 	} );
 } );

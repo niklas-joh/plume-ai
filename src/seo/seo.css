@@ -3,9 +3,17 @@
 /* SEO fields grid */
 .plume-seo-fields-grid {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
+	grid-template-columns: minmax(0, 1fr);
 	gap: var(--space-3);
 	margin-bottom: var(--space-2);
+}
+
+/* Two columns once a field has room for a useful amount of text. */
+@media (min-width: 600px) {
+
+	.plume-seo-fields-grid {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	}
 }
 
 .plume-field {
@@ -61,4 +69,13 @@ textarea.plume-field-input {
 	outline: none;
 	border-color: var(--wp-admin-theme-color);
 	box-shadow: 0 0 0 1px var(--wp-admin-theme-color);
+}
+
+/* Phone form fields: enlarge to the no-zoom size (see --plume-touch-font-size
+   in tokens.css for why). */
+@media (pointer: coarse) {
+
+	.plume-field-input {
+		font-size: var(--plume-touch-font-size);
+	}
 }

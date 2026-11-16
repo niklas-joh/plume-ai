@@ -29,8 +29,8 @@ Chat, the Post generator and AI SEO work out of the box with no API key. Or conn
 
 Every feature works on every plan. Nothing is locked. Plans differ only in monthly credits and which models the managed service offers. AI images always use your own OpenAI or Gemini key, on any plan.
 
-* **Free**: 100 credits a month on fast, efficient models such as Claude Haiku 4.5 and GPT-4.1 nano.
-* **Pro Managed** ($79/year, or billed monthly): 500 credits a month plus larger models such as Claude Sonnet 4.6, Claude Opus 4.6 and GPT-4.1.
+* **Free**: 100 credits a month on fast, efficient models such as Claude Haiku 4.5 and GPT-6 Luna.
+* **Pro Managed** ($79/year, or billed monthly): 500 credits a month plus larger models such as Claude Sonnet 4.6, Claude Opus 4.6 and GPT-6 Sol.
 * **Your own API key** (free, any plan): requests go straight to your provider with no credit limit. You pay your provider directly. Ollama runs on your own server at no cost.
 
 = Privacy first =

@@ -107,4 +107,54 @@ describe( 'GeneratorWizard — error handling', () => {
 			'Generation failed. Please try again.'
 		);
 	} );
+
+	it( 'shows one h1 and no inline styles on the brief and generating steps', async () => {
+		// Never resolves: leaves the wizard on the generating step.
+		apiFetch.mockReturnValue( new Promise( () => {} ) );
+
+		await act( async () => {
+			root.render( <GeneratorWizard /> );
+		} );
+		expect( container.querySelectorAll( 'h1' ) ).toHaveLength( 1 );
+		expect( container.querySelectorAll( '[style]' ) ).toHaveLength( 0 );
+
+		await submitBrief( container );
+		expect(
+			container.querySelector( '.plume-generator__status' )
+		).not.toBeNull();
+		expect( container.querySelectorAll( 'h1' ) ).toHaveLength( 1 );
+		expect( container.querySelectorAll( '[style]' ) ).toHaveLength( 0 );
+	} );
+
+	it( 'shows one h1 and no inline styles on the done step', async () => {
+		apiFetch.mockResolvedValue( {
+			post_id: 7,
+			edit_url: 'https://example.test/edit',
+			content: '<p>Draft</p>',
+			credits_used: 3,
+		} );
+
+		await act( async () => {
+			root.render( <GeneratorWizard /> );
+		} );
+		await submitBrief( container );
+
+		expect( container.textContent ).toContain( 'Post Generated!' );
+		expect( container.querySelectorAll( 'h1' ) ).toHaveLength( 1 );
+		expect( container.querySelectorAll( '[style]' ) ).toHaveLength( 0 );
+	} );
+
+	it( 'renders a generation error through the Notice component', async () => {
+		apiFetch.mockRejectedValue( { error: 'Boom' } );
+
+		await act( async () => {
+			root.render( <GeneratorWizard /> );
+		} );
+		await submitBrief( container );
+
+		expect(
+			container.querySelector( '[role="alert"][data-status="error"]' )
+				.textContent
+		).toBe( 'Boom' );
+	} );
 } );

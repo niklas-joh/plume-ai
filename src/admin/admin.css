@@ -861,42 +861,14 @@
    Settings UI
    ════════════════════════════════════════════════ */
 
-/* Shell — structural only; background/colour provided by WP admin */
+/* Shell — structural only; width, gutter and header come from Screen. */
 .plume-settings-shell {
-	display: flex;
-	flex-direction: column;
-	font-family: var(--font-sans);
 	font-size: var(--text-base);
-	min-height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
-
-	/* WordPress gives admin pages no right gutter on a phone. */
-	padding-right: var(--space-3);
 }
 
-@media (min-width: 783px) {
-
-	.plume-settings-shell {
-		padding-right: 0;
-	}
-}
-
-/* Header bar */
-.plume-settings-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: var(--space-4) var(--space-6);
-	border-bottom: 1px solid #e0e1e6;
-	background: #f8f9fa;
-}
-
-.plume-settings-title {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	font-size: var(--text-md);
-	font-weight: 600;
-	color: var(--color-text-primary);
+.plume-settings-setup {
+	border-top: 1px solid var(--color-border-subtle);
+	padding-top: var(--space-4);
 }
 
 .plume-settings-loading {
@@ -910,6 +882,8 @@
 	flex-direction: column;
 	gap: var(--space-4);
 	max-width: 680px;
+	margin-inline: auto;
+	width: 100%;
 	margin-bottom: var(--space-8);
 }
 

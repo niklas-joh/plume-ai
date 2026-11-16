@@ -1,4 +1,6 @@
 import { __ } from '@wordpress/i18n';
+import PageHeader from '../shared/PageHeader';
+import Screen from '../shared/Screen';
 import PostListTable from '../shared/PostListTable';
 import PostStatusBadge from '../shared/PostStatusBadge';
 import SeoBadge, { getSeoStatus } from './SeoBadge';
@@ -47,21 +49,23 @@ const SEO_COLUMNS = [
  */
 export default function SeoApp() {
 	return (
-		<div className="plume-page">
-			<div className="plume-page-header">
-				<h1>{ __( 'SEO', 'plume' ) }</h1>
-				<p>
-					{ __(
-						'Automatically generate meta titles, OG descriptions, excerpts, and image alt text for every post — in one click.',
+		<Screen
+			className="plume-page"
+			header={
+				<PageHeader
+					title={ __( 'SEO', 'plume' ) }
+					description={ __(
+						'Generate meta titles, descriptions, excerpts and image alt text for your posts.',
 						'plume'
 					) }
-				</p>
-			</div>
+				/>
+			}
+		>
 			<PostListTable
 				tabs={ SEO_TABS }
 				WorkArea={ SeoWorkArea }
 				columns={ SEO_COLUMNS }
 			/>
-		</div>
+		</Screen>
 	);
 }

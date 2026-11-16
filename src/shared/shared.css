@@ -1,29 +1,5 @@
 /* ── Shared: used by both SEO and Images pages ── */
 
-/* Page shell */
-.plume-page {
-	max-width: 1200px;
-}
-
-.plume-page-header {
-	margin-bottom: 20px;
-}
-
-.plume-page-header h1 {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	font-size: 23px;
-	font-weight: 400;
-	color: var(--color-text-primary);
-	margin: 0 0 var(--space-1);
-}
-
-.plume-page-header p {
-	color: var(--color-text-secondary);
-	margin: 0;
-}
-
 /* Pro gate (lock screen) */
 .plume-pro-gate {
 	display: flex;
@@ -61,23 +37,23 @@
 .plume-badge--complete,
 .plume-badge--has {
 	background: rgba(22, 163, 74, 0.12);
-	color: #16a34a;
+	color: var(--color-success-text);
 }
 
 .plume-badge--partial {
 	background: rgba(217, 119, 6, 0.12);
-	color: #d97706;
+	color: var(--color-warning-text);
 }
 
 .plume-badge--missing,
 .plume-badge--none {
 	background: rgba(220, 38, 38, 0.12);
-	color: #dc2626;
+	color: var(--color-error-text);
 }
 
 .plume-badge--muted {
 	background: rgba(100, 116, 139, 0.12);
-	color: #64748b;
+	color: var(--color-neutral-text);
 }
 
 /* Type badge (post / page) */
@@ -248,21 +224,6 @@
 	color: var(--color-text-muted);
 	padding: 0;
 	font-size: 11px;
-}
-
-/* Spinner */
-@keyframes plume-spin {
-
-	to {
-		transform: rotate(360deg);
-	}
-}
-
-.plume-spin {
-	animation: plume-spin 0.7s linear infinite;
-	display: inline-block;
-	vertical-align: middle;
-	margin-right: var(--space-1);
 }
 
 .plume-list-loading,

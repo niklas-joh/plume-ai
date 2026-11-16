@@ -1,49 +1,35 @@
 @import "../styles/tokens.css";
 
-/* ── Page wrapper ── */
-.plume-usage {
-	max-width: 900px;
-	margin: 0 auto;
-	padding: var(--space-8) var(--space-6);
-	color: #1d2327;
-	font-family: var(--font-sans);
-	font-size: var(--text-base);
-}
-
-/* ── Header ── */
-.plume-usage__header {
-	display: flex;
-	align-items: center;
-	gap: var(--space-4);
-	margin-bottom: var(--space-6);
-	flex-wrap: wrap;
-}
-
-.plume-usage__header h1 {
-	margin: 0;
-	font-size: var(--text-xl);
-	font-weight: 700;
-	color: var(--color-text-primary);
-	line-height: 1.3;
-}
-
-/* ── Period badge ── */
+/* ── Plan badge (in the page header actions) ── */
 .plume-usage__period {
 	display: inline-block;
-	border: 1px solid #dcdcde;
+	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
-	padding: 2px var(--space-2);
+	padding: var(--space-0-5) var(--space-2);
 	font-size: var(--text-xs);
-	color: #50575e;
+	color: var(--color-text-secondary);
 	line-height: 1.6;
 }
 
-/* ── Stats grid ── */
+.plume-usage__loading {
+	margin: 0;
+	text-align: center;
+	padding-top: var(--space-12);
+	color: var(--color-text-secondary);
+}
+
+/* ── Stats grid: one column on a phone, three from 600px ── */
 .plume-usage__stats {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: minmax(0, 1fr);
 	gap: var(--space-4);
-	margin-bottom: var(--space-6);
+}
+
+@media (min-width: 600px) {
+
+	.plume-usage__stats {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
 }
 
 /* ── Stat card ── */
@@ -53,6 +39,11 @@
 	border-radius: var(--radius-md);
 	padding: var(--space-5);
 	text-align: center;
+}
+
+.plume-usage__stat-icon {
+	margin-bottom: var(--space-2);
+	color: var(--wp-admin-theme-color);
 }
 
 .plume-usage__stat-value {
@@ -65,46 +56,62 @@
 
 .plume-usage__stat-label {
 	font-size: var(--text-sm);
-	color: var(--color-text-muted);
+	color: var(--color-text-secondary);
 }
 
-/* ── Sparkline ── */
-.plume-usage__sparkline {
-	width: 100%;
-	height: 60px;
-	margin-bottom: var(--space-6);
+/* ── Quota bar ── */
+.plume-progress {
 	display: block;
+	width: 100%;
+	height: var(--space-2);
+	border: 0;
+	border-radius: var(--radius-sm);
+	overflow: hidden;
+	appearance: none;
+	background: var(--color-border);
+	color: var(--wp-admin-theme-color);
+}
+
+.plume-progress::-webkit-progress-bar {
+	background: var(--color-border);
+}
+
+.plume-progress::-webkit-progress-value {
+	background: var(--wp-admin-theme-color);
+	transition: width var(--plume-duration) var(--plume-ease);
+}
+
+.plume-progress::-moz-progress-bar {
+	background: var(--wp-admin-theme-color);
+}
+
+.plume-progress--exhausted {
+	color: var(--color-error);
+}
+
+.plume-progress--exhausted::-webkit-progress-value,
+.plume-progress--exhausted::-moz-progress-bar {
+	background: var(--color-error);
+}
+
+.plume-usage__quota-text {
+	margin: var(--space-2) 0 0;
+	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+}
+
+.plume-usage__exhausted {
+	margin: var(--space-2) 0 0;
+	padding: var(--space-3);
+	border-radius: var(--radius);
+	background: var(--color-error-subtle);
+	color: var(--color-error-text);
 }
 
 /* ── Empty state ── */
 .plume-usage__empty {
 	text-align: center;
 	padding: var(--space-10) var(--space-6);
-	color: var(--color-text-muted);
+	color: var(--color-text-secondary);
 	font-size: var(--text-md);
-}
-
-/* ── Spin animation (for Loader2 icon) ── */
-@keyframes plume-spin {
-
-	from {
-		transform: rotate(0deg);
-	}
-
-	to {
-		transform: rotate(360deg);
-	}
-}
-
-.plume-spin {
-	animation: plume-spin 1s linear infinite;
-	display: inline-block;
-}
-
-/* ── Responsive ── */
-@media (max-width: 640px) {
-
-	.plume-usage__stats {
-		grid-template-columns: 1fr;
-	}
 }

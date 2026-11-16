@@ -1,5 +1,7 @@
 import { Notice } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
+import PageHeader from '../shared/PageHeader';
+import Screen from '../shared/Screen';
 import PostListTable from '../shared/PostListTable';
 import ImagesBadge from './ImagesBadge';
 import ImagesWorkArea from './ImagesWorkArea';
@@ -46,16 +48,18 @@ export default function ImagesApp() {
 	const keyMissing = imageProvider?.hasKey === false;
 
 	return (
-		<div className="plume-page">
-			<div className="plume-page-header">
-				<h1>{ __( 'Images', 'plume' ) }</h1>
-				<p>
-					{ __(
-						'Generate beautiful featured images from a text prompt and set them directly on any post or page.',
+		<Screen
+			className="plume-page"
+			header={
+				<PageHeader
+					title={ __( 'Images', 'plume' ) }
+					description={ __(
+						'Generate featured images from a text prompt and set them on any post or page.',
 						'plume'
 					) }
-				</p>
-			</div>
+				/>
+			}
+		>
 			{ keyMissing && (
 				<Notice
 					status="warning"
@@ -87,6 +91,6 @@ export default function ImagesApp() {
 				WorkArea={ ImagesWorkArea }
 				columns={ IMAGES_COLUMNS }
 			/>
-		</div>
+		</Screen>
 	);
 }

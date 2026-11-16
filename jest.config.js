@@ -16,6 +16,8 @@ module.exports = {
 	moduleNameMapper: {
 		// Components import their stylesheets; Jest cannot parse CSS.
 		'\\.(css|scss)$': '<rootDir>/tests/js/__mocks__/style.js',
+		// Image imports resolve to a stub path string; no test inspects pixels.
+		'\\.(png|svg)$': '<rootDir>/tests/js/__mocks__/file.js',
 		// Several @wordpress/* packages are webpack externals — not installed as
 		// standalone npm packages. Map them to minimal stubs so Jest can resolve
 		// the imports; individual tests may override behaviour via jest.mock().

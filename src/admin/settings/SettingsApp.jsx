@@ -2,10 +2,11 @@ import { useState, useEffect } from '@wordpress/element';
 import { TabPanel, Notice, Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
-import { Settings } from 'lucide-react';
 import ProvidersTab from './ProvidersTab';
 import VoiceTab from './VoiceTab';
 import FeaturesTab from './FeaturesTab';
+import PageHeader from '../../shared/PageHeader';
+import Screen from '../../shared/Screen';
 
 const TABS = [
 	{ name: 'providers', title: __( 'Providers', 'plume' ) },
@@ -73,27 +74,29 @@ export default function SettingsApp() {
 	const tabProps = { settings, saveSettings, isSaving };
 
 	return (
-		<div className="plume-settings-shell">
-			<div className="plume-settings-header">
-				<div className="plume-settings-title">
-					<Settings size={ 16 } />
-					<span>{ __( 'Plume — Settings', 'plume' ) }</span>
-				</div>
-
-				{ saveResult && (
-					<Notice
-						status={
-							saveResult === 'success' ? 'success' : 'error'
-						}
-						isDismissible
-						onRemove={ () => setSaveResult( null ) }
-					>
-						{ saveResult === 'success'
-							? __( 'Saved successfully', 'plume' )
-							: __( 'Save failed — please try again', 'plume' ) }
-					</Notice>
-				) }
-			</div>
+		<Screen
+			className="plume-settings-shell"
+			header={
+				<PageHeader
+					title={ __( 'Settings', 'plume' ) }
+					description={ __(
+						'Connect AI providers and choose how Plume writes.',
+						'plume'
+					) }
+				/>
+			}
+		>
+			{ saveResult && (
+				<Notice
+					status={ saveResult === 'success' ? 'success' : 'error' }
+					isDismissible
+					onRemove={ () => setSaveResult( null ) }
+				>
+					{ saveResult === 'success'
+						? __( 'Saved successfully', 'plume' )
+						: __( 'Save failed — please try again', 'plume' ) }
+				</Notice>
+			) }
 
 			<TabPanel tabs={ TABS } className="plume-settings-tabpanel">
 				{ ( tab ) => {
@@ -129,14 +132,7 @@ export default function SettingsApp() {
 				} }
 			</TabPanel>
 
-			<div
-				className="plume-settings-section"
-				style={ {
-					borderTop: '1px solid var(--color-border-subtle)',
-					paddingTop: 'var(--space-4)',
-					marginTop: 'var(--space-4)',
-				} }
-			>
+			<div className="plume-settings-section plume-settings-setup">
 				<div className="plume-settings-label">
 					{ __( 'Setup', 'plume' ) }
 				</div>
@@ -154,6 +150,6 @@ export default function SettingsApp() {
 					{ __( 'Run setup again', 'plume' ) }
 				</button>
 			</div>
-		</div>
+		</Screen>
 	);
 }

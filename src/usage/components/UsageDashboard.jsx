@@ -1,8 +1,10 @@
 import { useState, useEffect } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { BarChart2, Zap, Loader2 } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 import { getErrorMessage } from '../../shared/errors';
+import PageHeader from '../../shared/PageHeader';
+import Screen from '../../shared/Screen';
 
 /**
  * Admin page showing monthly credit usage stats fetched from the REST API.
@@ -32,30 +34,43 @@ export default function UsageDashboard() {
 			.finally( () => setIsLoading( false ) );
 	}, [] );
 
+	const header = (
+		<PageHeader
+			title={ __( 'Usage', 'plume' ) }
+			description={ __(
+				'Credits used on the Plume service this month.',
+				'plume'
+			) }
+			actions={
+				data?.tier_label ? (
+					<span className="plume-usage__period">
+						{ data.tier_label }
+					</span>
+				) : null
+			}
+		/>
+	);
+
 	if ( isLoading ) {
 		return (
-			<div
-				className="plume-usage"
-				style={ { textAlign: 'center', paddingTop: 'var(--space-12)' } }
-			>
-				<Loader2
-					size={ 32 }
-					className="plume-spin"
-					style={ { color: 'var(--wp-admin-theme-color)' } }
-				/>
-			</div>
+			<Screen header={ header }>
+				<p className="plume-usage__loading" role="status">
+					<Loader2 size={ 20 } className="plume-spin" />{ ' ' }
+					{ __( 'Loading usage…', 'plume' ) }
+				</p>
+			</Screen>
 		);
 	}
 
 	if ( error ) {
 		return (
-			<div className="plume-usage">
+			<Screen header={ header }>
 				<div className="plume-usage__empty">{ error }</div>
-			</div>
+			</Screen>
 		);
 	}
 
-	const { tier_label: tierLabel, used, limit, can_use: canUse } = data;
+	const { used, limit, can_use: canUse } = data;
 
 	const hasLimit = limit !== null && limit !== undefined;
 	const usedPct = hasLimit ? Math.min( 100, ( used / limit ) * 100 ) : 0;
@@ -65,35 +80,10 @@ export default function UsageDashboard() {
 		: 0;
 
 	return (
-		<div className="plume-usage">
-			<div className="plume-usage__header">
-				<h1
-					style={ {
-						display: 'flex',
-						alignItems: 'center',
-						gap: 'var(--space-2)',
-					} }
-				>
-					<BarChart2
-						size={ 24 }
-						style={ { color: 'var(--wp-admin-theme-color)' } }
-					/>{ ' ' }
-					{ __( 'Usage', 'plume' ) }
-				</h1>
-				{ tierLabel && (
-					<span className="plume-usage__period">{ tierLabel }</span>
-				) }
-			</div>
-
+		<Screen header={ header }>
 			<div className="plume-usage__stats">
 				<div className="plume-usage__stat-card">
-					<Zap
-						size={ 20 }
-						style={ {
-							color: 'var(--wp-admin-theme-color)',
-							marginBottom: 'var(--space-2)',
-						} }
-					/>
+					<Zap size={ 20 } className="plume-usage__stat-icon" />
 					<div className="plume-usage__stat-value">
 						{ hasLimit ? usedPctRounded + '%' : '∞' }
 					</div>
@@ -102,13 +92,7 @@ export default function UsageDashboard() {
 					</div>
 				</div>
 				<div className="plume-usage__stat-card">
-					<BarChart2
-						size={ 20 }
-						style={ {
-							color: 'var(--wp-admin-theme-color)',
-							marginBottom: 'var(--space-2)',
-						} }
-					/>
+					<BarChart2 size={ 20 } className="plume-usage__stat-icon" />
 					<div className="plume-usage__stat-value">
 						{ hasLimit ? 100 - usedPctRounded + '%' : '∞' }
 					</div>
@@ -117,13 +101,7 @@ export default function UsageDashboard() {
 					</div>
 				</div>
 				<div className="plume-usage__stat-card">
-					<BarChart2
-						size={ 20 }
-						style={ {
-							color: 'var(--wp-admin-theme-color)',
-							marginBottom: 'var(--space-2)',
-						} }
-					/>
+					<BarChart2 size={ 20 } className="plume-usage__stat-icon" />
 					<div className="plume-usage__stat-value">
 						{ hasLimit ? limit.toLocaleString() : '∞' }
 					</div>
@@ -135,29 +113,29 @@ export default function UsageDashboard() {
 
 			{ hasLimit && (
 				<div className="plume-usage__quota">
-					<div
-						className="plume-usage__quota-bar"
-						style={ {
-							background: 'var(--color-border, #ddd)',
-							borderRadius: '4px',
-							height: '8px',
-							overflow: 'hidden',
-							margin: 'var(--space-4) 0',
-						} }
+					{ /* Native <progress>: the width is its value attribute, so
+					     no inline style is needed. Named and given a text value
+					     for assistive technology. */ }
+					<progress
+						className={ `plume-progress${
+							canUse ? '' : ' plume-progress--exhausted'
+						}` }
+						max={ 100 }
+						value={ usedPct }
+						aria-label={ __( 'Monthly credit usage', 'plume' ) }
 					>
-						<div
-							style={ {
-								width: `${ usedPct }%`,
-								height: '100%',
-								background: canUse
-									? 'var(--wp-admin-theme-color)'
-									: '#d63638',
-								transition: 'width 0.3s ease',
-							} }
-						/>
-					</div>
+						{ usedPctRounded }%
+					</progress>
+					<p className="plume-usage__quota-text">
+						{ sprintf(
+							/* translators: 1: credits used, 2: monthly credit limit. */
+							__( '%1$s of %2$s credits used', 'plume' ),
+							used.toLocaleString(),
+							limit.toLocaleString()
+						) }
+					</p>
 					{ ! canUse && (
-						<p style={ { color: '#d63638', margin: 0 } }>
+						<p className="plume-usage__exhausted">
 							{ __(
 								'Monthly limit reached. Upgrade your plan to continue.',
 								'plume'
@@ -166,6 +144,6 @@ export default function UsageDashboard() {
 					) }
 				</div>
 			) }
-		</div>
+		</Screen>
 	);
 }

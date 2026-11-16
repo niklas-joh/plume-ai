@@ -72,8 +72,7 @@
 	--plume-logo-size: 32px;
 	--plume-logo-size-compact: 24px;
 
-	/* Motion. Reduced motion zeroes the durations once, below. */
-	--plume-duration-fast: 120ms;
+	/* Motion. Reduced motion zeroes the duration once, below. */
 	--plume-duration: 200ms;
 	--plume-ease: cubic-bezier(0.2, 0, 0, 1);
 }
@@ -88,7 +87,6 @@
 @media (prefers-reduced-motion: reduce) {
 
 	:root {
-		--plume-duration-fast: 0ms;
 		--plume-duration: 0ms;
 	}
 }

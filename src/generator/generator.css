@@ -2,7 +2,7 @@
 
 /* Screen chrome (width, header) comes from shared Screen/PageHeader. */
 .plume-generator {
-	color: #1d2327;
+	color: var(--color-text-primary);
 }
 
 /* Readable width for forms and previews, centred under the header. */

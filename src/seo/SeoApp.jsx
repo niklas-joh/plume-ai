@@ -50,7 +50,6 @@ const SEO_COLUMNS = [
 export default function SeoApp() {
 	return (
 		<Screen
-			className="plume-page"
 			header={
 				<PageHeader
 					title={ __( 'SEO', 'plume' ) }

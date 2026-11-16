@@ -49,7 +49,6 @@ export default function ImagesApp() {
 
 	return (
 		<Screen
-			className="plume-page"
 			header={
 				<PageHeader
 					title={ __( 'Images', 'plume' ) }

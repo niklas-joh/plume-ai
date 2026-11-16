@@ -172,7 +172,7 @@ class SettingsRestController {
 		}
 
 		if ( isset( $params['enable_write_tools'] ) ) {
-			\update_option( 'plume_enable_write_tools', (bool) $params['enable_write_tools'] );
+			\update_option( 'plume_enable_write_tools', rest_sanitize_boolean( $params['enable_write_tools'] ) );
 		}
 
 		if ( isset( $params['share_usage_stats'] ) ) {

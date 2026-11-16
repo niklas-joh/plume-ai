@@ -2969,7 +2969,7 @@ class ChatRestControllerTest extends TestCase {
         $factory->expects( $this->once() )->method( 'resolve_text_slug' )->with( 'openai', 'free' )->willReturn( 'claude' );
         $factory->expects( $this->once() )->method( 'make' )->with( 'claude' )->willReturn( $this->recording_provider( $captured ) );
 
-        $response = $this->send_with( $factory, $store, 'openai', 'gpt-4.1' );
+        $response = $this->send_with( $factory, $store, 'openai', 'gpt-6-sol' );
 
         $this->assertSame( 200, $response->get_status() );
         $this->assertSame( '', $captured->model, 'A model of another provider must not be sent to Claude.' );
@@ -2987,9 +2987,9 @@ class ChatRestControllerTest extends TestCase {
         $factory->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory->expects( $this->once() )->method( 'make' )->with( 'openai' )->willReturn( $this->recording_provider( $captured ) );
 
-        $this->send_with( $factory, $store, 'openai', 'gpt-4.1' );
+        $this->send_with( $factory, $store, 'openai', 'gpt-6-sol' );
 
-        $this->assertSame( 'gpt-4.1', $captured->model );
+        $this->assertSame( 'gpt-6-sol', $captured->model );
     }
 
     public function test_send_message_with_only_a_claude_key_and_openai_returns_422_provider_key_missing(): void {
@@ -3001,7 +3001,7 @@ class ChatRestControllerTest extends TestCase {
         // Real factory over a Claude-key-only site: nothing may reach a provider.
         $factory = new \Plume\Providers\ProviderFactory( $this->fake_settings( [ 'claude' ] ) );
 
-        $response = $this->send_with( $factory, $store, 'openai', 'gpt-4.1' );
+        $response = $this->send_with( $factory, $store, 'openai', 'gpt-6-sol' );
 
         $this->assertSame( 422, $response->get_status() );
         $this->assertSame( 'provider_key_missing', $response->data['code'] );

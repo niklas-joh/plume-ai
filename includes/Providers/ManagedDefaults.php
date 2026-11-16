@@ -24,9 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * are pinned by tests carrying the same literals as DEFAULT_MODEL_BY_TIER in
  * plume-proxy/src/index.ts, so keep the two in step.
  *
- * Labels live here rather than on the provider classes because some managed-only
- * models (for example gpt-4.1-nano) are deliberately absent from a provider's own
- * model list, which only offers models usable with the user's own key. The Worker
+ * Labels live here rather than on the provider classes because a managed-only
+ * model may be deliberately absent from a provider's own model list, which only
+ * offers models usable with the user's own key. The Worker
  * sends no display names; unknown ids are shown as the raw id by the caller.
  *
  * @since 2.0.0
@@ -63,7 +63,7 @@ final class ManagedDefaults {
 	 */
 	private const FREE = [
 		'claude' => 'claude-haiku-4-5-20251001',
-		'openai' => 'gpt-4.1-nano',
+		'openai' => 'gpt-6-luna',
 		'gemini' => 'gemini-3.1-flash-lite',
 	];
 
@@ -75,7 +75,7 @@ final class ManagedDefaults {
 	 */
 	private const PRO = [
 		'claude' => 'claude-sonnet-4-6',
-		'openai' => 'gpt-4.1',
+		'openai' => 'gpt-6-sol',
 		'gemini' => 'gemini-3.6-flash',
 	];
 
@@ -88,8 +88,8 @@ final class ManagedDefaults {
 	private const LABELS = [
 		'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5',
 		'claude-sonnet-4-6'         => 'Claude Sonnet 4.6',
-		'gpt-4.1-nano'              => 'GPT-4.1 nano',
-		'gpt-4.1'                   => 'GPT-4.1',
+		'gpt-6-luna'                => 'GPT-6 Luna',
+		'gpt-6-sol'                 => 'GPT-6 Sol',
 		'gemini-3.1-flash-lite'     => 'Gemini 3.1 Flash Lite',
 		'gemini-3.6-flash'          => 'Gemini 3.6 Flash',
 	];

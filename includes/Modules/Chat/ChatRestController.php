@@ -379,7 +379,7 @@ class ChatRestController {
 		$provider_slug = $factory->resolve_text_slug( $requested_slug, $tier );
 		if ( $provider_slug !== $requested_slug ) {
 			// TEMPORARY(#1020): a model id of the requested provider means nothing to the
-			// substituted one (for example gpt-4.1 sent to Claude), so use its default
+			// substituted one (for example gpt-6-sol sent to Claude), so use its default
 			// (CompletionRequest treats an empty model as "provider default").
 			// On removal: delete this reset together with the substitution in
 			// ProviderFactory::resolve_text_slug().

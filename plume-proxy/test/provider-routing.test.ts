@@ -95,7 +95,7 @@ describe( 'isProviderServed', () => {
 	it( 'requires a non-empty allow-list for the tier', () => {
 		const cfg = makeCfg( ALL, {
 			...DEFAULT_TIER_MODELS,
-			openai: { free: [], pro_managed: [ 'gpt-4.1' ] },
+			openai: { free: [], pro_managed: [ 'gpt-6-sol' ] },
 		} );
 		expect( isProviderServed( 'openai', 'free', cfg ) ).toBe( false );
 		expect( isProviderServed( 'openai', 'pro_managed', cfg ) ).toBe( true );
@@ -179,12 +179,12 @@ describe( 'TEMPORARY(#1020) substitution', () => {
 		} );
 	} );
 
-	it( 'ignores a non-Claude requested model (OpenAIProvider always sends gpt-4.1)', () => {
+	it( 'ignores a non-Claude requested model (OpenAIProvider always sends gpt-6-sol)', () => {
 		expect(
-			resolveChatRoute( 'openai', 'free', makeCfg(), 'gpt-4.1' ).model
+			resolveChatRoute( 'openai', 'free', makeCfg(), 'gpt-6-sol' ).model
 		).toBe( 'claude-haiku-4-5-20251001' );
 		expect(
-			resolveChatRoute( 'openai', 'pro_managed', makeCfg(), 'gpt-4.1' )
+			resolveChatRoute( 'openai', 'pro_managed', makeCfg(), 'gpt-6-sol' )
 				.model
 		).toBe( 'claude-sonnet-4-6' );
 	} );

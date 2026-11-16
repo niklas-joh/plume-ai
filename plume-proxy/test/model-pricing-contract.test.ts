@@ -8,7 +8,7 @@ import {
 
 // Billing uses `tokenWeights[ selectedModel ] ?? 1` as a silent fallback. Any
 // tier model missing from DEFAULT_MODEL_TOKEN_WEIGHT would therefore be billed
-// at weight 1 — over-billing cheap models (nano: 0.1 → 10x) and under-billing
+// at weight 1 — over-billing cheap models (gpt-6-luna: 0.1 → 10x) and under-billing
 // premium ones. This enforces the "add a model → price it" contract so the
 // omission fails loudly here instead of silently in production billing.
 describe( 'model pricing contract', () => {
@@ -25,4 +25,10 @@ describe( 'model pricing contract', () => {
 			expect( DEFAULT_MODEL_TOKEN_WEIGHT ).toHaveProperty( model );
 		}
 	);
+
+	// Weight = list input price / Haiku 4.5's $1/MTok: gpt-6-luna $0.10, gpt-6-sol $2.00.
+	it( 'weights the OpenAI models by list input price', () => {
+		expect( DEFAULT_MODEL_TOKEN_WEIGHT[ 'gpt-6-luna' ] ).toBe( 0.1 );
+		expect( DEFAULT_MODEL_TOKEN_WEIGHT[ 'gpt-6-sol' ] ).toBe( 2 );
+	} );
 } );

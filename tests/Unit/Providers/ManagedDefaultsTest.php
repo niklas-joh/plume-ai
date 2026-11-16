@@ -93,8 +93,8 @@ class ManagedDefaultsTest extends TestCase {
 			'claude free'        => [ 'claude', 'free', 'claude-haiku-4-5-20251001', 'Claude Haiku 4.5' ],
 			'claude pro_managed' => [ 'claude', 'pro_managed', 'claude-sonnet-4-6', 'Claude Sonnet 4.6' ],
 			'claude pro_byok'    => [ 'claude', 'pro_byok', 'claude-sonnet-4-6', 'Claude Sonnet 4.6' ],
-			'openai free'        => [ 'openai', 'free', 'gpt-4.1-nano', 'GPT-4.1 nano' ],
-			'openai pro_managed' => [ 'openai', 'pro_managed', 'gpt-4.1', 'GPT-4.1' ],
+			'openai free'        => [ 'openai', 'free', 'gpt-6-luna', 'GPT-6 Luna' ],
+			'openai pro_managed' => [ 'openai', 'pro_managed', 'gpt-6-sol', 'GPT-6 Sol' ],
 			'gemini free'        => [ 'gemini', 'free', 'gemini-3.1-flash-lite', 'Gemini 3.1 Flash Lite' ],
 			'gemini pro_managed' => [ 'gemini', 'pro_managed', 'gemini-3.6-flash', 'Gemini 3.6 Flash' ],
 			'claude unknown tier' => [ 'claude', 'bogus', 'claude-haiku-4-5-20251001', 'Claude Haiku 4.5' ],
@@ -230,7 +230,7 @@ class ManagedDefaultsTest extends TestCase {
 		Functions\expect( 'wp_remote_get' )->never();
 		Functions\expect( 'set_transient' )->never();
 
-		$this->assertSame( 'gpt-4.1-nano', ManagedDefaults::model_id( 'openai', 'free' ) );
+		$this->assertSame( 'gpt-6-luna', ManagedDefaults::model_id( 'openai', 'free' ) );
 	}
 
 	/**
@@ -346,7 +346,7 @@ class ManagedDefaultsTest extends TestCase {
 		$this->stub_token( 'sometoken' );
 		Functions\when( 'get_transient' )->justReturn( self::catalogue( [ 'claude' => 'claude-live-1' ] ) );
 
-		$this->assertSame( 'gpt-4.1-nano', ManagedDefaults::model_id( 'openai', 'free' ) );
+		$this->assertSame( 'gpt-6-luna', ManagedDefaults::model_id( 'openai', 'free' ) );
 		$this->assertSame( 'gemini-3.1-flash-lite', ManagedDefaults::model_id( 'gemini', 'free' ) );
 	}
 
@@ -359,7 +359,7 @@ class ManagedDefaultsTest extends TestCase {
 		Functions\expect( 'wp_remote_get' )->never();
 		Functions\expect( 'set_transient' )->never();
 
-		$this->assertSame( 'gpt-4.1', ManagedDefaults::model_id( 'openai', 'pro_managed' ) );
+		$this->assertSame( 'gpt-6-sol', ManagedDefaults::model_id( 'openai', 'pro_managed' ) );
 	}
 
 	/**

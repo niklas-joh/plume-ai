@@ -119,8 +119,8 @@ export const DEFAULT_TIER_MODELS: Record<
 		],
 	},
 	openai: {
-		free: [ 'gpt-4.1-nano' ],
-		pro_managed: [ 'gpt-4.1' ],
+		free: [ 'gpt-6-luna' ],
+		pro_managed: [ 'gpt-6-sol' ],
 	},
 	gemini: {
 		free: [ 'gemini-3.1-flash-lite' ],
@@ -146,8 +146,8 @@ export const DEFAULT_MODEL_BY_TIER: Record<
 		pro_managed: 'claude-sonnet-4-6',
 	},
 	openai: {
-		free: 'gpt-4.1-nano',
-		pro_managed: 'gpt-4.1',
+		free: 'gpt-6-luna',
+		pro_managed: 'gpt-6-sol',
 	},
 	gemini: {
 		free: 'gemini-3.1-flash-lite',
@@ -158,13 +158,13 @@ export const DEFAULT_MODEL_BY_TIER: Record<
 // Fallback token weights — relative cost multipliers applied to raw token counts
 // before computing credits, so quota enforcement is provider/model-agnostic.
 // Weights track list input price relative to Claude Haiku 4.5 ($1/MTok), so a
-// sub-Haiku model gets a fractional weight (gpt-4.1-nano: $0.10/MTok → 0.1).
+// sub-Haiku model gets a fractional weight (gpt-6-luna: $0.10/MTok → 0.1).
 export const DEFAULT_MODEL_TOKEN_WEIGHT: Record< string, number > = {
 	'claude-haiku-4-5-20251001': 1,
 	'claude-sonnet-4-6': 3,
 	'claude-opus-4-6': 5,
-	'gpt-4.1': 2,
-	'gpt-4.1-nano': 0.1,
+	'gpt-6-luna': 0.1,
+	'gpt-6-sol': 2,
 	'gemini-3.1-flash-lite': 1,
 	// $0.75/MTok until 31 Dec 2026, $1.50 from 1 Jan 2027 — weighted at the 2027
 	// price so no change is needed at the switch-over.
@@ -498,9 +498,14 @@ async function callOpenAI(
 	const messages = sysText
 		? [ { role: 'system', content: sysText }, ...body.messages ]
 		: body.messages;
+	// `max_tokens` is deprecated and incompatible with OpenAI reasoning models, and
+	// gpt-6-luna/sol allow function calling on Chat Completions only with
+	// reasoning_effort 'none' (sent unconditionally so a tool-less request
+	// behaves the same as a tool call).
 	const openaiBody: Record< string, unknown > = {
 		model: resolvedModel,
-		max_tokens: clampedMaxTokens,
+		max_completion_tokens: clampedMaxTokens,
+		reasoning_effort: 'none',
 		messages,
 	};
 	if ( body.tools && body.tools.length > 0 ) {

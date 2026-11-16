@@ -13,6 +13,7 @@
 		{ "id": "generator", "title": "Generator" },
 		{ "id": "seo", "title": "SEO" },
 		{ "id": "images", "title": "Images" },
+		{ "id": "usage", "title": "Usage" },
 		{ "id": "settings", "title": "Settings" },
 		{ "id": "editor-sidebar", "title": "Editor sidebar" }
 	]

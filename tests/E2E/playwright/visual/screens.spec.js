@@ -198,6 +198,26 @@ const CAPTURE = {
 		await shoot( page, testInfo, log, { id: 'images' } );
 	},
 
+	async usage( { page, baseURL, testInfo } ) {
+		// UsageDashboard fetches only GET /usage; it has no other REST calls.
+		const log = await prepare( page, {
+			baseURL,
+			handlers: [
+				{
+					method: 'GET',
+					route: /^\/usage$/,
+					reply: json( 200, fx.USAGE ),
+				},
+			],
+		} );
+		await page.goto( `${ ADMIN }plume-usage` );
+		await expect( page.locator( '.plume-usage__stats' ) ).toBeVisible( {
+			timeout: READY_TIMEOUT,
+		} );
+		await expect( page.locator( '.plume-usage__quota-bar' ) ).toBeVisible();
+		await shoot( page, testInfo, log, { id: 'usage' } );
+	},
+
 	async settings( { page, baseURL, testInfo } ) {
 		const log = await prepare( page, {
 			baseURL,

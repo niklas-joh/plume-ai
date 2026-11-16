@@ -120,7 +120,10 @@ export default function Composer( {
 								className="plume-composer__attachment-link"
 								aria-label={ sprintf(
 									/* translators: %s: post title. */
-									__( 'Edit "%s" (opens in new tab)', 'plume' ),
+									__(
+										'Edit "%s" (opens in new tab)',
+										'plume'
+									),
 									attachedPost.title
 								) }
 							/>

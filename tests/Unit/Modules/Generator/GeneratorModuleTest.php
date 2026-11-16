@@ -175,4 +175,95 @@ class GeneratorModuleTest extends TestCase {
         self::assertIsArray( $sent );
         self::assertGreaterThanOrEqual( 4096, $sent['max_tokens'] );
     }
+
+    /**
+     * A long draft is given 120 s on the managed route.
+     *
+     * @since NEXT_VERSION
+     * @return void
+     */
+    public function test_handle_generate_gives_the_request_a_long_timeout(): void {
+        $this->stub_managed_proxy( 429, [ 'error' => 'Monthly limit reached' ] );
+
+        $timeout = null;
+        Functions\when( 'wp_remote_post' )->alias(
+            static function ( string $url, array $args ) use ( &$timeout ) {
+                $timeout = $args['timeout'];
+                return [
+                    'response' => [ 'code' => 429 ],
+                    'body'     => '{}',
+                ];
+            }
+        );
+
+        GeneratorModule::handle_generate( $this->make_request( 'long' ) );
+
+        self::assertSame( 120, $timeout );
+    }
+
+    /**
+     * A timeout is reported with its own code and a plain message, not raw cURL text.
+     *
+     * @since NEXT_VERSION
+     * @return void
+     */
+    public function test_handle_generate_reports_a_timeout_clearly(): void {
+        $this->stub_managed_proxy( 200, [] );
+        Functions\when( 'wp_remote_post' )->justReturn(
+            new \WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out after 120001 milliseconds with 0 bytes received' )
+        );
+
+        $response = GeneratorModule::handle_generate( $this->make_request( 'long' ) );
+
+        self::assertSame( 502, $response->get_status() );
+        self::assertSame( 'request_timeout', $response->data['code'] );
+        self::assertSame( 'The request took too long to finish. Try again in a moment.', $response->data['message'] );
+        self::assertStringNotContainsString( 'cURL', $response->data['message'] );
+    }
+
+    /**
+     * Other transport failures are not mistaken for timeouts.
+     *
+     * @since NEXT_VERSION
+     * @return void
+     */
+    public function test_handle_generate_keeps_other_transport_errors_as_provider_error(): void {
+        $this->stub_managed_proxy( 200, [] );
+        Functions\when( 'wp_remote_post' )->justReturn(
+            new \WP_Error( 'http_request_failed', 'cURL error 6: Could not resolve host' )
+        );
+
+        $response = GeneratorModule::handle_generate( $this->make_request() );
+
+        self::assertSame( 502, $response->get_status() );
+        self::assertSame( 'provider_error', $response->data['code'] );
+    }
+
+    /**
+     * Own-key sites get the same timeout and the same clear timeout error.
+     *
+     * @since NEXT_VERSION
+     * @return void
+     */
+    public function test_handle_generate_applies_the_timeout_on_the_own_key_route(): void {
+        $this->stub_managed_proxy( 200, [] );
+        // An environment key is the simplest way to give the site its own key.
+        putenv( 'CLAUDE_API_KEY=sk-ant-own' );
+        $timeout = null;
+        Functions\when( 'wp_remote_post' )->alias(
+            static function ( string $url, array $args ) use ( &$timeout ) {
+                $timeout = $args['timeout'];
+                return new \WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out after 120001 milliseconds' );
+            }
+        );
+
+        try {
+            $response = GeneratorModule::handle_generate( $this->make_request( 'long' ) );
+        } finally {
+            putenv( 'CLAUDE_API_KEY' );
+        }
+
+        self::assertSame( 120, $timeout );
+        self::assertSame( 'request_timeout', $response->data['code'] );
+    }
 }

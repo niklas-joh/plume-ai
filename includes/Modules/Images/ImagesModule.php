@@ -70,6 +70,8 @@ class ImagesModule {
 			true
 		);
 
+		\wp_set_script_translations( 'plume-images', 'plume', PLUME_DIR . 'languages' );
+
 		\wp_localize_script(
 			'plume-images',
 			'plumeData',

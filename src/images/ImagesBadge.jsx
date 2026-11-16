@@ -1,3 +1,4 @@
+import { __ } from '@wordpress/i18n';
 import Badge from '../shared/Badge';
 
 /**
@@ -19,10 +20,10 @@ export default function ImagesBadge( { post } ) {
 		return (
 			<span className="plume-image-badge-cell">
 				<img src={ thumbUrl } alt="" className="plume-list-thumb" />
-				<Badge variant="has">Has image</Badge>
+				<Badge variant="has">{ __( 'Has image', 'plume' ) }</Badge>
 			</span>
 		);
 	}
 
-	return <Badge variant="none">No image</Badge>;
+	return <Badge variant="none">{ __( 'No image', 'plume' ) }</Badge>;
 }

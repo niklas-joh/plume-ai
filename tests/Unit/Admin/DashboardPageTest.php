@@ -29,6 +29,9 @@ if ( ! defined( 'PLUME_WEBSITE_URL' ) ) {
  */
 class DashboardPageTest extends TestCase {
 
+	/** @var array<int, array<int, string>> Captured wp_set_script_translations() calls. */
+	private array $translations = [];
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -78,6 +81,13 @@ class DashboardPageTest extends TestCase {
 		);
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+		$this->translations = [];
+		Functions\when( 'wp_set_script_translations' )->alias(
+			function ( string $handle, string $domain, string $path ): bool {
+				$this->translations[] = [ $handle, $domain, $path ];
+				return true;
+			}
+		);
 
 		$captured = null;
 		Functions\when( 'wp_localize_script' )->alias(
@@ -125,5 +135,15 @@ class DashboardPageTest extends TestCase {
 	public function test_dashboard_data_does_not_include_is_pro_key(): void {
 		$data = $this->render_and_capture_payload( 'free' );
 		$this->assertArrayNotHasKey( 'isPro', $data, 'isPro must be renamed to isPaid entirely, not kept alongside it.' );
+	}
+
+	/**
+	 * The Dashboard's script must load the plugin's JSON translations.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	public function test_enqueue_loads_script_translations(): void {
+		$this->render_and_capture_payload( 'free' );
+		$this->assertContains( [ 'plume-admin', 'plume', PLUME_DIR . 'languages' ], $this->translations );
 	}
 }

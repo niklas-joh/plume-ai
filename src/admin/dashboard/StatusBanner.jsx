@@ -1,3 +1,5 @@
+import { __ } from '@wordpress/i18n';
+
 /**
  * Contextual status banner shown at the top of the dashboard.
  *
@@ -27,18 +29,28 @@ export default function StatusBanner( { bannerState, urls } ) {
 			<div className="plume-dash-banner__text">
 				{ isError ? (
 					<>
-						<strong>Your API key appears to be invalid.</strong>
-						<span> Check your Settings.</span>
+						<strong>
+							{ __(
+								'Your API key appears to be invalid.',
+								'plume'
+							) }
+						</strong>
+						<span> { __( 'Check your Settings.', 'plume' ) }</span>
 					</>
 				) : (
 					<>
 						<strong>
-							You&apos;re running low on free credits.
+							{ __(
+								"You're running low on free credits.",
+								'plume'
+							) }
 						</strong>
 						<span>
 							{ ' ' }
-							Add your own key for unlimited access, or upgrade to
-							Pro.
+							{ __(
+								'Add your own key for unlimited access, or upgrade to Pro.',
+								'plume'
+							) }
 						</span>
 					</>
 				) }
@@ -46,7 +58,7 @@ export default function StatusBanner( { bannerState, urls } ) {
 			{ ! isError && (
 				<div className="plume-dash-banner__actions">
 					<a href={ urls.settings } className="plume-dash-btn">
-						Add API key
+						{ __( 'Add API key', 'plume' ) }
 					</a>
 					<a
 						href={ urls.upgrade }
@@ -54,7 +66,7 @@ export default function StatusBanner( { bannerState, urls } ) {
 						target="_blank"
 						rel="nofollow noreferrer"
 					>
-						Upgrade to Pro
+						{ __( 'Upgrade to Pro', 'plume' ) }
 					</a>
 				</div>
 			) }
@@ -64,7 +76,7 @@ export default function StatusBanner( { bannerState, urls } ) {
 						href={ urls.settings }
 						className="plume-dash-btn plume-dash-btn--primary"
 					>
-						Go to Settings
+						{ __( 'Go to Settings', 'plume' ) }
 					</a>
 				</div>
 			) }

@@ -1,6 +1,5 @@
-/* global navigator */
 import { useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { Trash2, Check, X } from 'lucide-react';
 
 /**
@@ -32,7 +31,7 @@ export default function ConversationHistory( {
 	if ( conversations.length === 0 ) {
 		return (
 			<div className="plume-sidebar__empty">
-				<p>No conversations yet.</p>
+				<p>{ __( 'No conversations yet.', 'plume' ) }</p>
 			</div>
 		);
 	}
@@ -52,17 +51,17 @@ export default function ConversationHistory( {
 						title={ conv.title || __( 'Untitled', 'plume' ) }
 					>
 						<span className="plume-conv-item__title">
-							{ conv.title || 'Untitled' }
+							{ conv.title || __( 'Untitled', 'plume' ) }
 						</span>
 						<span className="plume-conv-item__date">
 							{ conv.updated_at
 								? new Date(
 										conv.updated_at
-								  ).toLocaleDateString( navigator.language, {
+									).toLocaleDateString( navigator.language, {
 										day: '2-digit',
 										month: '2-digit',
 										year: 'numeric',
-								  } )
+									} )
 								: '—' }
 						</span>
 					</button>
@@ -80,10 +79,15 @@ export default function ConversationHistory( {
 									onDelete( conv.id );
 								} }
 								type="button"
-								title="Confirm delete"
-								aria-label={ `Confirm delete conversation: ${
-									conv.title || 'Untitled'
-								}` }
+								title={ __( 'Confirm delete', 'plume' ) }
+								aria-label={ sprintf(
+									/* translators: %s: conversation title. */
+									__(
+										'Confirm delete conversation: %s',
+										'plume'
+									),
+									conv.title || __( 'Untitled', 'plume' )
+								) }
 							>
 								<Check size={ 12 } strokeWidth={ 1.5 } />
 							</button>
@@ -91,8 +95,8 @@ export default function ConversationHistory( {
 								className="plume-conv-item__confirm-no plume-btn plume-btn--ghost"
 								onClick={ () => setConfirmingId( null ) }
 								type="button"
-								title="Cancel delete"
-								aria-label="Cancel delete"
+								title={ __( 'Cancel delete', 'plume' ) }
+								aria-label={ __( 'Cancel delete', 'plume' ) }
 							>
 								<X size={ 12 } strokeWidth={ 1.5 } />
 							</button>
@@ -102,10 +106,12 @@ export default function ConversationHistory( {
 							className="plume-conv-item__delete plume-btn plume-btn--ghost"
 							onClick={ () => setConfirmingId( conv.id ) }
 							type="button"
-							title="Delete conversation"
-							aria-label={ `Delete conversation: ${
-								conv.title || 'Untitled'
-							}` }
+							title={ __( 'Delete conversation', 'plume' ) }
+							aria-label={ sprintf(
+								/* translators: %s: conversation title. */
+								__( 'Delete conversation: %s', 'plume' ),
+								conv.title || __( 'Untitled', 'plume' )
+							) }
 							disabled={ deletingIds.has( conv.id ) }
 						>
 							<Trash2 size={ 12 } strokeWidth={ 1.5 } />

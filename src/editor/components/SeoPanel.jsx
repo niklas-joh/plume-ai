@@ -1,4 +1,5 @@
 import { useSelect } from '@wordpress/data';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 
 function scoreItem( label, pass, tip ) {
@@ -82,19 +83,39 @@ export default function SeoPanel() {
 					className="plume-seo-panel__score"
 					style={ { background: scoreColor } }
 				>
-					{ score }/3
+					{ sprintf(
+						/* translators: %d: number of SEO checks passed, out of three. */
+						__( '%d/3', 'plume' ),
+						score
+					) }
 				</span>
 				<span className="plume-seo-panel__word-count">
-					{ wordCount } words
+					{ sprintf(
+						/* translators: %d: number of words in the post. */
+						_n( '%d word', '%d words', wordCount, 'plume' ),
+						wordCount
+					) }
 				</span>
 			</div>
 			{ scoreItem(
-				'Title length 30–60 chars',
+				__( 'Title length 30–60 chars', 'plume' ),
 				hasTitle,
-				`${ title.length } chars`
+				sprintf(
+					/* translators: %d: number of characters in the post title. */
+					_n( '%d char', '%d chars', title.length, 'plume' ),
+					title.length
+				)
 			) }
-			{ scoreItem( 'Excerpt present', hasExcerpt ) }
-			{ scoreItem( '300+ words', goodLength, `${ wordCount } words` ) }
+			{ scoreItem( __( 'Excerpt present', 'plume' ), hasExcerpt ) }
+			{ scoreItem(
+				__( '300+ words', 'plume' ),
+				goodLength,
+				sprintf(
+					/* translators: %d: number of words in the post. */
+					_n( '%d word', '%d words', wordCount, 'plume' ),
+					wordCount
+				)
+			) }
 		</div>
 	);
 }

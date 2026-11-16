@@ -1,0 +1,33 @@
+name: Capture screenshots
+description: >-
+  Runs the visual Playwright suite against the local wp-env site and writes
+  the screenshots, env.json and summary under .artifacts/screenshots/ci.
+  Shared by the e2e job (pr-checks.yml) and the baseline job
+  (pr-screenshots.yml). Callers keep their own id, if, continue-on-error and
+  timeout-minutes. Never fails on screenshot errors: it only warns.
+
+inputs:
+  warning:
+    description: Text of the warning shown when the Playwright run has failures.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Capture screenshots
+      shell: bash
+      env:
+        WP_BASE_URL: http://localhost:8888
+        WP_TEST_USER: nj_agent
+        WP_TEST_PASS: C8IcqAWJu8F3dOw6E4ndWhIe
+        # Via env, not interpolated into the script, so the text is never parsed as shell.
+        CAPTURE_WARNING: ${{ inputs.warning }}
+      run: |
+        start=$(date +%s)
+        if ! CI=true npx playwright test -c playwright.config.visual.js; then
+          echo "::warning::$CAPTURE_WARNING"
+        fi
+        mkdir -p .artifacts/screenshots/ci
+        node .github/scripts/pr-screenshots.mjs env > .artifacts/screenshots/ci/env.json || true
+        node .github/scripts/pr-screenshots.mjs summary || true
+        echo "Screenshot capture step took $(( $(date +%s) - start ))s (wall clock, including setup)." | tee -a "$GITHUB_STEP_SUMMARY"

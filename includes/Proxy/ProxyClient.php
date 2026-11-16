@@ -133,11 +133,13 @@ class ProxyClient {
 		}
 
 		// The Worker reports upstream provider failures (retired model, depleted provider
-		// credit, overload) with a neutral code. The 500 + 'Internal proxy error' pair is what
-		// Workers deployed before that code existed return, so both are treated the same.
+		// credit, overload) with a neutral code. A code-less 500 + 'Internal proxy error' pair
+		// is what Workers deployed before that code existed return, so both are treated the
+		// same. Current Workers tag their own faults with `internal_error`; those fall through
+		// to service_error so a Worker bug is not misreported as a provider outage.
 		if (
 			( 503 === $code && 'provider_unavailable' === ( $body['code'] ?? '' ) )
-			|| ( 500 === $code && 'Internal proxy error' === ( $body['error'] ?? '' ) )
+			|| ( 500 === $code && 'Internal proxy error' === ( $body['error'] ?? '' ) && ! isset( $body['code'] ) )
 		) {
 			return new WP_Error( 'provider_unavailable', __( 'This AI model is temporarily unavailable. Please try again later or choose another model.', 'plume' ) );
 		}

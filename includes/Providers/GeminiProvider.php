@@ -36,8 +36,11 @@ class GeminiProvider extends AbstractProvider {
 	 * never offers a model the Worker will reject for proxy-routed (non-BYOK)
 	 * requests — see #906. free -> gemini-3.1-flash-lite, pro_managed ->
 	 * gemini-3.6-flash; the Worker alone decides which tier gets which.
+	 *
+	 * @since NEXT_VERSION Visibility widened from private to public.
+	 * @var array<string, string>
 	 */
-	private const MODELS = [
+	public const MODELS = [
 		'gemini-3.1-flash-lite' => 'Gemini 3.1 Flash Lite',
 		'gemini-3.6-flash'      => 'Gemini 3.6 Flash',
 	];

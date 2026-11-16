@@ -108,6 +108,7 @@ const REPLY = {
 		'```',
 	].join( '\n' ),
 	model: 'claude-sonnet-4-5',
+	model_label: 'Claude Sonnet 4.5',
 	tokens: 120,
 	credits: 2,
 };

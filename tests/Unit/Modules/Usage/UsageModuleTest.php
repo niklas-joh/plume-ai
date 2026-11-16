@@ -14,6 +14,7 @@ class UsageModuleTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
+		Functions\when( '__' )->returnArg();
 	}
 
 	protected function tearDown(): void {
@@ -53,5 +54,21 @@ class UsageModuleTest extends TestCase {
 		self::assertArrayHasKey( 'remaining', $data );
 		self::assertArrayHasKey( 'can_use',   $data );
 		self::assertSame( 1200, $data['used'] );
+	}
+
+	/**
+	 * @since NEXT_VERSION
+	 */
+	public function test_get_usage_adds_a_human_plan_label(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_meta' )->justReturn( '0' );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+
+		$data = UsageModule::get_usage( new \WP_REST_Request() )->data;
+
+		self::assertArrayHasKey( 'tier_label', $data );
+		self::assertNotSame( $data['tier'], $data['tier_label'] );
+		self::assertStringNotContainsString( '_', $data['tier_label'] );
 	}
 }

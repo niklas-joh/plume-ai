@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Tiers\TierConfig;
 use Plume\Tiers\TierManager;
 use Plume\Tiers\UsageTracker;
 
@@ -116,7 +117,9 @@ class DashboardPage {
 			'bannerState'    => $banner_state,
 			'onboardingSeen' => (bool) get_option( 'plume_onboarding_seen', false ),
 			'isPaid'         => $is_paid,
-			'usage'          => current_user_can( 'manage_options' ) ? $usage : null,
+			'usage'          => current_user_can( 'manage_options' )
+				? array_merge( $usage, [ 'tier_label' => TierConfig::tier_label( (string) $usage['tier'] ) ] )
+				: null,
 			'version'        => PLUME_VERSION,
 			'nonce'          => wp_create_nonce( 'wp_rest' ),
 			'restUrl'        => esc_url_raw( rest_url( 'plume/v1' ) ),

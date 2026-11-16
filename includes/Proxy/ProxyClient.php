@@ -144,6 +144,12 @@ class ProxyClient {
 			return new WP_Error( 'provider_unavailable', __( 'This AI model is temporarily unavailable. Please try again later or choose another model.', 'plume' ) );
 		}
 
+		// A fault in the Worker itself: keep the generic service_error code but never show the
+		// Worker's non-localised, developer-facing text.
+		if ( 500 === $code && 'internal_error' === ( $body['code'] ?? '' ) ) {
+			return new WP_Error( 'service_error', __( 'Something went wrong on our side. Please try again in a moment.', 'plume' ) );
+		}
+
 		if ( $code < 200 || $code >= 300 ) {
 			// translators: %d is the HTTP status code returned by the service.
 			return new WP_Error( 'service_error', $body['error'] ?? sprintf( __( 'Plume AI - Write and Design returned HTTP %d', 'plume' ), $code ) );

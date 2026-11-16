@@ -33,6 +33,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ProxyClient {
 
 	/**
+	 * Option holding whether the site shares usage statistics with the managed service.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	public const OPTION_SHARE_USAGE_STATS = 'plume_share_usage_stats';
+
+	/**
+	 * Request headers that tell the Worker not to record usage statistics.
+	 *
+	 * Only the statistics are skipped; the Worker still counts credits.
+	 *
+	 * @since NEXT_VERSION
+	 * @return array<string, string> The opt-out header when the site has opted out, otherwise empty.
+	 */
+	public static function stats_headers(): array {
+		if ( (bool) get_option( self::OPTION_SHARE_USAGE_STATS, true ) ) {
+			return [];
+		}
+		return [ 'X-Plume-No-Stats' => '1' ];
+	}
+
+	/**
 	 * Send a chat request through the Cloudflare proxy.
 	 *
 	 * The Worker's KV store is the sole source of truth for credit enforcement —
@@ -96,10 +118,13 @@ class ProxyClient {
 		$response = wp_remote_post(
 			TierConfig::get_proxy_url() . '/v1/chat',
 			[
-				'headers' => [
-					'Content-Type'  => 'application/json',
-					'Authorization' => 'Bearer ' . $token,
-				],
+				'headers' => array_merge(
+					[
+						'Content-Type'  => 'application/json',
+						'Authorization' => 'Bearer ' . $token,
+					],
+					self::stats_headers()
+				),
 				'body'    => $body_json,
 				'timeout' => $timeout,
 			]

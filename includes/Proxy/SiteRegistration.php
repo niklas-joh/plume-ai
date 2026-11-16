@@ -188,7 +188,7 @@ class SiteRegistration {
 		$response = wp_remote_post(
 			$proxy_url . '/register',
 			[
-				'headers' => [ 'Content-Type' => 'application/json' ],
+				'headers' => array_merge( [ 'Content-Type' => 'application/json' ], ProxyClient::stats_headers() ),
 				'body'    => wp_json_encode(
 					[
 						'site_url'        => home_url(),

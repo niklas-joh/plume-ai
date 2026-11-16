@@ -707,4 +707,75 @@ class SettingsRestControllerTest extends TestCase {
 
         $this->assertSame( "One\nTwo", $stored['plume_site_voice']['extra'] );
     }
+
+    // ── share_usage_stats: managed-service statistics opt-out (#1015) ─────────
+
+    private function stub_rest_sanitize_boolean(): void {
+        // Mirrors core: the strings 'false' and '0' are false, everything else is cast.
+        Functions\when( 'rest_sanitize_boolean' )->alias(
+            fn( $v ) => is_string( $v ) && in_array( strtolower( $v ), [ 'false', '0', '' ], true ) ? false : (bool) $v
+        );
+    }
+
+    public function test_get_settings_share_usage_stats_defaults_to_true(): void {
+        $stored = [];
+        $this->stub_voice_options( $stored );
+
+        $data = $this->make_voice_controller()->get_settings( new \WP_REST_Request() )->data;
+
+        $this->assertTrue( $data['share_usage_stats'] );
+    }
+
+    /**
+     * @dataProvider share_usage_stats_inputs
+     * @param mixed $input    Posted value.
+     * @param bool  $expected Value stored and read back.
+     */
+    public function test_save_then_get_round_trips_share_usage_stats( $input, bool $expected ): void {
+        $stored = [];
+        $this->stub_voice_options( $stored );
+        $this->stub_rest_sanitize_boolean();
+        $controller = $this->make_voice_controller();
+
+        $this->post_voice( $controller, [ 'share_usage_stats' => $input ] );
+
+        $this->assertSame( $expected, $stored['plume_share_usage_stats'] );
+        $this->assertSame( $expected, $controller->get_settings( new \WP_REST_Request() )->data['share_usage_stats'] );
+    }
+
+    /** @return array<string,array{0:mixed,1:bool}> */
+    public static function share_usage_stats_inputs(): array {
+        return [
+            'bool false'   => [ false, false ],
+            'string false' => [ 'false', false ],
+            'string 0'     => [ '0', false ],
+            'bool true'    => [ true, true ],
+            'string true'  => [ 'true', true ],
+        ];
+    }
+
+    public function test_save_without_share_usage_stats_leaves_option_untouched(): void {
+        $stored = [ 'plume_share_usage_stats' => false ];
+        $this->stub_voice_options( $stored );
+
+        $this->post_voice( $this->make_voice_controller(), [ 'default_provider' => 'claude' ] );
+
+        $this->assertFalse( $stored['plume_share_usage_stats'] );
+    }
+
+    public function test_check_permission_rejects_non_admin_with_403(): void {
+        Functions\when( 'current_user_can' )->justReturn( false );
+        Functions\when( '__' )->returnArg();
+
+        $result = ( new SettingsRestController() )->check_permission();
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 403, $result->get_error_data()['status'] );
+    }
+
+    public function test_check_permission_allows_admin(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $this->assertTrue( ( new SettingsRestController() )->check_permission() );
+    }
 }

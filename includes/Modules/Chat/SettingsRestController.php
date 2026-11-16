@@ -176,7 +176,10 @@ class SettingsRestController {
 		}
 
 		if ( isset( $params['share_usage_stats'] ) ) {
-			\update_option( ProxyClient::OPTION_SHARE_USAGE_STATS, rest_sanitize_boolean( $params['share_usage_stats'] ) );
+			// Stored as 1/0, not true/false: on sites where the option was never saved,
+			// get_option() returns false, so update_option( ..., false ) would return
+			// early without writing and the opt-out would silently not take effect.
+			\update_option( ProxyClient::OPTION_SHARE_USAGE_STATS, rest_sanitize_boolean( $params['share_usage_stats'] ) ? 1 : 0 );
 		}
 
 		return rest_ensure_response( [ 'saved' => true ] );

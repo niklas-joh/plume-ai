@@ -739,7 +739,7 @@ class SettingsRestControllerTest extends TestCase {
 
         $this->post_voice( $controller, [ 'share_usage_stats' => $input ] );
 
-        $this->assertSame( $expected, $stored['plume_share_usage_stats'] );
+        $this->assertSame( $expected ? 1 : 0, $stored['plume_share_usage_stats'] );
         $this->assertSame( $expected, $controller->get_settings( new \WP_REST_Request() )->data['share_usage_stats'] );
     }
 
@@ -754,13 +754,38 @@ class SettingsRestControllerTest extends TestCase {
         ];
     }
 
+    /**
+     * Regression: core's update_option() returns early when the new value is
+     * identical to get_option(), which is false for a never-saved option. The
+     * opt-out must still be written on such sites (every existing install).
+     */
+    public function test_opt_out_is_written_when_option_was_never_saved(): void {
+        $stored = [];
+        $this->stub_voice_options( $stored );
+        $this->stub_rest_sanitize_boolean();
+        Functions\when( 'update_option' )->alias( function( $k, $v ) use ( &$stored ) {
+            $old = array_key_exists( $k, $stored ) ? $stored[ $k ] : false;
+            if ( $v === $old ) {
+                return false;
+            }
+            $stored[ $k ] = $v;
+            return true;
+        } );
+        $controller = $this->make_voice_controller();
+
+        $this->post_voice( $controller, [ 'share_usage_stats' => false ] );
+
+        $this->assertArrayHasKey( 'plume_share_usage_stats', $stored );
+        $this->assertFalse( $controller->get_settings( new \WP_REST_Request() )->data['share_usage_stats'] );
+    }
+
     public function test_save_without_share_usage_stats_leaves_option_untouched(): void {
-        $stored = [ 'plume_share_usage_stats' => false ];
+        $stored = [ 'plume_share_usage_stats' => 0 ];
         $this->stub_voice_options( $stored );
 
         $this->post_voice( $this->make_voice_controller(), [ 'default_provider' => 'claude' ] );
 
-        $this->assertFalse( $stored['plume_share_usage_stats'] );
+        $this->assertSame( 0, $stored['plume_share_usage_stats'] );
     }
 
     public function test_check_permission_rejects_non_admin_with_403(): void {

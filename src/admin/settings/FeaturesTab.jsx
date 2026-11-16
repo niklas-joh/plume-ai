@@ -231,7 +231,7 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 						'plume'
 					) }
 					help={ __(
-						'For each request and registration, the managed service records your site domain, plan, feature, AI provider and model, token counts, credits used, response time and whether it succeeded. Prompts and responses are never included. Turn this off to stop these statistics; credit counting continues, so your plan limits still apply.',
+						'Applies only when you use the Plume managed service (no API key of your own). For each request and registration, the service records your site domain, plan, feature, AI provider and model, token counts, credits used, response time and whether it succeeded. Prompts and responses are never included. Turn this off to stop recording these statistics from now on; credit counting continues, so your plan limits still apply.',
 						'plume'
 					) }
 					checked={ shareUsageStats }

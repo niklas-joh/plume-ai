@@ -177,6 +177,52 @@ class ProxyClientTest extends TestCase {
 		];
 	}
 
+	/**
+	 * @dataProvider internal_error_responses
+	 */
+	public function test_chat_shows_a_friendly_message_when_worker_500_is_internal_error( string $body ): void {
+		$this->stub_chat_response( 500, $body );
+
+		$result = ProxyClient::chat( [ [ 'role' => 'user', 'content' => 'hi' ] ], 'chat' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'service_error', $result->get_error_code() );
+		$this->assertSame( 'Something went wrong on our side. Please try again in a moment.', $result->get_error_message() );
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function internal_error_responses(): array {
+		return [
+			'internal_error code' => [ '{"error":"Internal proxy error","code":"internal_error"}' ],
+			'different text'      => [ '{"error":"Anything the Worker says","code":"internal_error"}' ],
+		];
+	}
+
+	public function test_chat_keeps_the_worker_message_for_other_coded_500s(): void {
+		$this->stub_chat_response( 500, '{"error":"Internal proxy error","code":"something_else"}' );
+
+		$result = ProxyClient::chat( [ [ 'role' => 'user', 'content' => 'hi' ] ], 'chat' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'service_error', $result->get_error_code() );
+		$this->assertSame( 'Internal proxy error', $result->get_error_message() );
+	}
+
+	private function stub_chat_response( int $status, string $body ): void {
+		Functions\expect( 'get_option' )
+			->with( SiteRegistration::OPTION_TOKEN, '' )
+			->andReturn( 'test-token' );
+		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_remote_post' )->justReturn( [] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( $status );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( $body );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+	}
+
 	public function test_chat_returns_response_body_on_success(): void {
 		// Proxy normalises content to a flat string — NOT a Claude block array.
 		$body = json_encode(

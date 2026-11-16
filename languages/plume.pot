@@ -423,6 +423,10 @@ msgstr ""
 msgid "This AI model is temporarily unavailable. Please try again later or choose another model."
 msgstr ""
 
+#: includes/Proxy/ProxyClient.php:149
+msgid "Something went wrong on our side. Please try again in a moment."
+msgstr ""
+
 #. translators: %d is the HTTP status code returned by the service.
 #: includes/Proxy/ProxyClient.php:147
 #, php-format

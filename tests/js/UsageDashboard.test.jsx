@@ -9,8 +9,9 @@ import { createRoot } from 'react-dom/client';
 import apiFetch from '@wordpress/api-fetch';
 import UsageDashboard from '../../src/usage/components/UsageDashboard';
 
-jest.mock( 'lucide-react', () =>
-	new Proxy( {}, { get: () => () => <span /> } )
+jest.mock(
+	'lucide-react',
+	() => new Proxy( {}, { get: () => () => <span /> } )
 );
 
 describe( 'UsageDashboard', () => {
@@ -65,5 +66,26 @@ describe( 'UsageDashboard', () => {
 		} );
 
 		expect( container.textContent ).toContain( 'Monthly limit reached' );
+	} );
+
+	it( 'shows the plan name, never the tier slug', async () => {
+		apiFetch.mockResolvedValue( {
+			tier: 'pro_managed',
+			tier_label: 'Pro',
+			used: 10,
+			limit: 100,
+			remaining: 90,
+			can_use: true,
+		} );
+
+		await act( async () => {
+			root.render( <UsageDashboard /> );
+		} );
+
+		expect(
+			container.querySelector( '.plume-usage__period' ).textContent
+		).toBe( 'Pro' );
+		expect( container.textContent ).not.toContain( 'pro_managed' );
+		expect( container.textContent ).not.toContain( 'Tier:' );
 	} );
 } );

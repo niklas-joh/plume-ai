@@ -39,10 +39,13 @@ class OpenAIProvider extends AbstractProvider {
 	 * per-tier (getModelForTier returns allowed[0] for any non-tier model), so a
 	 * model from the other tier is substituted cross-tier and the response reports
 	 * the Worker-returned model. Keep the two in sync.
+	 *
+	 * @since NEXT_VERSION Visibility widened from private to public.
+	 * @var array<string, string>
 	 */
-	private const MODELS = [
+	public const MODELS = [
 		'gpt-4.1'      => 'GPT-4.1',
-		'gpt-4.1-nano' => 'GPT-4.1 Nano',
+		'gpt-4.1-nano' => 'GPT-4.1 nano',
 	];
 
 	/**

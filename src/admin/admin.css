@@ -615,12 +615,24 @@
 	gap: var(--space-2);
 }
 
+.plume-model-default {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-0-5);
+	min-width: 0;
+}
+
+.plume-model-default__caption {
+	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+}
+
+/* The full name must stay readable in the narrow panel, so it wraps instead of truncating. */
 .plume-model-default-label {
 	font-size: var(--text-sm);
 	color: var(--color-text-secondary);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	white-space: normal;
+	overflow-wrap: anywhere;
 }
 
 .plume-model-advanced-toggle {
@@ -683,6 +695,15 @@
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
+}
+
+.plume-model-selector__row--default {
+	align-items: flex-start;
+}
+
+.plume-model-selector__row--default > svg {
+	flex-shrink: 0;
+	margin-top: var(--space-0-5);
 }
 
 /* ── Quick actions ── */

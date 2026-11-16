@@ -1,5 +1,5 @@
 import { useState, useEffect } from '@wordpress/element';
-import { __, sprintf } from '@wordpress/i18n';
+import { __ } from '@wordpress/i18n';
 import { BarChart2, Zap, Loader2 } from 'lucide-react';
 import apiFetch from '@wordpress/api-fetch';
 import { getErrorMessage } from '../../shared/errors';
@@ -55,7 +55,7 @@ export default function UsageDashboard() {
 		);
 	}
 
-	const { tier, used, limit, can_use: canUse } = data;
+	const { tier_label: tierLabel, used, limit, can_use: canUse } = data;
 
 	const hasLimit = limit !== null && limit !== undefined;
 	const usedPct = hasLimit ? Math.min( 100, ( used / limit ) * 100 ) : 0;
@@ -80,13 +80,9 @@ export default function UsageDashboard() {
 					/>{ ' ' }
 					{ __( 'Usage', 'plume' ) }
 				</h1>
-				<span className="plume-usage__period">
-					{ sprintf(
-						/* translators: %s: the user's current subscription tier slug. */
-						__( 'Tier: %s', 'plume' ),
-						tier
-					) }
-				</span>
+				{ tierLabel && (
+					<span className="plume-usage__period">{ tierLabel }</span>
+				) }
 			</div>
 
 			<div className="plume-usage__stats">

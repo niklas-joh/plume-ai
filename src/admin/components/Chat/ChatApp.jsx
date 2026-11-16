@@ -456,6 +456,7 @@ export default function ChatApp() {
 					role: 'assistant',
 					content: res.content,
 					model: res.model,
+					model_label: res.model_label,
 					credits: res.credits,
 					pending_plan: res.pending_plan ?? null,
 					tools_used: passiveTools.length > 0 ? passiveTools : null,

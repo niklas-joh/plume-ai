@@ -32,8 +32,16 @@ class ClaudeProvider extends AbstractProvider {
 	// English text averages ~4 chars/token; Anthropic's minimum cacheable prompt is 2,048 tokens.
 	private const CACHE_MIN_CHARS = 8_192;
 
-	// Mirrors TIER_MODELS in plume-proxy/src/index.ts — update both when adding models.
-	private const MODELS = [
+	/**
+	 * Selectable model ids mapped to display labels.
+	 *
+	 * Mirrors TIER_MODELS in plume-proxy/src/index.ts — update both when adding models.
+	 * Public and read-only so ModelLabels can resolve a human name from one source.
+	 *
+	 * @since NEXT_VERSION Visibility widened from private to public.
+	 * @var array<string, string>
+	 */
+	public const MODELS = [
 		'claude-opus-4-6'           => 'Claude Opus 4.6',
 		'claude-sonnet-4-6'         => 'Claude Sonnet 4.6',
 		'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5',

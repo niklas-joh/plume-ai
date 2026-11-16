@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-15T14:03:38+00:00\n"
+"POT-Creation-Date: 2026-11-15T22:47:08+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: plume\n"
@@ -65,32 +65,32 @@ msgid "Dashboard"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:43
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 #: assets/editor/index.js:5
 msgid "Chat"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:44
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Generator"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:45
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 #: assets/editor/index.js:5
 #: assets/seo/index.js:3
 msgid "SEO"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:46
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 #: assets/images/index.js:5
 msgid "Images"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:47
 #: assets/admin/index.js:4
-#: assets/admin/index.js:18
+#: assets/admin/index.js:16
 msgid "Settings"
 msgstr ""
 
@@ -104,6 +104,11 @@ msgstr ""
 
 #: includes/Admin/AdminMenu.php:61
 msgid "Upgrade ✦"
+msgstr ""
+
+#: includes/Admin/ChatPage.php:142
+#: assets/admin/index.js:4
+msgid "AI"
 msgstr ""
 
 #: includes/Admin/OnboardingRestController.php:155
@@ -142,7 +147,7 @@ msgstr ""
 
 #. translators: generic API key error
 #: includes/Admin/TestKeyRestController.php:146
-#: assets/admin/index.js:13
+#: assets/admin/index.js:12
 msgid "Invalid API key."
 msgstr ""
 
@@ -157,6 +162,7 @@ msgid "The key could not be verified. The provider did not give a reason."
 msgstr ""
 
 #: includes/Admin/TierStatusPage.php:85
+#: includes/Tiers/TierConfig.php:111
 msgid "Current plan"
 msgstr ""
 
@@ -262,7 +268,7 @@ msgid "credits"
 msgstr ""
 
 #: includes/Admin/UsageWidget.php:111
-#: assets/usage/index.js:2
+#: assets/usage/index.js:1
 msgid "remaining"
 msgstr ""
 
@@ -274,59 +280,59 @@ msgstr ""
 msgid "No credit limit — using your own API key."
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:232
+#: includes/Modules/Chat/ChatRestController.php:233
 msgid "Failed to create conversation."
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:236
+#: includes/Modules/Chat/ChatRestController.php:237
 msgid "Failed to retrieve conversation."
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:263
-#: includes/Modules/Chat/ChatRestController.php:360
+#: includes/Modules/Chat/ChatRestController.php:264
+#: includes/Modules/Chat/ChatRestController.php:373
 #: includes/Modules/Seo/SeoModule.php:228
 #: includes/Modules/Seo/SeoModule.php:422
 msgid "Forbidden."
 msgstr ""
 
 #. translators: %s: provider slug
-#: includes/Modules/Chat/ChatRestController.php:441
+#: includes/Modules/Chat/ChatRestController.php:454
 #, php-format
 msgid "No API key configured for \"%s\". Please add one in Plume → Settings."
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:534
+#: includes/Modules/Chat/ChatRestController.php:547
 msgid "I've reached this turn's usage limit while working on your request. Here's what I was able to complete before stopping."
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:605
+#: includes/Modules/Chat/ChatRestController.php:618
 msgid "I've prepared the changes for your review."
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:618
+#: includes/Modules/Chat/ChatRestController.php:631
 msgid "The assistant reached the maximum number of steps without finishing. Please try rephrasing your request or breaking it into smaller tasks."
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:698
-#: includes/Modules/Chat/ChatRestController.php:726
+#: includes/Modules/Chat/ChatRestController.php:712
+#: includes/Modules/Chat/ChatRestController.php:740
 msgid "Not found."
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:701
+#: includes/Modules/Chat/ChatRestController.php:715
 msgid "You cannot update this conversation."
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:708
+#: includes/Modules/Chat/ChatRestController.php:722
 msgid "Failed to update conversation."
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:729
+#: includes/Modules/Chat/ChatRestController.php:743
 msgid "You cannot delete this conversation."
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:847
+#: includes/Modules/Chat/ChatRestController.php:861
 #: includes/Modules/Chat/PlansRestController.php:203
-#: includes/Modules/Chat/SettingsRestController.php:189
+#: includes/Modules/Chat/SettingsRestController.php:191
 #: includes/Tools/ToolExecutor.php:559
 msgid "Insufficient permissions."
 msgstr ""
@@ -391,6 +397,10 @@ msgstr ""
 msgid "The request took too long to finish. Try again in a moment."
 msgstr ""
 
+#: includes/Providers/ModelLabels.php:182
+msgid "AI model"
+msgstr ""
+
 #. translators: %s: AI provider name, e.g. "OpenAI".
 #: includes/Providers/ProviderFactory.php:235
 #, php-format
@@ -452,16 +462,25 @@ msgid "This site is not registered with Plume AI - Write and Design."
 msgstr ""
 
 #: includes/Tiers/TierConfig.php:84
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Free"
 msgstr ""
 
 #: includes/Tiers/TierConfig.php:85
-msgid "Pro Managed"
+#: includes/Tiers/TierConfig.php:107
+msgid "Pro"
 msgstr ""
 
 #: includes/Tiers/TierConfig.php:86
 msgid "Pro BYOK"
+msgstr ""
+
+#: includes/Tiers/TierConfig.php:105
+msgid "Free plan"
+msgstr ""
+
+#: includes/Tiers/TierConfig.php:109
+msgid "Your own API key"
 msgstr ""
 
 #: includes/Tools/ToolExecutor.php:550
@@ -517,7 +536,7 @@ msgid "Pending review"
 msgstr ""
 
 #: assets/admin/index.js:3
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Apply update"
 msgstr ""
 
@@ -568,7 +587,7 @@ msgid "Status"
 msgstr ""
 
 #: assets/admin/index.js:3
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 #: assets/editor/index.js:1
 msgid "Something went wrong. Please try again."
 msgstr ""
@@ -638,7 +657,7 @@ msgid "Overall note:"
 msgstr ""
 
 #: assets/admin/index.js:3
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Try again"
 msgstr ""
 
@@ -709,7 +728,7 @@ msgid "Send (Enter)"
 msgstr ""
 
 #: assets/admin/index.js:4
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Summarise this post"
 msgstr ""
 
@@ -718,7 +737,7 @@ msgid "Please summarise the current post in 2–3 sentences."
 msgstr ""
 
 #: assets/admin/index.js:4
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Improve readability"
 msgstr ""
 
@@ -727,7 +746,7 @@ msgid "Review this content and suggest readability improvements."
 msgstr ""
 
 #: assets/admin/index.js:4
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Write a post"
 msgstr ""
 
@@ -764,7 +783,11 @@ msgid "Quick actions"
 msgstr ""
 
 #: assets/admin/index.js:4
-msgid "AI"
+msgid "Ollama (self-hosted)"
+msgstr ""
+
+#: assets/admin/index.js:4
+msgid "Other provider"
 msgstr ""
 
 #: assets/admin/index.js:4
@@ -788,93 +811,90 @@ msgid "Simple"
 msgstr ""
 
 #: assets/admin/index.js:4
-#: assets/admin/index.js:5
 msgid "Saved"
 msgstr ""
 
-#. translators: %s: name of the default AI model.
-#: assets/admin/index.js:5
-#, js-format
-msgid "Plugin default — %s"
+#: assets/admin/index.js:4
+msgid "Plugin default"
 msgstr ""
 
-#: assets/admin/index.js:5
+#: assets/admin/index.js:4
 msgid "Advanced"
 msgstr ""
 
 #. translators: %d: number of comments
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 #, js-format
 msgid "%d comment on this change"
 msgid_plural "%d comments on this change"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Comments on this change"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Delete"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Cancel comment"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Add a comment…"
 msgstr ""
 
-#: assets/admin/index.js:6
-#: assets/admin/index.js:14
+#: assets/admin/index.js:5
+#: assets/admin/index.js:13
 msgid "Save"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 #: assets/images/index.js:4
 #: assets/seo/index.js:3
 msgid "Discard"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Unchanged"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Removed text"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Proposed text"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Changed text"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Add comment"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Removed"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Added"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Commented"
 msgstr ""
 
-#: assets/admin/index.js:6
+#: assets/admin/index.js:5
 msgid "Discard your comments and cancel?"
 msgstr ""
 
 #. translators: %d: number of proposed changes
-#: assets/admin/index.js:7
+#: assets/admin/index.js:6
 #, js-format
 msgid "%d change — drag to select text and comment"
 msgid_plural "%d changes — drag to select text and comment"
@@ -882,7 +902,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of saved comments
-#: assets/admin/index.js:8
+#: assets/admin/index.js:7
 #, js-format
 msgid "%d comment — not yet submitted"
 msgid_plural "%d comments — not yet submitted"
@@ -890,621 +910,614 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of saved comments
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 #, js-format
 msgid "%d comment"
 msgid_plural "%d comments"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Review Update Drawer"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Drag to resize"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Review Update"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Revised"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Close drawer"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Dismiss"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "AI response"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "AI is revising…"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Summary of changes"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Overall feedback"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Any overall notes for the AI…"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 #: assets/seo/index.js:3
 msgid "Cancel"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "No revised plan was returned. Please try again."
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Something went wrong. Your comments are saved — try again."
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Request revision"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "New conversation"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Expand sidebar"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Collapse sidebar"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Conversations"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Failed to delete. Please try again."
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Model and quick actions"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "How can I help you today?"
 msgstr ""
 
-#: assets/admin/index.js:9
+#: assets/admin/index.js:8
 msgid "Ollama (local)"
 msgstr ""
 
 #. translators: %s: AI provider name, e.g. "OpenAI".
-#: assets/admin/index.js:10
+#: assets/admin/index.js:9
 #, js-format
 msgid "%s (needs your own API key)"
 msgstr ""
 
-#: assets/admin/index.js:10
+#: assets/admin/index.js:9
 msgid "Default Providers"
 msgstr ""
 
-#: assets/admin/index.js:10
+#: assets/admin/index.js:9
 msgid "Default AI Provider"
 msgstr ""
 
 #. translators: %1$s: AI provider name, e.g. "OpenAI".
-#: assets/admin/index.js:11
+#: assets/admin/index.js:10
 #, js-format
 msgid "%1$s is not available through the Plume service. Add your own %1$s API key or choose a different provider."
 msgstr ""
 
 #. translators: %1$s: AI provider name, e.g. "OpenAI".
-#: assets/admin/index.js:12
+#: assets/admin/index.js:11
 #, js-format
 msgid "%1$s is temporarily unavailable through the Plume service. Chats use Claude until you add your own %1$s API key below."
 msgstr ""
 
-#: assets/admin/index.js:12
+#: assets/admin/index.js:11
 msgid "Image Provider"
 msgstr ""
 
-#: assets/admin/index.js:12
+#: assets/admin/index.js:11
 msgid "API Keys"
 msgstr ""
 
-#: assets/admin/index.js:12
+#: assets/admin/index.js:11
 msgid "Enter API key…"
 msgstr ""
 
 #. translators: 1: AI provider name, e.g. "OpenAI". 2: error message from that provider.
-#: assets/admin/index.js:13
+#: assets/admin/index.js:12
 #, js-format
 msgid "%1$s rejected this key, so it was not saved: %2$s"
 msgstr ""
 
 #. translators: %s: AI provider name, e.g. "OpenAI".
-#: assets/admin/index.js:14
+#: assets/admin/index.js:13
 #, js-format
 msgid "Saved, but the key could not be checked with %s just now. If chats fail, check the key."
 msgstr ""
 
-#: assets/admin/index.js:14
+#: assets/admin/index.js:13
 msgid "Key verified and saved."
 msgstr ""
 
-#: assets/admin/index.js:14
+#: assets/admin/index.js:13
 msgid "Checking…"
 msgstr ""
 
+#: assets/admin/index.js:13
 #: assets/admin/index.js:14
-#: assets/admin/index.js:15
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Saving…"
 msgstr ""
 
-#: assets/admin/index.js:14
+#: assets/admin/index.js:13
 msgid "Ollama (Self-hosted)"
 msgstr ""
 
-#: assets/admin/index.js:14
+#: assets/admin/index.js:13
 msgid "Ollama URL"
 msgstr ""
 
-#: assets/admin/index.js:14
+#: assets/admin/index.js:13
 msgid "Site Voice & Persona"
 msgstr ""
 
-#: assets/admin/index.js:14
+#: assets/admin/index.js:13
 msgid "Define the writing style, tone, and persona the AI should adopt across all features. These instructions are applied site-wide."
 msgstr ""
 
-#: assets/admin/index.js:14
+#: assets/admin/index.js:13
 msgid "Describe the writing style and persona for AI responses…"
 msgstr ""
 
 #. translators: 1: number of characters typed, 2: maximum number of characters allowed.
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 #, js-format
 msgid "%1$d / %2$d characters"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Save Voice"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "AI chat assistant panel in the WordPress admin."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Text Rewrite"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Rewrite and improve post content using AI."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Summaries"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Automatically generate post summaries and excerpts."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "AI-assisted meta titles, descriptions, and keyword suggestions."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Generate and insert AI images directly into posts."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Full AI-driven post and page generation workflow."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 #: assets/usage/index.js:1
 msgid "Usage"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Track token consumption and API usage across providers."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Enabled Modules"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Enable or disable individual AI modules."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Post Type Access"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Select which post types the AI assistant can read and write."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Enable write tools — allow AI to create and update posts"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "When enabled, the AI can draft and publish content directly."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Providers"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Voice"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Features"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Plume — Settings"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Saved successfully"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Save failed — please try again"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Your settings could not be loaded. Check your connection and try again."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Loading settings…"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Setup"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Re-run the onboarding wizard to change your API connection or provider settings."
 msgstr ""
 
-#: assets/admin/index.js:15
-#: assets/admin/index.js:18
+#: assets/admin/index.js:14
+#: assets/admin/index.js:16
 msgid "Run setup again"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Your API key appears to be invalid."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Check your Settings."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "You're running low on free credits."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Add your own key for unlimited access, or upgrade to Pro."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Add API key"
 msgstr ""
 
-#: assets/admin/index.js:15
-#: assets/admin/index.js:20
+#: assets/admin/index.js:14
+#: assets/admin/index.js:18
 msgid "Upgrade to Pro"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Go to Settings"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Write a new post"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Describe what you want — AI drafts it for you."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Edit with AI"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Open any post with the AI sidebar to rewrite or improve."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Generate an image"
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Create a featured image or illustration from a prompt."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Brainstorm, research, or ask anything about your content."
 msgstr ""
 
-#: assets/admin/index.js:15
+#: assets/admin/index.js:14
 msgid "Start"
 msgstr ""
 
-#. translators: %s: the user's current subscription tier slug.
-#: assets/admin/index.js:16
-#: assets/usage/index.js:2
-#, js-format
-msgid "Tier: %s"
-msgstr ""
-
-#: assets/admin/index.js:16
+#: assets/admin/index.js:14
 msgid "Unlimited"
 msgstr ""
 
-#: assets/admin/index.js:16
-#: assets/usage/index.js:2
+#: assets/admin/index.js:14
+#: assets/usage/index.js:1
 msgid "of quota used"
 msgstr ""
 
 #. translators: 1: credits used, 2: monthly credit limit
-#: assets/admin/index.js:17
+#: assets/admin/index.js:15
 #, js-format
 msgid "%1$s / %2$s credits"
 msgstr ""
 
-#: assets/admin/index.js:17
-#: assets/usage/index.js:2
+#: assets/admin/index.js:15
+#: assets/usage/index.js:1
 msgid "Monthly limit reached. Upgrade your plan to continue."
 msgstr ""
 
-#: assets/admin/index.js:17
+#: assets/admin/index.js:15
 msgid "Getting started guide"
 msgstr ""
 
-#: assets/admin/index.js:17
+#: assets/admin/index.js:15
 msgid "Five minutes to your first AI-generated post."
 msgstr ""
 
-#: assets/admin/index.js:17
+#: assets/admin/index.js:15
 msgid "Prompt writing tips"
 msgstr ""
 
-#: assets/admin/index.js:17
+#: assets/admin/index.js:15
 msgid "How to write prompts that consistently produce better output."
 msgstr ""
 
-#: assets/admin/index.js:17
+#: assets/admin/index.js:15
 msgid "API key setup"
 msgstr ""
 
-#: assets/admin/index.js:17
+#: assets/admin/index.js:15
 msgid "Connect OpenAI, Claude, or Gemini to remove usage limits."
 msgstr ""
 
-#: assets/admin/index.js:17
+#: assets/admin/index.js:15
 msgid "Changelog"
 msgstr ""
 
-#: assets/admin/index.js:17
+#: assets/admin/index.js:15
 msgid "Resources"
 msgstr ""
 
 #. translators: %s: plugin version number, e.g. "1.2.0".
-#: assets/admin/index.js:18
+#: assets/admin/index.js:16
 #, js-format
 msgid "What's new in v%s."
 msgstr ""
 
-#: assets/admin/index.js:18
+#: assets/admin/index.js:16
 msgid "Documentation ↗"
 msgstr ""
 
-#: assets/admin/index.js:18
+#: assets/admin/index.js:16
 msgid "Support ↗"
 msgstr ""
 
-#: assets/admin/index.js:18
+#: assets/admin/index.js:16
 msgid "Get API key ↗"
 msgstr ""
 
-#: assets/admin/index.js:18
-#: assets/admin/index.js:19
+#: assets/admin/index.js:16
+#: assets/admin/index.js:17
 msgid "Paste your OpenAI API key"
 msgstr ""
 
-#: assets/admin/index.js:18
+#: assets/admin/index.js:16
 msgid "Paste your Anthropic API key"
 msgstr ""
 
+#: assets/admin/index.js:16
 #: assets/admin/index.js:18
-#: assets/admin/index.js:20
 msgid "Paste your Gemini API key"
 msgstr ""
 
 #. translators: %s: image model name, e.g. "DALL·E".
-#: assets/admin/index.js:19
-#: assets/admin/index.js:20
+#: assets/admin/index.js:17
+#: assets/admin/index.js:18
 #, js-format
 msgid "%s docs ↗"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Use Plugin API"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Start immediately. Built-in access with usage limits. No API key needed. Registers your site to run AI models."
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Use my own API key"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Connect OpenAI, Claude, or Gemini directly. Unlimited usage."
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Full access, priority support, and advanced features."
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Welcome to Plume - Write and Design"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "How would you like to connect? You can change this anytime in Settings."
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Skip setup"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Go to Upgrade ↗"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Get started →"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Invalid key"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Network error"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Choose your AI providers"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Pick a text provider and paste your key. Image generation is optional."
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Text model"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Setup guide ↗"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Paste your API key"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Test key"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "✓ Valid"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Image model"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Optional"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Add an image generation provider. Can be configured later in Settings."
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "More coming"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Paste your image API key"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "← Back"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Finish setup →"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "You're all set"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Plume - Write and Design is ready to use."
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Setup complete"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Change this anytime in Settings."
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Finishing setup — this can take a few seconds."
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Open Chat →"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Go to Dashboard instead"
 msgstr ""
 
-#: assets/admin/index.js:20
+#: assets/admin/index.js:18
 msgid "Using Plugin API (free tier)."
 msgstr ""
 
 #. translators: %s: AI provider name, e.g. "Claude".
-#: assets/admin/index.js:21
+#: assets/admin/index.js:19
 #, js-format
 msgid "Using your own %s API key."
 msgstr ""
 
-#: assets/admin/index.js:21
+#: assets/admin/index.js:19
 msgid "Plume - Write and Design"
 msgstr ""
 
-#: assets/admin/index.js:21
+#: assets/admin/index.js:19
 msgid "AI-powered content creation for WordPress"
 msgstr ""
 
 #. translators: %s: plugin version number, e.g. "1.2.0".
-#: assets/admin/index.js:22
+#: assets/admin/index.js:20
 #, js-format
 msgid "v%s"
 msgstr ""
@@ -1964,6 +1977,6 @@ msgstr ""
 msgid "Failed to load usage data."
 msgstr ""
 
-#: assets/usage/index.js:2
+#: assets/usage/index.js:1
 msgid "Monthly limit (credits)"
 msgstr ""

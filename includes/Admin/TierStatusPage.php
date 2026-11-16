@@ -74,7 +74,7 @@ class TierStatusPage {
 		$usage = UsageTracker::get_usage();
 
 		$tier_labels = TierConfig::get_tier_labels();
-		$tier_label  = $tier_labels[ $tier ] ?? ucwords( str_replace( '_', ' ', $tier ) );
+		$tier_label  = $tier_labels[ $tier ] ?? TierConfig::tier_label( $tier );
 		$registered  = SiteRegistration::is_registered();
 		?>
 		<div class="wrap">

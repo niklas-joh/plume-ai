@@ -10,8 +10,9 @@ import apiFetch from '@wordpress/api-fetch';
 import MessageBubble from '../../src/admin/components/Chat/MessageBubble';
 import { buildRevisionMessage } from '../../src/admin/components/Chat/revisionMessage';
 
-jest.mock( 'lucide-react', () =>
-	new Proxy( {}, { get: () => () => <span /> } )
+jest.mock(
+	'lucide-react',
+	() => new Proxy( {}, { get: () => () => <span /> } )
 );
 
 describe( 'MessageBubble revision request', () => {
@@ -33,7 +34,9 @@ describe( 'MessageBubble revision request', () => {
 
 	function render( content ) {
 		act( () => {
-			root.render( <MessageBubble message={ { role: 'user', content } } /> );
+			root.render(
+				<MessageBubble message={ { role: 'user', content } } />
+			);
 		} );
 	}
 
@@ -54,7 +57,10 @@ describe( 'MessageBubble revision request', () => {
 
 	it( 'renders markup in comments as text, not HTML', () => {
 		render(
-			buildRevisionMessage( [ { selectedText: 'a', text: '<b>x</b>' } ], '' )
+			buildRevisionMessage(
+				[ { selectedText: 'a', text: '<b>x</b>' } ],
+				''
+			)
 		);
 		expect( container.querySelector( 'b' ) ).toBeNull();
 		expect( container.textContent ).toContain( '<b>x</b>' );
@@ -210,9 +216,7 @@ describe( 'MessageBubble post plan', () => {
 		} );
 
 		await act( async () => {
-			container
-				.querySelector( '.plume-plan-card__dismiss' )
-				.click();
+			container.querySelector( '.plume-plan-card__dismiss' ).click();
 		} );
 
 		expect( container.querySelector( '.plume-plan-card' ) ).toBeNull();
@@ -237,9 +241,7 @@ describe( 'MessageBubble post plan', () => {
 		} );
 
 		await act( async () => {
-			container
-				.querySelector( '.plume-plan-card__dismiss' )
-				.click();
+			container.querySelector( '.plume-plan-card__dismiss' ).click();
 		} );
 
 		expect( container.querySelector( '.plume-plan-card' ) ).toBeNull();
@@ -249,7 +251,10 @@ describe( 'MessageBubble post plan', () => {
 		act( () => {
 			root.render(
 				<MessageBubble
-					message={ { role: 'assistant', content: 'Here is a plan.' } }
+					message={ {
+						role: 'assistant',
+						content: 'Here is a plan.',
+					} }
 				/>
 			);
 		} );
@@ -269,5 +274,40 @@ describe( 'MessageBubble post plan', () => {
 
 		expect( container.querySelector( '.plume-plan-card' ) ).not.toBeNull();
 	} );
-} );
 
+	it( 'shows the human model name under an AI reply', () => {
+		act( () => {
+			root.render(
+				<MessageBubble
+					message={ {
+						role: 'assistant',
+						content: 'Hello',
+						model: 'claude-haiku-4-5-20251001',
+						model_label: 'Claude Haiku 4.5',
+					} }
+				/>
+			);
+		} );
+
+		const meta = container.querySelector( '.plume-bubble__meta' );
+		expect( meta.textContent ).toContain( 'Claude Haiku 4.5' );
+		expect( container.textContent ).not.toContain( '20251001' );
+	} );
+
+	it( 'never falls back to the raw model id when no label is sent', () => {
+		act( () => {
+			root.render(
+				<MessageBubble
+					message={ {
+						role: 'assistant',
+						content: 'Hello',
+						model: 'claude-haiku-4-5-20251001',
+					} }
+				/>
+			);
+		} );
+
+		expect( container.querySelector( '.plume-bubble__meta' ) ).toBeNull();
+		expect( container.textContent ).not.toContain( 'claude-haiku' );
+	} );
+} );

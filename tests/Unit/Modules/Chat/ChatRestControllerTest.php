@@ -21,6 +21,8 @@ class ChatRestControllerTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        // Reply rows get a display name for their model id (ModelLabels).
+        Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         $this->tool_registry = $this->createMock( ToolRegistry::class );
         $this->tool_executor = $this->createMock( ToolExecutor::class );
         // Ensure a valid $wpdb stub is always present — other test classes (e.g.
@@ -529,6 +531,28 @@ class ChatRestControllerTest extends TestCase {
         $this->assertSame( [ [ 'content' => 'Hi' ] ], $response->data );
     }
 
+    public function test_get_messages_adds_model_label_to_assistant_rows(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [
+            [ 'role' => 'user', 'content' => 'Hi', 'model' => null ],
+            [ 'role' => 'assistant', 'content' => 'Hello', 'model' => 'gpt-4.1-nano-2025-04-14' ],
+        ] );
+
+        $controller = $this->make_controller_with_store( $store_mock );
+
+        $request = new \WP_REST_Request( 'GET' );
+        $request->set_url_params( [ 'id' => '42' ] );
+
+        $rows = $controller->get_messages( $request )->data;
+
+        $this->assertArrayNotHasKey( 'model_label', $rows[0], 'User rows have no model.' );
+        $this->assertSame( 'GPT-4.1 nano', $rows[1]['model_label'] );
+        $this->assertSame( 'gpt-4.1-nano-2025-04-14', $rows[1]['model'], 'The raw id stays for compatibility.' );
+    }
+
     // ── Tool loop ──────────────────────────────────────────────────────────────
 
     public function test_send_message_tool_loop_executes_tool_and_returns_final(): void {
@@ -609,6 +633,7 @@ class ChatRestControllerTest extends TestCase {
         $this->assertInstanceOf( \WP_REST_Response::class, $response );
         $this->assertSame( 200, $response->get_status() );
         $this->assertSame( 'Final answer', $response->data['content'] );
+        $this->assertSame( 'Claude 3.5 Sonnet', $response->data['model_label'] );
         // Usage is summed across both loop iterations (10+20, 5+15), not just the final call.
         $this->assertSame( 30, $response->data['prompt_tokens'] );
         $this->assertSame( 20, $response->data['completion_tokens'] );
@@ -2935,6 +2960,17 @@ class ChatRestControllerTest extends TestCase {
 
         $this->assertSame( [ 'claude', 'ollama' ], array_keys( $listed ) );
         $this->assertSame( [ 'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5' ], $listed['claude']['models'] );
+    }
+
+    public function test_list_providers_gives_ollama_a_readable_model_name_not_the_raw_tag(): void {
+        $this->stub_catalogue( [ 'claude' ], [ 'claude' => [ 'claude-haiku-4-5-20251001' ] ] );
+
+        $listed = $this->listed_providers( [] );
+
+        $tag = ( new \Plume\Providers\OllamaProvider() )->get_default_model();
+        $this->assertSame( [ $tag ], array_keys( $listed['ollama']['models'] ) );
+        $this->assertSame( \Plume\Providers\ModelLabels::for_id( $tag ), $listed['ollama']['models'][ $tag ] );
+        $this->assertNotSame( $tag, $listed['ollama']['models'][ $tag ] );
     }
 
     public function test_list_providers_includes_a_provider_with_an_own_key_and_its_own_models(): void {

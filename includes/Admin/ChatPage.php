@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use Plume\Providers\ManagedDefaults;
+use Plume\Providers\ModelLabels;
 use Plume\Providers\ProviderFactory;
 use Plume\Settings\ProviderSettings;
 use Plume\Tiers\TierManager;
@@ -107,8 +108,9 @@ class ChatPage {
 	 * Reflects the model a request with no explicit model really uses. With an own API
 	 * key (or Ollama) the plugin calls the provider directly and uses its default model.
 	 * Without a key the request goes through the managed proxy, whose default depends
-	 * on the tier (see ManagedDefaults). Falls back to the raw model id, then the
-	 * provider name, and to 'AI' if the provider cannot be created.
+	 * on the tier (see ManagedDefaults). Falls back to a readable name for the model id
+	 * (never the raw id), then the provider name, and to a translated 'AI' if the
+	 * provider cannot be created.
 	 *
 	 * @since 2.0.0
 	 * @param string           $slug     Default provider slug.
@@ -124,14 +126,20 @@ class ChatPage {
 			if ( 'ollama' !== $slug && ! $settings->has_key( $slug ) ) {
 				$managed_id = ManagedDefaults::model_id( $slug, $tier );
 				if ( null !== $managed_id ) {
-					return ManagedDefaults::label( $managed_id ) ?? $managed_id;
+					return ManagedDefaults::label( $managed_id ) ?? ModelLabels::for_id( $managed_id );
 				}
 			}
 
 			$model_id = $provider->get_default_model();
-			return $provider->get_models()[ $model_id ] ?? ( '' !== $model_id ? $model_id : ucfirst( $slug ) );
+			if ( '' === $model_id ) {
+				return ucfirst( $slug );
+			}
+
+			// A provider that lists a model under its own id (Ollama) has no display name for it.
+			$label = $provider->get_models()[ $model_id ] ?? $model_id;
+			return $label === $model_id ? ModelLabels::for_id( $model_id ) : $label;
 		} catch ( \Throwable $e ) {
-			return 'AI';
+			return __( 'AI', 'plume' );
 		}
 	}
 

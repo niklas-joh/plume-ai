@@ -53,7 +53,7 @@
 	--text-xs: 11px;
 	--text-sm: 12px;
 	--text-base: 14px;
-	--text-md: 14px;
+	--text-md: 14px;   /* Equal to --text-base for now; kept as a distinct step so callers can be retargeted without a rename. */
 	--text-lg: 16px;
 	--text-xl: 20px;
 
@@ -64,6 +64,13 @@
 
 	/* Screen shell (Screen / PageHeader). Content is centred at one width. */
 	--plume-screen-max: 1120px;
+
+	/* Viewport height under the WP admin bar, for app-style screens. Declared
+	   twice so the dvh value wins where supported and the vh value is the
+	   fallback; both call sites reference this so the admin-bar fallback stays
+	   in one place. */
+	--plume-app-viewport: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
+	--plume-app-viewport: calc(100dvh - var(--wp-admin--admin-bar--height, 32px));
 
 	/* Right-hand gutter: WordPress gives admin pages none on a phone, and
 	   from 783px #wpcontent's own 20px left padding is mirrored. */

@@ -14,8 +14,7 @@
    derived from the translated menu title, and the old `.toplevel_page_plume`
    rule hit the Dashboard (the top-level page), not Chat. */
 body:has(.plume-screen--app) #wpbody {
-	height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
-	height: calc(100dvh - var(--wp-admin--admin-bar--height, 32px));
+	height: var(--plume-app-viewport);
 	overflow: hidden;
 }
 

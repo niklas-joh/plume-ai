@@ -15,8 +15,8 @@ test.describe('P2 — Dashboard landing page', () => {
     test('dashboard page renders with title and Start section', async ({ page }) => {
         await page.goto('/wp-admin/admin.php?page=plume');
         // Wait for React to hydrate
-        await page.waitForSelector('.plume-dash-title', { timeout: 10000 });
-        await expect(page.locator('.plume-dash-title')).toContainText('Plume');
+        await page.waitForSelector('.plume-page-header__title', { timeout: 10000 });
+        await expect(page.locator('.plume-page-header__title')).toContainText('Dashboard');
         await expect(page.locator('.plume-dash-tiles')).toBeVisible();
         await expect(page.locator('.plume-dash-resources')).toBeVisible();
         await expect(page.locator('.plume-dash-footer')).toBeVisible();
@@ -24,7 +24,7 @@ test.describe('P2 — Dashboard landing page', () => {
 
     test('usage widget is visible for administrator', async ({ page }) => {
         await page.goto('/wp-admin/admin.php?page=plume');
-        await page.waitForSelector('.plume-dash-title', { timeout: 10000 });
+        await page.waitForSelector('.plume-page-header__title', { timeout: 10000 });
         // Widget is rendered only when PHP localises usage data for manage_options users.
         await expect(page.locator('.plume-usage-widget')).toBeVisible();
     });
@@ -38,7 +38,7 @@ test.describe('P2 — Dashboard landing page', () => {
 
     test('Run setup again link is visible and wired to the PHP run_setup action', async ({ page }) => {
         await page.goto('/wp-admin/admin.php?page=plume');
-        await page.waitForSelector('.plume-dash-title', { timeout: 10000 });
+        await page.waitForSelector('.plume-page-header__title', { timeout: 10000 });
 
         // The link must be present in the footer and point to the PHP run_setup endpoint.
         const runSetupLink = page.locator('.plume-dash-footer__link', { hasText: 'Run setup again' });
@@ -48,7 +48,7 @@ test.describe('P2 — Dashboard landing page', () => {
 
     test('all resource links have correct attributes', async ({ page }) => {
         await page.goto('/wp-admin/admin.php?page=plume');
-        await page.waitForSelector('.plume-dash-title', { timeout: 10000 });
+        await page.waitForSelector('.plume-page-header__title', { timeout: 10000 });
 
         const links = page.locator('.plume-dash-resource');
         const count = await links.count();

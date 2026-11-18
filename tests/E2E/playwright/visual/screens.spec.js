@@ -87,9 +87,11 @@ const CAPTURE = {
 	async dashboard( { page, baseURL, testInfo } ) {
 		const log = await prepare( page, { baseURL } );
 		await page.goto( `${ ADMIN }plume` );
-		await expect( page.locator( '.plume-dash-title' ) ).toBeVisible( {
-			timeout: READY_TIMEOUT,
-		} );
+		await expect( page.locator( '.plume-page-header__title' ) ).toBeVisible(
+			{
+				timeout: READY_TIMEOUT,
+			}
+		);
 		await expect( page.locator( '.plume-usage-widget' ) ).toBeVisible();
 		await shoot( page, testInfo, log, { id: 'dashboard' } );
 	},

@@ -32,7 +32,9 @@
 }
 
 .plume-screen--app .plume-screen__body {
+	display: flex;
 	flex: 1;
+	flex-direction: column;
 	min-height: 0;
 	gap: 0;
 }
@@ -45,6 +47,13 @@
 	gap: var(--space-3);
 	padding-bottom: var(--space-4);
 	border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* The header is a full-bleed bar in the app layout, so it brings its own padding. */
+.plume-screen--app > .plume-page-header {
+	flex: none;
+	padding: var(--space-2) var(--plume-screen-gutter);
+	background: var(--color-surface, #fff);
 }
 
 .plume-logo {

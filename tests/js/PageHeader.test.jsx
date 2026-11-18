@@ -198,7 +198,7 @@ describe( 'shared screen shell', () => {
 
 		it( 'slows rather than stops the spinner', () => {
 			const css = read( 'animations.css' );
-			expect( css ).toMatch( /\.plume-spin\s*\{/ );
+			expect( css ).toMatch( /\.plume-spin,\s*\.plume-spinner\s*\{/ );
 			expect( css ).toMatch(
 				/prefers-reduced-motion: reduce[\s\S]*animation-duration:\s*2s/
 			);

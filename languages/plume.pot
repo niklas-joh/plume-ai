@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-15T22:47:08+00:00\n"
+"POT-Creation-Date: 2026-11-16T06:54:24+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: plume\n"
@@ -90,11 +90,14 @@ msgstr ""
 
 #: includes/Admin/AdminMenu.php:47
 #: assets/admin/index.js:4
+#: assets/admin/index.js:14
 #: assets/admin/index.js:16
 msgid "Settings"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:53
+#: assets/admin/index.js:14
+#: assets/usage/index.js:1
 msgid "Usage"
 msgstr ""
 
@@ -330,7 +333,7 @@ msgstr ""
 msgid "You cannot delete this conversation."
 msgstr ""
 
-#: includes/Modules/Chat/ChatRestController.php:861
+#: includes/Modules/Chat/ChatRestController.php:880
 #: includes/Modules/Chat/PlansRestController.php:203
 #: includes/Modules/Chat/SettingsRestController.php:191
 #: includes/Tools/ToolExecutor.php:559
@@ -397,7 +400,7 @@ msgstr ""
 msgid "The request took too long to finish. Try again in a moment."
 msgstr ""
 
-#: includes/Providers/ModelLabels.php:182
+#: includes/Providers/ModelLabels.php:188
 msgid "AI model"
 msgstr ""
 
@@ -1137,11 +1140,6 @@ msgid "Full AI-driven post and page generation workflow."
 msgstr ""
 
 #: assets/admin/index.js:14
-#: assets/usage/index.js:1
-msgid "Usage"
-msgstr ""
-
-#: assets/admin/index.js:14
 msgid "Track token consumption and API usage across providers."
 msgstr ""
 
@@ -1182,7 +1180,7 @@ msgid "Features"
 msgstr ""
 
 #: assets/admin/index.js:14
-msgid "Plume — Settings"
+msgid "Connect AI providers and choose how Plume writes."
 msgstr ""
 
 #: assets/admin/index.js:14
@@ -1291,7 +1289,7 @@ msgid "%1$s / %2$s credits"
 msgstr ""
 
 #: assets/admin/index.js:15
-#: assets/usage/index.js:1
+#: assets/usage/index.js:2
 msgid "Monthly limit reached. Upgrade your plan to continue."
 msgstr ""
 
@@ -1654,6 +1652,14 @@ msgid "Long (1200–1800 words)"
 msgstr ""
 
 #: assets/generator/index.js:1
+msgid "Post Generator"
+msgstr ""
+
+#: assets/generator/index.js:1
+msgid "Describe your post and AI will write a full draft."
+msgstr ""
+
+#: assets/generator/index.js:1
 msgid "Generating your post — a long draft can take up to two minutes…"
 msgstr ""
 
@@ -1679,14 +1685,6 @@ msgstr ""
 
 #: assets/generator/index.js:2
 msgid "Generate another"
-msgstr ""
-
-#: assets/generator/index.js:2
-msgid "Post Generator"
-msgstr ""
-
-#: assets/generator/index.js:2
-msgid "Describe your post and AI will write a full draft."
 msgstr ""
 
 #: assets/generator/index.js:2
@@ -1872,7 +1870,7 @@ msgid "Featured Image"
 msgstr ""
 
 #: assets/images/index.js:5
-msgid "Generate beautiful featured images from a text prompt and set them directly on any post or page."
+msgid "Generate featured images from a text prompt and set them on any post or page."
 msgstr ""
 
 #. translators: %s: AI provider name, e.g. "OpenAI".
@@ -1970,7 +1968,7 @@ msgid "SEO Status"
 msgstr ""
 
 #: assets/seo/index.js:3
-msgid "Automatically generate meta titles, OG descriptions, excerpts, and image alt text for every post — in one click."
+msgid "Generate meta titles, descriptions, excerpts and image alt text for your posts."
 msgstr ""
 
 #: assets/usage/index.js:1
@@ -1978,5 +1976,23 @@ msgid "Failed to load usage data."
 msgstr ""
 
 #: assets/usage/index.js:1
+msgid "Credits used on the Plume service this month."
+msgstr ""
+
+#: assets/usage/index.js:1
+msgid "Loading usage…"
+msgstr ""
+
+#: assets/usage/index.js:1
 msgid "Monthly limit (credits)"
+msgstr ""
+
+#: assets/usage/index.js:1
+msgid "Monthly credit usage"
+msgstr ""
+
+#. translators: 1: credits used, 2: monthly credit limit.
+#: assets/usage/index.js:2
+#, js-format
+msgid "%1$s of %2$s credits used"
 msgstr ""

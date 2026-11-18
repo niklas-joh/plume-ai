@@ -214,7 +214,7 @@ const CAPTURE = {
 		await expect( page.locator( '.plume-usage__stats' ) ).toBeVisible( {
 			timeout: READY_TIMEOUT,
 		} );
-		await expect( page.locator( '.plume-usage__quota-bar' ) ).toBeVisible();
+		await expect( page.locator( '.plume-progress' ) ).toBeVisible();
 		await shoot( page, testInfo, log, { id: 'usage' } );
 	},
 

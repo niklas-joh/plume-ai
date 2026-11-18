@@ -9,7 +9,7 @@ test.describe( 'SEO journey', () => {
 
 	test( 'SEO page renders its root container', async ( { page } ) => {
 		await page.goto( '/wp-admin/admin.php?page=plume-seo' );
-		// SeoApp renders either .plume-pro-gate (free) or .plume-page (Pro).
+		// SeoApp renders either .plume-pro-gate (free) or .plume-screen (Pro).
 		await expect(
 			page.locator( '#plume-seo' )
 		).toBeVisible( { timeout: 10000 } );
@@ -23,15 +23,15 @@ test.describe( 'SEO journey', () => {
 		// checking isProGate. Without this, the cold-asset load on the first SEO-page
 		// navigation races the point-in-time isVisible() check and the wrong branch
 		// is taken (isProGate = false before React has rendered anything).
-		await page.waitForSelector( '.plume-pro-gate, .plume-page', { timeout: 10000 } );
+		await page.waitForSelector( '.plume-pro-gate, .plume-screen', { timeout: 10000 } );
 
 		const isProGate = await page.locator( '.plume-pro-gate' ).isVisible();
 		if ( isProGate ) {
 			// Free-tier: gate renders with an upgrade link (SeoApp.jsx line 47).
 			await expect( page.locator( '.plume-pro-gate a[href*="pricing"]' ) ).toBeVisible();
 		} else {
-			// Pro: .plume-page wraps the table header and PostListTable (SeoApp.jsx line 65).
-			await expect( page.locator( '.plume-page' ) ).toBeVisible();
+			// Pro: .plume-screen wraps the table header and PostListTable (SeoApp.jsx line 65).
+			await expect( page.locator( '.plume-screen' ) ).toBeVisible();
 			// PostListTable renders a .plume-post-list container (PostListTable.jsx line 132).
 			await expect( page.locator( '.plume-post-list' ) ).toBeVisible( { timeout: 10000 } );
 		}

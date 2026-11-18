@@ -18,9 +18,29 @@ body:has(.plume-screen--app) #wpbody {
 	overflow: hidden;
 }
 
+/* A flex column, so admin notices printed above the mount take their natural
+   height and the screen below takes only what is left (a fixed-height screen
+   would be pushed down and clipped by the overflow). */
 body:has(.plume-screen--app) #wpbody-content {
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	height: 100%;
 	padding-bottom: 0;
 	overflow: hidden;
+}
+
+body:has(.plume-screen--app) #plume-chat {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
+}
+
+/* With no document scroll the absolutely-positioned footer would sit on top of
+   the app shell, and WP's 65px reserve for it is removed above. */
+body:has(.plume-screen--app) #wpfooter {
+	display: none;
 }
 
 /* ── Shell layout ──
@@ -33,7 +53,7 @@ body:has(.plume-screen--app) #wpbody-content {
 	grid-template-columns: minmax(0, 1fr);
 
 	/* Fills what the compact page header above leaves of the viewport; the
-	   viewport height itself is set once, on .plume-screen--app. */
+	   viewport height itself is set once, on #wpbody. */
 	flex: 1;
 	min-height: 0;
 	background: #fff;

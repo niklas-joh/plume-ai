@@ -204,4 +204,44 @@ describe( 'shared screen shell', () => {
 			);
 		} );
 	} );
+
+	describe( 'app layout under admin notices', () => {
+		const read = ( ...parts ) =>
+			fs.readFileSync(
+				path.resolve( __dirname, '../../src', ...parts ),
+				'utf8'
+			);
+		const rule = ( css, selector ) => {
+			const start = css.indexOf( selector + ' {' );
+			expect( start ).toBeGreaterThan( -1 );
+			return css.slice( start, css.indexOf( '}', start ) );
+		};
+
+		it( 'makes #wpbody-content a flex column so notices take natural height', () => {
+			const block = rule(
+				read( 'admin', 'admin.css' ),
+				'body:has(.plume-screen--app) #wpbody-content'
+			);
+			expect( block ).toMatch( /display:\s*flex/ );
+			expect( block ).toMatch( /flex-direction:\s*column/ );
+		} );
+
+		it( 'lets the screen take the remaining height instead of a fixed one', () => {
+			const block = rule(
+				read( 'shared', 'page-header.css' ),
+				'.plume-screen--app'
+			);
+			expect( block ).not.toMatch( /(^|[^-])height:/ );
+			expect( block ).toMatch( /flex:\s*1/ );
+			expect( block ).toMatch( /min-height:\s*0/ );
+		} );
+
+		it( 'hides #wpfooter, which would overlap the shell', () => {
+			const block = rule(
+				read( 'admin', 'admin.css' ),
+				'body:has(.plume-screen--app) #wpfooter'
+			);
+			expect( block ).toMatch( /display:\s*none/ );
+		} );
+	} );
 } );

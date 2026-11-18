@@ -22,10 +22,16 @@
 	min-width: 0;
 }
 
-/* App layout: fills the viewport under the admin bar; the body scrolls itself. */
+/* App layout: fills what admin.css leaves of the viewport under the admin bar
+   (#wpbody-content is a flex column); the body scrolls itself. */
 .plume-screen--app {
+	flex: 1;
+	min-height: 0;
+
+	/* In the flex column the auto side margins of .plume-screen would shrink it. */
+	width: 100%;
 	max-width: none;
-	height: var(--plume-app-viewport);
+	margin-inline: 0;
 	padding: 0;
 	gap: 0;
 }

@@ -17,7 +17,7 @@ import './page-header.css';
  * @param {string}    props.title         Screen name, already translated. The screen's only <h1>.
  * @param {string}    [props.description] One line, already translated.
  * @param {ReactNode} [props.actions]     Controls aligned to the end; they wrap under the title on a phone.
- * @param {boolean}   [props.compact]     Smaller logo and no description, for dense app screens.
+ * @param {boolean}   [props.compact]     Smaller logo; the description is hidden on phones but shown from 783px, for dense app screens.
  * @return {ReactElement} The header.
  * @example
  * <PageHeader

@@ -61,6 +61,7 @@ msgid "Plume AI"
 msgstr ""
 
 #: includes/Admin/AdminMenu.php:42
+#: assets/admin/index.js:19
 msgid "Dashboard"
 msgstr ""
 
@@ -1507,11 +1508,11 @@ msgid "Using your own %s API key."
 msgstr ""
 
 #: assets/admin/index.js:19
-msgid "Plume - Write and Design"
+msgid "AI writing, SEO and images for your WordPress site."
 msgstr ""
 
 #: assets/admin/index.js:19
-msgid "AI-powered content creation for WordPress"
+msgid "Plan, draft and revise posts with AI."
 msgstr ""
 
 #. translators: %s: plugin version number, e.g. "1.2.0".

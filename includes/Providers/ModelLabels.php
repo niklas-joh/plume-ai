@@ -22,21 +22,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  * carries. This class is the single PHP source of truth for display names: the
  * JavaScript never derives a name from an id, it renders the label sent with it.
  *
- * @since NEXT_VERSION
+ * @since 2.2.0
  */
 final class ModelLabels {
 
 	/**
 	 * Longest model id considered; anything beyond this is cut before processing.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 */
 	private const MAX_ID_LENGTH = 120;
 
 	/**
 	 * Longest label returned.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 */
 	private const MAX_LABEL_LENGTH = 60;
 
@@ -48,7 +48,7 @@ final class ModelLabels {
 	 * an Ollama ":tag"); then a humanised form of the id. The raw id is never
 	 * returned for a slug-shaped id, and the result is always plain text.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param string $model_id Model id as stored or reported, for example "claude-haiku-4-5-20251001".
 	 * @return string Display name, or an empty string when no id was given.
 	 */
@@ -83,7 +83,7 @@ final class ModelLabels {
 	 * Provider labels win over the managed ones, the same precedence as
 	 * ManagedCatalogue::labelled_models().
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @return array<string, string> Model id => label.
 	 */
 	private static function known(): array {
@@ -107,7 +107,7 @@ final class ModelLabels {
 	 * Deliberately narrow: other trailing numbers (such as Gemini's "-001") can be
 	 * part of a real model name, so they stay.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param string $model_id Sanitised model id.
 	 * @return string The id without its snapshot suffix.
 	 */
@@ -122,7 +122,7 @@ final class ModelLabels {
 	 * Splits on separators, joins runs of bare digits with a dot ("4-5" becomes
 	 * "4.5") and capitalises each word, keeping "GPT" upper case.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param string $model_id Sanitised model id without snapshot suffix.
 	 * @return string Humanised name.
 	 */
@@ -159,7 +159,7 @@ final class ModelLabels {
 	/**
 	 * Final guard: plain text, length-capped, and never the raw slug.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param string $label Candidate label.
 	 * @param string $raw   The sanitised id the label was built from.
 	 * @return string Safe label.
@@ -181,7 +181,7 @@ final class ModelLabels {
 	/**
 	 * Neutral name used when an id cannot be turned into anything readable.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @return string Translated label.
 	 */
 	private static function neutral(): string {

@@ -343,7 +343,7 @@ class ChatRestController {
 	 *                      key for some provider but none for the requested one, which the managed
 	 *                      service does not serve; otherwise a disabled managed provider is
 	 *                      resolved to Claude at runtime (see ProviderFactory::resolve_text_slug()).
-	 * @since NEXT_VERSION Removes the stored user message again when the provider fails, so a
+	 * @since 2.2.0 Removes the stored user message again when the provider fails, so a
 	 *                      failed turn leaves no unanswered message behind.
 	 * @param \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response 201 on success; 403 if the conversation is not owned by the caller;
@@ -792,7 +792,7 @@ class ChatRestController {
 	 * Ollama lists each installed model under its own tag, so the dropdown would
 	 * otherwise show a value such as "llama3.2:latest".
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param array<string, string> $models Model id => label.
 	 * @return array<string, string>
 	 */

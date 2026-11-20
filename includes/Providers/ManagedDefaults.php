@@ -137,7 +137,7 @@ final class ManagedDefaults {
 	/**
 	 * Return every managed model id with its display label.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @return array<string, string> Model id => label.
 	 */
 	public static function labels(): array {

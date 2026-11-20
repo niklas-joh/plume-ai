@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * has to change in a single location. Module classes `use` this trait rather
  * than each carrying their own identical copy.
  *
- * @since NEXT_VERSION
+ * @since 2.2.0
  */
 trait BuildsRestErrorResponse {
 
@@ -32,7 +32,7 @@ trait BuildsRestErrorResponse {
 	 * apiFetch rejects with the parsed body only, so the client can read the
 	 * text and tell credit exhaustion apart without seeing the HTTP status.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param string $message Translated, user-facing error text.
 	 * @param string $code    Machine-readable error code.
 	 * @param int    $status  HTTP status code.

@@ -19,21 +19,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Shared by the providers and the managed proxy client so a slow completion is
  * reported identically whichever route it took.
  *
- * @since NEXT_VERSION
+ * @since 2.2.0
  */
 final class HttpTimeout {
 
 	/**
 	 * Error code attached to a timed-out request (WP_Error code / ProviderException code).
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 */
 	public const ERROR_CODE = 'request_timeout';
 
 	/**
 	 * Pick the timeout for a request.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param int $requested Per-request timeout in seconds; 0 or less means "not set".
 	 * @param int $fallback  Timeout in seconds to fall back to.
 	 * @return int Timeout in seconds.
@@ -47,7 +47,7 @@ final class HttpTimeout {
 	 *
 	 * Other transport failures (DNS, TLS, refused connections) are deliberately not matched.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param \WP_Error $error Error returned by wp_remote_post().
 	 * @return bool
 	 */
@@ -65,7 +65,7 @@ final class HttpTimeout {
 	 * Neutral wording so the single shared message reads correctly for every
 	 * feature (draft, chat, SEO) that can time out on the managed route.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @return string
 	 */
 	public static function message(): string {
@@ -78,7 +78,7 @@ final class HttpTimeout {
 	 * Centralises the timeout-to-exception mapping repeated verbatim across the
 	 * provider post() methods so the message and error code live in one place.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param string $slug Provider slug (e.g. 'claude', 'openai').
 	 * @return ProviderException
 	 */

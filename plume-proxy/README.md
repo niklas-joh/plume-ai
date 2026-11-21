@@ -169,6 +169,54 @@ Bearer-authenticated and read-only. Response for the metered tiers:
 For `pro_byok`, `credit_limit`, `default_models`, `enabled_providers` and
 `models` are all `null` (BYOK sites never use the proxy).
 
+## `POST /v1/events`
+
+Opt-in product usage events from the plugin. A site only sends them after its owner
+chooses "Share anonymous usage" during setup or turns on Settings > Features > Usage
+sharing. The plugin queues events and sends them from an hourly WP-Cron job, in
+batches of at most 25 events; web requests never call this endpoint.
+
+- **No auth, no CORS.** The body must be `Content-Type: application/json` (anything
+  else gets `415`), which also stops web pages from posting events through visitors'
+  browsers.
+- **Envelope:** `{ "schema": 1, "install_id": "<v4 UUID>", "plugin_version": "x.y.z", "events": [ ... ] }`,
+  1 to 50 events, at most 16 384 bytes (`413` above that, checked on the header and on
+  the streamed body). Each event is `{ "name": "...", "ts": <unix seconds>, ...fields }`.
+- **Allowlist:** `src/event-schema.json`, shared with the plugin's `EventSchema::SPEC`
+  (a PHPUnit contract test keeps them identical). Unknown events and events with a `ts`
+  outside the last 30 days or more than 1 hour ahead are dropped and counted; unknown
+  keys are dropped; invalid values become `''` or the field default. A batch with no
+  valid events is `400 invalid_batch`.
+- **Rate limits:** Workers Rate Limiting bindings, 120 requests per minute per IP
+  (`EVENTS_IP_LIMITER`) and 30 per minute per install ID (`EVENTS_INSTALL_LIMITER`),
+  `429` above that. A missing or failing limiter lets the request through.
+- **Response:** `202 { "accepted": n, "dropped": n }`. The input is never echoed, and
+  neither the body nor the IP is logged.
+- **Storage:** Analytics Engine dataset `plume_events` (`plume_events_dev` on the dev
+  Worker), binding `PLUME_EVENTS`, one datapoint per event, indexed by install ID. The
+  slot layout is documented in `src/events.ts` and locked by `test/events.test.ts`.
+  Without the binding the endpoint still answers `202` and writes nothing.
+
+`plume_events` is never joined to `plume_metrics`, on time, tokens, IP or any other
+field. Analytics Engine stamps each datapoint with the send time (the cron run), so use
+`double1` (`client_ts`, already rounded to the hour) for the time of the event:
+
+```sql
+SELECT
+  blob4 AS provider,
+  blob8 AS error_code,
+  SUM(_sample_interval) AS requests
+FROM plume_events
+WHERE blob1 = 'ai_request'
+  AND blob7 = 'error'
+  AND double1 >= toUnixTimestamp(NOW() - INTERVAL '7' DAY)
+GROUP BY provider, error_code
+ORDER BY requests DESC
+```
+
+The rate-limit `namespace_id`s in `wrangler.toml` (1101, 1102, 1201, 1202) must be
+unused elsewhere in the Cloudflare account.
+
 ## Reverting Claude-only
 
 The Claude-only behaviour from #1020 is temporary. It can be undone in two levels.

@@ -9,6 +9,7 @@ declare( strict_types=1 );
 namespace Plume\Admin;
 
 use Plume\Proxy\SiteRegistration;
+use Plume\Telemetry\UpgradeRedirect;
 use Plume\Tiers\TierConfig;
 use Plume\Tiers\TierManager;
 use Plume\Tiers\UsageTracker;
@@ -129,10 +130,10 @@ class TierStatusPage {
 				<h2><?php esc_html_e( 'Upgrade your plan', 'plume' ); ?></h2>
 				<p><?php esc_html_e( 'Pro Managed gives you 500 credits/month on the managed service and access to more models. Alternatively, enter your own API key in Settings — free on every plan — for no credit limit, billed directly by your provider.', 'plume' ); ?></p>
 				<div class="plume-upgrade-actions">
-					<a href="<?php echo esc_url( SiteRegistration::checkout_url_pro_managed_monthly() ); ?>" class="button button-primary">
+					<a href="<?php echo esc_url( UpgradeRedirect::url( 'monthly' ) ); ?>" class="button button-primary">
 						<?php esc_html_e( 'Pro Managed — Monthly', 'plume' ); ?>
 					</a>
-					<a href="<?php echo esc_url( SiteRegistration::checkout_url_pro_managed_annual() ); ?>" class="button button-primary">
+					<a href="<?php echo esc_url( UpgradeRedirect::url( 'annual' ) ); ?>" class="button button-primary">
 						<?php esc_html_e( 'Pro Managed — Annual', 'plume' ); ?>
 					</a>
 					<a href="<?php echo esc_url( admin_url( 'admin.php?page=plume-settings' ) ); ?>" class="button">

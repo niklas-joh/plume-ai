@@ -1,0 +1,50 @@
+{
+	"schema_version": 1,
+	"max_events": 50,
+	"max_bytes": 16384,
+	"max_past_seconds": 2592000,
+	"max_future_seconds": 3600,
+	"events": {
+		"consent_given": {
+			"source": { "type": "enum", "values": [ "onboarding", "settings" ] }
+		},
+		"onboarding_step": {
+			"step": { "type": "enum", "values": [ "welcome", "providers", "done" ] },
+			"action": { "type": "enum", "values": [ "viewed", "completed" ] }
+		},
+		"onboarding_done": {
+			"route": { "type": "enum", "values": [ "managed", "own_key", "skipped", "upgrade" ] }
+		},
+		"ai_request": {
+			"feature": { "type": "enum", "values": [ "chat", "generator", "seo", "images", "other" ] },
+			"provider": { "type": "enum", "values": [ "claude", "openai", "gemini", "ollama" ] },
+			"model": { "type": "pattern", "regex": "^[A-Za-z0-9._:/-]{1,64}$", "max_bytes": 64 },
+			"route": { "type": "enum", "values": [ "proxy", "byok", "ollama" ] },
+			"outcome": { "type": "enum", "values": [ "ok", "error" ] },
+			"error_code": { "type": "enum", "values": [ "auth_invalid", "rate_limited", "quota_exceeded", "model_not_found", "timeout", "network", "server_error", "provider_unavailable", "bad_request", "content_policy", "not_registered", "site_unreachable", "invalid_response", "media_error", "unsupported", "other" ] },
+			"first_error_code": { "type": "enum", "values": [ "auth_invalid", "rate_limited", "quota_exceeded", "model_not_found", "timeout", "network", "server_error", "provider_unavailable", "bad_request", "content_policy", "not_registered", "site_unreachable", "invalid_response", "media_error", "unsupported", "other" ] },
+			"http_status": { "type": "int", "min": 0, "max": 599, "default": 0 },
+			"latency_ms": { "type": "int", "min": 0, "max": 600000, "default": 0 },
+			"input_tokens": { "type": "int", "min": 0, "max": 10000000, "default": 0 },
+			"output_tokens": { "type": "int", "min": 0, "max": 10000000, "default": 0 },
+			"image_count": { "type": "int", "min": 0, "max": 10, "default": 0 },
+			"attempts": { "type": "int", "min": 1, "max": 10, "default": 1 },
+			"turn_id": { "type": "uuid4" }
+		},
+		"upgrade_click": {
+			"placement": { "type": "enum", "values": [ "onboarding", "dashboard_banner", "out_of_credits", "upgrade_page" ] },
+			"screen": { "type": "enum", "values": [ "dashboard", "chat", "editor", "images", "generator", "seo", "upgrade" ] },
+			"plan": { "type": "enum", "values": [ "pricing", "monthly", "annual" ] }
+		},
+		"heartbeat": {
+			"tier": { "type": "enum", "values": [ "free", "pro_managed", "pro_byok" ] },
+			"providers": { "type": "providers" },
+			"wp_version": { "type": "pattern", "regex": "^\\d{1,2}\\.\\d{1,2}$", "max_bytes": 5 },
+			"php_version": { "type": "pattern", "regex": "^\\d{1,2}\\.\\d{1,2}$", "max_bytes": 5 },
+			"locale": { "type": "pattern", "regex": "^[a-z]{2,3}(_[A-Z]{2})?(_[a-z0-9]{1,10})?$", "max_bytes": 16 },
+			"days_since_activation": { "type": "int", "min": -1, "max": 36500, "default": -1 },
+			"days_since_last_ai": { "type": "int", "min": -1, "max": 36500, "default": -1 }
+		},
+		"deactivated": {}
+	}
+}

@@ -1,6 +1,7 @@
 import { useState } from '@wordpress/element';
 import { ToggleControl, CheckboxControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import UsageSharingDetails from '../../shared/UsageSharingDetails';
 
 const MODULES = [
 	{
@@ -66,8 +67,11 @@ const MODULES = [
  *
  * Every module is available on every tier — credit exhaustion is enforced
  * by the Worker, not a PHP/JS-side feature gate, so no card is ever locked.
- * Post-type changes and the write-tools toggle are persisted immediately
- * on change.
+ * Post-type changes, the write-tools toggle and the usage-sharing toggle are
+ * persisted immediately on change.
+ *
+ * Usage sharing can only be turned on where the server reports it available,
+ * but a site that already shares can always turn it off.
  *
  * @param {Object}   props
  * @param {Object}   props.settings      Full settings object from the REST API.
@@ -107,6 +111,17 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 	function handleWriteToolsChange( val ) {
 		setEnableWriteTools( val );
 		saveSettings( { enable_write_tools: val } );
+	}
+
+	const [ telemetryConsent, setTelemetryConsent ] = useState(
+		settings?.telemetry_consent ?? 'unset'
+	);
+	const telemetryAvailable = !! settings?.telemetry_available;
+
+	function handleTelemetryChange( on ) {
+		const value = on ? 'yes' : 'no';
+		setTelemetryConsent( value );
+		saveSettings( { telemetry_consent: value } );
 	}
 
 	return (
@@ -208,6 +223,42 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 						__nextHasNoMarginBottom
 					/>
 				</div>
+			</section>
+
+			<section className="plume-settings-section">
+				<div className="plume-settings-section-header">
+					<h3 className="plume-settings-section-title">
+						{ __( 'Usage sharing', 'plume' ) }
+					</h3>
+					<p className="plume-settings-section-desc">
+						{ __(
+							'Help improve Plume by sharing anonymous usage statistics. Off unless you turn it on.',
+							'plume'
+						) }
+					</p>
+				</div>
+
+				<ToggleControl
+					label={ __( 'Share anonymous usage statistics', 'plume' ) }
+					help={
+						! telemetryAvailable && telemetryConsent !== 'yes'
+							? __(
+									'Usage sharing is turned off on this site.',
+									'plume'
+								)
+							: __(
+									'Turning this off stops sending and deletes this site’s random install ID.',
+									'plume'
+								)
+					}
+					checked={ telemetryConsent === 'yes' }
+					onChange={ handleTelemetryChange }
+					disabled={
+						! telemetryAvailable && telemetryConsent !== 'yes'
+					}
+					__nextHasNoMarginBottom
+				/>
+				<UsageSharingDetails />
 			</section>
 		</div>
 	);

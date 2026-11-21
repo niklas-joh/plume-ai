@@ -563,4 +563,39 @@ class ClaudeProviderTest extends TestCase {
 		$this->assertSame( 'Fetches recent posts.', $captured_body['tools'][0]['description'] );
 		$this->assertSame( [ 'type' => 'ephemeral' ], $captured_body['tools'][0]['cache_control'] );
 	}
+
+	// ── Opt-in usage events (NEXT_VERSION) ────────────────────────────────────
+
+	private function telemetry_route_of( ClaudeProvider $provider ): string {
+		return ( new \ReflectionMethod( $provider, 'telemetry_route' ) )->invoke( $provider );
+	}
+
+	public function test_telemetry_route_is_proxy_without_a_key_and_byok_with_one(): void {
+		$this->assertSame( 'proxy', $this->telemetry_route_of( new ClaudeProvider( '' ) ) );
+		$this->assertSame( 'byok', $this->telemetry_route_of( new ClaudeProvider( 'sk-ant-test' ) ) );
+	}
+
+	public function test_network_failure_carries_the_wp_error_code(): void {
+		Functions\when( 'wp_remote_post' )->justReturn( new \WP_Error( 'http_request_failed', 'cURL error 6: Could not resolve host' ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+
+		$provider = new ClaudeProvider( 'sk-ant-test' );
+		try {
+			$provider->complete( new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] ) );
+			$this->fail( 'Expected ProviderException.' );
+		} catch ( ProviderException $e ) {
+			$this->assertSame( 'http_request_failed', $e->get_error_code() );
+			$this->assertSame( 'claude', $e->get_provider() );
+		}
+	}
+
+	public function test_generate_image_throws_image_unsupported(): void {
+		try {
+			( new ClaudeProvider( 'sk-ant-test' ) )->generate_image( 'a cat' );
+			$this->fail( 'Expected ProviderException.' );
+		} catch ( ProviderException $e ) {
+			$this->assertSame( 'image_unsupported', $e->get_error_code() );
+		}
+	}
 }

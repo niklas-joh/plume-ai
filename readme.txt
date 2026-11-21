@@ -39,13 +39,28 @@ Current prices, credit amounts and available models are listed at [wpaimind.com]
 
 * Your own API keys are stored encrypted (AES-256-CBC) and only ever sent to the provider that issued them.
 * Chat history stays in your WordPress database.
-* No tracking or cookies in the plugin itself. If you use the Plume managed service, it records usage statistics for that service (see External services).
+* No tracking unless you turn on usage sharing: you are asked once during setup, it is off until you say yes, and you can change it under Settings → Features. No cookies. Links from the plugin to wpaimind.com carry "utm_source=plugin" so the website can tell which screen they came from. If you use the Plume managed service, it records usage statistics for that service (see External services).
 
 == External services ==
 
-Plume AI connects to the following services. Nothing is sent until you use an AI feature or finish the setup wizard.
+Plume AI connects to the following services. Nothing is sent until you use an AI feature, finish the setup wizard or turn on usage sharing.
 
 **Plume managed service** (`plume-proxy.plumewp.workers.dev`). Used for Chat, the Post generator and AI SEO when no API key of your own is set. The first time you use one of these (or finish the setup wizard with the managed option), it receives your site URL to register the site and assign its plan. With each request, it receives your prompt and the content you send, forwards it to the AI provider for the model you chose and returns the response. Message content is not stored beyond the request. For each request and registration attempt, the service also records usage statistics: your site's domain (including any path in the site URL, recorded only for successful registrations and for requests from registered sites), your plan, the feature used, the AI provider and model, token counts, credits used, response time, and whether the request succeeded or failed. Registration attempts that fail (an invalid challenge, too many attempts, or a failed verification) record no domain. A failed verification records only a short hashed reference derived from the site URL (the first 12 characters of its SHA-256 hash, called `site_ref`) and the failure reason. Prompts, responses, API keys, IP addresses and user details are never part of these statistics. They are used to operate and bill the service (credit limits), monitor reliability and speed, and understand usage to improve the product, and are kept for up to 90 days. Site records needed to run the service are kept while the site stays registered. [Terms](https://wpaimind.com/terms-of-service.html), [Privacy policy](https://wpaimind.com/privacy-policy.html).
+
+**Plume usage statistics (optional)** (`plume-proxy.plumewp.workers.dev/v1/events`). Only when you choose "Share anonymous usage" during setup or turn on Settings → Features → Usage sharing.
+
+The plugin then creates a random install ID (not derived from your site) and sends about once an hour, in the background:
+
+* plugin, WordPress and PHP versions, site language and plan;
+* which AI provider types are set up (never keys);
+* which setup steps were viewed or completed;
+* clicks on upgrade links (where in the plugin);
+* a daily check-in, and deactivation;
+* for each AI request: the feature, provider, a known model name (custom and Ollama models are sent as "custom"), whether it used the managed service, your own key or Ollama, success or a fixed error category, HTTP status, response time, retry count, token or image counts for your own key or Ollama, and a random ID per request group.
+
+Times are rounded to the hour. Prompts, content, post titles, API keys, user names, email addresses, your site URL and error messages are never sent. These statistics are not linked to the managed service's records. IP addresses are not stored with the statistics; Cloudflare processes them to deliver requests and limit abuse, and they may appear in Cloudflare's request logs, which are kept for a short time (up to 7 days).
+
+The statistics are used to find where setup or AI requests fail and which features are used, and are kept for up to 90 days. Turning sharing off stops sending immediately and deletes the install ID and any statistics not yet sent; statistics already sent are kept but can no longer be linked to your site. [Privacy policy](https://wpaimind.com/privacy-policy.html).
 
 **Anthropic (Claude)**: receives your prompts and content when you use a Claude model, directly with your own key or through the managed service. [Terms](https://www.anthropic.com/legal/commercial-terms), [Privacy policy](https://www.anthropic.com/legal/privacy).
 
@@ -86,7 +101,7 @@ Yes. Keys are encrypted (AES-256-CBC) in your WordPress database and only sent t
 
 = Is Plume AI GDPR-compliant? =
 
-Content you submit is sent to the AI provider you choose, and, if you have no API key, through the Plume managed service (see External services). You are responsible for making sure this suits your data protection obligations. Consider listing the Plume privacy policy and your provider's data processing terms in your own privacy documentation. Ollama keeps everything on your own server.
+Content you submit is sent to the AI provider you choose, and, if you have no API key, through the Plume managed service (see External services). You are responsible for making sure this suits your data protection obligations. Consider listing the Plume privacy policy and your provider's data processing terms in your own privacy documentation. Ollama keeps everything on your own server. Anonymous usage sharing is optional, off until you say yes, and can be turned off at any time under Settings → Features, which also deletes the random install ID; Plume adds suggested text to Settings → Privacy for your privacy policy.
 
 = Who can use the AI features? =
 

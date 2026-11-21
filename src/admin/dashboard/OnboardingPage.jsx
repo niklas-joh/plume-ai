@@ -1,5 +1,11 @@
-import { useState, useCallback } from '@wordpress/element';
+import { useState, useCallback, useEffect, useRef } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
+import UsageSharingDetails from '../../shared/UsageSharingDetails';
+import {
+	recordClientEvent,
+	recordUpgradeClick,
+	withUtm,
+} from '../../shared/telemetry';
 
 const PROVIDERS = [
 	{
@@ -57,6 +63,75 @@ const IMAGE_PROVIDERS = [
 	},
 ];
 
+// ── Usage sharing consent ─────────────────────────────────────────────────────
+
+/**
+ * Opt-in card for anonymous usage sharing, shown once at the top of step 1.
+ *
+ * The two choices are styled alike and neither is pre-selected; "Get started"
+ * is never blocked by it. After a choice the buttons are replaced by a status
+ * message that is announced and receives focus.
+ *
+ * @param {Object}   props
+ * @param {Function} props.onChoose Called with `'yes'` or `'no'`.
+ * @return {ReactElement}
+ */
+function ConsentCard( { onChoose } ) {
+	const [ chosen, setChosen ] = useState( false );
+	const statusRef = useRef( null );
+
+	useEffect( () => {
+		if ( chosen && statusRef.current ) {
+			statusRef.current.focus();
+		}
+	}, [ chosen ] );
+
+	const choose = ( value ) => {
+		setChosen( true );
+		onChoose( value );
+	};
+
+	return (
+		<div className="plume-ob-consent">
+			<div className="plume-ob-choice__title">
+				{ __( 'Help improve Plume', 'plume' ) }
+			</div>
+			<p className="plume-ob-choice__desc">
+				{ __(
+					'Share anonymous usage statistics so we can see where setup or AI requests fail. Nothing is shared unless you say yes.',
+					'plume'
+				) }
+			</p>
+			<UsageSharingDetails />
+			<div role="status" ref={ statusRef } tabIndex={ -1 }>
+				{ chosen &&
+					__(
+						'Thanks. You can change this in Settings → Features.',
+						'plume'
+					) }
+			</div>
+			{ ! chosen && (
+				<div className="plume-ob-consent__actions">
+					<button
+						type="button"
+						className="plume-dash-btn"
+						onClick={ () => choose( 'yes' ) }
+					>
+						{ __( 'Share anonymous usage', 'plume' ) }
+					</button>
+					<button
+						type="button"
+						className="plume-dash-btn"
+						onClick={ () => choose( 'no' ) }
+					>
+						{ __( 'No thanks', 'plume' ) }
+					</button>
+				</div>
+			) }
+		</div>
+	);
+}
+
 // ── Step 1 ────────────────────────────────────────────────────────────────────
 
 /**
@@ -67,10 +142,20 @@ const IMAGE_PROVIDERS = [
  * @param {Function} props.onSelect    Called with the new selection string when a choice card is clicked.
  * @param {Function} props.onContinue  Called when the user clicks "Get started".
  * @param {Function} props.onSkip      Called when the user skips setup entirely.
+ * @param {Function} props.onUpgrade   Called when the user follows the Pro upgrade link.
  * @param {string}   props.upgradeUrl  URL for the Pro upgrade page (used when `selection === 'pro'`).
+ * @param {?Object}  props.consentCard Usage-sharing consent card to show above the choices, or null.
  * @return {ReactElement}
  */
-function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
+function Step1( {
+	selection,
+	onSelect,
+	onContinue,
+	onSkip,
+	onUpgrade,
+	upgradeUrl,
+	consentCard = null,
+} ) {
 	const choices = [
 		{
 			id: 'plugin',
@@ -122,6 +207,7 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 			</div>
 
 			<div className="plume-ob-body">
+				{ consentCard }
 				{ choices.map( ( c ) => (
 					<div
 						key={ c.id }
@@ -169,11 +255,11 @@ function Step1( { selection, onSelect, onContinue, onSkip, upgradeUrl } ) {
 				</button>
 				{ isPro ? (
 					<a
-						href={ upgradeUrl }
+						href={ withUtm( upgradeUrl, 'onboarding' ) }
 						className="plume-dash-btn plume-dash-btn--primary"
 						target="_blank"
 						rel="nofollow noreferrer"
-						onClick={ onSkip }
+						onClick={ onUpgrade }
 					>
 						{ __( 'Go to Upgrade ↗', 'plume' ) }
 					</a>
@@ -668,14 +754,33 @@ function DoneScreen( { apiTierLabel, urls, registered } ) {
  * Each transition persists progress to the /onboarding REST endpoint so the
  * wizard does not re-appear after completion.
  *
- * @param {Object} props
- * @param {string} props.nonce    WordPress REST nonce for authenticated requests.
- * @param {string} props.restUrl  Base URL for the plugin's REST API.
- * @param {Object} props.urls     URL map passed through to child steps (e.g. `upgrade`, `chat`).
+ * Usage sharing: when it is available and the site owner has not chosen yet,
+ * step 1 shows a consent card. The choice is saved through POST /settings
+ * (not /onboarding, which would also register the site). Step events are sent
+ * only once the local consent is `'yes'`, and each waits for the consent save.
+ *
+ * @param {Object}  props
+ * @param {string}  props.nonce                     WordPress REST nonce for authenticated requests.
+ * @param {string}  props.restUrl                   Base URL for the plugin's REST API.
+ * @param {Object}  props.urls                      URL map passed through to child steps (e.g. `upgrade`, `chat`).
+ * @param {string}  [props.telemetryConsent]        Stored usage-sharing choice: `'unset'`, `'yes'` or `'no'`.
+ * @param {boolean} [props.telemetryAvailable]      Whether usage sharing can be turned on on this site.
  * @return {ReactElement}
  */
-export default function OnboardingPage( { nonce, restUrl, urls } ) {
+export default function OnboardingPage( {
+	nonce,
+	restUrl,
+	urls,
+	telemetryConsent = 'unset',
+	telemetryAvailable = false,
+} ) {
 	const [ step, setStep ] = useState( 'step1' ); // 'step1' | 'step2' | 'done'
+	const [ consent, setConsent ] = useState( telemetryConsent );
+	// Decided once, so the card (and its status message) stays after a choice.
+	const [ showConsentCard ] = useState(
+		telemetryAvailable && telemetryConsent === 'unset'
+	);
+	const consentSaved = useRef( Promise.resolve() );
 	const [ connection, setConnection ] = useState( 'plugin' ); // 'plugin' | 'own_key' | 'pro'
 	const [ apiTierLabel, setApiTierLabel ] = useState(
 		__( 'Using Plugin API (free tier).', 'plume' )
@@ -701,14 +806,74 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 		[ nonce, restUrl ]
 	);
 
+	const handleConsent = useCallback(
+		( value ) => {
+			setConsent( value );
+			consentSaved.current = window
+				.fetch( `${ restUrl }/settings`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': nonce,
+					},
+					body: JSON.stringify( {
+						telemetry_consent: value,
+						telemetry_source: 'onboarding',
+					} ),
+				} )
+				.catch( () => {} );
+		},
+		[ nonce, restUrl ]
+	);
+
+	const recordStep = useCallback(
+		( stepName, action ) => {
+			if ( consent !== 'yes' ) {
+				return;
+			}
+			consentSaved.current.then( () =>
+				recordClientEvent( 'onboarding_step', {
+					step: stepName,
+					action,
+				} )
+			);
+		},
+		[ consent ]
+	);
+
+	useEffect( () => {
+		if ( step === 'step2' ) {
+			recordStep( 'providers', 'viewed' );
+		} else if ( step === 'done' ) {
+			recordStep( 'done', 'viewed' );
+		}
+		// Only a step change should record a view, not a later consent change.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ step ] );
+
+	// Each completion waits for a pending consent save, so a fast click cannot reach
+	// /onboarding (which records onboarding_done) before consent is stored.
 	const handleSkip = useCallback( async () => {
-		await postOnboarding( { seen: true } );
+		await consentSaved.current;
+		await postOnboarding( { seen: true, route: 'skipped' } );
+		window.location.reload();
+	}, [ postOnboarding ] );
+
+	const handleUpgrade = useCallback( async () => {
+		await consentSaved.current;
+		recordUpgradeClick( 'onboarding', 'dashboard' );
+		await postOnboarding( { seen: true, route: 'upgrade' } );
 		window.location.reload();
 	}, [ postOnboarding ] );
 
 	const handleStep1Continue = useCallback( async () => {
+		recordStep( 'welcome', 'completed' );
+		await consentSaved.current;
 		if ( connection === 'plugin' ) {
-			const result = await postOnboarding( { seen: true } );
+			const result = await postOnboarding( {
+				seen: true,
+				route: 'managed',
+			} );
 			setApiTierLabel( __( 'Using Plugin API (free tier).', 'plume' ) );
 			setRegistered( result.registered !== false );
 			setStep( 'done' );
@@ -716,12 +881,14 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 			setStep( 'step2' );
 		}
 		// 'pro' path handled by the upgrade link directly in Step1
-	}, [ connection, postOnboarding ] );
+	}, [ connection, postOnboarding, recordStep ] );
 
 	const handleStep2Finish = useCallback(
 		async ( { provider, apiKeys, imageProvider } ) => {
+			recordStep( 'providers', 'completed' );
 			const result = await postOnboarding( {
 				seen: true,
+				route: 'own_key',
 				provider,
 				api_keys: apiKeys,
 				image_provider: imageProvider,
@@ -739,7 +906,7 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 			setRegistered( result.registered !== false );
 			setStep( 'done' );
 		},
-		[ postOnboarding ]
+		[ postOnboarding, recordStep ]
 	);
 
 	return (
@@ -751,7 +918,13 @@ export default function OnboardingPage( { nonce, restUrl, urls } ) {
 						onSelect={ setConnection }
 						onContinue={ handleStep1Continue }
 						onSkip={ handleSkip }
+						onUpgrade={ handleUpgrade }
 						upgradeUrl={ urls.upgrade }
+						consentCard={
+							showConsentCard ? (
+								<ConsentCard onChoose={ handleConsent } />
+							) : null
+						}
 					/>
 				) }
 				{ step === 'step2' && (

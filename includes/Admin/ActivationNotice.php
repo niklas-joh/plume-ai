@@ -10,6 +10,7 @@ declare( strict_types=1 );
 namespace Plume\Admin;
 
 use Plume\Admin\Concerns\DetectsPlumeAdminPage;
+use Plume\Telemetry\Utm;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -84,7 +85,7 @@ class ActivationNotice {
 				echo wp_kses(
 					sprintf(
 						' <a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
-						\esc_url( PLUME_WEBSITE_URL . '/privacy-policy.html' ),
+						\esc_url( Utm::tag( PLUME_WEBSITE_URL . '/privacy-policy.html', 'activation_notice' ) ),
 						\esc_html__( 'Learn more', 'plume' )
 					),
 					[

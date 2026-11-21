@@ -59,4 +59,26 @@ describe( 'DashboardApp', () => {
 		expect( badge ).not.toBeNull();
 		expect( badge.textContent ).toBe( 'v1.2.3' );
 	} );
+
+	it( 'passes the usage-sharing props through to onboarding', async () => {
+		window.plumeDashboard = {
+			onboardingSeen: false,
+			urls: {},
+			telemetryConsent: 'unset',
+			telemetryAvailable: true,
+		};
+		await act( async () => {
+			root.render( <DashboardApp /> );
+		} );
+		expect( container.querySelector( '.plume-ob-consent' ) ).not.toBeNull();
+	} );
+
+	it( 'defaults to no consent card when the props are missing', async () => {
+		window.plumeDashboard = { onboardingSeen: false, urls: {} };
+		await act( async () => {
+			root.render( <DashboardApp /> );
+		} );
+		expect( container.querySelector( '.plume-ob-page' ) ).not.toBeNull();
+		expect( container.querySelector( '.plume-ob-consent' ) ).toBeNull();
+	} );
 } );

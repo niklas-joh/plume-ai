@@ -13,6 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use Plume\DB\Schema;
+use Plume\Telemetry\EventsRestController;
+use Plume\Telemetry\PrivacyPolicy;
+use Plume\Telemetry\Telemetry;
+use Plume\Telemetry\UpgradeRedirect;
 use Plume\Tiers\TierManager;
 
 /**
@@ -107,12 +111,18 @@ class Plugin {
 		add_action( 'plume_register_rest_routes', [ \Plume\Admin\OnboardingRestController::class, 'register_routes' ] );
 		add_action( 'plume_register_rest_routes', [ \Plume\Admin\TestKeyRestController::class, 'register_routes' ] );
 		add_action( 'plume_register_rest_routes', [ \Plume\Admin\ActivationVerifyRestController::class, 'register_routes' ] );
+		add_action( 'plume_register_rest_routes', [ EventsRestController::class, 'register_routes' ] );
 		add_action( 'rest_api_init', [ \Plume\Payments\TierUpdateWebhookController::class, 'register' ] );
 		\Plume\Admin\TierStatusPage::register_hooks();
 		\Plume\Admin\UsageWidget::register_hooks();
 		\Plume\Admin\ActivationNotice::register();
 		\Plume\Admin\TierSyncBackfillNotice::register();
 		\Plume\Admin\SiteUnreachableNotice::register();
+		// Opt-in usage events: inert (no WordPress calls beyond the consent read) until
+		// the site owner says yes.
+		Telemetry::register();
+		UpgradeRedirect::register();
+		PrivacyPolicy::register();
 		if ( $this->modules->is_enabled( 'chat' ) ) {
 			add_action( 'plugins_loaded', [ \Plume\Modules\Chat\ChatModule::class, 'register' ], 20 );
 			\Plume\Modules\Editor\EditorModule::register();
@@ -164,6 +174,8 @@ class Plugin {
 		// add_option() is a no-op when the option already exists, so an admin who
 		// has explicitly disabled write tools will not have their preference reset.
 		add_option( 'plume_enable_write_tools', true );
+		// First activation only (add_option never overwrites), for days_since_activation.
+		add_option( Telemetry::OPTION_ACTIVATED_AT, time(), '', false );
 		self::backfill_site_tier_option();
 		flush_rewrite_rules();
 	}
@@ -216,20 +228,23 @@ class Plugin {
 	}
 
 	/**
-	 * Run on plugin deactivation: shed the orphaned trial-check cron and flush rewrite rules.
+	 * Run on plugin deactivation: shed the orphaned trial-check cron, stop usage sharing's
+	 * send job and flush rewrite rules.
 	 *
-	 * This plugin no longer schedules any cron events — the trial-check cron was
-	 * removed along with the trial tier. The defensive clear below stays so that
+	 * The trial-check cron was removed along with the trial tier (the only cron the
+	 * plugin now schedules is the opt-in usage send job, cleared by Telemetry). The defensive clear below stays so that
 	 * installs upgraded from a version that did schedule `plume_trial_check` shed
 	 * the now-callback-less event on a deactivate/reactivate cycle.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Sends the opt-in `deactivated` event and clears the usage queue and its cron.
 	 * @return void
 	 */
 	public static function deactivate(): void {
 		// Defensive: shed the orphaned trial-check event left on installs upgraded
 		// from a version that scheduled it; the callback no longer exists.
 		wp_clear_scheduled_hook( 'plume_trial_check' );
+		Telemetry::on_deactivate();
 		flush_rewrite_rules();
 	}
 

@@ -6,7 +6,10 @@
 import React from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import apiFetch from '@wordpress/api-fetch';
 import OutOfCreditsNotice from '../../src/shared/OutOfCreditsNotice';
+
+jest.mock( '@wordpress/api-fetch', () => jest.fn() );
 
 jest.mock( 'lucide-react', () =>
 	new Proxy( {}, { get: () => () => <span /> } )
@@ -97,5 +100,41 @@ describe( 'OutOfCreditsNotice', () => {
 		} );
 
 		expect( container.querySelectorAll( 'a' ).length ).toBe( 1 );
+	} );
+
+	it( 'tags the pricing link with the screen and records the click', async () => {
+		apiFetch.mockReset();
+		apiFetch.mockResolvedValue( null );
+		await act( async () => {
+			root.render(
+				<OutOfCreditsNotice
+					websiteUrl="https://wpaimind.com"
+					screen="seo"
+				/>
+			);
+		} );
+
+		const link = container.querySelector( 'a.button-primary' );
+		expect( link.getAttribute( 'href' ) ).toBe(
+			'https://wpaimind.com/pricing?utm_source=plugin&utm_medium=seo&utm_content=out_of_credits'
+		);
+
+		link.addEventListener( 'click', ( e ) => e.preventDefault() );
+		await act( async () => {
+			link.click();
+		} );
+		expect( apiFetch ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				path: '/plume/v1/telemetry/event',
+				data: {
+					event: 'upgrade_click',
+					props: {
+						placement: 'out_of_credits',
+						screen: 'seo',
+						plan: 'pricing',
+					},
+				},
+			} )
+		);
 	} );
 } );

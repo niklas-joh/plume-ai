@@ -29,6 +29,7 @@ class OpenAIProvider extends AbstractProvider {
 
 	private const API_BASE      = 'https://api.openai.com/v1';
 	private const DEFAULT_MODEL = 'gpt-4.1';
+	private const IMAGE_MODEL   = 'dall-e-3';
 
 	/**
 	 * Models offered in the selector.
@@ -240,14 +241,15 @@ class OpenAIProvider extends AbstractProvider {
 	 * Generate an image using the DALL-E 3 model.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Renamed from generate_image(); AbstractProvider::generate_image() wraps it.
 	 * @param string $prompt  Image generation prompt.
 	 * @param array  $options Optional overrides: 'size' and 'quality'.
 	 * @return int WordPress attachment ID.
 	 * @throws ProviderException When the API returns no image URL.
 	 */
-	public function generate_image( string $prompt, array $options = [] ): int {
+	protected function do_generate_image( string $prompt, array $options ): int {
 		$body = [
-			'model'   => 'dall-e-3',
+			'model'   => self::IMAGE_MODEL,
 			'prompt'  => $prompt,
 			'n'       => 1,
 			'size'    => $options['size'] ?? '1024x1024',
@@ -256,9 +258,29 @@ class OpenAIProvider extends AbstractProvider {
 		$raw  = $this->post( '/images/generations', $body );
 		$url  = $raw['data'][0]['url'] ?? '';
 		if ( empty( $url ) ) {
-			throw new ProviderException( 'No image URL in response', 'openai' );
+			throw new ProviderException( 'No image URL in response', 'openai', 0, [], null, 'invalid_response' );
 		}
 		return $this->save_image_to_media_library( $url, 'dalle-' . time(), $prompt );
+	}
+
+	/**
+	 * Route for usage events: keyless sites go through the managed proxy.
+	 *
+	 * @since NEXT_VERSION
+	 * @return string 'proxy' or 'byok'.
+	 */
+	protected function telemetry_route(): string {
+		return '' === $this->api_key ? 'proxy' : 'byok';
+	}
+
+	/**
+	 * Image model ID for usage events.
+	 *
+	 * @since NEXT_VERSION
+	 * @return string
+	 */
+	protected function telemetry_image_model(): string {
+		return self::IMAGE_MODEL;
 	}
 
 	/**
@@ -290,7 +312,7 @@ class OpenAIProvider extends AbstractProvider {
 			if ( HttpTimeout::is_timeout( $response ) ) {
 				throw HttpTimeout::to_exception( 'openai' );
 			}
-			throw new ProviderException( $response->get_error_message(), 'openai' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new ProviderException( $response->get_error_message(), 'openai', 0, [], null, $response->get_error_code() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$code = (int) wp_remote_retrieve_response_code( $response );

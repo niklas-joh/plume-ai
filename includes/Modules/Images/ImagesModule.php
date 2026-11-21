@@ -17,6 +17,7 @@ use Plume\Modules\Concerns\BuildsRestErrorResponse;
 use Plume\Providers\ProviderFactory;
 use Plume\Providers\ProviderException;
 use Plume\Settings\ProviderSettings;
+use Plume\Telemetry\Telemetry;
 use Plume\Tiers\TierManager;
 
 /**
@@ -185,6 +186,8 @@ class ImagesModule {
 
 		$images = [];
 		$errors = [];
+		// Groups the images of this request in the opt-in usage events ('' while inactive).
+		$options['turn_id'] = Telemetry::new_turn_id();
 
 		for ( $i = 0; $i < $count; $i++ ) {
 			try {

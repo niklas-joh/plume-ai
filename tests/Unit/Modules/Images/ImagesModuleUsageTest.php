@@ -14,6 +14,8 @@ use Brain\Monkey\Functions;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 use Plume\Modules\Images\ImagesModule;
+use Plume\Telemetry\Telemetry;
+use Plume\Tests\Helpers\TelemetryHarness;
 
 /**
  * Images are generated with the user's own API key and never reach the managed
@@ -102,6 +104,7 @@ class ImagesModuleUsageTest extends TestCase {
 			$GLOBALS['wpdb'] = $this->original_wpdb;
 		}
 
+		Telemetry::reset();
 		Mockery::close();
 		Monkey\tearDown();
 		parent::tearDown();
@@ -237,5 +240,29 @@ class ImagesModuleUsageTest extends TestCase {
 		$this->assertSame( 207, $response->get_status() );
 		$this->assertSame( 2, $response->data['count'] );
 		$this->assertCount( 1, $response->data['errors'] );
+	}
+
+	/**
+	 * One request's images share a turn_id in the opt-in usage events.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	public function test_turn_id_is_passed_in_options_and_shared_by_the_images(): void {
+		$h = TelemetryHarness::install( [ 'plume_image_provider' => 'openai' ] );
+		$h->consent_yes();
+		$this->stub_generation( [ true, false, true ] );
+
+		$response = ImagesModule::handle_generate( $this->request( 3 ) );
+		$this->assertSame( 207, $response->get_status() );
+
+		$events = $h->flush();
+		$this->assertCount( 3, $events );
+		$this->assertSame( [ 'images' ], array_values( array_unique( array_column( $events, 'feature' ) ) ) );
+		$this->assertCount( 1, array_unique( array_column( $events, 'turn_id' ) ) );
+		$this->assertNotSame( '', $events[0]['turn_id'] );
+		$this->assertSame( [ 'ok', 'error', 'ok' ], array_column( $events, 'outcome' ) );
+		$this->assertSame( 'network', $events[1]['error_code'] );
+		$this->assertSame( 'dall-e-3', $events[0]['model'] );
+		$this->assertStringNotContainsString( 'lighthouse', (string) json_encode( $events ) );
 	}
 }

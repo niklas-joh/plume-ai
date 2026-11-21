@@ -10,7 +10,9 @@ use Plume\Modules\Chat\ChatRestController;
 use Plume\Tools\ToolRegistry;
 use Plume\Tools\ToolExecutor;
 use Plume\Providers\CompletionResponse;
+use Plume\Tests\Helpers\TelemetryHarness;
 use Plume\Tests\Helpers\WpdbStubFactory;
+use Plume\Telemetry\Telemetry;
 use PHPUnit\Framework\TestCase;
 
 class ChatRestControllerTest extends TestCase {
@@ -34,6 +36,7 @@ class ChatRestControllerTest extends TestCase {
     protected function tearDown(): void {
         global $wpdb;
         $wpdb = WpdbStubFactory::create(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+        Telemetry::reset();
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -1254,6 +1257,85 @@ class ChatRestControllerTest extends TestCase {
 
         // System prompt must not contain post title — no privilege escalation.
         $this->assertStringNotContainsString( 'Private Post', $captured_system ?? '' );
+    }
+
+    public function test_all_iterations_of_one_turn_share_a_turn_id(): void {
+        $h = TelemetryHarness::install( [ 'plume_default_provider' => 'claude' ] );
+        $h->consent_yes();
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [ [ 'role' => 'user', 'content' => 'Hello' ] ] );
+        $store_mock->method( 'add_message' )->willReturn( 1 );
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+        $this->tool_executor->method( 'execute' )->willReturn( [ 'posts' => [] ] );
+
+        $responses = [
+            new CompletionResponse( '', 'claude-sonnet-4-6', 1, 1, [ 'content' => [] ], [ 'id' => 'tc_1', 'name' => 'get_recent_posts', 'arguments' => [] ] ),
+            new CompletionResponse( 'Final answer', 'claude-sonnet-4-6', 1, 1 ),
+        ];
+        $requests      = [];
+        $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( true );
+        $provider_mock->method( 'complete' )->willReturnCallback(
+            function ( $req ) use ( &$requests, &$responses ) {
+                $requests[] = $req;
+                return array_shift( $responses );
+            }
+        );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '42' ] );
+        $request->set_body_params( [ 'content' => 'Hello', 'provider' => 'claude', 'model' => '' ] );
+        $this->make_controller( $store_mock, $factory_mock, $voice_mock )->send_message( $request );
+
+        $this->assertCount( 2, $requests );
+        $turn_id = $requests[0]->metadata['turn_id'];
+        $this->assertNotSame( '', $turn_id );
+        $this->assertSame( $turn_id, $requests[1]->metadata['turn_id'] );
+        $this->assertSame( 'chat', $requests[1]->metadata['feature'] );
+    }
+
+    public function test_send_message_returns_the_wp_error_code_for_a_network_failure(): void {
+        // S11: own-key network failures now carry the WP HTTP API code instead of
+        // falling back to the generic provider_error.
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+        Functions\when( 'wp_remote_post' )->justReturn( new \WP_Error( 'http_request_failed', 'cURL error 7: Failed to connect' ) );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'esc_html__' )->returnArg();
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [] );
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
+        $factory_mock->method( 'make' )->willReturn( new \Plume\Providers\ClaudeProvider( 'sk-ant-test' ) );
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '12' ] );
+        $request->set_body_params( [ 'content' => 'Hi', 'provider' => 'claude', 'model' => '' ] );
+        $response = $this->make_controller( $store_mock, $factory_mock, $voice_mock )->send_message( $request );
+
+        $this->assertInstanceOf( \WP_REST_Response::class, $response );
+        $this->assertSame( 'http_request_failed', $response->data['code'] );
     }
 
     private function make_controller(

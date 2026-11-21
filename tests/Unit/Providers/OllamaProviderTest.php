@@ -60,4 +60,30 @@ class OllamaProviderTest extends TestCase {
 		$this->expectException( ProviderException::class );
 		$provider->generate_image( 'a cat' );
 	}
+
+	public function test_generate_image_throws_image_unsupported(): void {
+		try {
+			( new OllamaProvider() )->generate_image( 'a cat' );
+			$this->fail( 'Expected ProviderException.' );
+		} catch ( ProviderException $e ) {
+			$this->assertSame( 'image_unsupported', $e->get_error_code() );
+		}
+	}
+
+	public function test_telemetry_route_is_ollama(): void {
+		$provider = new OllamaProvider();
+		$this->assertSame( 'ollama', ( new \ReflectionMethod( $provider, 'telemetry_route' ) )->invoke( $provider ) );
+	}
+
+	public function test_network_failure_carries_the_wp_error_code(): void {
+		Functions\when( 'wp_remote_post' )->justReturn( new \WP_Error( 'http_request_failed', 'Connection refused' ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		try {
+			( new OllamaProvider() )->complete( new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] ) );
+			$this->fail( 'Expected ProviderException.' );
+		} catch ( ProviderException $e ) {
+			$this->assertSame( 'http_request_failed', $e->get_error_code() );
+		}
+	}
 }

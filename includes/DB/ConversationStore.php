@@ -79,7 +79,7 @@ class ConversationStore {
 	 * Both ids are in the WHERE clause, so a message can only be removed from the
 	 * conversation it belongs to. An id of 0 (a failed insert) is ignored.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param int $conversation_id Conversation the message belongs to.
 	 * @param int $message_id      Message row ID, as returned by add_message().
 	 * @return void

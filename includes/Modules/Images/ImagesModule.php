@@ -241,7 +241,7 @@ class ImagesModule {
 	/**
 	 * Describe the configured image provider for the Images screen.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @return array{label: string, hasKey: bool} Brand name of the image provider and
 	 *                                            whether the site has its own key for it.
 	 */
@@ -263,7 +263,7 @@ class ImagesModule {
 	 * Both the enqueue-time status and the generate-time key check need the same
 	 * slug → label → has_key derivation; sharing it keeps the two in step.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param ProviderSettings $settings Provider settings used to check for a saved key.
 	 * @param ProviderFactory  $factory  Factory used to resolve the provider brand label.
 	 * @param string           $slug     Image provider slug.

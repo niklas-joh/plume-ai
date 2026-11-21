@@ -73,7 +73,7 @@ class AdminMenu {
 	 * `edit_posts`. Screens that link to Settings use this so that Authors and
 	 * Editors are not sent to a "not allowed" page.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @return string Settings URL, or an empty string when the user cannot open it.
 	 */
 	public static function settings_url(): string {

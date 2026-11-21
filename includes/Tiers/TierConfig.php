@@ -95,7 +95,7 @@ class TierConfig {
 	 * slug gets a neutral name so that a slug such as "pro_managed" never reaches
 	 * the screen.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param string $tier Tier slug.
 	 * @return string Translated plan name.
 	 */

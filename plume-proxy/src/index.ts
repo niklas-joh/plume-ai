@@ -1368,7 +1368,12 @@ async function handleChatProxyInner(
 				503
 			);
 		}
-		return jsonResponse( { error: 'Internal proxy error' }, 500 );
+		// `code` lets the plugin tell a genuine Worker fault apart from a legacy
+		// Worker's code-less 500, which it still treats as a provider outage.
+		return jsonResponse(
+			{ error: 'Internal proxy error', code: 'internal_error' },
+			500
+		);
 	}
 }
 

@@ -23,21 +23,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Covers the SITE option only; the per-user `plume_voice` meta is separate.
  *
- * @since NEXT_VERSION
+ * @since 2.2.0
  */
 final class SiteVoice {
 
 	/**
 	 * Site voice option name.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 */
 	public const OPTION = 'plume_site_voice';
 
 	/**
 	 * Keys of the canonical array shape.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 */
 	public const KEYS = [ 'tone', 'style', 'language', 'audience', 'avoid', 'extra' ];
 
@@ -48,7 +48,7 @@ final class SiteVoice {
 	 * keys with scalar values are kept (cast to string), so nested values cannot
 	 * trigger "Array to string conversion" downstream. Anything else is empty.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param mixed $raw Value read from the option.
 	 * @return array<string,string>
 	 */
@@ -75,7 +75,7 @@ final class SiteVoice {
 	/**
 	 * Get the site voice in canonical shape.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @return array<string,string>
 	 */
 	public static function get(): array {
@@ -85,7 +85,7 @@ final class SiteVoice {
 	/**
 	 * Get the free text edited in Settings (the `extra` key).
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @return string Empty string when unset.
 	 */
 	public static function get_free_text(): string {
@@ -97,7 +97,7 @@ final class SiteVoice {
 	 *
 	 * Deletes the option when nothing non-empty remains.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param string $text Free text from the Settings screen.
 	 * @return void
 	 */

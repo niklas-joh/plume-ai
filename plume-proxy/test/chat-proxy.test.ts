@@ -1760,14 +1760,16 @@ describe( 'handleChatProxy usage metrics', () => {
 		expect( points[ 4 ].blobs?.[ 5 ] ).toBe( 'byok_blocked' );
 	} );
 
-	it( 'statusless upstream failure falls back to a generic 500 with no code', async () => {
+	it( 'statusless upstream failure falls back to a generic 500 tagged internal_error', async () => {
 		const { env } = makeMetricsEnv();
 		await seedSite( env, 'free' );
 
 		// Unlike an upstream HTTP error (which carries a `status` and maps to the
 		// neutral 503 provider_unavailable branch), a thrown error with no `status`
 		// — e.g. a network failure or a JSON.parse throw — hits the internal-error
-		// fallback. Both catch-block branches are thereby pinned.
+		// fallback. Both catch-block branches are thereby pinned. The
+		// `internal_error` code lets the plugin tell this apart from a legacy
+		// Worker's code-less 500, which it still maps to provider_unavailable.
 		vi.spyOn( console, 'error' ).mockImplementation( () => undefined );
 		vi.stubGlobal(
 			'fetch',
@@ -1777,8 +1779,10 @@ describe( 'handleChatProxy usage metrics', () => {
 		const res = await worker.fetch( makeChatRequest( promptBody ), env );
 		expect( res.status ).toBe( 500 );
 		const json = ( await res.json() ) as Record< string, unknown >;
-		expect( json ).toEqual( { error: 'Internal proxy error' } );
-		expect( json ).not.toHaveProperty( 'code' );
+		expect( json ).toEqual( {
+			error: 'Internal proxy error',
+			code: 'internal_error',
+		} );
 	} );
 
 	it( 'authenticated 413 emits one point with site key and too_large', async () => {

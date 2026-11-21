@@ -35,7 +35,7 @@ class GeneratorModule {
 	 * mid-sentence. This is a ceiling, not a cost: billing is on tokens actually
 	 * produced, and the managed service caps every plan above this value.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @var int
 	 */
 	private const MAX_OUTPUT_TOKENS = 4096;
@@ -48,7 +48,7 @@ class GeneratorModule {
 	 * headroom. Hosts and CDNs that close connections at 60–100 s are unaffected by this
 	 * value; streaming (#1044) is the full fix for those.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @var int
 	 */
 	private const REQUEST_TIMEOUT = 120;
@@ -160,7 +160,7 @@ class GeneratorModule {
 	 * Generate a draft post from the request parameters using the default AI provider.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Error bodies carry `message` and `code` alongside `error`;
+	 * @since 2.2.0 Error bodies carry `message` and `code` alongside `error`;
 	 *                      credit exhaustion is returned as 429 'rate_limit_exceeded' and
 	 *                      other provider failures as 502 'provider_error'; a request that
 	 *                      times out is 502 'request_timeout'.

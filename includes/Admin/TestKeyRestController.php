@@ -64,7 +64,7 @@ class TestKeyRestController {
 	 * mistyped keys without leaving the settings UI.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Only authentication rejections are reported as 'invalid_key';
+	 * @since 2.2.0 Only authentication rejections are reported as 'invalid_key';
 	 *                      other provider failures return 502 'verification_failed'
 	 *                      instead of being mislabelled as an invalid key.
 	 * @param WP_REST_Request $request Incoming REST request.
@@ -168,7 +168,7 @@ class TestKeyRestController {
 	 * with the reason `API_KEY_INVALID`, and uses 400 for unrelated request errors
 	 * too, so its body has to be inspected.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param string $provider Provider slug.
 	 * @param int    $status   HTTP status returned by the provider.
 	 * @param string $raw_body Raw response body returned by the provider.

@@ -72,4 +72,17 @@ describe( 'SettingsApp — loading settings', () => {
 			container.querySelector( '[data-testid="providers-tab"]' )
 		).not.toBeNull();
 	} );
+
+	it( 'renders one h1 named Settings, with no gear-icon title bar', async () => {
+		apiFetch.mockResolvedValue( { api_keys: {} } );
+
+		await act( async () => {
+			root.render( <SettingsApp /> );
+		} );
+
+		const headings = container.querySelectorAll( 'h1' );
+		expect( headings ).toHaveLength( 1 );
+		expect( headings[ 0 ].textContent ).toBe( 'Settings' );
+		expect( container.querySelector( '.plume-settings-title' ) ).toBeNull();
+	} );
 } );

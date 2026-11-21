@@ -75,8 +75,25 @@ describe( 'ChatApp', () => {
 			root.render( <ChatApp /> );
 		} );
 
-		// .plume-shell is the root CSS class (ChatApp.jsx line 297).
+		// .plume-shell holds the three-column chat layout.
 		expect( container.querySelector( '.plume-shell' ) ).not.toBeNull();
+	} );
+
+	it( 'renders the compact page header with exactly one h1', async () => {
+		await act( async () => {
+			root.render( <ChatApp /> );
+		} );
+
+		const headings = container.querySelectorAll( 'h1' );
+		expect( headings ).toHaveLength( 1 );
+		expect( headings[ 0 ].textContent ).toBe( 'Chat' );
+		expect(
+			container.querySelector( '.plume-page-header--compact' )
+		).not.toBeNull();
+		// The shell sits inside the app layout so it fills what the header leaves.
+		expect(
+			container.querySelector( '.plume-screen--app .plume-shell' )
+		).not.toBeNull();
 	} );
 
 	it( 'renders the composer input in the DOM', async () => {

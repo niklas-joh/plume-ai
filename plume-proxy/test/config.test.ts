@@ -167,7 +167,7 @@ describe( '/v1/config default_models', () => {
 		const data = await getConfig( env );
 		expect( data.default_models ).toEqual( {
 			claude: 'claude-haiku-4-5-20251001',
-			openai: 'gpt-4.1-nano',
+			openai: 'gpt-6-luna',
 			gemini: 'gemini-3.1-flash-lite',
 		} );
 	} );
@@ -180,7 +180,7 @@ describe( '/v1/config default_models', () => {
 		const data = await getConfig( env );
 		expect( data.default_models ).toEqual( {
 			claude: 'claude-sonnet-4-6',
-			openai: 'gpt-4.1',
+			openai: 'gpt-6-sol',
 			gemini: 'gemini-3.6-flash',
 		} );
 	} );
@@ -200,7 +200,7 @@ describe( '/v1/config default_models', () => {
 
 		const data = await getConfig( env );
 		expect( data.default_models?.claude ).toBe( 'claude-opus-4-6' );
-		expect( data.default_models?.openai ).toBe( 'gpt-4.1' );
+		expect( data.default_models?.openai ).toBe( 'gpt-6-sol' );
 	} );
 
 	it( 'keeps the explicit default when a KV override reorders the list', async () => {

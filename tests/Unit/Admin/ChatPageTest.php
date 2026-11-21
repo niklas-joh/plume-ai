@@ -224,7 +224,7 @@ class ChatPageTest extends TestCase {
 	 */
 	public function test_mixed_site_keeps_the_stored_provider_and_its_managed_label(): void {
 		putenv( 'CLAUDE_API_KEY=sk-test' );
-		$this->assertSame( 'GPT-4.1 nano', $this->label_for( 'free', 'openai' ) );
+		$this->assertSame( 'GPT-6 Luna', $this->label_for( 'free', 'openai' ) );
 		$this->assertSame( 'openai', $this->localised['defaultProvider'] );
 	}
 

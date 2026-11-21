@@ -107,7 +107,7 @@ class ManagedCatalogueTest extends TestCase {
 		$this->arrange_fetch(
 			[
 				'tier'           => 'free',
-				'default_models' => [ 'openai' => 'gpt-4.1-nano' ],
+				'default_models' => [ 'openai' => 'gpt-6-luna' ],
 			]
 		);
 		Functions\when( 'set_transient' )->justReturn( true );
@@ -116,7 +116,7 @@ class ManagedCatalogueTest extends TestCase {
 
 		$this->assertSame( [ 'claude', 'openai', 'gemini' ], $catalogue['enabled_providers'] );
 		$this->assertSame( [], $catalogue['models'], 'No Worker list means providers use their own lists.' );
-		$this->assertSame( [ 'openai' => 'gpt-4.1-nano' ], $catalogue['default_models'] );
+		$this->assertSame( [ 'openai' => 'gpt-6-luna' ], $catalogue['default_models'] );
 	}
 
 	/**
@@ -177,7 +177,7 @@ class ManagedCatalogueTest extends TestCase {
 				'enabled_providers' => [ 'claude' ],
 				'models'            => [
 					'claude' => array_merge( [ 'claude-ok', 'bad id', 42, '' ], $long ),
-					'openai' => [ 'gpt-4.1' ],
+					'openai' => [ 'gpt-6-sol' ],
 				],
 			]
 		);
@@ -376,7 +376,7 @@ class ManagedCatalogueTest extends TestCase {
 			]
 		);
 
-		$own = [ 'gpt-4.1' => 'GPT-4.1' ];
+		$own = [ 'gpt-6-sol' => 'GPT-6 Sol' ];
 		$this->assertSame( $own, ManagedCatalogue::labelled_models( 'openai', 'free', $own ) );
 	}
 

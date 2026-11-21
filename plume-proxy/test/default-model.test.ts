@@ -15,8 +15,8 @@ describe( 'managed default model per provider and tier', () => {
 	const expected = [
 		[ 'claude', 'free', 'claude-haiku-4-5-20251001' ],
 		[ 'claude', 'pro_managed', 'claude-sonnet-4-6' ],
-		[ 'openai', 'free', 'gpt-4.1-nano' ],
-		[ 'openai', 'pro_managed', 'gpt-4.1' ],
+		[ 'openai', 'free', 'gpt-6-luna' ],
+		[ 'openai', 'pro_managed', 'gpt-6-sol' ],
 		[ 'gemini', 'free', 'gemini-3.1-flash-lite' ],
 		[ 'gemini', 'pro_managed', 'gemini-3.6-flash' ],
 	] as const;

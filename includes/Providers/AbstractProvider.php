@@ -305,8 +305,8 @@ abstract class AbstractProvider implements ProviderInterface {
 	 * Allowlisted model ID for a usage event.
 	 *
 	 * Only IDs from this provider's compiled list are sent, or the base ID of a dated
-	 * snapshot of one (the longest matching ID wins, so `gpt-4.1-nano-2025-04-14` maps to
-	 * `gpt-4.1-nano`, not `gpt-4.1`). Anything else, and every Ollama model, is `custom`,
+	 * snapshot of one (the longest matching ID wins, so `gpt-6-luna-2026-04-14` maps to
+	 * `gpt-6-luna`, not a shorter listed prefix). Anything else, and every Ollama model, is `custom`,
 	 * because free-text model names can identify a site or organisation.
 	 *
 	 * @param string $model Model ID from the response or request ('' = provider default).

@@ -541,7 +541,7 @@ class ChatRestControllerTest extends TestCase {
         $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
         $store_mock->method( 'get_messages' )->willReturn( [
             [ 'role' => 'user', 'content' => 'Hi', 'model' => null ],
-            [ 'role' => 'assistant', 'content' => 'Hello', 'model' => 'gpt-4.1-nano-2025-04-14' ],
+            [ 'role' => 'assistant', 'content' => 'Hello', 'model' => 'gpt-6-luna-2026-04-14' ],
         ] );
 
         $controller = $this->make_controller_with_store( $store_mock );
@@ -552,8 +552,8 @@ class ChatRestControllerTest extends TestCase {
         $rows = $controller->get_messages( $request )->data;
 
         $this->assertArrayNotHasKey( 'model_label', $rows[0], 'User rows have no model.' );
-        $this->assertSame( 'GPT-4.1 nano', $rows[1]['model_label'] );
-        $this->assertSame( 'gpt-4.1-nano-2025-04-14', $rows[1]['model'], 'The raw id stays for compatibility.' );
+        $this->assertSame( 'GPT-6 Luna', $rows[1]['model_label'] );
+        $this->assertSame( 'gpt-6-luna-2026-04-14', $rows[1]['model'], 'The raw id stays for compatibility.' );
     }
 
     // ── Tool loop ──────────────────────────────────────────────────────────────
@@ -3131,7 +3131,7 @@ class ChatRestControllerTest extends TestCase {
         $factory->expects( $this->once() )->method( 'resolve_text_slug' )->with( 'openai', 'free' )->willReturn( 'claude' );
         $factory->expects( $this->once() )->method( 'make' )->with( 'claude' )->willReturn( $this->recording_provider( $captured ) );
 
-        $response = $this->send_with( $factory, $store, 'openai', 'gpt-4.1' );
+        $response = $this->send_with( $factory, $store, 'openai', 'gpt-6-sol' );
 
         $this->assertSame( 200, $response->get_status() );
         $this->assertSame( '', $captured->model, 'A model of another provider must not be sent to Claude.' );
@@ -3149,9 +3149,9 @@ class ChatRestControllerTest extends TestCase {
         $factory->method( 'resolve_text_slug' )->willReturnArgument( 0 );
         $factory->expects( $this->once() )->method( 'make' )->with( 'openai' )->willReturn( $this->recording_provider( $captured ) );
 
-        $this->send_with( $factory, $store, 'openai', 'gpt-4.1' );
+        $this->send_with( $factory, $store, 'openai', 'gpt-6-sol' );
 
-        $this->assertSame( 'gpt-4.1', $captured->model );
+        $this->assertSame( 'gpt-6-sol', $captured->model );
     }
 
     public function test_send_message_with_only_a_claude_key_and_openai_returns_422_provider_key_missing(): void {
@@ -3163,7 +3163,7 @@ class ChatRestControllerTest extends TestCase {
         // Real factory over a Claude-key-only site: nothing may reach a provider.
         $factory = new \Plume\Providers\ProviderFactory( $this->fake_settings( [ 'claude' ] ) );
 
-        $response = $this->send_with( $factory, $store, 'openai', 'gpt-4.1' );
+        $response = $this->send_with( $factory, $store, 'openai', 'gpt-6-sol' );
 
         $this->assertSame( 422, $response->get_status() );
         $this->assertSame( 'provider_key_missing', $response->data['code'] );

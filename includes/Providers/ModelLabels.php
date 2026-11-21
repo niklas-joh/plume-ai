@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * person can read.
  *
  * Chat replies record the id the provider itself returned, which can be a dated
- * snapshot (for example OpenAI's gpt-4.1-nano-2025-04-14) that no model list
+ * snapshot (for example OpenAI's gpt-6-luna-2026-04-14) that no model list
  * carries. This class is the single PHP source of truth for display names: the
  * JavaScript never derives a name from an id, it renders the label sent with it.
  *

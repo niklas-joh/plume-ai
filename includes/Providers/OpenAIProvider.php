@@ -28,7 +28,7 @@ use Plume\Tools\ToolRegistry;
 class OpenAIProvider extends AbstractProvider {
 
 	private const API_BASE      = 'https://api.openai.com/v1';
-	private const DEFAULT_MODEL = 'gpt-4.1';
+	private const DEFAULT_MODEL = 'gpt-6-sol';
 	private const IMAGE_MODEL   = 'dall-e-3';
 
 	/**
@@ -45,8 +45,8 @@ class OpenAIProvider extends AbstractProvider {
 	 * @var array<string, string>
 	 */
 	public const MODELS = [
-		'gpt-4.1'      => 'GPT-4.1',
-		'gpt-4.1-nano' => 'GPT-4.1 nano',
+		'gpt-6-luna' => 'GPT-6 Luna',
+		'gpt-6-sol'  => 'GPT-6 Sol',
 	];
 
 	/**
@@ -144,11 +144,15 @@ class OpenAIProvider extends AbstractProvider {
 			);
 		}
 		$model = ! empty( $request->model ) ? $request->model : self::DEFAULT_MODEL;
-		$body  = [
-			'model'       => $model,
-			'messages'    => $messages,
-			'max_tokens'  => $request->max_tokens,
-			'temperature' => $request->temperature,
+		// Mirrors callOpenAI() in plume-proxy/src/index.ts: `max_tokens` is deprecated
+		// for OpenAI reasoning models, and gpt-6-luna/sol allow function calling on
+		// Chat Completions only with reasoning_effort 'none'.
+		$body = [
+			'model'                 => $model,
+			'messages'              => $messages,
+			'max_completion_tokens' => $request->max_tokens,
+			'reasoning_effort'      => 'none',
+			'temperature'           => $request->temperature,
 		];
 		if ( ! empty( $request->tools ) ) {
 			$body['tools']       = $request->tools; // Already in OpenAI wire format from ToolRegistry.

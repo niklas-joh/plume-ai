@@ -458,6 +458,7 @@ describe( 'handleChatProxy', () => {
 			messages: [ { role: 'user', content: 'Hello OpenAI' } ],
 			provider: 'openai',
 			tools: [ mockTool ],
+			max_tokens: 500,
 			feature: 'chat',
 		} );
 
@@ -467,6 +468,15 @@ describe( 'handleChatProxy', () => {
 		expect( capturedUrl ).toBe(
 			'https://api.openai.com/v1/chat/completions'
 		);
+
+		// The plugin→Worker contract keeps `max_tokens`; the Worker→OpenAI body
+		// must use `max_completion_tokens` and reasoning_effort 'none', without
+		// which gpt-6-luna/sol refuse function calling on Chat Completions (#1006).
+		const sent = capturedBody as unknown as Record< string, unknown >;
+		expect( sent.model ).toBe( 'gpt-6-sol' );
+		expect( sent.max_completion_tokens ).toBe( 500 );
+		expect( sent.reasoning_effort ).toBe( 'none' );
+		expect( sent ).not.toHaveProperty( 'max_tokens' );
 
 		const sentTools = ( capturedBody as Record< string, unknown > )
 			.tools as Array< Record< string, unknown > >;
@@ -897,20 +907,20 @@ describe( 'handleChatProxy', () => {
 		const body = JSON.stringify( {
 			messages: [ { role: 'user', content: 'Hello' } ],
 			provider: 'openai',
-			model: 'gpt-4.1',
+			model: 'gpt-6-sol',
 			feature: 'chat',
 		} );
 
-		// gpt-4.1 is pro_managed only — a free site is routed to the free-tier
-		// default (gpt-4.1-nano) rather than rejected.
+		// gpt-6-sol is pro_managed only — a free site is routed to the free-tier
+		// default (gpt-6-luna) rather than rejected.
 		const response = await worker.fetch( makeChatRequest( body ), env );
 		expect( response.status ).toBe( 200 );
 		expect( ( capturedBody as Record< string, unknown > | null )?.model ).toBe(
-			'gpt-4.1-nano'
+			'gpt-6-luna'
 		);
 	} );
 
-	it( 'free tier: GPT-4.1 nano is allowed and billed at its fractional weight (0.1)', async () => {
+	it( 'free tier: GPT-6 Luna is allowed and billed at its fractional weight (0.1)', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 		await enableAllProviders( env );
 
@@ -930,7 +940,7 @@ describe( 'handleChatProxy', () => {
 		const body = JSON.stringify( {
 			messages: [ { role: 'user', content: 'Hello' } ],
 			provider: 'openai',
-			model: 'gpt-4.1-nano',
+			model: 'gpt-6-luna',
 			feature: 'chat',
 		} );
 
@@ -1474,7 +1484,7 @@ describe( 'chat proxy — prompt-cache billing (#946, #859)', () => {
 		expect( json.usage.cache_read_input_tokens ).toBe( 4000 );
 	} );
 
-	it( 'OpenAI: cached_tokens are split out of prompt_tokens and billed at 0.25×', async () => {
+	it( 'OpenAI: cached_tokens are split out of prompt_tokens and billed at 0.1×', async () => {
 		const env = await makeEnvWithSiteToken( 'free' );
 		await enableAllProviders( env );
 		stubUpstream( {
@@ -1490,10 +1500,10 @@ describe( 'chat proxy — prompt-cache billing (#946, #859)', () => {
 		expect( response.status ).toBe( 200 );
 		const json = ( await response.json() ) as CacheJson;
 
-		// gpt-4.1-nano weight 0.1: (2000 + 0.25 × 8000) × 0.1 / 2000 = 0.2,
+		// gpt-6-luna weight 0.1: (2000 + 0.1 × 8000) × 0.1 / 2000 = 0.14,
 		// down from 10000 × 0.1 / 2000 = 0.5 when cached tokens were billed in full.
 		const stored = await getStoredUsage( env );
-		expect( stored ).toBeCloseTo( 0.2, 10 );
+		expect( stored ).toBeCloseTo( 0.14, 10 );
 		expect( stored ).toBeLessThan( rawChatCreditUnits( 10000, 0, 0.1 ) );
 		expect( json.usage ).toEqual( {
 			input_tokens: 2000,
@@ -1916,7 +1926,7 @@ describe( 'TEMPORARY(#1020) substitution', () => {
 				JSON.stringify( {
 					messages: [ { role: 'user', content: 'Hello' } ],
 					provider: 'openai',
-					model: 'gpt-4.1',
+					model: 'gpt-6-sol',
 					feature: 'chat',
 				} )
 			),
@@ -1942,7 +1952,7 @@ describe( 'TEMPORARY(#1020) substitution', () => {
 
 		// Haiku weight 1 with Claude's 1.25× cache-write multiplier:
 		// (1000 + 1.25 × 1000) / 2000 = 1.125. OpenAI multipliers (write 0) at
-		// the gpt-4.1-nano weight would have given 0.05.
+		// the gpt-6-luna weight would have given 0.05.
 		expect( await getStoredUsage( env ) ).toBe( 1.125 );
 		expect( json.credits_charged ).toBe( 2 );
 	} );
@@ -2240,7 +2250,7 @@ describe( 'native provider routing (permanent, #1020)', () => {
 		expect( response.status ).toBe( 200 );
 		expect( capturedUrl ).toBe( 'https://api.openai.com/v1/chat/completions' );
 		expect( ( ( await response.json() ) as { model: string } ).model ).toBe(
-			'gpt-4.1-nano'
+			'gpt-6-luna'
 		);
 		expect( log ).not.toHaveBeenCalled();
 	} );

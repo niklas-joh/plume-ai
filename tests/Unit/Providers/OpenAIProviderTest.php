@@ -116,7 +116,7 @@ class OpenAIProviderTest extends TestCase {
 						],
 					],
 				],
-				'model' => 'gpt-4.1',
+				'model' => 'gpt-6-sol',
 				'usage' => [ 'prompt_tokens' => 15, 'completion_tokens' => 6 ],
 			] ),
 		] );
@@ -141,7 +141,7 @@ class OpenAIProviderTest extends TestCase {
 	public function test_get_models_matches_worker_allow_lists(): void {
 		// Union of plume-proxy/src/index.ts DEFAULT_TIER_MODELS.openai free + pro_managed.
 		$models = ( new OpenAIProvider( 'sk-test' ) )->get_models();
-		$this->assertEqualsCanonicalizing( [ 'gpt-4.1', 'gpt-4.1-nano' ], array_keys( $models ) );
+		$this->assertEqualsCanonicalizing( [ 'gpt-6-luna', 'gpt-6-sol' ], array_keys( $models ) );
 	}
 
 	public function test_get_models_does_not_offer_stale_model_ids(): void {
@@ -154,6 +154,46 @@ class OpenAIProviderTest extends TestCase {
 	public function test_get_default_model_is_a_currently_offered_model(): void {
 		$provider = new OpenAIProvider( 'sk-test' );
 		$this->assertArrayHasKey( $provider->get_default_model(), $provider->get_models() );
+	}
+
+	public function test_default_model_is_gpt_6_sol(): void {
+		$this->assertSame( 'gpt-6-sol', ( new OpenAIProvider( 'sk-test' ) )->get_default_model() );
+	}
+
+	// ── Request body shape (#1006) ───────────────────────────────────────────
+
+	public function test_direct_body_uses_max_completion_tokens_and_reasoning_effort_none(): void {
+		$this->mock_wpdb();
+		$captured_url  = null;
+		$captured_body = null;
+		Functions\when( 'wp_remote_post' )->alias( function ( $url, $args ) use ( &$captured_url, &$captured_body ) {
+			$captured_url  = $url;
+			$captured_body = json_decode( $args['body'], true );
+			return [
+				'response' => [ 'code' => 200 ],
+				'body'     => json_encode( [
+					'choices' => [ [ 'message' => [ 'content' => 'ok' ] ] ],
+					'usage'   => [ 'prompt_tokens' => 1, 'completion_tokens' => 1 ],
+				] ),
+			];
+		} );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+
+		$provider = new OpenAIProvider( 'sk-test' );
+		$request  = new CompletionRequest(
+			messages: [ [ 'role' => 'user', 'content' => 'hi' ] ],
+			max_tokens: 321,
+		);
+		$provider->complete( $request );
+
+		$this->assertSame( 'https://api.openai.com/v1/chat/completions', $captured_url );
+		$this->assertSame( 'gpt-6-sol', $captured_body['model'] );
+		$this->assertSame( 321, $captured_body['max_completion_tokens'] );
+		$this->assertSame( 'none', $captured_body['reasoning_effort'] );
+		$this->assertArrayNotHasKey( 'max_tokens', $captured_body );
 	}
 
 	// ── Proxy path tests ─────────────────────────────────────────────────────
@@ -305,6 +345,37 @@ class OpenAIProviderTest extends TestCase {
 
 		$this->assertNotNull( $captured_body );
 		$this->assertSame( 'seo', $captured_body['feature'] );
+	}
+
+	public function test_complete_via_proxy_keeps_max_tokens_for_the_worker_contract(): void {
+		// The plugin→Worker contract is `max_tokens`; only the Worker translates it
+		// into OpenAI's `max_completion_tokens`.
+		$this->mock_free_tier_proxy();
+		$captured_body = null;
+		Functions\when( 'wp_remote_post' )->alias( function ( $url, $args ) use ( &$captured_body ) {
+			$captured_body = json_decode( $args['body'], true );
+			return [
+				'response' => [ 'code' => 200 ],
+				'body'     => json_encode( [
+					'content' => 'ok',
+					'usage'   => [ 'input_tokens' => 1, 'output_tokens' => 1 ],
+				] ),
+			];
+		} );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+
+		$provider = new OpenAIProvider( '' );
+		$request  = new CompletionRequest(
+			messages: [ [ 'role' => 'user', 'content' => 'hi' ] ],
+			max_tokens: 321,
+		);
+		$provider->complete( $request );
+
+		$this->assertNotNull( $captured_body );
+		$this->assertSame( 321, $captured_body['max_tokens'] );
+		$this->assertArrayNotHasKey( 'max_completion_tokens', $captured_body );
+		$this->assertArrayNotHasKey( 'reasoning_effort', $captured_body );
 	}
 
 	public function test_complete_via_proxy_defaults_feature_to_chat_when_metadata_absent(): void {

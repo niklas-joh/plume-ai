@@ -65,9 +65,9 @@ class ModelLabelsTest extends TestCase {
 	/**
 	 * @since NEXT_VERSION
 	 */
-	public function test_managed_and_provider_labels_agree_for_gpt_nano(): void {
-		$this->assertSame( 'GPT-4.1 nano', ModelLabels::for_id( 'gpt-4.1-nano' ) );
-		$this->assertSame( ManagedDefaults::label( 'gpt-4.1-nano' ), OpenAIProvider::MODELS['gpt-4.1-nano'] );
+	public function test_managed_and_provider_labels_agree_for_gpt_luna(): void {
+		$this->assertSame( 'GPT-6 Luna', ModelLabels::for_id( 'gpt-6-luna' ) );
+		$this->assertSame( ManagedDefaults::label( 'gpt-6-luna' ), OpenAIProvider::MODELS['gpt-6-luna'] );
 	}
 
 	/**
@@ -75,9 +75,9 @@ class ModelLabelsTest extends TestCase {
 	 */
 	public static function snapshot_and_unknown_ids(): array {
 		return [
-			'iso date snapshot'     => [ 'gpt-4.1-nano-2025-04-14', 'GPT-4.1 nano' ],
+			'iso date snapshot'     => [ 'gpt-6-luna-2026-04-14', 'GPT-6 Luna' ],
 			'compact date snapshot' => [ 'claude-3-5-sonnet-20241022', 'Claude 3.5 Sonnet' ],
-			'latest alias'          => [ 'gpt-4.1-latest', 'GPT-4.1' ],
+			'latest alias'          => [ 'gpt-6-sol-latest', 'GPT-6 Sol' ],
 			'unlisted claude id'    => [ 'claude-sonnet-4-5', 'Claude Sonnet 4.5' ],
 			'ollama tag'            => [ 'llama3.2:latest', 'Llama3.2' ],
 			'ollama size tag'       => [ 'qwen2.5:7b', 'Qwen2.5' ],

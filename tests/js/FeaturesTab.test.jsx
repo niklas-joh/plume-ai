@@ -121,7 +121,7 @@ describe( 'FeaturesTab', () => {
 
 	const usageToggle = () =>
 		container.querySelector(
-			'input[aria-label="Share anonymous usage statistics"]'
+			'input[aria-label="Share usage statistics with Plume"]'
 		);
 
 	it( 'reflects the stored usage-sharing consent', async () => {
@@ -137,7 +137,46 @@ describe( 'FeaturesTab', () => {
 			);
 		} );
 		expect( usageToggle().checked ).toBe( true );
-		expect( container.textContent ).toContain( 'What is shared?' );
+		expect( container.textContent ).not.toContain( 'What is shared?' );
+	} );
+
+	it( 'links Learn more to the privacy policy with UTM tags in a new tab', async () => {
+		await act( async () => {
+			root.render(
+				<FeaturesTab settings={ {} } saveSettings={ jest.fn() } />
+			);
+		} );
+		const link = Array.from( container.querySelectorAll( 'a' ) ).find(
+			( a ) => a.textContent.startsWith( 'Learn more' )
+		);
+		const url = new URL( link.href );
+		expect( url.origin + url.pathname ).toBe(
+			'https://wpaimind.com/privacy-policy'
+		);
+		expect( url.searchParams.get( 'utm_source' ) ).toBe( 'plugin' );
+		expect( url.searchParams.get( 'utm_medium' ) ).toBe( 'settings' );
+		expect( url.searchParams.get( 'utm_content' ) ).toBe( 'usage_sharing' );
+		expect( link.target ).toBe( '_blank' );
+		expect( link.rel ).toBe( 'noopener noreferrer' );
+		expect( link.textContent ).toContain( '(opens in a new tab)' );
+	} );
+
+	it( 'keeps both statistics toggles in one section and makes no unlinked-data claim', async () => {
+		await act( async () => {
+			root.render(
+				<FeaturesTab
+					settings={ { telemetry_available: true } }
+					saveSettings={ jest.fn() }
+				/>
+			);
+		} );
+		const section = usageToggle().closest( 'section' );
+		expect(
+			section.querySelector(
+				'input[aria-label="Share managed-service request statistics"]'
+			)
+		).not.toBeNull();
+		expect( container.textContent ).not.toMatch( /anon[y]m/i );
 	} );
 
 	it( 'saves yes and no when toggled', async () => {
@@ -209,7 +248,7 @@ describe( 'FeaturesTab', () => {
 	} );
 
 	describe( 'usage statistics toggle (#1015)', () => {
-		const LABEL = 'Share usage statistics with the Plume managed service';
+		const LABEL = 'Share managed-service request statistics';
 
 		const statsToggle = () =>
 			container.querySelector( `input[aria-label="${ LABEL }"]` );

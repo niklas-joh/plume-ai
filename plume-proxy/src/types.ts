@@ -7,7 +7,7 @@ export interface Env {
 	/**
 	 * Workers Analytics Engine dataset for opt-in plugin usage events (`/v1/events`).
 	 * Optional: an absent binding keeps the endpoint answering 202 while writing nothing.
-	 * Never joined to PLUME_METRICS.
+	 * Linked to PLUME_METRICS per site through the heartbeat site_key (blob19).
 	 *
 	 * @since NEXT_VERSION
 	 */

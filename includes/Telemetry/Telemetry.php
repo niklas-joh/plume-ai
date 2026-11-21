@@ -20,12 +20,11 @@ use Plume\Tiers\TierManager;
 /**
  * Records usage events in memory, queues them in an option and sends them from WP-Cron.
  *
- * Why a queue and a cron job instead of sending at the end of the request:
- * - a web request never makes an outbound HTTP call for telemetry, so a slow or
- *   unreachable Worker can never delay a page;
- * - events are sent up to an hour after they happen, with timestamps rounded down to the
- *   hour, so they cannot be matched by time to the managed service's own records of the
- *   same AI request (plume_events and plume_metrics are deliberately never linked).
+ * A queue and a cron job are used instead of sending at the end of the request so that
+ * a web request never makes an outbound HTTP call for telemetry: a slow or unreachable
+ * Worker can never delay a page. Events carry their exact time and the daily heartbeat
+ * carries the site address (SiteKey), so the statistics can be combined with the managed
+ * service's records for the same site.
  *
  * Nothing is recorded, queued or sent unless the site owner opted in (Consent::YES) and
  * telemetry is available (see is_available()). The `active` flag is computed once per
@@ -87,7 +86,7 @@ final class Telemetry {
 	 *
 	 * @since NEXT_VERSION
 	 */
-	public const SCHEMA_VERSION = 1;
+	public const SCHEMA_VERSION = 2;
 
 	/**
 	 * Most events kept in the queue; the oldest are dropped first.
@@ -211,7 +210,7 @@ final class Telemetry {
 	 * Record an event in this request's buffer.
 	 *
 	 * Does nothing while inactive or for an unknown event. Properties are cleaned against
-	 * EventSchema, and the timestamp is rounded down to the hour.
+	 * EventSchema.
 	 *
 	 * @since NEXT_VERSION
 	 * @param string               $event Event name from EventSchema::SPEC.
@@ -311,6 +310,8 @@ final class Telemetry {
 	 * Properties for a heartbeat event.
 	 *
 	 * Provider types are listed only when a key or URL is set; keys are never read out.
+	 * The site key is left out when home_url() cannot be normalised, so the Worker never
+	 * stores a blank one.
 	 *
 	 * @since NEXT_VERSION
 	 * @param array<string, mixed> $state Telemetry state (for last_ai_at); may be empty.
@@ -338,7 +339,7 @@ final class Telemetry {
 		$activated_at = (int) get_option( self::OPTION_ACTIVATED_AT, 0 );
 		$last_ai_at   = (int) ( $state['last_ai_at'] ?? 0 );
 
-		return [
+		$props = [
 			'tier'                  => TierManager::get_user_tier(),
 			'providers'             => implode( ',', $types ),
 			'wp_version'            => $wp_version,
@@ -347,6 +348,12 @@ final class Telemetry {
 			'days_since_activation' => $activated_at > 0 ? intdiv( max( 0, $now - $activated_at ), DAY_IN_SECONDS ) : -1,
 			'days_since_last_ai'    => $last_ai_at > 0 ? intdiv( max( 0, $now - $last_ai_at ), DAY_IN_SECONDS ) : -1,
 		];
+
+		$site_key = SiteKey::current();
+		if ( '' !== $site_key ) {
+			$props['site_key'] = $site_key;
+		}
+		return $props;
 	}
 
 	/**
@@ -436,7 +443,7 @@ final class Telemetry {
 	}
 
 	/**
-	 * Build a queue item: name, hour-rounded ts and clean properties.
+	 * Build a queue item: name, exact ts and clean properties.
 	 *
 	 * @param string               $event Event name.
 	 * @param array<string, mixed> $props Raw properties.
@@ -450,14 +457,14 @@ final class Telemetry {
 		return array_merge(
 			[
 				'name' => $event,
-				'ts'   => self::hour( time() ),
+				'ts'   => time(),
 			],
 			$clean
 		);
 	}
 
 	/**
-	 * Round a Unix time down to the hour.
+	 * Round a Unix time down to the hour (only for last_ai_at, which is used in whole days).
 	 *
 	 * @param int $time Unix seconds.
 	 * @return int

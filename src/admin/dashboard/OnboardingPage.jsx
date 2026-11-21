@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
-import UsageSharingDetails from '../../shared/UsageSharingDetails';
+import { DEFAULT_WEBSITE_URL } from '../../shared/constants';
 import {
 	recordClientEvent,
 	recordUpgradeClick,
@@ -66,10 +66,11 @@ const IMAGE_PROVIDERS = [
 // ── Usage sharing consent ─────────────────────────────────────────────────────
 
 /**
- * Opt-in card for anonymous usage sharing, shown once at the top of step 1.
+ * Opt-in card for usage sharing, shown once at the top of step 1.
  *
  * The two choices are styled alike and neither is pre-selected; "Get started"
- * is never blocked by it. After a choice the buttons are replaced by a status
+ * is never blocked by it. Details live on the Plume privacy policy, reached
+ * through the "Learn more" link. After a choice the buttons are replaced by a status
  * message that is announced and receives focus.
  *
  * @param {Object}   props
@@ -94,15 +95,30 @@ function ConsentCard( { onChoose } ) {
 	return (
 		<div className="plume-ob-consent">
 			<div className="plume-ob-choice__title">
-				{ __( 'Help improve Plume', 'plume' ) }
+				{ __( 'Share usage statistics with Plume', 'plume' ) }
 			</div>
 			<p className="plume-ob-choice__desc">
 				{ __(
-					'Share anonymous usage statistics so we can see where setup or AI requests fail. Nothing is shared unless you say yes.',
+					'This helps us see where setup or AI requests fail. Statistics are linked to your site address. Nothing is shared unless you say yes.',
 					'plume'
 				) }
 			</p>
-			<UsageSharingDetails />
+			<p className="plume-ob-choice__desc">
+				<a
+					href={ withUtm(
+						DEFAULT_WEBSITE_URL + '/privacy-policy',
+						'onboarding',
+						'usage_sharing'
+					) }
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					{ __( 'Learn more', 'plume' ) }
+					<span className="screen-reader-text">
+						{ __( '(opens in a new tab)', 'plume' ) }
+					</span>
+				</a>
+			</p>
 			<div role="status" ref={ statusRef } tabIndex={ -1 }>
 				{ chosen &&
 					__(
@@ -117,7 +133,7 @@ function ConsentCard( { onChoose } ) {
 						className="plume-dash-btn"
 						onClick={ () => choose( 'yes' ) }
 					>
-						{ __( 'Share anonymous usage', 'plume' ) }
+						{ __( 'Share usage statistics', 'plume' ) }
 					</button>
 					<button
 						type="button"

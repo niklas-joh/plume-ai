@@ -79,14 +79,15 @@ class TelemetryTest extends TestCase {
 
 	// ── record() / persist() ──────────────────────────────────────────────────
 
-	public function test_ts_is_rounded_down_to_the_hour(): void {
+	public function test_ts_is_the_exact_time(): void {
 		$h = TelemetryHarness::install();
 		$h->consent_yes();
+		$before = time();
 		Telemetry::record( 'consent_given', [ 'source' => 'settings' ] );
 		$queue = $h->flush();
 
 		$this->assertCount( 1, $queue );
-		$this->assertSame( 0, $queue[0]['ts'] % 3600 );
+		$this->assertGreaterThanOrEqual( $before, $queue[0]['ts'] );
 		$this->assertLessThanOrEqual( time(), $queue[0]['ts'] );
 		$this->assertSame( 'consent_given', $queue[0]['name'] );
 		$this->assertSame( 'settings', $queue[0]['source'] );
@@ -203,7 +204,7 @@ class TelemetryTest extends TestCase {
 			$this->assertSame( 'application/json', $post['args']['headers']['Content-Type'] );
 		}
 		$body = $h->sent_bodies()[0];
-		$this->assertSame( 1, $body['schema'] );
+		$this->assertSame( 2, $body['schema'] );
 		$this->assertSame( TelemetryHarness::INSTALL_ID, $body['install_id'] );
 		$this->assertSame( PLUME_VERSION, $body['plugin_version'] );
 		$this->assertSame( [], $h->queue() );
@@ -284,9 +285,10 @@ class TelemetryTest extends TestCase {
 		$props = Telemetry::heartbeat_props( [ 'last_ai_at' => time() - DAY_IN_SECONDS - 5 ] );
 
 		$this->assertSame(
-			[ 'tier', 'providers', 'wp_version', 'php_version', 'locale', 'days_since_activation', 'days_since_last_ai' ],
+			[ 'tier', 'providers', 'wp_version', 'php_version', 'locale', 'days_since_activation', 'days_since_last_ai', 'site_key' ],
 			array_keys( $props )
 		);
+		$this->assertSame( 'example.com/blog', $props['site_key'] );
 		$this->assertSame( 'free', $props['tier'] );
 		$this->assertSame( 'ollama', $props['providers'] );
 		$this->assertSame( '6.7', $props['wp_version'] );
@@ -297,6 +299,22 @@ class TelemetryTest extends TestCase {
 
 		$props = Telemetry::heartbeat_props( [] );
 		$this->assertSame( -1, $props['days_since_last_ai'] );
+	}
+
+	public function test_heartbeat_leaves_out_site_key_when_home_url_cannot_be_normalised(): void {
+		TelemetryHarness::install();
+		Functions\when( 'home_url' )->justReturn( '' );
+		$this->assertArrayNotHasKey( 'site_key', Telemetry::heartbeat_props( [] ) );
+	}
+
+	public function test_sent_heartbeat_carries_the_site_key(): void {
+		$h = TelemetryHarness::install();
+		$h->consent_yes();
+		Telemetry::send();
+		$events = $h->sent_bodies()[0]['events'];
+		$beats  = array_values( array_filter( $events, fn( $e ) => 'heartbeat' === $e['name'] ) );
+		$this->assertCount( 1, $beats );
+		$this->assertSame( 'example.com/blog', $beats[0]['site_key'] );
 	}
 
 	// ── Deactivation and schedule ─────────────────────────────────────────────

@@ -14,6 +14,7 @@ import {
 	statsOptedOut,
 } from '../src/metrics';
 import { makeEnv } from './helpers/kv-mock';
+import siteKeyCases from './fixtures/site-key-cases.json';
 
 afterEach( () => {
 	vi.restoreAllMocks();
@@ -44,6 +45,30 @@ describe( 'siteKeyFromUrl', () => {
 	it( 'normalises IDN hosts to punycode', () => {
 		expect( siteKeyFromUrl( 'https://bücher.example/' ) ).toBe( 'xn--bcher-kva.example' );
 	} );
+} );
+
+// The same file is run through the plugin's SiteKey::from_url() by PHPUnit
+// (tests/Unit/Telemetry/SiteKeyTest.php), so the heartbeat site_key always matches
+// plume_metrics.index1.
+describe( 'siteKeyFromUrl shared fixture', () => {
+	it.each( siteKeyCases as [ string, string ][] )( '%j -> %j', ( input, expected ) => {
+		expect( siteKeyFromUrl( input ) ).toBe( expected );
+	} );
+
+	it( 'every non-empty expected value is canonical', () => {
+		for ( const [ , expected ] of siteKeyCases as [ string, string ][] ) {
+			if ( expected !== '' ) {
+				expect( siteKeyFromUrl( 'https://' + expected ) ).toBe( expected );
+			}
+		}
+	} );
+
+	it.each( [ 'Example.com', 'www.example.com', 'example.com/', 'https://example.com' ] )(
+		'%s is not canonical',
+		( value ) => {
+			expect( siteKeyFromUrl( 'https://' + value ) ).not.toBe( value );
+		}
+	);
 } );
 
 describe( 'classifyChatOutcome', () => {

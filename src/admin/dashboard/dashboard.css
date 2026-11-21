@@ -850,14 +850,3 @@
 .plume-ob-consent__actions .plume-dash-btn {
 	min-height: 44px;
 }
-
-/* Disclosure shared by the consent card and Settings > Features. */
-.plume-usage-details__list {
-	list-style: disc;
-	margin: 0;
-	padding-inline-start: var(--space-5);
-}
-
-.plume-usage-details__panel p {
-	margin: var(--space-1) 0;
-}

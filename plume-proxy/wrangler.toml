@@ -29,7 +29,8 @@ preview_id = "38975852f1bc4c838da456ea9a21e789"
 binding = "PLUME_METRICS"
 dataset = "plume_metrics"
 
-# Opt-in plugin usage events (POST /v1/events). Never joined to plume_metrics.
+# Opt-in plugin usage events (POST /v1/events). Linked to sites through the heartbeat
+# site_key (blob19), which equals plume_metrics.index1 for the same site.
 [[analytics_engine_datasets]]
 binding = "PLUME_EVENTS"
 dataset = "plume_events"

@@ -1,7 +1,8 @@
 import { useState } from '@wordpress/element';
 import { ToggleControl, CheckboxControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import UsageSharingDetails from '../../shared/UsageSharingDetails';
+import { DEFAULT_WEBSITE_URL } from '../../shared/constants';
+import { withUtm } from '../../shared/telemetry';
 
 const MODULES = [
 	{
@@ -67,11 +68,13 @@ const MODULES = [
  *
  * Every module is available on every tier — credit exhaustion is enforced
  * by the Worker, not a PHP/JS-side feature gate, so no card is ever locked.
- * Post-type changes, the write-tools toggle, the usage-statistics toggle and
- * the usage-sharing toggle are persisted immediately on change.
+ * Post-type changes, the write-tools toggle and the two usage-sharing toggles
+ * are persisted immediately on change.
  *
- * Usage sharing can only be turned on where the server reports it available,
- * but a site that already shares can always turn it off.
+ * The "Usage sharing" section holds both statistics switches: managed-service
+ * request statistics (on by default, #1076) and usage statistics sent by the
+ * plugin (opt-in). The latter can only be turned on where the server reports it
+ * available, but a site that already shares can always turn it off.
  *
  * @param {Object}   props
  * @param {Object}   props.settings      Full settings object from the REST API.
@@ -236,59 +239,69 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 			<section className="plume-settings-section">
 				<div className="plume-settings-section-header">
 					<h3 className="plume-settings-section-title">
-						{ __( 'Usage Statistics', 'plume' ) }
+						{ __( 'Usage sharing', 'plume' ) }
 					</h3>
+					<p className="plume-settings-section-desc">
+						{ __(
+							'Statistics linked to your site address help us find where setup or AI requests fail. Prompts and content are never included.',
+							'plume'
+						) }{ ' ' }
+						<a
+							href={ withUtm(
+								DEFAULT_WEBSITE_URL + '/privacy-policy',
+								'settings',
+								'usage_sharing'
+							) }
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							{ __( 'Learn more', 'plume' ) }
+							<span className="screen-reader-text">
+								{ __( '(opens in a new tab)', 'plume' ) }
+							</span>
+						</a>
+					</p>
 				</div>
 
 				<ToggleControl
 					label={ __(
-						'Share usage statistics with the Plume managed service',
+						'Share managed-service request statistics',
 						'plume'
 					) }
 					help={ __(
-						'Applies only when you use the Plume managed service (no API key of your own). For each request and registration, the service records your site domain, plan, feature, AI provider and model, token counts, credits used, response time and whether it succeeded. Prompts and responses are never included. Turn this off to stop recording these statistics from now on; credit counting continues, so your plan limits still apply.',
+						'When you use the managed service, it records each request’s feature, model, tokens, credits and outcome for your site. Credits are still counted when this is off.',
 						'plume'
 					) }
 					checked={ shareUsageStats }
 					onChange={ handleShareUsageStatsChange }
 					__nextHasNoMarginBottom
 				/>
-			</section>
 
-			<section className="plume-settings-section">
-				<div className="plume-settings-section-header">
-					<h3 className="plume-settings-section-title">
-						{ __( 'Usage sharing', 'plume' ) }
-					</h3>
-					<p className="plume-settings-section-desc">
-						{ __(
-							'Help improve Plume by sharing anonymous usage statistics. Off unless you turn it on.',
+				<div style={ { marginTop: '1rem' } }>
+					<ToggleControl
+						label={ __(
+							'Share usage statistics with Plume',
 							'plume'
 						) }
-					</p>
+						help={
+							! telemetryAvailable && telemetryConsent !== 'yes'
+								? __(
+										'Usage sharing is turned off on this site.',
+										'plume'
+									)
+								: __(
+										'Off unless you turn it on. Turning it off stops sending and deletes this site’s install ID; statistics already sent are kept.',
+										'plume'
+									)
+						}
+						checked={ telemetryConsent === 'yes' }
+						onChange={ handleTelemetryChange }
+						disabled={
+							! telemetryAvailable && telemetryConsent !== 'yes'
+						}
+						__nextHasNoMarginBottom
+					/>
 				</div>
-
-				<ToggleControl
-					label={ __( 'Share anonymous usage statistics', 'plume' ) }
-					help={
-						! telemetryAvailable && telemetryConsent !== 'yes'
-							? __(
-									'Usage sharing is turned off on this site.',
-									'plume'
-								)
-							: __(
-									'Turning this off stops sending and deletes this site’s random install ID.',
-									'plume'
-								)
-					}
-					checked={ telemetryConsent === 'yes' }
-					onChange={ handleTelemetryChange }
-					disabled={
-						! telemetryAvailable && telemetryConsent !== 'yes'
-					}
-					__nextHasNoMarginBottom
-				/>
-				<UsageSharingDetails />
 			</section>
 		</div>
 	);

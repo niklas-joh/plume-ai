@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Proxy\ProxyClient;
 use Plume\Telemetry\ErrorCodes;
 use Plume\Telemetry\Telemetry;
 
@@ -348,11 +349,13 @@ abstract class AbstractProvider implements ProviderInterface {
 			return;
 		}
 		try {
-			$route    = $this->telemetry_route();
-			$feature  = (string) ( $request->metadata['feature'] ?? '' );
-			$model    = null !== $response && '' !== $response->model ? $response->model : $request->model;
-			$turn_id  = is_string( $request->metadata['turn_id'] ?? null ) ? $request->metadata['turn_id'] : '';
-			$is_proxy = 'proxy' === $route;
+			$route   = $this->telemetry_route();
+			$feature = (string) ( $request->metadata['feature'] ?? '' );
+			$model   = null !== $response && '' !== $response->model ? $response->model : $request->model;
+			$turn_id = is_string( $request->metadata['turn_id'] ?? null ) ? $request->metadata['turn_id'] : '';
+			// Proxy-route token counts are sent, except when the site turned off
+			// managed-service request statistics (#1076), so that switch keeps its meaning.
+			$zero_tokens = 'proxy' === $route && ! ProxyClient::shares_usage_stats();
 			Telemetry::record(
 				'ai_request',
 				array_merge(
@@ -361,10 +364,8 @@ abstract class AbstractProvider implements ProviderInterface {
 						'feature'          => in_array( $feature, [ 'chat', 'generator', 'seo' ], true ) ? $feature : 'other',
 						'model'            => $this->telemetry_model( (string) $model ),
 						'first_error_code' => $first_error,
-						// Proxy-route token counts are never sent: they would let these events be
-						// matched to the managed service's own usage records.
-						'input_tokens'     => null === $response || $is_proxy ? 0 : $response->prompt_tokens,
-						'output_tokens'    => null === $response || $is_proxy ? 0 : $response->completion_tokens,
+						'input_tokens'     => null === $response || $zero_tokens ? 0 : $response->prompt_tokens,
+						'output_tokens'    => null === $response || $zero_tokens ? 0 : $response->completion_tokens,
 						'image_count'      => 0,
 						'attempts'         => max( 1, $attempts ),
 					]

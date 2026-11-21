@@ -1,7 +1,24 @@
-/* Shared keyframe animations — imported by admin.css and editor.css. */
+/* Shared animations — the single home of the spinner. Imported by every
+   entry that spins something (admin, editor, SEO, Images, Generator, Usage). */
 @keyframes plume-spin {
 
 	to {
 		transform: rotate(360deg);
+	}
+}
+
+.plume-spin,
+.plume-spinner {
+	animation: plume-spin 0.8s linear infinite;
+	display: inline-block;
+	vertical-align: middle;
+}
+
+/* Slowed, not stopped: the spinner is what tells the user work is running. */
+@media (prefers-reduced-motion: reduce) {
+
+	.plume-spin,
+	.plume-spinner {
+		animation-duration: 2s;
 	}
 }

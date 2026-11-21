@@ -18,6 +18,14 @@
 	--color-success-subtle: rgba(22, 163, 74, 0.1);
 	--color-warning: #d97706;   /* amber-600 */
 	--color-error: #dc2626;   /* red-600 */
+	--color-error-subtle: rgba(220, 38, 38, 0.08);
+
+	/* Text-safe variants of the semantic colours: >= 4.5:1 on white and on
+	   their own tinted backgrounds (the base colours are not, as text). */
+	--color-success-text: #166534;
+	--color-warning-text: #92400e;
+	--color-error-text: #b91c1c;
+	--color-neutral-text: #475569;
 
 	/* Spacing */
 	--space-0-5: 2px;
@@ -44,8 +52,8 @@
 	--font-mono: "JetBrains Mono", ui-monospace, monospace;
 	--text-xs: 11px;
 	--text-sm: 12px;
-	--text-base: 13px;
-	--text-md: 14px;
+	--text-base: 14px;
+	--text-md: 14px;   /* Equal to --text-base for now; kept as a distinct step so callers can be retargeted without a rename. */
 	--text-lg: 16px;
 	--text-xl: 20px;
 
@@ -53,4 +61,45 @@
 	   zooms the whole page in when a field is focused; every (pointer: coarse)
 	   block uses this token so phones never trigger that zoom. */
 	--plume-touch-font-size: 16px;
+
+	/* Screen shell (Screen / PageHeader). Content is centred at one width. */
+	--plume-screen-max: 1120px;
+
+	/* Viewport height under the WP admin bar, for app-style screens. A custom
+	   property cannot carry a fallback by being declared twice (the later value
+	   always wins, even where its unit is unsupported), so the dvh variant sits
+	   in an @supports block below. */
+	--plume-app-viewport: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
+
+	/* Right-hand gutter: WordPress gives admin pages none on a phone, and
+	   from 783px #wpcontent's own 20px left padding is mirrored. */
+	--plume-screen-gutter: var(--space-3);
+	--plume-stack: var(--space-6);   /* header-to-body and section rhythm */
+	--plume-logo-size: 32px;
+	--plume-logo-size-compact: 24px;
+
+	/* Motion. Reduced motion zeroes the duration once, below. */
+	--plume-duration: 200ms;
+	--plume-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@supports (height: 100dvh) {
+
+	:root {
+		--plume-app-viewport: calc(100dvh - var(--wp-admin--admin-bar--height, 32px));
+	}
+}
+
+@media (min-width: 783px) {
+
+	:root {
+		--plume-screen-gutter: var(--space-5);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	:root {
+		--plume-duration: 0ms;
+	}
 }

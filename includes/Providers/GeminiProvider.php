@@ -37,7 +37,7 @@ class GeminiProvider extends AbstractProvider {
 	 * requests — see #906. free -> gemini-3.1-flash-lite, pro_managed ->
 	 * gemini-3.6-flash; the Worker alone decides which tier gets which.
 	 *
-	 * @since NEXT_VERSION Visibility widened from private to public.
+	 * @since 2.2.0 Visibility widened from private to public.
 	 * @var array<string, string>
 	 */
 	public const MODELS = [

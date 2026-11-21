@@ -40,7 +40,7 @@ class OpenAIProvider extends AbstractProvider {
 	 * model from the other tier is substituted cross-tier and the response reports
 	 * the Worker-returned model. Keep the two in sync.
 	 *
-	 * @since NEXT_VERSION Visibility widened from private to public.
+	 * @since 2.2.0 Visibility widened from private to public.
 	 * @var array<string, string>
 	 */
 	public const MODELS = [

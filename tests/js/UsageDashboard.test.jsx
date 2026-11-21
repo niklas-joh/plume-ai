@@ -88,4 +88,38 @@ describe( 'UsageDashboard', () => {
 		expect( container.textContent ).not.toContain( 'pro_managed' );
 		expect( container.textContent ).not.toContain( 'Tier:' );
 	} );
+
+	it( 'renders one h1, no inline styles, and an accessible quota bar', async () => {
+		apiFetch.mockResolvedValue( {
+			tier_label: 'Pro',
+			used: 40,
+			limit: 100,
+			remaining: 60,
+			can_use: true,
+		} );
+
+		await act( async () => {
+			root.render( <UsageDashboard /> );
+		} );
+
+		expect( container.querySelectorAll( 'h1' ) ).toHaveLength( 1 );
+		expect( container.querySelectorAll( '[style]' ) ).toHaveLength( 0 );
+		const bar = container.querySelector( 'progress' );
+		expect( bar.getAttribute( 'aria-label' ) ).toBe(
+			'Monthly credit usage'
+		);
+		expect( bar.getAttribute( 'value' ) ).toBe( '40' );
+		expect( container.textContent ).toContain( '40 of 100 credits used' );
+	} );
+
+	it( 'keeps the header on the error state', async () => {
+		apiFetch.mockRejectedValue( { message: 'offline' } );
+
+		await act( async () => {
+			root.render( <UsageDashboard /> );
+		} );
+
+		expect( container.querySelectorAll( 'h1' ) ).toHaveLength( 1 );
+		expect( container.querySelectorAll( '[style]' ) ).toHaveLength( 0 );
+	} );
 } );

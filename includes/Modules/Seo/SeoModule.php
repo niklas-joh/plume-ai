@@ -210,7 +210,7 @@ class SeoModule {
 	 * result is discarded.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Returns the 'rate_limit_exceeded' error code (instead of
+	 * @since 2.2.0 Returns the 'rate_limit_exceeded' error code (instead of
 	 *                      'provider_error') when the managed service's monthly credits
 	 *                      are exhausted.
 	 * @param int $post_id Post ID to generate metadata for.
@@ -305,7 +305,7 @@ class SeoModule {
 	 * to generate_for_post() and maps any WP_Error to the appropriate HTTP status.
 	 *
 	 * @since 1.0.0
-	 * @since NEXT_VERSION Error bodies carry `message` and `code` alongside `error`;
+	 * @since 2.2.0 Error bodies carry `message` and `code` alongside `error`;
 	 *                      credit exhaustion is returned as 429 'rate_limit_exceeded'.
 	 * @param \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response

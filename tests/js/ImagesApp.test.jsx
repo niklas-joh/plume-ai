@@ -53,6 +53,16 @@ describe( 'ImagesApp', () => {
 		expect( container.querySelector( '[data-testid="post-list-table"]' ) ).not.toBeNull();
 	} );
 
+	it( 'renders one h1 with the screen name', async () => {
+		await act( async () => {
+			root.render( <ImagesApp /> );
+		} );
+
+		const headings = container.querySelectorAll( 'h1' );
+		expect( headings ).toHaveLength( 1 );
+		expect( headings[ 0 ].textContent ).toBe( 'Images' );
+	} );
+
 	it( 'does not render a PRO badge in the header', async () => {
 		await act( async () => {
 			root.render( <ImagesApp /> );

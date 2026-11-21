@@ -23,6 +23,7 @@ import {
 	errorCodeFromThrown,
 	newChatMetric,
 	recordMetric,
+	statsOptedOut,
 	siteKeyFromUrl,
 	type ChatMetric,
 } from './metrics';
@@ -1130,13 +1131,15 @@ async function handleChatProxy(
 ): Promise< Response > {
 	const metric = newChatMetric();
 	const response = await handleChatProxyInner( request, env, metric );
-	recordMetric( env, () =>
-		buildChatDataPoint( {
-			...metric,
-			status: response.status,
-			latencyMs: Date.now() - metric.startedAt,
-		} )
-	);
+	if ( ! statsOptedOut( request ) ) {
+		recordMetric( env, () =>
+			buildChatDataPoint( {
+				...metric,
+				status: response.status,
+				latencyMs: Date.now() - metric.startedAt,
+			} )
+		);
+	}
 	return response;
 }
 

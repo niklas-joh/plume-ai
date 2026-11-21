@@ -207,4 +207,63 @@ describe( 'FeaturesTab', () => {
 			telemetry_consent: 'no',
 		} );
 	} );
+
+	describe( 'usage statistics toggle (#1015)', () => {
+		const LABEL = 'Share usage statistics with the Plume managed service';
+
+		const statsToggle = () =>
+			container.querySelector( `input[aria-label="${ LABEL }"]` );
+
+		it( 'renders on by default', async () => {
+			await act( async () => {
+				root.render(
+					<FeaturesTab settings={ {} } saveSettings={ jest.fn() } />
+				);
+			} );
+
+			expect( statsToggle() ).not.toBeNull();
+			expect( statsToggle().checked ).toBe( true );
+		} );
+
+		it( 'reflects a saved opt-out', async () => {
+			await act( async () => {
+				root.render(
+					<FeaturesTab
+						settings={ { share_usage_stats: false } }
+						saveSettings={ jest.fn() }
+					/>
+				);
+			} );
+
+			expect( statsToggle().checked ).toBe( false );
+		} );
+
+		it( 'saves share_usage_stats when toggled off and back on', async () => {
+			const saveSettings = jest.fn();
+
+			await act( async () => {
+				root.render(
+					<FeaturesTab
+						settings={ { share_usage_stats: true } }
+						saveSettings={ saveSettings }
+					/>
+				);
+			} );
+
+			await act( async () => {
+				statsToggle().click();
+			} );
+			expect( saveSettings ).toHaveBeenLastCalledWith( {
+				share_usage_stats: false,
+			} );
+			expect( statsToggle().checked ).toBe( false );
+
+			await act( async () => {
+				statsToggle().click();
+			} );
+			expect( saveSettings ).toHaveBeenLastCalledWith( {
+				share_usage_stats: true,
+			} );
+		} );
+	} );
 } );

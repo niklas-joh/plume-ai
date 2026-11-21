@@ -1,8 +1,8 @@
 {
-  "sha": "64edba73900202d42056b1431baade843ac962ed",
-  "capturedAt": "2026-11-21T10:09:21.003Z",
+  "sha": "549f38e38b11a9f72f2bb201a1b8e969c66447d7",
+  "capturedAt": "2026-11-21T10:27:48.316Z",
   "env": {
-    "runnerImage": "ubuntu26-20261111.196.1",
+    "runnerImage": "ubuntu26-20261116.202.1",
     "fonts": "c69d8910b3d007b4",
     "playwright": "1.63.0"
   },
@@ -19,11 +19,11 @@
     "phone/chat-out-of-credits.png": "3c1785162335cdc98ef7c96be95ea218d8a5e424fd2b3e1014d3a21581070244",
     "desktop/generator.png": "3d7644c0b527d3b26e8fc7e95b19e441118a011502269df3b76c4e89601b50a7",
     "phone/generator.png": "889aba6679bf5972318bb0787dab7f65aeec53dc985ced9d2d049a396c9e3c78",
-    "desktop/seo.png": "5c277dde5da5272fccbf347afb9ed21f163cc19d5f01cf737d30378c621e6ea6",
+    "desktop/seo.png": "4f18dc8ad4e117436a28ee296bcbc2c6b7f62b1276f3077da3fc743e89f93da7",
     "phone/seo.png": "ff4f08e7480d56a27347dcbd24f2156eb84c668e4fe78ec0533143b41d85034b",
     "desktop/images.png": "d7b28b8b1994af34e8e0cfdaeb861ec97ad5e020689cc66cb75abdd18f6bfa70",
     "phone/images.png": "1746d9c13fe4b12154b1c2c058738191fc6bd4823336bdc400548cb1937efa36",
-    "desktop/usage.png": "32a7918aa0668aa8ccdd32fc46ca1cad25674edb66c7e87e07f9441555fdaf37",
+    "desktop/usage.png": "4ee01d54b4dfaa413d0756ba1de532617551856656847885f35ed1f5909cc8dd",
     "phone/usage.png": "468c16511bf41d3795160aca88d89507a48eeafc999977f51987cb0424281985",
     "desktop/settings.png": "8625aea4703824d7954a7128dc980a25cb41efe1a8619cac6b22cee2fc97b58f",
     "phone/settings.png": "8d08c5b527bdb40d1b98e37e968b9af93d075bedde47dd11740ffbf4e600ae5d",

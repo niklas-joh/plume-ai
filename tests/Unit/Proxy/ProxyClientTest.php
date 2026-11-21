@@ -17,6 +17,27 @@ class ProxyClientTest extends TestCase {
 		Monkey\setUp();
 	}
 
+	/**
+	 * Stub a registered site's options. chat() reads both the token and the
+	 * usage-statistics opt-out, so a single-key expectation would not do.
+	 *
+	 * @param mixed $share Stored value of the opt-out option, or null when unset.
+	 * @return void
+	 */
+	private function stub_site_options( mixed $share = null ): void {
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $fallback = false ) use ( $share ) {
+				if ( SiteRegistration::OPTION_TOKEN === $key ) {
+					return 'test-token';
+				}
+				if ( ProxyClient::OPTION_SHARE_USAGE_STATS === $key && null !== $share ) {
+					return $share;
+				}
+				return $fallback;
+			}
+		);
+	}
+
 	protected function tearDown(): void {
 		// Restore a valid $wpdb baseline after any test that installs a Mockery mock.
 		global $wpdb;
@@ -83,9 +104,7 @@ class ProxyClientTest extends TestCase {
 		// fail-fast WordPress-meta pre-check via UsageTracker::check_limit() is gone.
 		// Simulate a registered site whose cached local usage meta would have failed the
 		// old pre-check, and confirm the request still reaches wp_remote_post().
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( 'test-token' );
+		$this->stub_site_options();
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
@@ -100,9 +119,7 @@ class ProxyClientTest extends TestCase {
 	}
 
 	public function test_chat_clears_token_and_returns_error_on_401(): void {
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( 'test-token' );
+		$this->stub_site_options();
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
@@ -128,9 +145,7 @@ class ProxyClientTest extends TestCase {
 	}
 
 	public function test_chat_returns_rate_limit_error_on_429(): void {
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( 'test-token' );
+		$this->stub_site_options();
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
@@ -149,9 +164,7 @@ class ProxyClientTest extends TestCase {
 	 * @dataProvider provider_unavailable_responses
 	 */
 	public function test_chat_returns_neutral_error_when_upstream_provider_fails( int $status, string $body ): void {
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( 'test-token' );
+		$this->stub_site_options();
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
@@ -232,9 +245,7 @@ class ProxyClientTest extends TestCase {
 			]
 		);
 
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( 'test-token' );
+		$this->stub_site_options();
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
@@ -261,9 +272,7 @@ class ProxyClientTest extends TestCase {
 			]
 		);
 
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( 'test-token' );
+		$this->stub_site_options();
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
@@ -286,9 +295,7 @@ class ProxyClientTest extends TestCase {
 		// Non-chat features (generator, seo, image) must still be logged by ProxyClient.
 		$body = json_encode( [ 'content' => 'hello', 'credits_charged' => 10 ] );
 
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( 'test-token' );
+		$this->stub_site_options();
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
@@ -314,9 +321,7 @@ class ProxyClientTest extends TestCase {
 		// so ProxyClient must not call log_usage() for feature='chat'.
 		$body = json_encode( [ 'content' => 'hello', 'credits_charged' => 3 ] );
 
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( 'test-token' );
+		$this->stub_site_options();
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
@@ -339,9 +344,7 @@ class ProxyClientTest extends TestCase {
 		// Proxy normalises content to a flat string — NOT a Claude block array.
 		$body = json_encode( [ 'content' => 'hello' ] );
 
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( 'test-token' );
+		$this->stub_site_options();
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
@@ -361,9 +364,7 @@ class ProxyClientTest extends TestCase {
 	public function test_chat_sets_feature_in_payload_unconditionally(): void {
 		$captured_body = null;
 
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( 'test-token' );
+		$this->stub_site_options();
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
@@ -389,9 +390,7 @@ class ProxyClientTest extends TestCase {
 	 * @return void
 	 */
 	private function stub_registered_post( array|\WP_Error $response, ?array &$sent_args = null ): void {
-		Functions\expect( 'get_option' )
-			->with( SiteRegistration::OPTION_TOKEN, '' )
-			->andReturn( 'test-token' );
+		$this->stub_site_options();
 		Functions\expect( 'get_current_user_id' )->andReturn( 1 );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
@@ -440,5 +439,51 @@ class ProxyClientTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'http_request_failed', $result->get_error_code() );
+	}
+
+	// ── Usage-statistics opt-out (#1015) ────────────────────────────────────────
+
+	/**
+	 * Send a chat request with the given stored opt-out value and return the
+	 * headers chat() sends.
+	 *
+	 * @param mixed $share Stored value of the opt-out option, or null when unset.
+	 * @return array<string, string>
+	 */
+	private function chat_headers_with_share_option( mixed $share ): array {
+		$this->stub_site_options( $share );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		$sent = [];
+		Functions\when( 'wp_remote_post' )->alias(
+			function ( $url, $args ) use ( &$sent ) {
+				$sent = $args;
+				return [];
+			}
+		);
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( json_encode( [ 'content' => 'hello' ] ) );
+		Functions\when( '__' )->alias( fn( $s ) => $s );
+
+		ProxyClient::chat( [ [ 'role' => 'user', 'content' => 'hi' ] ], 'chat' );
+
+		return $sent['headers'];
+	}
+
+	public function test_chat_sends_no_stats_header_when_site_opted_out(): void {
+		// update_option( false ) is read back by WordPress as an empty string.
+		$headers = $this->chat_headers_with_share_option( '' );
+
+		$this->assertSame( '1', $headers['X-Plume-No-Stats'] ?? null );
+		$this->assertSame( 'Bearer test-token', $headers['Authorization'] );
+	}
+
+	public function test_chat_omits_no_stats_header_when_sharing_is_on(): void {
+		$this->assertArrayNotHasKey( 'X-Plume-No-Stats', $this->chat_headers_with_share_option( '1' ) );
+	}
+
+	public function test_chat_omits_no_stats_header_when_option_never_saved(): void {
+		$this->assertArrayNotHasKey( 'X-Plume-No-Stats', $this->chat_headers_with_share_option( null ) );
 	}
 }

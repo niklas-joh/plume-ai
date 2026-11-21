@@ -5,6 +5,7 @@ import { generateToken } from './auth';
 import {
 	buildRegisterDataPoint,
 	recordMetric,
+	statsOptedOut,
 	siteKeyFromUrl,
 	type RegisterMetric,
 } from './metrics';
@@ -81,11 +82,16 @@ export async function handleRegistration(
 	}
 
 	const startedAt = Date.now();
+	const optedOut = statsOptedOut( request );
 	// Never records a URL here: callers pass siteKey only for verified sites.
-	const track = ( m: Omit< RegisterMetric, 'startedAt' > ): void =>
+	const track = ( m: Omit< RegisterMetric, 'startedAt' > ): void => {
+		if ( optedOut ) {
+			return;
+		}
 		recordMetric( env, () =>
 			buildRegisterDataPoint( { ...m, startedAt } )
 		);
+	};
 
 	// Deliberately NOT recorded: the three pre-attempt validation exits below
 	// (invalid JSON, invalid site_url, missing challenge_token). They are

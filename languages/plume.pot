@@ -1169,6 +1169,18 @@ msgid "When enabled, the AI can draft and publish content directly."
 msgstr ""
 
 #: assets/admin/index.js:14
+msgid "Usage Statistics"
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Share usage statistics with the Plume managed service"
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Applies only when you use the Plume managed service (no API key of your own). For each request and registration, the service records your site domain, plan, feature, AI provider and model, token counts, credits used, response time and whether it succeeded. Prompts and responses are never included. Turn this off to stop recording these statistics from now on; credit counting continues, so your plan limits still apply."
+msgstr ""
+
+#: assets/admin/index.js:14
 msgid "Providers"
 msgstr ""
 

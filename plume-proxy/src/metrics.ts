@@ -344,6 +344,18 @@ export function buildRegisterDataPoint(
 }
 
 /**
+ * Whether the site asked not to be included in usage statistics. Credit
+ * counting in KV is separate and unaffected by this.
+ *
+ * @since NEXT_VERSION
+ * @param {Request} request Incoming request.
+ * @return {boolean} True when `X-Plume-No-Stats: 1` is present.
+ */
+export function statsOptedOut( request: Request ): boolean {
+	return request.headers.get( 'X-Plume-No-Stats' ) === '1';
+}
+
+/**
  * Write one datapoint. Never throws, never awaits, no-op without the binding.
  * The log line deliberately carries no payload.
  *

@@ -66,8 +66,8 @@ const MODULES = [
  *
  * Every module is available on every tier — credit exhaustion is enforced
  * by the Worker, not a PHP/JS-side feature gate, so no card is ever locked.
- * Post-type changes and the write-tools toggle are persisted immediately
- * on change.
+ * Post-type changes, the write-tools toggle and the usage-statistics toggle
+ * are persisted immediately on change.
  *
  * @param {Object}   props
  * @param {Object}   props.settings      Full settings object from the REST API.
@@ -85,6 +85,9 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 	);
 	const [ enableWriteTools, setEnableWriteTools ] = useState(
 		settings?.enable_write_tools ?? false
+	);
+	const [ shareUsageStats, setShareUsageStats ] = useState(
+		settings?.share_usage_stats ?? true
 	);
 
 	function handleToggle( slug ) {
@@ -107,6 +110,11 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 	function handleWriteToolsChange( val ) {
 		setEnableWriteTools( val );
 		saveSettings( { enable_write_tools: val } );
+	}
+
+	function handleShareUsageStatsChange( val ) {
+		setShareUsageStats( val );
+		saveSettings( { share_usage_stats: val } );
 	}
 
 	return (
@@ -208,6 +216,28 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 						__nextHasNoMarginBottom
 					/>
 				</div>
+			</section>
+
+			<section className="plume-settings-section">
+				<div className="plume-settings-section-header">
+					<h3 className="plume-settings-section-title">
+						{ __( 'Usage Statistics', 'plume' ) }
+					</h3>
+				</div>
+
+				<ToggleControl
+					label={ __(
+						'Share usage statistics with the Plume managed service',
+						'plume'
+					) }
+					help={ __(
+						'Applies only when you use the Plume managed service (no API key of your own). For each request and registration, the service records your site domain, plan, feature, AI provider and model, token counts, credits used, response time and whether it succeeded. Prompts and responses are never included. Turn this off to stop recording these statistics from now on; credit counting continues, so your plan limits still apply.',
+						'plume'
+					) }
+					checked={ shareUsageStats }
+					onChange={ handleShareUsageStatsChange }
+					__nextHasNoMarginBottom
+				/>
 			</section>
 		</div>
 	);

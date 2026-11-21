@@ -1849,6 +1849,29 @@ describe( 'handleChatProxy usage metrics', () => {
 		expect( a.status ).toBe( b.status );
 		expect( await a.json() ).toEqual( await b.json() );
 	} );
+
+	it( 'records no point but still bills credits when the site sends X-Plume-No-Stats (#1015)', async () => {
+		const { env, points } = makeMetricsEnv();
+		await seedSite( env, 'free' );
+		stubOk();
+
+		const res = await worker.fetch(
+			new Request( 'https://worker.example.com/v1/chat', {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${ TEST_TOKEN }`,
+					'Content-Type': 'application/json',
+					'X-Plume-No-Stats': '1',
+				},
+				body: promptBody,
+			} ),
+			env
+		);
+
+		expect( res.status ).toBe( 200 );
+		expect( points ).toHaveLength( 0 );
+		expect( await getStoredUsage( env ) ).toBeGreaterThan( 0 );
+	} );
 } );
 
 // TEMPORARY(#1020): Claude substitution of disabled providers. On removal:

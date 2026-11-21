@@ -110,6 +110,7 @@ export default function MessageBubble( {
 			<div className="plume-bubble plume-bubble--ai">
 				<OutOfCreditsNotice
 					websiteUrl={ websiteUrl }
+					screen="chat"
 					settingsUrl={ settingsUrl }
 				/>
 			</div>

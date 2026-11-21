@@ -150,16 +150,30 @@ class OllamaProvider extends AbstractProvider {
 	 * Image generation is not supported by Ollama.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Renamed from generate_image(); throws with code `image_unsupported`.
 	 * @param string $prompt  Image generation prompt.
 	 * @param array  $options Optional generation options.
 	 * @throws ProviderException Always — Ollama does not support image generation.
 	 */
-	public function generate_image( string $prompt, array $options = [] ): never {
+	protected function do_generate_image( string $prompt, array $options ): never {
 		throw new ProviderException(
 			'Ollama does not support image generation. Use Gemini or OpenAI.',
 			'ollama',
-			0
+			0,
+			[],
+			null,
+			'image_unsupported'
 		);
+	}
+
+	/**
+	 * Route for usage events.
+	 *
+	 * @since NEXT_VERSION
+	 * @return string Always 'ollama'.
+	 */
+	protected function telemetry_route(): string {
+		return 'ollama';
 	}
 
 	/**
@@ -188,7 +202,7 @@ class OllamaProvider extends AbstractProvider {
 			if ( HttpTimeout::is_timeout( $response ) ) {
 				throw HttpTimeout::to_exception( 'ollama' );
 			}
-			throw new ProviderException( $response->get_error_message(), 'ollama' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new ProviderException( $response->get_error_message(), 'ollama', 0, [], null, $response->get_error_code() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$code = (int) wp_remote_retrieve_response_code( $response );

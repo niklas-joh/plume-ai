@@ -416,4 +416,44 @@ class OpenAIProviderTest extends TestCase {
 		$this->assertFalse( $response->is_tool_call() );
 		$this->assertNull( $response->tool_call );
 	}
+
+	// ── Opt-in usage events (NEXT_VERSION) ────────────────────────────────────
+
+	private function telemetry_route_of( OpenAIProvider $provider ): string {
+		return ( new \ReflectionMethod( $provider, 'telemetry_route' ) )->invoke( $provider );
+	}
+
+	public function test_telemetry_route_is_proxy_without_a_key_and_byok_with_one(): void {
+		$this->assertSame( 'proxy', $this->telemetry_route_of( new OpenAIProvider( '' ) ) );
+		$this->assertSame( 'byok', $this->telemetry_route_of( new OpenAIProvider( 'sk-test' ) ) );
+	}
+
+	public function test_network_failure_carries_the_wp_error_code(): void {
+		Functions\when( 'wp_remote_post' )->justReturn( new \WP_Error( 'http_request_failed', 'cURL error 6: Could not resolve host' ) );
+		Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+
+		$provider = new OpenAIProvider( 'sk-test' );
+		try {
+			$provider->complete( new CompletionRequest( [ [ 'role' => 'user', 'content' => 'hi' ] ] ) );
+			$this->fail( 'Expected ProviderException.' );
+		} catch ( ProviderException $e ) {
+			$this->assertSame( 'http_request_failed', $e->get_error_code() );
+			$this->assertSame( 'openai', $e->get_provider() );
+		}
+	}
+
+	public function test_missing_image_url_is_invalid_response(): void {
+		Functions\when( 'wp_remote_post' )->justReturn( [ 'response' => [ 'code' => 200 ], 'body' => '{"data":[]}' ] );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		try {
+			( new OpenAIProvider( 'sk-test' ) )->generate_image( 'a cat' );
+			$this->fail( 'Expected ProviderException.' );
+		} catch ( ProviderException $e ) {
+			$this->assertSame( 'invalid_response', $e->get_error_code() );
+		}
+	}
 }

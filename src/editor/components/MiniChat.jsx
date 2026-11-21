@@ -90,6 +90,7 @@ export default function MiniChat( { postId } ) {
 				<OutOfCreditsNotice
 					key={ i }
 					websiteUrl={ websiteUrl }
+					screen="editor"
 					settingsUrl={ settingsUrl }
 				/>
 			);

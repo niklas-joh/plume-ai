@@ -7,6 +7,9 @@ namespace Plume\Tests\Unit\Modules\Chat;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Plume\Modules\Chat\SettingsRestController;
+use Plume\Telemetry\Telemetry;
+use Plume\Tests\Helpers\TelemetryHarness;
+use Brain\Monkey\Filters;
 use PHPUnit\Framework\TestCase;
 
 class SettingsRestControllerTest extends TestCase {
@@ -17,8 +20,10 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
         // get_settings() reads the managed catalogue; a miss on an unregistered site uses the fallback.
         Functions\when( 'get_transient' )->justReturn( false );
+        // get_settings() reports Telemetry::is_available(), which reads the environment type.
+        Functions\when( 'wp_get_environment_type' )->justReturn( 'production' );
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { Telemetry::reset(); Monkey\tearDown(); parent::tearDown(); }
 
     // ── Route registration ────────────────────────────────────────────────────
 
@@ -724,6 +729,90 @@ class SettingsRestControllerTest extends TestCase {
         $this->post_voice( $this->make_voice_controller(), [ 'site_voice' => "One\nTwo" ] );
 
         $this->assertSame( "One\nTwo", $stored['plume_site_voice']['extra'] );
+    }
+
+    // ── Usage sharing (telemetry_consent) ─────────────────────────────────────
+
+    private function stub_provider_settings_controller(): SettingsRestController {
+        return new class extends SettingsRestController {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                return new class extends \Plume\Settings\ProviderSettings {
+                    public function __construct() {}
+                    public function has_key( string $provider ): bool { return false; }
+                    public function get_api_key( string $provider ): string { return ''; }
+                };
+            }
+        };
+    }
+
+    private function save_consent( array $params ): void {
+        Functions\when( 'get_post_types' )->justReturn( [] );
+        $request = new \WP_REST_Request();
+        $request->set_body_params( $params );
+        $this->stub_provider_settings_controller()->save_settings( $request );
+    }
+
+    public function test_get_settings_includes_telemetry_keys(): void {
+        $data = $this->get_settings_for_tier( 'free' );
+        $this->assertSame( 'unset', $data['telemetry_consent'] );
+        $this->assertTrue( $data['telemetry_available'] );
+    }
+
+    public function test_get_settings_reports_unavailable_on_a_local_site_using_the_production_worker(): void {
+        Functions\when( 'wp_get_environment_type' )->justReturn( 'local' );
+        $this->assertFalse( $this->get_settings_for_tier( 'free' )['telemetry_available'] );
+    }
+
+    public function test_yes_from_onboarding_passes_its_source(): void {
+        $h = TelemetryHarness::install();
+        $this->save_consent( [ 'telemetry_consent' => 'yes', 'telemetry_source' => 'onboarding' ] );
+
+        $this->assertSame( 'yes', $h->options[ Telemetry::OPTION_CONSENT ] );
+        $queue = $h->flush();
+        $this->assertSame( 'consent_given', $queue[0]['name'] );
+        $this->assertSame( 'onboarding', $queue[0]['source'] );
+    }
+
+    public function test_yes_with_an_unknown_source_falls_back_to_settings(): void {
+        $h = TelemetryHarness::install();
+        $this->save_consent( [ 'telemetry_consent' => 'yes', 'telemetry_source' => 'email' ] );
+        $this->assertSame( 'settings', $h->flush()[0]['source'] );
+    }
+
+    public function test_no_withdraws_and_deletes_the_install_id(): void {
+        $h = TelemetryHarness::install();
+        $h->consent_yes();
+        $this->save_consent( [ 'telemetry_consent' => 'no' ] );
+        $this->assertSame( 'no', $h->options[ Telemetry::OPTION_CONSENT ] );
+        $this->assertArrayNotHasKey( Telemetry::OPTION_INSTALL_ID, $h->options );
+    }
+
+    public function test_no_is_accepted_while_unavailable(): void {
+        $h = TelemetryHarness::install(
+            [
+                Telemetry::OPTION_CONSENT    => 'yes',
+                Telemetry::OPTION_INSTALL_ID => TelemetryHarness::INSTALL_ID,
+            ]
+        );
+        Filters\expectApplied( 'plume_telemetry_enabled' )->andReturn( false );
+        $this->save_consent( [ 'telemetry_consent' => 'no' ] );
+        $this->assertSame( 'no', $h->options[ Telemetry::OPTION_CONSENT ] );
+        $this->assertArrayNotHasKey( Telemetry::OPTION_INSTALL_ID, $h->options );
+    }
+
+    public function test_yes_is_ignored_while_unavailable(): void {
+        $h = TelemetryHarness::install( [], 'development' );
+        $this->save_consent( [ 'telemetry_consent' => 'yes' ] );
+        $this->assertArrayNotHasKey( Telemetry::OPTION_CONSENT, $h->options );
+        $this->assertArrayNotHasKey( Telemetry::OPTION_INSTALL_ID, $h->options );
+    }
+
+    public function test_invalid_consent_values_are_ignored(): void {
+        $h = TelemetryHarness::install();
+        $this->save_consent( [ 'telemetry_consent' => 'unset' ] );
+        $this->save_consent( [ 'telemetry_consent' => true ] );
+        $this->save_consent( [ 'telemetry_consent' => [ 'yes' ] ] );
+        $this->assertArrayNotHasKey( Telemetry::OPTION_CONSENT, $h->options );
     }
 
     // ── share_usage_stats: managed-service statistics opt-out (#1015) ─────────

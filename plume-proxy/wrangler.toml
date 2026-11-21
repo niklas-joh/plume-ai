@@ -29,6 +29,30 @@ preview_id = "38975852f1bc4c838da456ea9a21e789"
 binding = "PLUME_METRICS"
 dataset = "plume_metrics"
 
+# Opt-in plugin usage events (POST /v1/events). Never joined to plume_metrics.
+[[analytics_engine_datasets]]
+binding = "PLUME_EVENTS"
+dataset = "plume_events"
+
+# Rate limits for /v1/events (in-memory at the edge, no KV writes). Namespace IDs
+# must be unique per account. Sites send from an hourly cron (up to 8 batches per
+# run), and many sites can share one IP on shared hosting, hence the generous limits.
+[[ratelimits]]
+name = "EVENTS_IP_LIMITER"
+namespace_id = "1101"
+
+  [ratelimits.simple]
+  limit = 120
+  period = 60
+
+[[ratelimits]]
+name = "EVENTS_INSTALL_LIMITER"
+namespace_id = "1102"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+
 # Secrets (set via CLI — never commit values):
 # wrangler secret put ANTHROPIC_API_KEY
 # wrangler secret put OPENAI_API_KEY
@@ -70,3 +94,24 @@ id = "46d46fc066354b3a946fd734bca7eb1a"
 [[env.dev.analytics_engine_datasets]]
 binding = "PLUME_METRICS"
 dataset = "plume_metrics_dev"
+
+# Bindings are not inherited by environments, so they are redeclared here.
+[[env.dev.analytics_engine_datasets]]
+binding = "PLUME_EVENTS"
+dataset = "plume_events_dev"
+
+[[env.dev.ratelimits]]
+name = "EVENTS_IP_LIMITER"
+namespace_id = "1201"
+
+  [env.dev.ratelimits.simple]
+  limit = 120
+  period = 60
+
+[[env.dev.ratelimits]]
+name = "EVENTS_INSTALL_LIMITER"
+namespace_id = "1202"
+
+  [env.dev.ratelimits.simple]
+  limit = 30
+  period = 60

@@ -35,6 +35,7 @@ class TierStatusPageTest extends TestCase {
 		Functions\when( 'number_format_i18n' )->alias( fn( $n ) => (string) number_format( (int) $n ) );
 		Functions\when( 'get_admin_page_title' )->justReturn( 'Plume AI - Write and Design - Plan &amp; Usage' );
 		Functions\when( 'admin_url' )->alias( fn( $path ) => 'http://example.com/wp-admin/' . ltrim( $path, '/' ) );
+		Functions\when( 'wp_nonce_url' )->alias( fn( $url, $action ) => $url . '&_wpnonce=nonce-' . $action );
 	}
 
 	/**
@@ -122,7 +123,7 @@ class TierStatusPageTest extends TestCase {
 
 	// ── Upgrade section — checkout URLs ──────────────────────────────────────
 
-	public function test_render_includes_pro_managed_monthly_checkout_url_for_free_tier(): void {
+	public function test_render_links_monthly_checkout_through_the_upgrade_redirect_for_free_tier(): void {
 		$this->stub_display_functions();
 		$this->stub_tier_and_registration( 'free', true, 1000 );
 
@@ -130,10 +131,10 @@ class TierStatusPageTest extends TestCase {
 		TierStatusPage::render();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( '1550505', $output );
+		$this->assertStringContainsString( 'admin-post.php?action=plume_upgrade&plan=monthly&_wpnonce=nonce-plume_upgrade', $output );
 	}
 
-	public function test_render_includes_pro_managed_annual_checkout_url_for_free_tier(): void {
+	public function test_render_links_annual_checkout_through_the_upgrade_redirect_for_free_tier(): void {
 		$this->stub_display_functions();
 		$this->stub_tier_and_registration( 'free', true, 1000 );
 
@@ -141,7 +142,7 @@ class TierStatusPageTest extends TestCase {
 		TierStatusPage::render();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( '1550477', $output );
+		$this->assertStringContainsString( 'admin-post.php?action=plume_upgrade&plan=annual&_wpnonce=nonce-plume_upgrade', $output );
 	}
 
 	public function test_render_offers_own_api_key_settings_link_instead_of_byok_checkout(): void {
@@ -167,12 +168,16 @@ class TierStatusPageTest extends TestCase {
 		TierStatusPage::render();
 		$output = ob_get_clean();
 
+		$this->assertStringNotContainsString( 'plume_upgrade', $output );
 		$this->assertStringNotContainsString( '1550505', $output );
 		$this->assertStringNotContainsString( '1550477', $output );
 		$this->assertStringNotContainsString( '1550517', $output );
 	}
 
-	public function test_checkout_url_embeds_site_token_in_query_string(): void {
+	public function test_site_token_is_not_printed_in_the_page(): void {
+		// The checkout URL (which embeds the site token) is built server-side by
+		// UpgradeRedirect::handle() after its manage_options check, so the token no
+		// longer appears in the page markup.
 		$this->stub_display_functions();
 		$this->stub_tier_and_registration( 'free', true, 0 );
 
@@ -180,7 +185,8 @@ class TierStatusPageTest extends TestCase {
 		TierStatusPage::render();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( 'test-site-token', $output );
+		$this->assertStringNotContainsString( 'test-site-token', $output );
+		$this->assertStringNotContainsString( 'lemonsqueezy', $output );
 	}
 
 	// ── Credits copy (renamed from tokens) ────────────────────────────────────

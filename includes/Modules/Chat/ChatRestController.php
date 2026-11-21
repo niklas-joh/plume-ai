@@ -21,6 +21,7 @@ use Plume\Providers\CompletionRequest;
 use Plume\Providers\CompletionResponse;
 use Plume\Providers\ProviderException;
 use Plume\Settings\ProviderSettings;
+use Plume\Telemetry\Telemetry;
 use Plume\Tools\ToolRegistry;
 use Plume\Tools\ToolExecutor;
 use Plume\Voice\VoiceInjector;
@@ -502,6 +503,8 @@ class ChatRestController {
 			$prompt_tokens_total      = 0;
 			$completion_tokens_total  = 0;
 			$last_successful_response = null;
+			// Groups every provider call of this turn in the opt-in usage events ('' while inactive).
+			$turn_id = Telemetry::new_turn_id();
 
 			while ( $iteration < $max_iterations ) {
 				++$iteration;
@@ -522,6 +525,7 @@ class ChatRestController {
 					metadata:       [
 						'feature' => 'chat',
 						'post_id' => null,
+						'turn_id' => $turn_id,
 					],
 					tools:          $tools,
 					force_tool_use: ! empty( $tools ),

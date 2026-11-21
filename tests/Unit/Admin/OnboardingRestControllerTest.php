@@ -8,6 +8,8 @@ use Brain\Monkey\Functions;
 use Plume\Admin\OnboardingRestController;
 use Plume\Proxy\SiteRegistration;
 use Plume\Settings\ProviderSettings;
+use Plume\Telemetry\Telemetry;
+use Plume\Tests\Helpers\TelemetryHarness;
 use PHPUnit\Framework\TestCase;
 
 class OnboardingRestControllerTest extends TestCase {
@@ -19,6 +21,7 @@ class OnboardingRestControllerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		Telemetry::reset();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -274,5 +277,44 @@ class OnboardingRestControllerTest extends TestCase {
 		$response = OnboardingRestController::save( $request );
 
 		$this->assertFalse( $response->data['registered'] );
+	}
+
+	// ── save() — opt-in usage event ──────────────────────────────────────────
+
+	private function onboarding_request( array $params ): \WP_REST_Request {
+		$request = new \WP_REST_Request( 'POST', '/plume/v1/onboarding' );
+		$request->set_body_params( $params );
+		return $request;
+	}
+
+	public function test_route_param_is_registered_with_its_enum(): void {
+		$args = [];
+		Functions\when( 'register_rest_route' )->alias(
+			function ( $ns, $route, $options ) use ( &$args ) {
+				$args = $options['args'];
+			}
+		);
+		OnboardingRestController::register_routes();
+		$this->assertSame( [ 'managed', 'own_key', 'skipped', 'upgrade' ], $args['route']['enum'] );
+		$this->assertSame( 'sanitize_key', $args['route']['sanitize_callback'] );
+	}
+
+	public function test_route_with_seen_true_queues_onboarding_done(): void {
+		$h = TelemetryHarness::install( [ 'plume_site_tier' => 'pro_byok' ] );
+		$h->consent_yes();
+
+		OnboardingRestController::save( $this->onboarding_request( [ 'seen' => true, 'route' => 'own_key' ] ) );
+
+		$queue = $h->flush();
+		$this->assertSame( 'onboarding_done', $queue[0]['name'] );
+		$this->assertSame( 'own_key', $queue[0]['route'] );
+		$this->assertSame( [], $h->posts, 'The event is queued, never sent from the request.' );
+	}
+
+	public function test_route_without_seen_queues_nothing(): void {
+		$h = TelemetryHarness::install( [ 'plume_site_tier' => 'pro_byok' ] );
+		$h->consent_yes();
+		OnboardingRestController::save( $this->onboarding_request( [ 'route' => 'managed' ] ) );
+		$this->assertSame( [], $h->flush() );
 	}
 }

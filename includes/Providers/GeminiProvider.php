@@ -235,12 +235,13 @@ class GeminiProvider extends AbstractProvider {
 	 * second HTTP request, then handed off to media_handle_sideload.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Renamed from generate_image(); AbstractProvider::generate_image() wraps it.
 	 * @param string $prompt  Image generation prompt.
 	 * @param array  $options Optional overrides: 'aspect_ratio'.
 	 * @return int WordPress attachment ID.
 	 * @throws ProviderException When the API returns no image data or sideload fails.
 	 */
-	public function generate_image( string $prompt, array $options = [] ): int {
+	protected function do_generate_image( string $prompt, array $options ): int {
 		$body = [
 			'instances'  => [ [ 'prompt' => $prompt ] ],
 			'parameters' => [
@@ -254,7 +255,7 @@ class GeminiProvider extends AbstractProvider {
 		$mime = $raw['predictions'][0]['mimeType'] ?? 'image/png';
 
 		if ( empty( $b64 ) ) {
-			throw new ProviderException( 'No image data in Imagen 3 response', 'gemini' );
+			throw new ProviderException( 'No image data in Imagen 3 response', 'gemini', 0, [], null, 'invalid_response' );
 		}
 
 		// Decode base64 directly to temp file (avoids second HTTP request).
@@ -281,11 +282,35 @@ class GeminiProvider extends AbstractProvider {
 		if ( is_wp_error( $attachment_id ) ) {
 			throw new ProviderException(
 				'Failed to save Imagen 3 image: ' . $attachment_id->get_error_message(), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-				'gemini'
+				'gemini',
+				0,
+				[],
+				null,
+				'media_save_failed'
 			);
 		}
 		update_post_meta( $attachment_id, '_plume_prompt', sanitize_textarea_field( $prompt ) );
 		return $attachment_id;
+	}
+
+	/**
+	 * Route for usage events: keyless sites go through the managed proxy.
+	 *
+	 * @since NEXT_VERSION
+	 * @return string 'proxy' or 'byok'.
+	 */
+	protected function telemetry_route(): string {
+		return '' === $this->api_key ? 'proxy' : 'byok';
+	}
+
+	/**
+	 * Image model ID for usage events.
+	 *
+	 * @since NEXT_VERSION
+	 * @return string
+	 */
+	protected function telemetry_image_model(): string {
+		return self::IMAGE_MODEL;
 	}
 
 	/**
@@ -344,7 +369,7 @@ class GeminiProvider extends AbstractProvider {
 			if ( HttpTimeout::is_timeout( $response ) ) {
 				throw HttpTimeout::to_exception( 'gemini' );
 			}
-			throw new ProviderException( $response->get_error_message(), 'gemini' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new ProviderException( $response->get_error_message(), 'gemini', 0, [], null, $response->get_error_code() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$code = (int) wp_remote_retrieve_response_code( $response );

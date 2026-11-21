@@ -30,11 +30,19 @@ export default function DashboardApp() {
 		runSetupUrl = '#',
 		urls = {},
 		resourceUrls = {},
+		telemetryConsent = 'unset',
+		telemetryAvailable = false,
 	} = data;
 
 	if ( ! onboardingSeen ) {
 		return (
-			<OnboardingPage nonce={ nonce } restUrl={ restUrl } urls={ urls } />
+			<OnboardingPage
+				nonce={ nonce }
+				restUrl={ restUrl }
+				urls={ urls }
+				telemetryConsent={ telemetryConsent }
+				telemetryAvailable={ telemetryAvailable }
+			/>
 		);
 	}
 

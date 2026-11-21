@@ -183,6 +183,7 @@ export default function GeneratorWizard() {
 						websiteUrl={
 							window.plumeData?.websiteUrl ?? DEFAULT_WEBSITE_URL
 						}
+						screen="generator"
 						settingsUrl={ window.plumeData?.settingsUrl }
 					/>
 				) }

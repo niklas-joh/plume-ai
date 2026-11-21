@@ -17,6 +17,7 @@ import {
 import { authenticateRequest, generateToken } from './auth';
 import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
+import { handleEvents } from './events';
 import {
 	buildChatDataPoint,
 	errorCodeFromThrown,
@@ -734,6 +735,13 @@ export default {
 				return jsonResponse( { error: 'Method not allowed' }, 405 );
 			}
 			return handleChatProxy( request, env );
+		}
+
+		if ( pathname === '/v1/events' ) {
+			if ( request.method !== 'POST' ) {
+				return jsonResponse( { error: 'Method not allowed' }, 405 );
+			}
+			return handleEvents( request, env );
 		}
 
 		if ( pathname === '/v1/config' ) {

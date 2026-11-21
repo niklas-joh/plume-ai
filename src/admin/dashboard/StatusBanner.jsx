@@ -1,4 +1,5 @@
 import { __ } from '@wordpress/i18n';
+import { recordUpgradeClick } from '../../shared/telemetry';
 
 /**
  * Contextual status banner shown at the top of the dashboard.
@@ -65,6 +66,12 @@ export default function StatusBanner( { bannerState, urls } ) {
 						className="plume-dash-btn plume-dash-btn--primary"
 						target="_blank"
 						rel="nofollow noreferrer"
+						onClick={ () =>
+							recordUpgradeClick(
+								'dashboard_banner',
+								'dashboard'
+							)
+						}
 					>
 						{ __( 'Upgrade to Pro', 'plume' ) }
 					</a>

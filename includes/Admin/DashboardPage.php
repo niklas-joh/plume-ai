@@ -12,6 +12,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Plume\Telemetry\Consent;
+use Plume\Telemetry\Telemetry;
+use Plume\Telemetry\Utm;
 use Plume\Tiers\TierConfig;
 use Plume\Tiers\TierManager;
 use Plume\Tiers\UsageTracker;
@@ -99,6 +102,7 @@ class DashboardPage {
 	 *                      signal no longer suppresses the banner on its own;
 	 *                      replaced isPro with isPaid and the free_tier banner
 	 *                      state with free_tier_low_credits (usage-threshold-gated).
+	 * @since NEXT_VERSION Website links carry UTM tags; adds telemetryConsent and telemetryAvailable.
 	 * @return array<string, mixed> Associative array of localised dashboard data.
 	 */
 	private static function get_dashboard_data(): array {
@@ -114,20 +118,20 @@ class DashboardPage {
 		}
 
 		return [
-			'bannerState'    => $banner_state,
-			'onboardingSeen' => (bool) get_option( 'plume_onboarding_seen', false ),
-			'isPaid'         => $is_paid,
-			'usage'          => current_user_can( 'manage_options' )
+			'bannerState'        => $banner_state,
+			'onboardingSeen'     => (bool) get_option( 'plume_onboarding_seen', false ),
+			'isPaid'             => $is_paid,
+			'usage'              => current_user_can( 'manage_options' )
 				? array_merge( $usage, [ 'tier_label' => TierConfig::tier_label( (string) $usage['tier'] ) ] )
 				: null,
-			'version'        => PLUME_VERSION,
-			'nonce'          => wp_create_nonce( 'wp_rest' ),
-			'restUrl'        => esc_url_raw( rest_url( 'plume/v1' ) ),
-			'runSetupUrl'    => wp_nonce_url(
+			'version'            => PLUME_VERSION,
+			'nonce'              => wp_create_nonce( 'wp_rest' ),
+			'restUrl'            => esc_url_raw( rest_url( 'plume/v1' ) ),
+			'runSetupUrl'        => wp_nonce_url(
 				admin_url( 'admin.php?page=plume&run_setup=1' ),
 				'plume_run_setup'
 			),
-			'urls'           => [
+			'urls'               => [
 				'chat'      => admin_url( 'admin.php?page=plume-chat' ),
 				'generator' => admin_url( 'admin.php?page=plume-generator' ),
 				'images'    => admin_url( 'admin.php?page=plume-images' ),
@@ -135,16 +139,21 @@ class DashboardPage {
 				'usage'     => admin_url( 'admin.php?page=plume-usage' ),
 				'settings'  => admin_url( 'admin.php?page=plume-settings' ),
 				'posts'     => admin_url( 'edit.php' ),
-				'upgrade'   => PLUME_WEBSITE_URL . '/pricing',
-				'docs'      => PLUME_WEBSITE_URL . '/docs',
-				'support'   => PLUME_WEBSITE_URL . '/support',
+				'upgrade'   => Utm::tag( PLUME_WEBSITE_URL . '/pricing', 'dashboard' ),
+				'docs'      => Utm::tag( PLUME_WEBSITE_URL . '/docs', 'dashboard' ),
+				'support'   => Utm::tag( PLUME_WEBSITE_URL . '/support', 'dashboard' ),
 			],
-			'resourceUrls'   => [
-				'gettingStarted' => PLUME_WEBSITE_URL . '/docs/getting-started',
-				'promptTips'     => PLUME_WEBSITE_URL . '/docs/prompt-tips',
-				'apiKeySetup'    => PLUME_WEBSITE_URL . '/docs/api-key-setup',
-				'changelog'      => PLUME_WEBSITE_URL . '/changelog',
+			'resourceUrls'       => [
+				'gettingStarted' => Utm::tag( PLUME_WEBSITE_URL . '/docs/getting-started', 'dashboard', 'getting_started' ),
+				'promptTips'     => Utm::tag( PLUME_WEBSITE_URL . '/docs/prompt-tips', 'dashboard', 'prompt_tips' ),
+				'apiKeySetup'    => Utm::tag( PLUME_WEBSITE_URL . '/docs/api-key-setup', 'dashboard', 'api_key_setup' ),
+				'changelog'      => Utm::tag( PLUME_WEBSITE_URL . '/changelog', 'dashboard', 'changelog' ),
 			],
+			// Usage sharing: the onboarding consent card shows only when unset and available.
+			// Saving the choice needs manage_options (POST /settings), so the card is never
+			// offered to users who could not save it.
+			'telemetryConsent'   => Consent::get(),
+			'telemetryAvailable' => current_user_can( 'manage_options' ) && Telemetry::is_available(),
 		];
 	}
 }

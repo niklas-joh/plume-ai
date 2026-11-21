@@ -33,6 +33,14 @@ class SiteRegistration {
 	public const OPTION_TOKEN = 'plume_site_token';
 
 	/**
+	 * Host of the LemonSqueezy checkout. Shared with UpgradeRedirect, which must
+	 * allow exactly this host for wp_safe_redirect().
+	 *
+	 * @since NEXT_VERSION
+	 */
+	public const CHECKOUT_HOST = 'plume.lemonsqueezy.com';
+
+	/**
 	 * Option key for the per-site HMAC secret used to authenticate Worker → WP
 	 * tier-update pushes. Canonical definition lives in TierUpdateWebhookController;
 	 * referenced here for symmetry with OPTION_TOKEN.
@@ -188,7 +196,7 @@ class SiteRegistration {
 		$response = wp_remote_post(
 			$proxy_url . '/register',
 			[
-				'headers' => [ 'Content-Type' => 'application/json' ],
+				'headers' => array_merge( [ 'Content-Type' => 'application/json' ], ProxyClient::stats_headers() ),
 				'body'    => wp_json_encode(
 					[
 						'site_url'        => home_url(),
@@ -438,7 +446,7 @@ class SiteRegistration {
 	 */
 	public static function checkout_url( string $variant_id ): string {
 		$token = self::get_site_token();
-		$url   = 'https://plume.lemonsqueezy.com/checkout/buy/' . rawurlencode( $variant_id );
+		$url   = 'https://' . self::CHECKOUT_HOST . '/checkout/buy/' . rawurlencode( $variant_id );
 		if ( $token ) {
 			$url .= '?checkout[custom][site_token]=' . rawurlencode( $token );
 		}

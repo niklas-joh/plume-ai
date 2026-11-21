@@ -1,3 +1,24 @@
+## [2.2.0](https://github.com/niklas-joh/plume-ai/compare/v2.1.0...v2.2.0) (2026-11-20)
+
+### New Features
+
+* **admin:** make Plume usable on phones ([#1050](https://github.com/niklas-joh/plume-ai/issues/1050)) ([4a16c21](https://github.com/niklas-joh/plume-ai/commit/4a16c21ba524964280ab00dbb61e8e3928ca8025))
+* **chat:** smoother composing, waiting, retry and copy in Chat ([#1049](https://github.com/niklas-joh/plume-ai/issues/1049)) ([51771c1](https://github.com/niklas-joh/plume-ai/commit/51771c1a2051b73ce76d65bd50b84e43f2dbeb72))
+* **ui:** one page header and layout across Plume screens ([#1079](https://github.com/niklas-joh/plume-ai/issues/1079)) ([4ba26ea](https://github.com/niklas-joh/plume-ai/commit/4ba26ea4242a476851a75377d0a0f08543e6f9b9))
+* **ui:** page header on dashboard and chat, 14px base text ([#1082](https://github.com/niklas-joh/plume-ai/issues/1082)) ([7ca9c2e](https://github.com/niklas-joh/plume-ai/commit/7ca9c2ef9ac40b08f965997324eee828d1ca73a4)), closes [#1037](https://github.com/niklas-joh/plume-ai/issues/1037) [#1079](https://github.com/niklas-joh/plume-ai/issues/1079) [#1071](https://github.com/niklas-joh/plume-ai/issues/1071) [#wpbody](https://github.com/niklas-joh/plume-ai/issues/wpbody) [#1037](https://github.com/niklas-joh/plume-ai/issues/1037)
+* **ui:** show human model and plan names instead of ids ([#1072](https://github.com/niklas-joh/plume-ai/issues/1072)) ([e200153](https://github.com/niklas-joh/plume-ai/commit/e20015341436559fa413625c62b794861d626d21))
+
+### Bug Fixes
+
+* **editor:** give the block-editor sidebar clear feedback ([#1048](https://github.com/niklas-joh/plume-ai/issues/1048)) ([ae0b530](https://github.com/niklas-joh/plume-ai/commit/ae0b5303ddab372b284641644779eb77f8133b72))
+* **errors:** show real error messages, credit notices and API key problems ([#1045](https://github.com/niklas-joh/plume-ai/issues/1045)) ([17d303c](https://github.com/niklas-joh/plume-ai/commit/17d303cd2d6d20373713e8ac62c9c9b30f40af1e))
+* **generator:** give long drafts time to finish ([#1063](https://github.com/niklas-joh/plume-ai/issues/1063)) ([9e6931b](https://github.com/niklas-joh/plume-ai/commit/9e6931be52a25fc24d3518294b6015f1094eb89a)), closes [#1059](https://github.com/niklas-joh/plume-ai/issues/1059) [#1059](https://github.com/niklas-joh/plume-ai/issues/1059)
+* **i18n:** translate the admin and editor screens ([#1057](https://github.com/niklas-joh/plume-ai/issues/1057)) ([5c3c7e6](https://github.com/niklas-joh/plume-ai/commit/5c3c7e6e6c2f3dc6f2f8ef63dda378dc0271c8b0))
+* **proxy:** neutral upstream-error message, no body logging; readme without hardcoded prices ([#1031](https://github.com/niklas-joh/plume-ai/issues/1031)) ([3049e33](https://github.com/niklas-joh/plume-ai/commit/3049e332c48432cf32bebf5a2a20f98311df4d14))
+* **proxy:** tell genuine Worker errors apart from provider outages ([#1074](https://github.com/niklas-joh/plume-ai/issues/1074)) ([91c0a19](https://github.com/niklas-joh/plume-ai/commit/91c0a197e48ac6036c7daa33cd7a894bc62263e6))
+* **usage:** register the Usage screen so it can be opened ([#1071](https://github.com/niklas-joh/plume-ai/issues/1071)) ([2b39939](https://github.com/niklas-joh/plume-ai/commit/2b39939868599832fe1ce071d543cbcae61b9370))
+* **voice:** apply the site voice saved in Settings ([#1066](https://github.com/niklas-joh/plume-ai/issues/1066)) ([5d1007f](https://github.com/niklas-joh/plume-ai/commit/5d1007ff5ffb6a8f8f97a0a4a60b61f524b8cdee))
+
 ## [2.1.0](https://github.com/niklas-joh/plume-ai/compare/v2.0.0...v2.1.0) (2026-11-13)
 
 ### New Features

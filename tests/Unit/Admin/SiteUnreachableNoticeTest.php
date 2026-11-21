@@ -262,6 +262,8 @@ class SiteUnreachableNoticeTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '{"challenge":"c","token":"t"}' );
 		Functions\when( 'home_url' )->justReturn( 'https://example.test' );
 		Functions\when( 'wp_json_encode' )->alias( fn( $data ) => json_encode( $data ) );
+		// register() reads the usage-statistics opt-out before posting to /register.
+		Functions\when( 'get_option' )->alias( fn( $key, $fallback = false ) => $fallback );
 
 		$redirect = $this->run_handle_retry();
 

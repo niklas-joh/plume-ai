@@ -33,6 +33,41 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ProxyClient {
 
 	/**
+	 * Option holding whether the site shares usage statistics with the managed service.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	public const OPTION_SHARE_USAGE_STATS = 'plume_share_usage_stats';
+
+	/**
+	 * Whether the site shares usage statistics with the managed service.
+	 *
+	 * Defaults to true when the option was never saved, so the option name and the
+	 * default-true semantics live in exactly one place for every reader.
+	 *
+	 * @since NEXT_VERSION
+	 * @return bool True when the site shares statistics (the default), false when it has opted out.
+	 */
+	public static function shares_usage_stats(): bool {
+		return (bool) get_option( self::OPTION_SHARE_USAGE_STATS, true );
+	}
+
+	/**
+	 * Request headers that tell the Worker not to record usage statistics.
+	 *
+	 * Only the statistics are skipped; the Worker still counts credits.
+	 *
+	 * @since NEXT_VERSION
+	 * @return array<string, string> The opt-out header when the site has opted out, otherwise empty.
+	 */
+	public static function stats_headers(): array {
+		if ( self::shares_usage_stats() ) {
+			return [];
+		}
+		return [ 'X-Plume-No-Stats' => '1' ];
+	}
+
+	/**
 	 * Send a chat request through the Cloudflare proxy.
 	 *
 	 * The Worker's KV store is the sole source of truth for credit enforcement —
@@ -96,10 +131,13 @@ class ProxyClient {
 		$response = wp_remote_post(
 			TierConfig::get_proxy_url() . '/v1/chat',
 			[
-				'headers' => [
-					'Content-Type'  => 'application/json',
-					'Authorization' => 'Bearer ' . $token,
-				],
+				'headers' => array_merge(
+					[
+						'Content-Type'  => 'application/json',
+						'Authorization' => 'Bearer ' . $token,
+					],
+					self::stats_headers()
+				),
 				'body'    => $body_json,
 				'timeout' => $timeout,
 			]
@@ -133,13 +171,21 @@ class ProxyClient {
 		}
 
 		// The Worker reports upstream provider failures (retired model, depleted provider
-		// credit, overload) with a neutral code. The 500 + 'Internal proxy error' pair is what
-		// Workers deployed before that code existed return, so both are treated the same.
+		// credit, overload) with a neutral code. A code-less 500 + 'Internal proxy error' pair
+		// is what Workers deployed before that code existed return, so both are treated the
+		// same. Current Workers tag their own faults with `internal_error`; those fall through
+		// to service_error so a Worker bug is not misreported as a provider outage.
 		if (
 			( 503 === $code && 'provider_unavailable' === ( $body['code'] ?? '' ) )
-			|| ( 500 === $code && 'Internal proxy error' === ( $body['error'] ?? '' ) )
+			|| ( 500 === $code && 'Internal proxy error' === ( $body['error'] ?? '' ) && ! isset( $body['code'] ) )
 		) {
 			return new WP_Error( 'provider_unavailable', __( 'This AI model is temporarily unavailable. Please try again later or choose another model.', 'plume' ) );
+		}
+
+		// A fault in the Worker itself: keep the generic service_error code but never show the
+		// Worker's non-localised, developer-facing text.
+		if ( 500 === $code && 'internal_error' === ( $body['code'] ?? '' ) ) {
+			return new WP_Error( 'service_error', __( 'Something went wrong on our side. Please try again in a moment.', 'plume' ) );
 		}
 
 		if ( $code < 200 || $code >= 300 ) {

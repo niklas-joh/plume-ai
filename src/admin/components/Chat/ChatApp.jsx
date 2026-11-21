@@ -19,6 +19,8 @@ import { storageGet, storageSet } from '../../utils/storage';
 import { useMediaQuery, PHONE_LAYOUT_QUERY } from '../../utils/useMediaQuery';
 import { isOutOfCreditsError } from '../../../shared/credits';
 import { getErrorMessage } from '../../../shared/errors';
+import PageHeader from '../../../shared/PageHeader';
+import Screen from '../../../shared/Screen';
 
 const NEW_CONVERSATION_TITLE = __( 'New conversation', 'plume' );
 
@@ -456,6 +458,7 @@ export default function ChatApp() {
 					role: 'assistant',
 					content: res.content,
 					model: res.model,
+					model_label: res.model_label,
 					credits: res.credits,
 					pending_plan: res.pending_plan ?? null,
 					tools_used: passiveTools.length > 0 ? passiveTools : null,
@@ -586,132 +589,128 @@ export default function ChatApp() {
 		: __( 'Collapse sidebar', 'plume' );
 
 	return (
-		<div className={ shellClasses }>
-			<aside
-				className="plume-sidebar"
-				id="plume-conversations"
-				ref={ sidebarRef }
-				aria-label={ __( 'Conversations', 'plume' ) }
-			>
-				<div className="plume-sidebar__header">
-					{ ! isCollapsed && (
-						<span className="plume-sidebar__title">
-							{ __( 'Conversations', 'plume' ) }
-						</span>
+		<Screen
+			layout="app"
+			header={
+				<PageHeader
+					compact
+					title={ __( 'Chat', 'plume' ) }
+					description={ __(
+						'Plan, draft and revise posts with AI.',
+						'plume'
 					) }
-					{ ! isCollapsed && (
-						<button
-							className="plume-btn plume-btn--ghost plume-btn--icon"
-							onClick={ newConversation }
-							title={ NEW_CONVERSATION_TITLE }
-							aria-label={ NEW_CONVERSATION_TITLE }
-							type="button"
-						>
-							<Plus size={ 14 } strokeWidth={ 1.5 } />
-						</button>
-					) }
-					<button
-						className="plume-btn plume-btn--ghost plume-btn--icon plume-sidebar__toggle"
-						onClick={ () =>
-							setIsSidebarCollapsed( ( prev ) => {
-								const next = ! prev;
-								storageSet(
-									'plume-sidebar-collapsed',
-									next ? '1' : '0'
-								);
-								return next;
-							} )
-						}
-						title={ toggleLabel }
-						aria-label={ toggleLabel }
-						aria-expanded={ ! isSidebarCollapsed }
-						type="button"
-					>
-						{ isSidebarCollapsed ? (
-							<PanelLeftOpen size={ 14 } strokeWidth={ 1.5 } />
-						) : (
-							<PanelLeftClose size={ 14 } strokeWidth={ 1.5 } />
-						) }
-					</button>
-				</div>
-				<ConversationHistory
-					conversations={ conversations }
-					activeId={ activeConvId }
-					onSelect={ selectConversation }
-					onDelete={ deleteConversation }
-					deletingIds={ deletingIds }
-					deleteErrors={ deleteErrors }
 				/>
-			</aside>
-
-			<main className="plume-main" ref={ mainRef }>
-				{ isPhone && (
-					<div className="plume-mobile-bar">
+			}
+		>
+			<div className={ shellClasses }>
+				<aside
+					className="plume-sidebar"
+					id="plume-conversations"
+					ref={ sidebarRef }
+					aria-label={ __( 'Conversations', 'plume' ) }
+				>
+					<div className="plume-sidebar__header">
+						{ ! isCollapsed && (
+							<span className="plume-sidebar__title">
+								{ __( 'Conversations', 'plume' ) }
+							</span>
+						) }
+						{ ! isCollapsed && (
+							<button
+								className="plume-btn plume-btn--ghost plume-btn--icon"
+								onClick={ newConversation }
+								title={ NEW_CONVERSATION_TITLE }
+								aria-label={ NEW_CONVERSATION_TITLE }
+								type="button"
+							>
+								<Plus size={ 14 } strokeWidth={ 1.5 } />
+							</button>
+						) }
 						<button
-							type="button"
-							className="plume-btn plume-btn--ghost plume-btn--icon"
-							aria-label={ __( 'Conversations', 'plume' ) }
-							aria-controls="plume-conversations"
-							aria-expanded={ openDrawer === 'conversations' }
-							onClick={ ( e ) =>
-								toggleDrawer( 'conversations', e )
+							className="plume-btn plume-btn--ghost plume-btn--icon plume-sidebar__toggle"
+							onClick={ () =>
+								setIsSidebarCollapsed( ( prev ) => {
+									const next = ! prev;
+									storageSet(
+										'plume-sidebar-collapsed',
+										next ? '1' : '0'
+									);
+									return next;
+								} )
 							}
-						>
-							<MessagesSquare size={ 18 } strokeWidth={ 1.5 } />
-						</button>
-						<span className="plume-mobile-bar__title">
-							{ conversations.find(
-								( c ) => c.id === activeConvId
-							)?.title || NEW_CONVERSATION_TITLE }
-						</span>
-						<button
+							title={ toggleLabel }
+							aria-label={ toggleLabel }
+							aria-expanded={ ! isSidebarCollapsed }
 							type="button"
-							className="plume-btn plume-btn--ghost plume-btn--icon"
-							aria-label={ __(
-								'Model and quick actions',
-								'plume'
-							) }
-							aria-controls="plume-tools"
-							aria-expanded={ openDrawer === 'tools' }
-							onClick={ ( e ) => toggleDrawer( 'tools', e ) }
 						>
-							<SlidersHorizontal
-								size={ 18 }
-								strokeWidth={ 1.5 }
-							/>
+							{ isSidebarCollapsed ? (
+								<PanelLeftOpen
+									size={ 14 }
+									strokeWidth={ 1.5 }
+								/>
+							) : (
+								<PanelLeftClose
+									size={ 14 }
+									strokeWidth={ 1.5 }
+								/>
+							) }
 						</button>
 					</div>
-				) }
-				{ messages.length === 0 && ! isLoading ? (
-					<CenteredLaunch
-						suggestions={ LAUNCH_SUGGESTIONS }
-						onSend={ handleQuickAction }
-						isLoading={ isLoading }
-						attachedPost={ attachedPost }
-						onAttach={ handleAttach }
-						onDetach={ () => setAttachedPost( null ) }
-						forcePickerOpen={ forcePickerOpen }
-						onPickerClose={ handlePickerClose }
+					<ConversationHistory
+						conversations={ conversations }
+						activeId={ activeConvId }
+						onSelect={ selectConversation }
+						onDelete={ deleteConversation }
+						deletingIds={ deletingIds }
+						deleteErrors={ deleteErrors }
 					/>
-				) : (
-					<>
-						<MessageList
-							messages={ withRestoredPlan(
-								messages,
-								restoredPlan
-							) }
-							isLoading={ isLoading }
-							onRetry={ retryMessage }
-							// Forget a restored plan once dismissed, or it would
-							// re-attach to the next reply.
-							onPlanDismiss={ ( planId ) =>
-								setRestoredPlan( ( current ) =>
-									current?.id === planId ? null : current
-								)
-							}
-						/>
-						<Composer
-							onSend={ sendMessage }
+				</aside>
+
+				<main className="plume-main" ref={ mainRef }>
+					{ isPhone && (
+						<div className="plume-mobile-bar">
+							<button
+								type="button"
+								className="plume-btn plume-btn--ghost plume-btn--icon"
+								aria-label={ __( 'Conversations', 'plume' ) }
+								aria-controls="plume-conversations"
+								aria-expanded={ openDrawer === 'conversations' }
+								onClick={ ( e ) =>
+									toggleDrawer( 'conversations', e )
+								}
+							>
+								<MessagesSquare
+									size={ 18 }
+									strokeWidth={ 1.5 }
+								/>
+							</button>
+							<span className="plume-mobile-bar__title">
+								{ conversations.find(
+									( c ) => c.id === activeConvId
+								)?.title || NEW_CONVERSATION_TITLE }
+							</span>
+							<button
+								type="button"
+								className="plume-btn plume-btn--ghost plume-btn--icon"
+								aria-label={ __(
+									'Model and quick actions',
+									'plume'
+								) }
+								aria-controls="plume-tools"
+								aria-expanded={ openDrawer === 'tools' }
+								onClick={ ( e ) => toggleDrawer( 'tools', e ) }
+							>
+								<SlidersHorizontal
+									size={ 18 }
+									strokeWidth={ 1.5 }
+								/>
+							</button>
+						</div>
+					) }
+					{ messages.length === 0 && ! isLoading ? (
+						<CenteredLaunch
+							suggestions={ LAUNCH_SUGGESTIONS }
+							onSend={ handleQuickAction }
 							isLoading={ isLoading }
 							attachedPost={ attachedPost }
 							onAttach={ handleAttach }
@@ -719,70 +718,97 @@ export default function ChatApp() {
 							forcePickerOpen={ forcePickerOpen }
 							onPickerClose={ handlePickerClose }
 						/>
-					</>
+					) : (
+						<>
+							<MessageList
+								messages={ withRestoredPlan(
+									messages,
+									restoredPlan
+								) }
+								isLoading={ isLoading }
+								onRetry={ retryMessage }
+								// Forget a restored plan once dismissed, or it would
+								// re-attach to the next reply.
+								onPlanDismiss={ ( planId ) =>
+									setRestoredPlan( ( current ) =>
+										current?.id === planId ? null : current
+									)
+								}
+							/>
+							<Composer
+								onSend={ sendMessage }
+								isLoading={ isLoading }
+								attachedPost={ attachedPost }
+								onAttach={ handleAttach }
+								onDetach={ () => setAttachedPost( null ) }
+								forcePickerOpen={ forcePickerOpen }
+								onPickerClose={ handlePickerClose }
+							/>
+						</>
+					) }
+				</main>
+
+				<aside
+					className="plume-right-panel"
+					id="plume-tools"
+					ref={ toolsRef }
+					aria-label={ __( 'Model and quick actions', 'plume' ) }
+				>
+					<ModelSelector
+						providers={ providers }
+						selectedProvider={ selectedProvider }
+						selectedModel={ selectedModel }
+						onProviderChange={ handleProviderChange }
+						onModelChange={ handleModelChange }
+						justSaved={ modelJustSaved }
+					/>
+					<QuickActions
+						onAction={ ( prompt ) => {
+							setOpenDrawer( null );
+							sendMessage( prompt );
+						} }
+						attachedPost={ attachedPost }
+						onRequestAttach={ ( prompt ) => {
+							// The post picker opens in the composer, behind the drawer.
+							setOpenDrawer( null );
+							requestPostAttach( prompt );
+						} }
+					/>
+				</aside>
+
+				{ openDrawer && (
+					// Tapping the dimmed conversation closes the drawer; keyboard users
+					// have Escape, so the backdrop itself is not focusable.
+					// eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+					<div
+						className="plume-drawer-backdrop"
+						onClick={ () => setOpenDrawer( null ) }
+					/>
 				) }
-			</main>
 
-			<aside
-				className="plume-right-panel"
-				id="plume-tools"
-				ref={ toolsRef }
-				aria-label={ __( 'Model and quick actions', 'plume' ) }
-			>
-				<ModelSelector
-					providers={ providers }
-					selectedProvider={ selectedProvider }
-					selectedModel={ selectedModel }
-					onProviderChange={ handleProviderChange }
-					onModelChange={ handleModelChange }
-					justSaved={ modelJustSaved }
-				/>
-				<QuickActions
-					onAction={ ( prompt ) => {
-						setOpenDrawer( null );
-						sendMessage( prompt );
-					} }
-					attachedPost={ attachedPost }
-					onRequestAttach={ ( prompt ) => {
-						// The post picker opens in the composer, behind the drawer.
-						setOpenDrawer( null );
-						requestPostAttach( prompt );
-					} }
-				/>
-			</aside>
-
-			{ openDrawer && (
-				// Tapping the dimmed conversation closes the drawer; keyboard users
-				// have Escape, so the backdrop itself is not focusable.
-				// eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-				<div
-					className="plume-drawer-backdrop"
-					onClick={ () => setOpenDrawer( null ) }
-				/>
-			) }
-
-			{ drawerPlan && (
-				<ReviewDrawer
-					plan={ drawerPlan }
-					convId={ activeConvId }
-					selectedProvider={ selectedProvider }
-					selectedModel={ selectedModel }
-					onApply={ ( { changes, editUrl } ) => {
-						setDrawerPlan( null );
-						setMessages( ( prev ) => [
-							...prev,
-							{
-								role: 'assistant',
-								content: changes ?? '',
-								applyEditUrl: editUrl ?? null,
-							},
-						] );
-					} }
-					onClose={ () => setDrawerPlan( null ) }
-					onMessagesRefresh={ () => loadMessages( activeConvId ) }
-				/>
-			) }
-		</div>
+				{ drawerPlan && (
+					<ReviewDrawer
+						plan={ drawerPlan }
+						convId={ activeConvId }
+						selectedProvider={ selectedProvider }
+						selectedModel={ selectedModel }
+						onApply={ ( { changes, editUrl } ) => {
+							setDrawerPlan( null );
+							setMessages( ( prev ) => [
+								...prev,
+								{
+									role: 'assistant',
+									content: changes ?? '',
+									applyEditUrl: editUrl ?? null,
+								},
+							] );
+						} }
+						onClose={ () => setDrawerPlan( null ) }
+						onMessagesRefresh={ () => loadMessages( activeConvId ) }
+					/>
+				) }
+			</div>
+		</Screen>
 	);
 }
 

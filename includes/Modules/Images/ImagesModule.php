@@ -17,6 +17,7 @@ use Plume\Modules\Concerns\BuildsRestErrorResponse;
 use Plume\Providers\ProviderFactory;
 use Plume\Providers\ProviderException;
 use Plume\Settings\ProviderSettings;
+use Plume\Telemetry\Telemetry;
 use Plume\Tiers\TierManager;
 
 /**
@@ -185,6 +186,8 @@ class ImagesModule {
 
 		$images = [];
 		$errors = [];
+		// Groups the images of this request in the opt-in usage events ('' while inactive).
+		$options['turn_id'] = Telemetry::new_turn_id();
 
 		for ( $i = 0; $i < $count; $i++ ) {
 			try {
@@ -241,7 +244,7 @@ class ImagesModule {
 	/**
 	 * Describe the configured image provider for the Images screen.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @return array{label: string, hasKey: bool} Brand name of the image provider and
 	 *                                            whether the site has its own key for it.
 	 */
@@ -263,7 +266,7 @@ class ImagesModule {
 	 * Both the enqueue-time status and the generate-time key check need the same
 	 * slug → label → has_key derivation; sharing it keeps the two in step.
 	 *
-	 * @since NEXT_VERSION
+	 * @since 2.2.0
 	 * @param ProviderSettings $settings Provider settings used to check for a saved key.
 	 * @param ProviderFactory  $factory  Factory used to resolve the provider brand label.
 	 * @param string           $slug     Image provider slug.

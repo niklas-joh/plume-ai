@@ -6,20 +6,41 @@
 	--plume-sidebar-collapsed-width: 40px;
 }
 
-/* ── WP admin viewport fix ──
+/* ── WP admin viewport fix (Chat only) ──
    WordPress wraps admin page callbacks in #wpbody-content (padding-bottom: 65px)
-   and #wpbody. Without these overrides the shell overflows the viewport and
-   creates a vertical scrollbar. The 32px subtraction accounts for #wpadminbar. */
-/* stylelint-disable-next-line selector-class-pattern */
-.toplevel_page_plume #wpbody {
-	height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
+   and #wpbody. Chat is an app-style screen that fills the viewport under the
+   admin bar, so its wrappers must not add their own height or scroll.
+   Scoped by the Screen layout class, not a page hook class: the hook suffix is
+   derived from the translated menu title, and the old `.toplevel_page_plume`
+   rule hit the Dashboard (the top-level page), not Chat. */
+body:has(.plume-screen--app) #wpbody {
+	height: var(--plume-app-viewport);
 	overflow: hidden;
 }
 
-/* stylelint-disable-next-line selector-class-pattern */
-.toplevel_page_plume #wpbody-content {
+/* A flex column, so admin notices printed above the mount take their natural
+   height and the screen below takes only what is left (a fixed-height screen
+   would be pushed down and clipped by the overflow). */
+body:has(.plume-screen--app) #wpbody-content {
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	height: 100%;
 	padding-bottom: 0;
 	overflow: hidden;
+}
+
+body:has(.plume-screen--app) #plume-chat {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
+}
+
+/* With no document scroll the absolutely-positioned footer would sit on top of
+   the app shell, and WP's 65px reserve for it is removed above. */
+body:has(.plume-screen--app) #wpfooter {
+	display: none;
 }
 
 /* ── Shell layout ──
@@ -30,11 +51,11 @@
 .plume-shell {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
-	height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
 
-	/* dvh follows the phone's collapsing browser toolbar; 100vh above is the
-	   fallback for browsers without it. */
-	height: calc(100dvh - var(--wp-admin--admin-bar--height, 32px));
+	/* Fills what the compact page header above leaves of the viewport; the
+	   viewport height itself is set once, on #wpbody. */
+	flex: 1;
+	min-height: 0;
 	background: #fff;
 	color: #1d2327;
 	font-family: var(--font-sans);
@@ -615,12 +636,24 @@
 	gap: var(--space-2);
 }
 
+.plume-model-default {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-0-5);
+	min-width: 0;
+}
+
+.plume-model-default__caption {
+	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+}
+
+/* The full name must stay readable in the narrow panel, so it wraps instead of truncating. */
 .plume-model-default-label {
 	font-size: var(--text-sm);
 	color: var(--color-text-secondary);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	white-space: normal;
+	overflow-wrap: anywhere;
 }
 
 .plume-model-advanced-toggle {
@@ -683,6 +716,15 @@
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
+}
+
+.plume-model-selector__row--default {
+	align-items: flex-start;
+}
+
+.plume-model-selector__row--default > svg {
+	flex-shrink: 0;
+	margin-top: var(--space-0-5);
 }
 
 /* ── Quick actions ── */
@@ -831,51 +873,18 @@
 	padding-top: 0;
 }
 
-/* ── Animations ── */
-.plume-spinner {
-	animation: plume-spin 0.8s linear infinite;
-}
-
 /* ════════════════════════════════════════════════
    Settings UI
    ════════════════════════════════════════════════ */
 
-/* Shell — structural only; background/colour provided by WP admin */
+/* Shell — structural only; width, gutter and header come from Screen. */
 .plume-settings-shell {
-	display: flex;
-	flex-direction: column;
-	font-family: var(--font-sans);
 	font-size: var(--text-base);
-	min-height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
-
-	/* WordPress gives admin pages no right gutter on a phone. */
-	padding-right: var(--space-3);
 }
 
-@media (min-width: 783px) {
-
-	.plume-settings-shell {
-		padding-right: 0;
-	}
-}
-
-/* Header bar */
-.plume-settings-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: var(--space-4) var(--space-6);
-	border-bottom: 1px solid #e0e1e6;
-	background: #f8f9fa;
-}
-
-.plume-settings-title {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	font-size: var(--text-md);
-	font-weight: 600;
-	color: var(--color-text-primary);
+.plume-settings-setup {
+	border-top: 1px solid var(--color-border-subtle);
+	padding-top: var(--space-4);
 }
 
 .plume-settings-loading {
@@ -889,6 +898,8 @@
 	flex-direction: column;
 	gap: var(--space-4);
 	max-width: 680px;
+	margin-inline: auto;
+	width: 100%;
 	margin-bottom: var(--space-8);
 }
 

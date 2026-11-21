@@ -281,6 +281,7 @@ export default function SeoWorkArea( { post, onClose, onUpdate } ) {
 			{ outOfCredits && (
 				<OutOfCreditsNotice
 					websiteUrl={ websiteUrl }
+					screen="seo"
 					settingsUrl={ settingsUrl }
 				/>
 			) }

@@ -1,16 +1,32 @@
 import { useState } from '@wordpress/element';
-import { __, sprintf } from '@wordpress/i18n';
+import { __ } from '@wordpress/i18n';
 import { Cpu, ChevronRight, ChevronLeft } from 'lucide-react';
 import { storageGet, storageSet } from '../../utils/storage';
 
 const STORAGE_KEY = 'plume_advanced_model';
 
-const PROVIDER_LABELS = {
-	claude: 'Claude',
-	openai: 'OpenAI',
-	gemini: 'Gemini',
-	ollama: 'Ollama',
-};
+/**
+ * Display name for a provider slug. Brand names stay as they are; Ollama also says
+ * that it runs on the user's own machine. An unknown slug gets a neutral name so a
+ * raw slug never reaches the screen.
+ *
+ * @param {string} slug Provider slug from the /providers endpoint.
+ * @return {string} Name to show.
+ */
+function providerLabel( slug ) {
+	switch ( slug ) {
+		case 'claude':
+			return 'Claude';
+		case 'openai':
+			return 'OpenAI';
+		case 'gemini':
+			return 'Gemini';
+		case 'ollama':
+			return __( 'Ollama (self-hosted)', 'plume' );
+		default:
+			return __( 'Other provider', 'plume' );
+	}
+}
 
 /**
  * Provider and model selector with a simple/advanced toggle.
@@ -67,15 +83,16 @@ export default function ModelSelector( {
 
 			{ ! isAdvanced ? (
 				<div className="plume-model-simple">
-					<div className="plume-model-selector__row">
+					<div className="plume-model-selector__row plume-model-selector__row--default">
 						<Cpu size={ 12 } strokeWidth={ 1.5 } />
-						<span className="plume-model-default-label">
-							{ sprintf(
-								/* translators: %s: name of the default AI model. */
-								__( 'Plugin default — %s', 'plume' ),
-								defaultModelLabel
-							) }
-						</span>
+						<div className="plume-model-default">
+							<span className="plume-model-default__caption">
+								{ __( 'Plugin default', 'plume' ) }
+							</span>
+							<span className="plume-model-default-label">
+								{ defaultModelLabel }
+							</span>
+						</div>
 					</div>
 					<button
 						className="plume-model-advanced-toggle"
@@ -106,7 +123,7 @@ export default function ModelSelector( {
 						>
 							{ providers.map( ( p ) => (
 								<option key={ p.slug } value={ p.slug }>
-									{ PROVIDER_LABELS[ p.slug ] || p.slug }
+									{ providerLabel( p.slug ) }
 								</option>
 							) ) }
 						</select>

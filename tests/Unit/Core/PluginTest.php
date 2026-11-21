@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Plume\Core\Plugin;
 use Plume\Proxy\SiteRegistration;
+use Plume\Telemetry\Telemetry;
 use PHPUnit\Framework\TestCase;
 
 class PluginTest extends TestCase {
@@ -18,6 +19,7 @@ class PluginTest extends TestCase {
 
     protected function tearDown(): void {
         Plugin::reset_instance(); // prevent static state leaking between tests
+        Telemetry::reset();
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -39,6 +41,11 @@ class PluginTest extends TestCase {
         Functions\expect( 'add_option' )
             ->once()
             ->with( 'plume_enable_write_tools', true );
+        // First-activation timestamp for usage statistics: add_option() never overwrites
+        // it, and it is not autoloaded.
+        Functions\expect( 'add_option' )
+            ->once()
+            ->with( Telemetry::OPTION_ACTIVATED_AT, \Mockery::type( 'int' ), '', false );
         $this->addToAssertionCount( 1 );
 
         Functions\when( 'get_option' )->justReturn( false );
@@ -75,10 +82,38 @@ class PluginTest extends TestCase {
      */
     public function test_deactivate_clears_orphaned_trial_check_cron_and_does_not_fatal(): void {
         Functions\expect( 'wp_clear_scheduled_hook' )->once()->with( 'plume_trial_check' );
+        Functions\expect( 'wp_clear_scheduled_hook' )->once()->with( Telemetry::CRON_HOOK );
+        Functions\expect( 'delete_option' )->once()->with( Telemetry::OPTION_STATE );
         Functions\expect( 'flush_rewrite_rules' )->once();
+        // Telemetry is inactive (no consent), so deactivation sends nothing.
+        Functions\expect( 'wp_remote_post' )->never();
 
         Plugin::deactivate();
         $this->addToAssertionCount( 1 );
+    }
+
+    /**
+     * Booting the plugin wires the opt-in usage events, the upgrade redirect, the
+     * privacy text and the client event route.
+     */
+    public function test_init_hooks_registers_telemetry(): void {
+        $registered = [];
+        Functions\when( 'add_action' )->alias(
+            static function ( $hook, $callback = null ) use ( &$registered ) {
+                $registered[] = [ $hook, $callback ];
+                return true;
+            }
+        );
+        Functions\when( 'get_option' )->justReturn( [] );
+        Functions\when( 'add_filter' )->justReturn( true );
+
+        Plugin::instance();
+
+        $this->assertContains( [ 'shutdown', [ Telemetry::class, 'persist' ] ], $registered );
+        $this->assertContains( [ Telemetry::CRON_HOOK, [ Telemetry::class, 'send' ] ], $registered );
+        $this->assertContains( [ 'admin_post_plume_upgrade', [ \Plume\Telemetry\UpgradeRedirect::class, 'handle' ] ], $registered );
+        $this->assertContains( [ 'plume_register_rest_routes', [ \Plume\Telemetry\EventsRestController::class, 'register_routes' ] ], $registered );
+        $this->assertFalse( Telemetry::is_active() );
     }
 
     /**

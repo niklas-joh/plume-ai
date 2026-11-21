@@ -32,8 +32,16 @@ class ClaudeProvider extends AbstractProvider {
 	// English text averages ~4 chars/token; Anthropic's minimum cacheable prompt is 2,048 tokens.
 	private const CACHE_MIN_CHARS = 8_192;
 
-	// Mirrors TIER_MODELS in plume-proxy/src/index.ts — update both when adding models.
-	private const MODELS = [
+	/**
+	 * Selectable model ids mapped to display labels.
+	 *
+	 * Mirrors TIER_MODELS in plume-proxy/src/index.ts — update both when adding models.
+	 * Public and read-only so ModelLabels can resolve a human name from one source.
+	 *
+	 * @since 2.2.0 Visibility widened from private to public.
+	 * @var array<string, string>
+	 */
+	public const MODELS = [
 		'claude-opus-4-6'           => 'Claude Opus 4.6',
 		'claude-sonnet-4-6'         => 'Claude Sonnet 4.6',
 		'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5',
@@ -218,16 +226,30 @@ class ClaudeProvider extends AbstractProvider {
 	 * Image generation is not supported by Claude.
 	 *
 	 * @since 1.0.0
+	 * @since NEXT_VERSION Renamed from generate_image(); throws with code `image_unsupported`.
 	 * @param string $prompt  Image generation prompt.
 	 * @param array  $options Optional generation options.
 	 * @throws ProviderException Always — Claude does not support image generation.
 	 */
-	public function generate_image( string $prompt, array $options = [] ): never {
+	protected function do_generate_image( string $prompt, array $options ): never {
 		throw new ProviderException(
 			'Claude does not support image generation. Use Gemini or OpenAI.',
 			'claude',
-			0
+			0,
+			[],
+			null,
+			'image_unsupported'
 		);
+	}
+
+	/**
+	 * Route for usage events: keyless sites go through the managed proxy.
+	 *
+	 * @since NEXT_VERSION
+	 * @return string 'proxy' or 'byok'.
+	 */
+	protected function telemetry_route(): string {
+		return '' === $this->api_key ? 'proxy' : 'byok';
 	}
 
 	// ── Private helpers ───────────────────────────────────────────────────────
@@ -334,7 +356,7 @@ class ClaudeProvider extends AbstractProvider {
 			if ( HttpTimeout::is_timeout( $response ) ) {
 				throw HttpTimeout::to_exception( 'claude' );
 			}
-			throw new ProviderException( $response->get_error_message(), 'claude' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new ProviderException( $response->get_error_message(), 'claude', 0, [], null, $response->get_error_code() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$code = (int) wp_remote_retrieve_response_code( $response );

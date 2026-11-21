@@ -27,7 +27,11 @@ final class CompletionRequest {
 	 * @param string $model           Model ID (empty = use provider default).
 	 * @param float  $temperature     Sampling temperature.
 	 * @param int    $max_tokens      Maximum tokens to generate.
-	 * @param array  $metadata        Arbitrary context (post_id, feature, etc.).
+	 * @param array  $metadata        Arbitrary context (post_id, feature, etc.). `feature` is one of
+	 *                                'chat', 'generator' or 'seo' (anything else is reported as
+	 *                                'other' in usage events). `turn_id` (since NEXT_VERSION) is an
+	 *                                optional v4 UUID that groups the provider calls of one user
+	 *                                action in the opt-in usage events.
 	 * @param array  $tools           Tool definitions in provider wire format (empty = no tools).
 	 * @param bool   $force_tool_use  When true, instructs the provider to always call a tool rather
 	 *                                than returning a bare text response. Requires tools to be non-empty.

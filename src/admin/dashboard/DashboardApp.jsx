@@ -1,4 +1,6 @@
 import { __, sprintf } from '@wordpress/i18n';
+import PageHeader from '../../shared/PageHeader';
+import Screen from '../../shared/Screen';
 import StatusBanner from './StatusBanner';
 import StartTiles from './StartTiles';
 import UsageWidget from './UsageWidget';
@@ -28,38 +30,44 @@ export default function DashboardApp() {
 		runSetupUrl = '#',
 		urls = {},
 		resourceUrls = {},
+		telemetryConsent = 'unset',
+		telemetryAvailable = false,
 	} = data;
 
 	if ( ! onboardingSeen ) {
 		return (
-			<OnboardingPage nonce={ nonce } restUrl={ restUrl } urls={ urls } />
+			<OnboardingPage
+				nonce={ nonce }
+				restUrl={ restUrl }
+				urls={ urls }
+				telemetryConsent={ telemetryConsent }
+				telemetryAvailable={ telemetryAvailable }
+			/>
 		);
 	}
 
 	return (
-		<div className="plume-dashboard">
-			{ /* Top bar */ }
-			<div className="plume-dash-topbar">
-				<div>
-					<div className="plume-dash-title">
-						{ __( 'Plume - Write and Design', 'plume' ) }
-					</div>
-					<div className="plume-dash-subtitle">
-						{ __(
-							'AI-powered content creation for WordPress',
-							'plume'
-						) }
-					</div>
-				</div>
-				<span className="plume-dash-version">
-					{ sprintf(
-						/* translators: %s: plugin version number, e.g. "1.2.0". */
-						__( 'v%s', 'plume' ),
-						version
+		<Screen
+			className="plume-dashboard"
+			header={
+				<PageHeader
+					title={ __( 'Dashboard', 'plume' ) }
+					description={ __(
+						'AI writing, SEO and images for your WordPress site.',
+						'plume'
 					) }
-				</span>
-			</div>
-
+					actions={
+						<span className="plume-dash-version">
+							{ sprintf(
+								/* translators: %s: plugin version number, e.g. "1.2.0". */
+								__( 'v%s', 'plume' ),
+								version
+							) }
+						</span>
+					}
+				/>
+			}
+		>
 			<StatusBanner bannerState={ bannerState } urls={ urls } />
 
 			<div className="plume-dash-body">
@@ -72,6 +80,6 @@ export default function DashboardApp() {
 			</div>
 
 			<PageFooter urls={ urls } runSetupUrl={ runSetupUrl } />
-		</div>
+		</Screen>
 	);
 }

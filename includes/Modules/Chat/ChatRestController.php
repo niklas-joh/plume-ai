@@ -15,11 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 use Plume\Core\RestApi;
 use Plume\DB\ConversationStore;
 use Plume\Providers\ManagedCatalogue;
+use Plume\Providers\ModelLabels;
 use Plume\Providers\ProviderFactory;
 use Plume\Providers\CompletionRequest;
 use Plume\Providers\CompletionResponse;
 use Plume\Providers\ProviderException;
 use Plume\Settings\ProviderSettings;
+use Plume\Telemetry\Telemetry;
 use Plume\Tools\ToolRegistry;
 use Plume\Tools\ToolExecutor;
 use Plume\Voice\VoiceInjector;
@@ -263,7 +265,19 @@ class ChatRestController {
 			return new \WP_REST_Response( [ 'message' => __( 'Forbidden.', 'plume' ) ], 403 );
 		}
 
-		return rest_ensure_response( $store->get_messages( $conv_id ) );
+		$messages = array_map(
+			static function ( $message ) {
+				// Reply rows carry the provider's own model id (possibly a dated snapshot);
+				// add a readable name beside it. Kept after the ownership check above.
+				if ( is_array( $message ) && isset( $message['model'] ) ) {
+					$message['model_label'] = ModelLabels::for_id( (string) $message['model'] );
+				}
+				return $message;
+			},
+			$store->get_messages( $conv_id )
+		);
+
+		return rest_ensure_response( $messages );
 	}
 
 	/**
@@ -330,7 +344,7 @@ class ChatRestController {
 	 *                      key for some provider but none for the requested one, which the managed
 	 *                      service does not serve; otherwise a disabled managed provider is
 	 *                      resolved to Claude at runtime (see ProviderFactory::resolve_text_slug()).
-	 * @since NEXT_VERSION Removes the stored user message again when the provider fails, so a
+	 * @since 2.2.0 Removes the stored user message again when the provider fails, so a
 	 *                      failed turn leaves no unanswered message behind.
 	 * @param \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response 201 on success; 403 if the conversation is not owned by the caller;
@@ -489,6 +503,8 @@ class ChatRestController {
 			$prompt_tokens_total      = 0;
 			$completion_tokens_total  = 0;
 			$last_successful_response = null;
+			// Groups every provider call of this turn in the opt-in usage events ('' while inactive).
+			$turn_id = Telemetry::new_turn_id();
 
 			while ( $iteration < $max_iterations ) {
 				++$iteration;
@@ -509,6 +525,7 @@ class ChatRestController {
 					metadata:       [
 						'feature' => 'chat',
 						'post_id' => null,
+						'turn_id' => $turn_id,
 					],
 					tools:          $tools,
 					force_tool_use: ! empty( $tools ),
@@ -646,6 +663,7 @@ class ChatRestController {
 				[
 					'content'           => $final_response->content,
 					'model'             => $final_response->model,
+					'model_label'       => ModelLabels::for_id( (string) $final_response->model ),
 					'credits'           => $credits_accumulated,
 					'prompt_tokens'     => $prompt_tokens_total,
 					'completion_tokens' => $completion_tokens_total,
@@ -765,11 +783,30 @@ class ChatRestController {
 				// requests go straight to the provider and keep its full list.
 				'models'       => $is_managed
 					? ManagedCatalogue::labelled_models( $slug, $tier, $provider->get_models() )
-					: $provider->get_models(),
+					: $this->humanise_model_labels( $provider->get_models() ),
 				'is_available' => $provider->is_available(),
 			];
 		}
 		return rest_ensure_response( $data );
+	}
+
+	/**
+	 * Replace labels that are just the raw model id with a readable name.
+	 *
+	 * Ollama lists each installed model under its own tag, so the dropdown would
+	 * otherwise show a value such as "llama3.2:latest".
+	 *
+	 * @since 2.2.0
+	 * @param array<string, string> $models Model id => label.
+	 * @return array<string, string>
+	 */
+	private function humanise_model_labels( array $models ): array {
+		foreach ( $models as $id => $label ) {
+			if ( (string) $id === $label ) {
+				$models[ $id ] = ModelLabels::for_id( (string) $id );
+			}
+		}
+		return $models;
 	}
 
 	/**

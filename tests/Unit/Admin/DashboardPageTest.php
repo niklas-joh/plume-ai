@@ -7,6 +7,8 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use Plume\Admin\DashboardPage;
+use Plume\Telemetry\Telemetry;
+use Plume\Tests\Helpers\TelemetryHarness;
 
 if ( ! defined( 'PLUME_DIR' ) ) {
 	define( 'PLUME_DIR', dirname( __DIR__, 3 ) . '/' );
@@ -35,9 +37,15 @@ class DashboardPageTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( '__' )->returnArg();
+		// The payload reports Telemetry::is_available() and UTM-tagged website links.
+		Functions\when( 'wp_get_environment_type' )->justReturn( 'production' );
+		Functions\when( 'sanitize_key' )->alias( fn( $v ) => strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', $v ) ) );
+		TelemetryHarness::stub_url_functions();
 	}
 
 	protected function tearDown(): void {
+		Telemetry::reset();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -110,6 +118,26 @@ class DashboardPageTest extends TestCase {
 		$this->assertFalse( $data['isPaid'] );
 	}
 
+	/**
+	 * @since NEXT_VERSION
+	 */
+	public function test_dashboard_usage_carries_a_plan_label_for_admins(): void {
+		$data = $this->render_and_capture_payload( 'pro_managed' );
+		$this->assertSame( 'pro_managed', $data['usage']['tier'] );
+		$this->assertSame( 'Pro', $data['usage']['tier_label'] );
+
+		$data = $this->render_and_capture_payload( 'free' );
+		$this->assertSame( 'Free plan', $data['usage']['tier_label'] );
+	}
+
+	/**
+	 * @since NEXT_VERSION
+	 */
+	public function test_dashboard_usage_stays_null_for_non_admins(): void {
+		$data = $this->render_and_capture_payload( 'free', false );
+		$this->assertNull( $data['usage'] );
+	}
+
 	public function test_dashboard_data_is_paid_true_for_pro_managed(): void {
 		$data = $this->render_and_capture_payload( 'pro_managed' );
 		$this->assertTrue( $data['isPaid'] );
@@ -145,5 +173,27 @@ class DashboardPageTest extends TestCase {
 	public function test_enqueue_loads_script_translations(): void {
 		$this->render_and_capture_payload( 'free' );
 		$this->assertContains( [ 'plume-admin', 'plume', PLUME_DIR . 'languages' ], $this->translations );
+	}
+
+	public function test_website_links_carry_utm_tags(): void {
+		$data = $this->render_and_capture_payload( 'free' );
+		$this->assertSame( 'https://wpaimind.com/pricing?utm_source=plugin&utm_medium=dashboard', $data['urls']['upgrade'] );
+		$this->assertSame( 'https://wpaimind.com/docs?utm_source=plugin&utm_medium=dashboard', $data['urls']['docs'] );
+		$this->assertSame(
+			'https://wpaimind.com/docs/getting-started?utm_source=plugin&utm_medium=dashboard&utm_content=getting_started',
+			$data['resourceUrls']['gettingStarted']
+		);
+		$this->assertSame( 'http://example.test/wp-admin/admin.php?page=plume-chat', $data['urls']['chat'], 'Admin links are untouched.' );
+	}
+
+	public function test_dashboard_data_includes_telemetry_keys(): void {
+		$data = $this->render_and_capture_payload( 'free' );
+		$this->assertSame( 'unset', $data['telemetryConsent'] );
+		$this->assertTrue( $data['telemetryAvailable'] );
+	}
+
+	public function test_consent_card_is_not_offered_to_users_who_cannot_save_it(): void {
+		$data = $this->render_and_capture_payload( 'free', false );
+		$this->assertFalse( $data['telemetryAvailable'] );
 	}
 }

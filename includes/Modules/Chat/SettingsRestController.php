@@ -15,7 +15,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use Plume\Providers\ManagedCatalogue;
 use Plume\Providers\ProviderFactory;
+use Plume\Proxy\ProxyClient;
 use Plume\Settings\ProviderSettings;
+use Plume\Telemetry\Consent;
+use Plume\Telemetry\Telemetry;
 use Plume\Tiers\TierManager;
 use Plume\Voice\SiteVoice;
 
@@ -66,6 +69,7 @@ class SettingsRestController {
 	 * anything other than free, and `managed_providers` (string[]|null), the providers
 	 * the Plume service serves for this tier (null on pro_byok).
 	 *
+	 * @since NEXT_VERSION Adds `telemetry_consent` and `telemetry_available`.
 	 * @param \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response
 	 */
@@ -92,11 +96,15 @@ class SettingsRestController {
 			'allowed_post_types'   => \get_option( 'plume_allowed_post_types', [ 'post', 'page' ] ),
 			'available_post_types' => $this->get_public_post_types(),
 			'enable_write_tools'   => (bool) \get_option( 'plume_enable_write_tools', true ),
+			'share_usage_stats'    => ProxyClient::shares_usage_stats(),
 			// Note: intentionally snake_case to match WP REST convention; JS reads this as `settings.is_paid`.
 			'is_paid'              => TierManager::is_paid(),
 			// Providers the Plume service serves; null on pro_byok (no restriction). The
 			// settings screen disables the others unless the site has its own key.
 			'managed_providers'    => 'pro_byok' === $tier ? null : ManagedCatalogue::get( $tier )['enabled_providers'],
+			// Usage sharing: 'unset', 'yes' or 'no', and whether it can be turned on here.
+			'telemetry_consent'    => Consent::get(),
+			'telemetry_available'  => Telemetry::is_available(),
 		];
 
 		return rest_ensure_response( $data );
@@ -107,6 +115,7 @@ class SettingsRestController {
 	/**
 	 * Saves plugin settings from the request body.
 	 *
+	 * @since NEXT_VERSION Accepts `telemetry_consent` ('yes' or 'no') and `telemetry_source`.
 	 * @param \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
@@ -170,10 +179,44 @@ class SettingsRestController {
 		}
 
 		if ( isset( $params['enable_write_tools'] ) ) {
-			\update_option( 'plume_enable_write_tools', (bool) $params['enable_write_tools'] );
+			\update_option( 'plume_enable_write_tools', rest_sanitize_boolean( $params['enable_write_tools'] ) );
 		}
 
+		if ( isset( $params['share_usage_stats'] ) ) {
+			// Stored as 1/0, not true/false: on sites where the option was never saved,
+			// get_option() returns false, so update_option( ..., false ) would return
+			// early without writing and the opt-out would silently not take effect.
+			\update_option( ProxyClient::OPTION_SHARE_USAGE_STATS, rest_sanitize_boolean( $params['share_usage_stats'] ) ? 1 : 0 );
+		}
+
+		$this->save_telemetry_consent( $request );
+
 		return rest_ensure_response( [ 'saved' => true ] );
+	}
+
+	/**
+	 * Apply a usage-sharing choice from the request.
+	 *
+	 * Withdrawal ('no') is always accepted, even where telemetry is not available, so
+	 * a site can always delete its install ID. 'yes' is accepted only where available.
+	 * Any other value is ignored.
+	 *
+	 * @param \WP_REST_Request $request Incoming REST request.
+	 * @return void
+	 */
+	private function save_telemetry_consent( \WP_REST_Request $request ): void {
+		$consent = $request->get_param( 'telemetry_consent' );
+		if ( ! is_string( $consent ) ) {
+			return;
+		}
+		$source = $request->get_param( 'telemetry_source' );
+		$source = is_string( $source ) && in_array( $source, Consent::SOURCES, true ) ? $source : 'settings';
+
+		if ( Consent::NO === $consent ) {
+			Consent::set( Consent::NO, $source );
+		} elseif ( Consent::YES === $consent && Telemetry::is_available() ) {
+			Consent::set( Consent::YES, $source );
+		}
 	}
 
 	// ── Permission callback ───────────────────────────────────────────────────

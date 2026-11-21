@@ -1,6 +1,7 @@
 import { useState } from '@wordpress/element';
 import { ToggleControl, CheckboxControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import UsageSharingDetails from '../../shared/UsageSharingDetails';
 
 const MODULES = [
 	{
@@ -66,8 +67,11 @@ const MODULES = [
  *
  * Every module is available on every tier — credit exhaustion is enforced
  * by the Worker, not a PHP/JS-side feature gate, so no card is ever locked.
- * Post-type changes and the write-tools toggle are persisted immediately
- * on change.
+ * Post-type changes, the write-tools toggle, the usage-statistics toggle and
+ * the usage-sharing toggle are persisted immediately on change.
+ *
+ * Usage sharing can only be turned on where the server reports it available,
+ * but a site that already shares can always turn it off.
  *
  * @param {Object}   props
  * @param {Object}   props.settings      Full settings object from the REST API.
@@ -85,6 +89,9 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 	);
 	const [ enableWriteTools, setEnableWriteTools ] = useState(
 		settings?.enable_write_tools ?? false
+	);
+	const [ shareUsageStats, setShareUsageStats ] = useState(
+		settings?.share_usage_stats ?? true
 	);
 
 	function handleToggle( slug ) {
@@ -107,6 +114,22 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 	function handleWriteToolsChange( val ) {
 		setEnableWriteTools( val );
 		saveSettings( { enable_write_tools: val } );
+	}
+
+	function handleShareUsageStatsChange( val ) {
+		setShareUsageStats( val );
+		saveSettings( { share_usage_stats: val } );
+	}
+
+	const [ telemetryConsent, setTelemetryConsent ] = useState(
+		settings?.telemetry_consent ?? 'unset'
+	);
+	const telemetryAvailable = !! settings?.telemetry_available;
+
+	function handleTelemetryChange( on ) {
+		const value = on ? 'yes' : 'no';
+		setTelemetryConsent( value );
+		saveSettings( { telemetry_consent: value } );
 	}
 
 	return (
@@ -208,6 +231,64 @@ export default function FeaturesTab( { settings, saveSettings } ) {
 						__nextHasNoMarginBottom
 					/>
 				</div>
+			</section>
+
+			<section className="plume-settings-section">
+				<div className="plume-settings-section-header">
+					<h3 className="plume-settings-section-title">
+						{ __( 'Usage Statistics', 'plume' ) }
+					</h3>
+				</div>
+
+				<ToggleControl
+					label={ __(
+						'Share usage statistics with the Plume managed service',
+						'plume'
+					) }
+					help={ __(
+						'Applies only when you use the Plume managed service (no API key of your own). For each request and registration, the service records your site domain, plan, feature, AI provider and model, token counts, credits used, response time and whether it succeeded. Prompts and responses are never included. Turn this off to stop recording these statistics from now on; credit counting continues, so your plan limits still apply.',
+						'plume'
+					) }
+					checked={ shareUsageStats }
+					onChange={ handleShareUsageStatsChange }
+					__nextHasNoMarginBottom
+				/>
+			</section>
+
+			<section className="plume-settings-section">
+				<div className="plume-settings-section-header">
+					<h3 className="plume-settings-section-title">
+						{ __( 'Usage sharing', 'plume' ) }
+					</h3>
+					<p className="plume-settings-section-desc">
+						{ __(
+							'Help improve Plume by sharing anonymous usage statistics. Off unless you turn it on.',
+							'plume'
+						) }
+					</p>
+				</div>
+
+				<ToggleControl
+					label={ __( 'Share anonymous usage statistics', 'plume' ) }
+					help={
+						! telemetryAvailable && telemetryConsent !== 'yes'
+							? __(
+									'Usage sharing is turned off on this site.',
+									'plume'
+								)
+							: __(
+									'Turning this off stops sending and deletes this site’s random install ID.',
+									'plume'
+								)
+					}
+					checked={ telemetryConsent === 'yes' }
+					onChange={ handleTelemetryChange }
+					disabled={
+						! telemetryAvailable && telemetryConsent !== 'yes'
+					}
+					__nextHasNoMarginBottom
+				/>
+				<UsageSharingDetails />
 			</section>
 		</div>
 	);

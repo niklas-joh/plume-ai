@@ -4,6 +4,26 @@ export interface Env {
 	USAGE_KV: KVNamespace;
 	/** Workers Analytics Engine dataset for usage metrics. Optional: absent binding disables metrics. @since NEXT_VERSION */
 	PLUME_METRICS?: AnalyticsEngineDataset;
+	/**
+	 * Workers Analytics Engine dataset for opt-in plugin usage events (`/v1/events`).
+	 * Optional: an absent binding keeps the endpoint answering 202 while writing nothing.
+	 * Never joined to PLUME_METRICS.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	PLUME_EVENTS?: AnalyticsEngineDataset;
+	/**
+	 * Rate limiter for `/v1/events`, keyed on the client IP. Optional: absent or failing means allow.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	EVENTS_IP_LIMITER?: RateLimit;
+	/**
+	 * Rate limiter for `/v1/events`, keyed on the install ID. Optional: absent or failing means allow.
+	 *
+	 * @since NEXT_VERSION
+	 */
+	EVENTS_INSTALL_LIMITER?: RateLimit;
 	ANTHROPIC_API_KEY: string;
 	OPENAI_API_KEY: string;
 	GEMINI_API_KEY: string;

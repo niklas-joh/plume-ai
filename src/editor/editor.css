@@ -141,11 +141,6 @@
 	background: var(--wp-admin-theme-color-darker-10);
 }
 
-/* Spinning animation for Loader2 icon — keyframe defined in styles/animations.css */
-.plume-spin {
-	animation: plume-spin 1s linear infinite;
-}
-
 /* ── Block Actions ──────────────────────────────────────────────────── */
 .plume-block-actions__empty {
 	color: var(--color-text-muted);

@@ -10,7 +10,9 @@ use Plume\Modules\Chat\ChatRestController;
 use Plume\Tools\ToolRegistry;
 use Plume\Tools\ToolExecutor;
 use Plume\Providers\CompletionResponse;
+use Plume\Tests\Helpers\TelemetryHarness;
 use Plume\Tests\Helpers\WpdbStubFactory;
+use Plume\Telemetry\Telemetry;
 use PHPUnit\Framework\TestCase;
 
 class ChatRestControllerTest extends TestCase {
@@ -21,6 +23,8 @@ class ChatRestControllerTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        // Reply rows get a display name for their model id (ModelLabels).
+        Functions\when( 'sanitize_text_field' )->alias( fn( $v ) => $v );
         $this->tool_registry = $this->createMock( ToolRegistry::class );
         $this->tool_executor = $this->createMock( ToolExecutor::class );
         // Ensure a valid $wpdb stub is always present — other test classes (e.g.
@@ -32,6 +36,7 @@ class ChatRestControllerTest extends TestCase {
     protected function tearDown(): void {
         global $wpdb;
         $wpdb = WpdbStubFactory::create(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+        Telemetry::reset();
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -529,6 +534,28 @@ class ChatRestControllerTest extends TestCase {
         $this->assertSame( [ [ 'content' => 'Hi' ] ], $response->data );
     }
 
+    public function test_get_messages_adds_model_label_to_assistant_rows(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [
+            [ 'role' => 'user', 'content' => 'Hi', 'model' => null ],
+            [ 'role' => 'assistant', 'content' => 'Hello', 'model' => 'gpt-6-luna-2026-04-14' ],
+        ] );
+
+        $controller = $this->make_controller_with_store( $store_mock );
+
+        $request = new \WP_REST_Request( 'GET' );
+        $request->set_url_params( [ 'id' => '42' ] );
+
+        $rows = $controller->get_messages( $request )->data;
+
+        $this->assertArrayNotHasKey( 'model_label', $rows[0], 'User rows have no model.' );
+        $this->assertSame( 'GPT-6 Luna', $rows[1]['model_label'] );
+        $this->assertSame( 'gpt-6-luna-2026-04-14', $rows[1]['model'], 'The raw id stays for compatibility.' );
+    }
+
     // ── Tool loop ──────────────────────────────────────────────────────────────
 
     public function test_send_message_tool_loop_executes_tool_and_returns_final(): void {
@@ -609,6 +636,7 @@ class ChatRestControllerTest extends TestCase {
         $this->assertInstanceOf( \WP_REST_Response::class, $response );
         $this->assertSame( 200, $response->get_status() );
         $this->assertSame( 'Final answer', $response->data['content'] );
+        $this->assertSame( 'Claude 3.5 Sonnet', $response->data['model_label'] );
         // Usage is summed across both loop iterations (10+20, 5+15), not just the final call.
         $this->assertSame( 30, $response->data['prompt_tokens'] );
         $this->assertSame( 20, $response->data['completion_tokens'] );
@@ -1229,6 +1257,85 @@ class ChatRestControllerTest extends TestCase {
 
         // System prompt must not contain post title — no privilege escalation.
         $this->assertStringNotContainsString( 'Private Post', $captured_system ?? '' );
+    }
+
+    public function test_all_iterations_of_one_turn_share_a_turn_id(): void {
+        $h = TelemetryHarness::install( [ 'plume_default_provider' => 'claude' ] );
+        $h->consent_yes();
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [ [ 'role' => 'user', 'content' => 'Hello' ] ] );
+        $store_mock->method( 'add_message' )->willReturn( 1 );
+
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+        $this->tool_executor->method( 'execute' )->willReturn( [ 'posts' => [] ] );
+
+        $responses = [
+            new CompletionResponse( '', 'claude-sonnet-4-6', 1, 1, [ 'content' => [] ], [ 'id' => 'tc_1', 'name' => 'get_recent_posts', 'arguments' => [] ] ),
+            new CompletionResponse( 'Final answer', 'claude-sonnet-4-6', 1, 1 ),
+        ];
+        $requests      = [];
+        $provider_mock = $this->createMock( \Plume\Providers\ProviderInterface::class );
+        $provider_mock->method( 'is_available' )->willReturn( true );
+        $provider_mock->method( 'supports_tools' )->willReturn( true );
+        $provider_mock->method( 'complete' )->willReturnCallback(
+            function ( $req ) use ( &$requests, &$responses ) {
+                $requests[] = $req;
+                return array_shift( $responses );
+            }
+        );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
+        $factory_mock->method( 'make' )->willReturn( $provider_mock );
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '42' ] );
+        $request->set_body_params( [ 'content' => 'Hello', 'provider' => 'claude', 'model' => '' ] );
+        $this->make_controller( $store_mock, $factory_mock, $voice_mock )->send_message( $request );
+
+        $this->assertCount( 2, $requests );
+        $turn_id = $requests[0]->metadata['turn_id'];
+        $this->assertNotSame( '', $turn_id );
+        $this->assertSame( $turn_id, $requests[1]->metadata['turn_id'] );
+        $this->assertSame( 'chat', $requests[1]->metadata['feature'] );
+    }
+
+    public function test_send_message_returns_the_wp_error_code_for_a_network_failure(): void {
+        // S11: own-key network failures now carry the WP HTTP API code instead of
+        // falling back to the generic provider_error.
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_textarea_field' )->alias( fn( $v ) => $v );
+        Functions\when( 'get_option' )->justReturn( 'claude' );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+        Functions\when( 'is_wp_error' )->alias( fn( $v ) => $v instanceof \WP_Error );
+        Functions\when( 'wp_remote_post' )->justReturn( new \WP_Error( 'http_request_failed', 'cURL error 7: Failed to connect' ) );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'esc_html__' )->returnArg();
+
+        $store_mock = $this->createMock( \Plume\DB\ConversationStore::class );
+        $store_mock->method( 'get_conversation' )->willReturn( [ 'user_id' => 1 ] );
+        $store_mock->method( 'get_messages' )->willReturn( [] );
+        $this->tool_registry->method( 'get_for_provider' )->willReturn( [] );
+
+        $factory_mock = $this->createMock( \Plume\Providers\ProviderFactory::class );
+        $factory_mock->method( 'resolve_text_slug' )->willReturnArgument( 0 );
+        $factory_mock->method( 'make' )->willReturn( new \Plume\Providers\ClaudeProvider( 'sk-ant-test' ) );
+        $voice_mock = $this->createMock( \Plume\Voice\VoiceInjector::class );
+        $voice_mock->method( 'build_system_prompt' )->willReturn( '' );
+
+        $request = new \WP_REST_Request( 'POST' );
+        $request->set_url_params( [ 'id' => '12' ] );
+        $request->set_body_params( [ 'content' => 'Hi', 'provider' => 'claude', 'model' => '' ] );
+        $response = $this->make_controller( $store_mock, $factory_mock, $voice_mock )->send_message( $request );
+
+        $this->assertInstanceOf( \WP_REST_Response::class, $response );
+        $this->assertSame( 'http_request_failed', $response->data['code'] );
     }
 
     private function make_controller(
@@ -2935,6 +3042,17 @@ class ChatRestControllerTest extends TestCase {
 
         $this->assertSame( [ 'claude', 'ollama' ], array_keys( $listed ) );
         $this->assertSame( [ 'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5' ], $listed['claude']['models'] );
+    }
+
+    public function test_list_providers_gives_ollama_a_readable_model_name_not_the_raw_tag(): void {
+        $this->stub_catalogue( [ 'claude' ], [ 'claude' => [ 'claude-haiku-4-5-20251001' ] ] );
+
+        $listed = $this->listed_providers( [] );
+
+        $tag = ( new \Plume\Providers\OllamaProvider() )->get_default_model();
+        $this->assertSame( [ $tag ], array_keys( $listed['ollama']['models'] ) );
+        $this->assertSame( \Plume\Providers\ModelLabels::for_id( $tag ), $listed['ollama']['models'][ $tag ] );
+        $this->assertNotSame( $tag, $listed['ollama']['models'][ $tag ] );
     }
 
     public function test_list_providers_includes_a_provider_with_an_own_key_and_its_own_models(): void {

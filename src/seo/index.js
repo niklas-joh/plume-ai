@@ -2,6 +2,7 @@ import { render } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import SeoApp from './SeoApp';
 import '../styles/tokens.css';
+import '../styles/animations.css';
 import './seo.css';
 
 const { nonce } = window.plumeData ?? {};

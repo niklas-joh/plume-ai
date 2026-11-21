@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Labels live here rather than on the provider classes because a managed-only
  * model may be deliberately absent from a provider's own model list, which only
  * offers models usable with the user's own key. The Worker
- * sends no display names; unknown ids are shown as the raw id by the caller.
+ * sends no display names; ModelLabels turns any other id into a readable name.
  *
  * @since 2.0.0
  * @since 2.1.0 Live values come from ManagedCatalogue, which also caches the
@@ -132,6 +132,16 @@ final class ManagedDefaults {
 	 */
 	public static function label( string $model_id ): ?string {
 		return self::LABELS[ $model_id ] ?? null;
+	}
+
+	/**
+	 * Return every managed model id with its display label.
+	 *
+	 * @since 2.2.0
+	 * @return array<string, string> Model id => label.
+	 */
+	public static function labels(): array {
+		return self::LABELS;
 	}
 
 	/**

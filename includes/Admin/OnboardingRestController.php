@@ -11,6 +11,7 @@ namespace Plume\Admin;
 use Plume\Providers\ProviderFactory;
 use Plume\Proxy\SiteRegistration;
 use Plume\Settings\ProviderSettings;
+use Plume\Telemetry\Telemetry;
 use Plume\Tiers\TierManager;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -71,6 +72,12 @@ class OnboardingRestController {
 						'sanitize_callback' => 'sanitize_text_field',
 						'enum'              => [ 'openai', 'gemini' ],
 					],
+					'route'          => [
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_key',
+						'enum'              => [ 'managed', 'own_key', 'skipped', 'upgrade' ],
+					],
 				],
 			]
 		);
@@ -90,6 +97,7 @@ class OnboardingRestController {
 	 *
 	 * @since 1.0.0
 	 * @since 1.12.0 Removed the own_api_key tier gate.
+	 * @since NEXT_VERSION Optional `route` param records the opt-in `onboarding_done` event.
 	 * @param WP_REST_Request $request Incoming REST request.
 	 * @return WP_REST_Response|\WP_Error 200 on success (with `registered` bool).
 	 */
@@ -98,6 +106,12 @@ class OnboardingRestController {
 
 		if ( true === $seen ) {
 			update_option( 'plume_onboarding_seen', true );
+			$route = $request->get_param( 'route' );
+			if ( is_string( $route ) && '' !== $route ) {
+				// Only queued (no-op without consent): sent later by cron, never next to
+				// the registration call below.
+				Telemetry::record( 'onboarding_done', [ 'route' => $route ] );
+			}
 		} elseif ( false === $seen ) {
 			delete_option( 'plume_onboarding_seen' );
 		}

@@ -17,11 +17,13 @@ import {
 import { authenticateRequest, generateToken } from './auth';
 import { handleActivationChallenge, handleRegistration } from './registration';
 import { handleWebhook } from './webhook';
+import { handleEvents } from './events';
 import {
 	buildChatDataPoint,
 	errorCodeFromThrown,
 	newChatMetric,
 	recordMetric,
+	statsOptedOut,
 	siteKeyFromUrl,
 	type ChatMetric,
 } from './metrics';
@@ -740,6 +742,13 @@ export default {
 			return handleChatProxy( request, env );
 		}
 
+		if ( pathname === '/v1/events' ) {
+			if ( request.method !== 'POST' ) {
+				return jsonResponse( { error: 'Method not allowed' }, 405 );
+			}
+			return handleEvents( request, env );
+		}
+
 		if ( pathname === '/v1/config' ) {
 			if ( request.method !== 'GET' ) {
 				return jsonResponse( { error: 'Method not allowed' }, 405 );
@@ -1127,13 +1136,15 @@ async function handleChatProxy(
 ): Promise< Response > {
 	const metric = newChatMetric();
 	const response = await handleChatProxyInner( request, env, metric );
-	recordMetric( env, () =>
-		buildChatDataPoint( {
-			...metric,
-			status: response.status,
-			latencyMs: Date.now() - metric.startedAt,
-		} )
-	);
+	if ( ! statsOptedOut( request ) ) {
+		recordMetric( env, () =>
+			buildChatDataPoint( {
+				...metric,
+				status: response.status,
+				latencyMs: Date.now() - metric.startedAt,
+			} )
+		);
+	}
 	return response;
 }
 
@@ -1370,7 +1381,12 @@ async function handleChatProxyInner(
 				503
 			);
 		}
-		return jsonResponse( { error: 'Internal proxy error' }, 500 );
+		// `code` lets the plugin tell a genuine Worker fault apart from a legacy
+		// Worker's code-less 500, which it still treats as a provider outage.
+		return jsonResponse(
+			{ error: 'Internal proxy error', code: 'internal_error' },
+			500
+		);
 	}
 }
 

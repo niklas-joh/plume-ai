@@ -1,5 +1,6 @@
 import { CircleSlash } from 'lucide-react';
 import { __ } from '@wordpress/i18n';
+import { recordUpgradeClick, withUtm } from './telemetry';
 import './out-of-credits.css';
 
 /**
@@ -17,18 +18,27 @@ import './out-of-credits.css';
  * users without `manage_options`, and the link is then left out rather than
  * sending them to a "not allowed" page.
  *
+ * The pricing link carries UTM tags naming the screen, and a click records an
+ * opt-in `upgrade_click` event (queued by the server only with consent).
+ *
  * @param {Object} props
  * @param {string} props.websiteUrl    Base marketing-site URL (no trailing slash) used to build the pricing link.
+ * @param {string} props.screen        Screen showing the notice: `'chat'`, `'editor'`, `'images'`, `'generator'` or `'seo'`.
  * @param {string} [props.settingsUrl] Plume settings URL; when non-empty, adds the "use your own API key" link.
  * @return {ReactElement}
  *
  * @example
  * <OutOfCreditsNotice
  *     websiteUrl="https://wpaimind.com"
+ *     screen="chat"
  *     settingsUrl={ window.plumeData?.settingsUrl }
  * />
  */
-export default function OutOfCreditsNotice( { websiteUrl, settingsUrl = '' } ) {
+export default function OutOfCreditsNotice( {
+	websiteUrl,
+	screen,
+	settingsUrl = '',
+} ) {
 	return (
 		<div className="plume-out-of-credits-banner">
 			<CircleSlash size={ 18 } />
@@ -45,8 +55,15 @@ export default function OutOfCreditsNotice( { websiteUrl, settingsUrl = '' } ) {
 					</a>
 				) }
 				<a
-					href={ `${ websiteUrl }/pricing` }
+					href={ withUtm(
+						`${ websiteUrl }/pricing`,
+						screen,
+						'out_of_credits'
+					) }
 					className="button button-primary"
+					onClick={ () =>
+						recordUpgradeClick( 'out_of_credits', screen )
+					}
 				>
 					{ __( 'Get more credits →', 'plume' ) }
 				</a>

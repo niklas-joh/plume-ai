@@ -6,6 +6,7 @@ namespace Plume\Tests\Unit\Proxy;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
+use Plume\Proxy\ProxyClient;
 use Plume\Proxy\SiteRegistration;
 
 class SiteRegistrationTest extends TestCase {
@@ -109,6 +110,8 @@ class SiteRegistrationTest extends TestCase {
 
 		// Challenge fetch succeeds.
 		Functions\when( 'wp_remote_get' )->justReturn( [] );
+		// register() reads the usage-statistics opt-out before posting to /register.
+		Functions\when( 'get_option' )->alias( fn( $key, $fallback = false ) => $fallback );
 		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '{"challenge":"' . $challenge . '"}' );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'set_transient' )->justReturn( true );
@@ -131,6 +134,8 @@ class SiteRegistrationTest extends TestCase {
 		$challenge = str_repeat( 'b', 64 );
 
 		Functions\when( 'wp_remote_get' )->justReturn( [] );
+		// register() reads the usage-statistics opt-out before posting to /register.
+		Functions\when( 'get_option' )->alias( fn( $key, $fallback = false ) => $fallback );
 		Functions\when( 'wp_remote_post' )->justReturn( [] );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		// First body call returns the challenge, second returns the registration failure.
@@ -188,6 +193,8 @@ class SiteRegistrationTest extends TestCase {
 		$challenge = str_repeat( 'a', 64 );
 
 		Functions\when( 'wp_remote_get' )->justReturn( [] );
+		// register() reads the usage-statistics opt-out before posting to /register.
+		Functions\when( 'get_option' )->alias( fn( $key, $fallback = false ) => $fallback );
 		Functions\when( 'wp_remote_post' )->justReturn( [] );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		Functions\when( 'wp_remote_retrieve_body' )->alias(
@@ -245,6 +252,8 @@ class SiteRegistrationTest extends TestCase {
 		$challenge = str_repeat( 'b', 64 );
 
 		Functions\when( 'wp_remote_get' )->justReturn( [] );
+		// register() reads the usage-statistics opt-out before posting to /register.
+		Functions\when( 'get_option' )->alias( fn( $key, $fallback = false ) => $fallback );
 		Functions\when( 'wp_remote_post' )->justReturn( [] );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		Functions\when( 'wp_remote_retrieve_body' )->alias(
@@ -505,6 +514,8 @@ class SiteRegistrationTest extends TestCase {
 		$token     = str_repeat( 'b', 64 );
 
 		Functions\when( 'wp_remote_get' )->justReturn( [] );
+		// register() reads the usage-statistics opt-out before posting to /register.
+		Functions\when( 'get_option' )->alias( fn( $key, $fallback = false ) => $fallback );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		Functions\when( 'wp_remote_post' )->justReturn( [] );
 
@@ -604,5 +615,68 @@ class SiteRegistrationTest extends TestCase {
 		$this->assertSame( $secret, $result );
 		$this->assertSame( $secret, $captured[ SiteRegistration::OPTION_SECRET ] );
 		$this->assertSame( 'pro_managed', $captured['plume_site_tier'] );
+	}
+
+	// ── register() — usage-statistics opt-out (#1015) ───────────────────────────
+
+	/**
+	 * Run a successful register() with the given stored opt-out value and return
+	 * the headers sent to /register.
+	 *
+	 * @param mixed $share Stored value of the opt-out option, or null when unset.
+	 * @return array<string, string>
+	 */
+	private function register_headers_with_share_option( mixed $share ): array {
+		$sent = [];
+		Functions\when( 'wp_remote_get' )->justReturn( [] );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_post' )->alias(
+			function ( $url, $args ) use ( &$sent ) {
+				$sent = $args;
+				return [];
+			}
+		);
+		$call = 0;
+		Functions\when( 'wp_remote_retrieve_response_code' )->alias(
+			function () use ( &$call ): int {
+				return 1 === ++$call ? 200 : 201;
+			}
+		);
+		$body_call = 0;
+		Functions\when( 'wp_remote_retrieve_body' )->alias(
+			function () use ( &$body_call ): string {
+				return 1 === ++$body_call
+					? '{"challenge":"' . str_repeat( 'c', 64 ) . '"}'
+					: '{"token":"' . str_repeat( 'd', 64 ) . '"}';
+			}
+		);
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'home_url' )->justReturn( 'https://mysite.example.com' );
+		Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $fallback = false ) => ProxyClient::OPTION_SHARE_USAGE_STATS === $key && null !== $share ? $share : $fallback
+		);
+
+		SiteRegistration::register();
+
+		return $sent['headers'];
+	}
+
+	public function test_register_sends_no_stats_header_when_site_opted_out(): void {
+		$headers = $this->register_headers_with_share_option( '' );
+
+		$this->assertSame( '1', $headers['X-Plume-No-Stats'] ?? null );
+		$this->assertSame( 'application/json', $headers['Content-Type'] );
+	}
+
+	public function test_register_omits_no_stats_header_when_sharing_is_on(): void {
+		$this->assertArrayNotHasKey( 'X-Plume-No-Stats', $this->register_headers_with_share_option( '1' ) );
+	}
+
+	public function test_register_omits_no_stats_header_when_option_never_saved(): void {
+		$this->assertArrayNotHasKey( 'X-Plume-No-Stats', $this->register_headers_with_share_option( null ) );
 	}
 }

@@ -81,7 +81,7 @@ class UsageWidget {
 		$tier    = $usage['tier'];
 
 		$tier_labels = TierConfig::get_tier_labels();
-		$tier_label  = $tier_labels[ $tier ] ?? ucwords( str_replace( '_', ' ', $tier ) );
+		$tier_label  = $tier_labels[ $tier ] ?? TierConfig::tier_label( $tier );
 
 		echo '<div class="plume-usage-widget">';
 		echo '<p><strong>' . esc_html( $tier_label ) . ' ' . esc_html__( 'Plan', 'plume' ) . '</strong></p>';

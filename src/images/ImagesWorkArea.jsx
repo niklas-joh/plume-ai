@@ -297,7 +297,9 @@ export default function ImagesWorkArea( { post, onClose, onUpdate } ) {
 				</div>
 			) }
 
-			{ outOfCredits && <OutOfCreditsNotice websiteUrl={ websiteUrl } /> }
+			{ outOfCredits && (
+				<OutOfCreditsNotice websiteUrl={ websiteUrl } screen="images" />
+			) }
 			{ error && <p className="plume-work-error">{ error }</p> }
 
 			<div className="plume-work-actions">

@@ -7,6 +7,9 @@ namespace Plume\Tests\Unit\Modules\Chat;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Plume\Modules\Chat\SettingsRestController;
+use Plume\Telemetry\Telemetry;
+use Plume\Tests\Helpers\TelemetryHarness;
+use Brain\Monkey\Filters;
 use PHPUnit\Framework\TestCase;
 
 class SettingsRestControllerTest extends TestCase {
@@ -17,8 +20,10 @@ class SettingsRestControllerTest extends TestCase {
         Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $default );
         // get_settings() reads the managed catalogue; a miss on an unregistered site uses the fallback.
         Functions\when( 'get_transient' )->justReturn( false );
+        // get_settings() reports Telemetry::is_available(), which reads the environment type.
+        Functions\when( 'wp_get_environment_type' )->justReturn( 'production' );
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { Telemetry::reset(); Monkey\tearDown(); parent::tearDown(); }
 
     // ── Route registration ────────────────────────────────────────────────────
 
@@ -388,7 +393,24 @@ class SettingsRestControllerTest extends TestCase {
         $this->assertSame( [ 'post', 'page' ], $stored['plume_allowed_post_types'] );
     }
 
-    public function test_post_settings_saves_enable_write_tools(): void {
+    /**
+     * String booleans from form-encoded or hand-written REST calls must not
+     * enable write tools (#1077).
+     */
+    public static function enable_write_tools_provider(): array {
+        return [
+            'bool true'    => [ true, true ],
+            'bool false'   => [ false, false ],
+            'string false' => [ 'false', false ],
+            'string 0'     => [ '0', false ],
+            'string true'  => [ 'true', true ],
+        ];
+    }
+
+    /**
+     * @dataProvider enable_write_tools_provider
+     */
+    public function test_post_settings_saves_enable_write_tools( $input, bool $expected ): void {
         $stored = [];
         Functions\when( 'update_option' )->alias( function( $k, $v ) use ( &$stored ) {
             $stored[ $k ] = $v;
@@ -409,12 +431,13 @@ class SettingsRestControllerTest extends TestCase {
         };
 
         $request = new \WP_REST_Request();
-        $request->set_body_params( [ 'enable_write_tools' => true ] );
+        $this->stub_rest_sanitize_boolean();
+        $request->set_body_params( [ 'enable_write_tools' => $input ] );
 
         $controller->save_settings( $request );
 
         $this->assertArrayHasKey( 'plume_enable_write_tools', $stored );
-        $this->assertTrue( $stored['plume_enable_write_tools'] );
+        $this->assertSame( $expected, $stored['plume_enable_write_tools'] );
     }
 
     // ── GET /settings — is_paid field ─────────────────────────────────────────
@@ -706,5 +729,185 @@ class SettingsRestControllerTest extends TestCase {
         $this->post_voice( $this->make_voice_controller(), [ 'site_voice' => "One\nTwo" ] );
 
         $this->assertSame( "One\nTwo", $stored['plume_site_voice']['extra'] );
+    }
+
+    // ── Usage sharing (telemetry_consent) ─────────────────────────────────────
+
+    private function stub_provider_settings_controller(): SettingsRestController {
+        return new class extends SettingsRestController {
+            protected function make_provider_settings(): \Plume\Settings\ProviderSettings {
+                return new class extends \Plume\Settings\ProviderSettings {
+                    public function __construct() {}
+                    public function has_key( string $provider ): bool { return false; }
+                    public function get_api_key( string $provider ): string { return ''; }
+                };
+            }
+        };
+    }
+
+    private function save_consent( array $params ): void {
+        Functions\when( 'get_post_types' )->justReturn( [] );
+        $request = new \WP_REST_Request();
+        $request->set_body_params( $params );
+        $this->stub_provider_settings_controller()->save_settings( $request );
+    }
+
+    public function test_get_settings_includes_telemetry_keys(): void {
+        $data = $this->get_settings_for_tier( 'free' );
+        $this->assertSame( 'unset', $data['telemetry_consent'] );
+        $this->assertTrue( $data['telemetry_available'] );
+    }
+
+    public function test_get_settings_reports_unavailable_on_a_local_site_using_the_production_worker(): void {
+        Functions\when( 'wp_get_environment_type' )->justReturn( 'local' );
+        $this->assertFalse( $this->get_settings_for_tier( 'free' )['telemetry_available'] );
+    }
+
+    public function test_yes_from_onboarding_passes_its_source(): void {
+        $h = TelemetryHarness::install();
+        $this->save_consent( [ 'telemetry_consent' => 'yes', 'telemetry_source' => 'onboarding' ] );
+
+        $this->assertSame( 'yes', $h->options[ Telemetry::OPTION_CONSENT ] );
+        $queue = $h->flush();
+        $this->assertSame( 'consent_given', $queue[0]['name'] );
+        $this->assertSame( 'onboarding', $queue[0]['source'] );
+    }
+
+    public function test_yes_with_an_unknown_source_falls_back_to_settings(): void {
+        $h = TelemetryHarness::install();
+        $this->save_consent( [ 'telemetry_consent' => 'yes', 'telemetry_source' => 'email' ] );
+        $this->assertSame( 'settings', $h->flush()[0]['source'] );
+    }
+
+    public function test_no_withdraws_and_deletes_the_install_id(): void {
+        $h = TelemetryHarness::install();
+        $h->consent_yes();
+        $this->save_consent( [ 'telemetry_consent' => 'no' ] );
+        $this->assertSame( 'no', $h->options[ Telemetry::OPTION_CONSENT ] );
+        $this->assertArrayNotHasKey( Telemetry::OPTION_INSTALL_ID, $h->options );
+    }
+
+    public function test_no_is_accepted_while_unavailable(): void {
+        $h = TelemetryHarness::install(
+            [
+                Telemetry::OPTION_CONSENT    => 'yes',
+                Telemetry::OPTION_INSTALL_ID => TelemetryHarness::INSTALL_ID,
+            ]
+        );
+        Filters\expectApplied( 'plume_telemetry_enabled' )->andReturn( false );
+        $this->save_consent( [ 'telemetry_consent' => 'no' ] );
+        $this->assertSame( 'no', $h->options[ Telemetry::OPTION_CONSENT ] );
+        $this->assertArrayNotHasKey( Telemetry::OPTION_INSTALL_ID, $h->options );
+    }
+
+    public function test_yes_is_ignored_while_unavailable(): void {
+        $h = TelemetryHarness::install( [], 'development' );
+        $this->save_consent( [ 'telemetry_consent' => 'yes' ] );
+        $this->assertArrayNotHasKey( Telemetry::OPTION_CONSENT, $h->options );
+        $this->assertArrayNotHasKey( Telemetry::OPTION_INSTALL_ID, $h->options );
+    }
+
+    public function test_invalid_consent_values_are_ignored(): void {
+        $h = TelemetryHarness::install();
+        $this->save_consent( [ 'telemetry_consent' => 'unset' ] );
+        $this->save_consent( [ 'telemetry_consent' => true ] );
+        $this->save_consent( [ 'telemetry_consent' => [ 'yes' ] ] );
+        $this->assertArrayNotHasKey( Telemetry::OPTION_CONSENT, $h->options );
+    }
+
+    // ── share_usage_stats: managed-service statistics opt-out (#1015) ─────────
+
+    private function stub_rest_sanitize_boolean(): void {
+        // Mirrors core: the strings 'false' and '0' are false, everything else is cast.
+        Functions\when( 'rest_sanitize_boolean' )->alias(
+            fn( $v ) => is_string( $v ) && in_array( strtolower( $v ), [ 'false', '0', '' ], true ) ? false : (bool) $v
+        );
+    }
+
+    public function test_get_settings_share_usage_stats_defaults_to_true(): void {
+        $stored = [];
+        $this->stub_voice_options( $stored );
+
+        $data = $this->make_voice_controller()->get_settings( new \WP_REST_Request() )->data;
+
+        $this->assertTrue( $data['share_usage_stats'] );
+    }
+
+    /**
+     * @dataProvider share_usage_stats_inputs
+     * @param mixed $input    Posted value.
+     * @param bool  $expected Value stored and read back.
+     */
+    public function test_save_then_get_round_trips_share_usage_stats( $input, bool $expected ): void {
+        $stored = [];
+        $this->stub_voice_options( $stored );
+        $this->stub_rest_sanitize_boolean();
+        $controller = $this->make_voice_controller();
+
+        $this->post_voice( $controller, [ 'share_usage_stats' => $input ] );
+
+        $this->assertSame( $expected ? 1 : 0, $stored['plume_share_usage_stats'] );
+        $this->assertSame( $expected, $controller->get_settings( new \WP_REST_Request() )->data['share_usage_stats'] );
+    }
+
+    /** @return array<string,array{0:mixed,1:bool}> */
+    public static function share_usage_stats_inputs(): array {
+        return [
+            'bool false'   => [ false, false ],
+            'string false' => [ 'false', false ],
+            'string 0'     => [ '0', false ],
+            'bool true'    => [ true, true ],
+            'string true'  => [ 'true', true ],
+        ];
+    }
+
+    /**
+     * Regression: core's update_option() returns early when the new value is
+     * identical to get_option(), which is false for a never-saved option. The
+     * opt-out must still be written on such sites (every existing install).
+     */
+    public function test_opt_out_is_written_when_option_was_never_saved(): void {
+        $stored = [];
+        $this->stub_voice_options( $stored );
+        $this->stub_rest_sanitize_boolean();
+        Functions\when( 'update_option' )->alias( function( $k, $v ) use ( &$stored ) {
+            $old = array_key_exists( $k, $stored ) ? $stored[ $k ] : false;
+            if ( $v === $old ) {
+                return false;
+            }
+            $stored[ $k ] = $v;
+            return true;
+        } );
+        $controller = $this->make_voice_controller();
+
+        $this->post_voice( $controller, [ 'share_usage_stats' => false ] );
+
+        $this->assertArrayHasKey( 'plume_share_usage_stats', $stored );
+        $this->assertFalse( $controller->get_settings( new \WP_REST_Request() )->data['share_usage_stats'] );
+    }
+
+    public function test_save_without_share_usage_stats_leaves_option_untouched(): void {
+        $stored = [ 'plume_share_usage_stats' => 0 ];
+        $this->stub_voice_options( $stored );
+
+        $this->post_voice( $this->make_voice_controller(), [ 'default_provider' => 'claude' ] );
+
+        $this->assertSame( 0, $stored['plume_share_usage_stats'] );
+    }
+
+    public function test_check_permission_rejects_non_admin_with_403(): void {
+        Functions\when( 'current_user_can' )->justReturn( false );
+        Functions\when( '__' )->returnArg();
+
+        $result = ( new SettingsRestController() )->check_permission();
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 403, $result->get_error_data()['status'] );
+    }
+
+    public function test_check_permission_allows_admin(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $this->assertTrue( ( new SettingsRestController() )->check_permission() );
     }
 }

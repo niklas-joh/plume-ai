@@ -47,6 +47,7 @@ class ActivationNoticeTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'wp_kses' )->returnArg();
+		\Plume\Tests\Helpers\TelemetryHarness::stub_url_functions();
 	}
 
 	public function test_nothing_renders_and_flag_survives_off_plume_pages(): void {
@@ -88,6 +89,7 @@ class ActivationNoticeTest extends TestCase {
 
 		$this->assertStringContainsString( 'notice notice-info', $output );
 		$this->assertStringContainsString( 'External Services', $output );
+		$this->assertStringContainsString( 'https://wpaimind.com/privacy-policy.html?utm_source=plugin&utm_medium=activation_notice', $output );
 	}
 
 	public function test_nothing_renders_without_capability_even_on_plume_page(): void {

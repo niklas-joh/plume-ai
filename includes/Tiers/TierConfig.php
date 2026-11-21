@@ -82,8 +82,33 @@ class TierConfig {
 	public static function get_tier_labels(): array {
 		return [
 			'free'        => __( 'Free', 'plume' ),
-			'pro_managed' => __( 'Pro Managed', 'plume' ),
+			'pro_managed' => __( 'Pro', 'plume' ),
 			'pro_byok'    => __( 'Pro BYOK', 'plume' ),
 		];
+	}
+
+	/**
+	 * Returns the plan name shown to people for a tier slug.
+	 *
+	 * Unlike get_tier_labels(), which feeds sentences that add the word "plan"
+	 * themselves, these names stand alone, for badges and captions. An unrecognised
+	 * slug gets a neutral name so that a slug such as "pro_managed" never reaches
+	 * the screen.
+	 *
+	 * @since 2.2.0
+	 * @param string $tier Tier slug.
+	 * @return string Translated plan name.
+	 */
+	public static function tier_label( string $tier ): string {
+		switch ( $tier ) {
+			case 'free':
+				return __( 'Free plan', 'plume' );
+			case 'pro_managed':
+				return __( 'Pro', 'plume' );
+			case 'pro_byok':
+				return __( 'Your own API key', 'plume' );
+			default:
+				return __( 'Current plan', 'plume' );
+		}
 	}
 }

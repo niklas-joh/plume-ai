@@ -12,12 +12,17 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import ModelSelector from '../../src/admin/components/RightPanel/ModelSelector';
 
-jest.mock( 'lucide-react', () =>
-	new Proxy( {}, { get: () => () => <span /> } )
+jest.mock(
+	'lucide-react',
+	() => new Proxy( {}, { get: () => () => <span /> } )
 );
 
 const PROVIDERS = [
-	{ slug: 'claude', is_available: true, models: { 'claude-sonnet-4-6': 'Sonnet' } },
+	{
+		slug: 'claude',
+		is_available: true,
+		models: { 'claude-sonnet-4-6': 'Sonnet' },
+	},
 ];
 
 describe( 'ModelSelector', () => {
@@ -150,5 +155,61 @@ describe( 'ModelSelector', () => {
 		);
 		expect( ids ).toContain( 'claude-haiku-4-5-20251001' );
 		expect( ids ).not.toContain( 'claude-opus-4-6' );
+	} );
+
+	it( 'shows the full default model name on its own line', async () => {
+		// An earlier test may have left the Advanced mode switched on.
+		window.localStorage.removeItem( 'plume_advanced_model' );
+		window.plumeData = { defaultModelLabel: 'Claude Sonnet 4.6' };
+		await act( async () => {
+			root.render(
+				<ModelSelector
+					providers={ PROVIDERS }
+					selectedProvider="claude"
+					selectedModel=""
+					onProviderChange={ jest.fn() }
+					onModelChange={ jest.fn() }
+				/>
+			);
+		} );
+
+		const label = container.querySelector( '.plume-model-default-label' );
+		expect( label.textContent ).toBe( 'Claude Sonnet 4.6' );
+		expect(
+			container.querySelector( '.plume-model-default__caption' )
+				.textContent
+		).toBe( 'Plugin default' );
+		delete window.plumeData;
+	} );
+
+	it( 'names providers for people, never by slug', async () => {
+		window.localStorage.setItem( 'plume_advanced_model', '1' );
+		await act( async () => {
+			root.render(
+				<ModelSelector
+					providers={ [
+						...PROVIDERS,
+						{ slug: 'ollama', is_available: true, models: {} },
+						{ slug: 'other', is_available: true, models: {} },
+					] }
+					selectedProvider="claude"
+					selectedModel=""
+					onProviderChange={ jest.fn() }
+					onModelChange={ jest.fn() }
+				/>
+			);
+		} );
+
+		const options = [
+			...container.querySelectorAll(
+				'select[aria-label="AI provider"] option'
+			),
+		].map( ( o ) => o.textContent );
+		expect( options ).toEqual( [
+			'Claude',
+			'Ollama (self-hosted)',
+			'Other provider',
+		] );
+		window.localStorage.removeItem( 'plume_advanced_model' );
 	} );
 } );

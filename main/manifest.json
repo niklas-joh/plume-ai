@@ -1,9 +1,9 @@
 {
-  "sha": "67d0b493da0bc3f373cff498c9149eba651e542f",
-  "capturedAt": "2026-11-21T09:34:17.966Z",
+  "sha": "64edba73900202d42056b1431baade843ac962ed",
+  "capturedAt": "2026-11-21T10:09:21.003Z",
   "env": {
-    "runnerImage": "ubuntu26-20261116.202.1",
-    "fonts": "4128817269f28a77",
+    "runnerImage": "ubuntu26-20261111.196.1",
+    "fonts": "c69d8910b3d007b4",
     "playwright": "1.63.0"
   },
   "files": {

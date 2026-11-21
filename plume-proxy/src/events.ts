@@ -3,10 +3,10 @@
 // POST /v1/events: opt-in product usage events from the WordPress plugin, written to
 // the Workers Analytics Engine dataset `plume_events` (one datapoint per event).
 //
-// These events are deliberately never linked to plume_metrics: they carry a random
-// install ID instead of a site key, plugin-side timestamps are rounded down to the hour,
-// and the plugin sends from an hourly cron, not from the request that made the AI call.
-// Phase 2 must never join the two datasets on time, tokens, IP or any other field.
+// Heartbeats carry the site key, normalised exactly like plume_metrics.index1
+// (siteKeyFromUrl in ./metrics), so the two datasets can be joined per site. The index
+// stays the random install ID. Since schema 2, client_ts is the exact event time; the
+// Analytics Engine timestamp is the plugin's hourly cron send time.
 //
 // SCHEMA IS APPEND-ONLY: never reorder or reuse a slot. A breaking change needs a new
 // dataset name. Positions are locked by test/events.test.ts.
@@ -30,13 +30,16 @@
 //   blob16  wp_version         heartbeat
 //   blob17  php_version        heartbeat
 //   blob18  locale             heartbeat
-//   blob19-20 reserved
-//   double1 client_ts (hour-rounded; Analytics Engine's own timestamp is the send time)
-//   double2 schema_version
+//   blob19  site_key           heartbeat (schema 2)
+//   blob20  reserved
+//   double1 client_ts (schema 1: rounded down to the hour; schema 2: exact seconds)
+//   double2 schema_version (marks the client_ts precision change, so double1 is not
+//           a reused slot)
 //   double3 http_status        ai_request
 //   double4 latency_ms         ai_request
-//   double5 input_tokens       ai_request (always 0 on the proxy route)
-//   double6 output_tokens      ai_request (always 0 on the proxy route)
+//   double5 input_tokens       ai_request (0 on the proxy route when the site turned
+//                              off managed-service request statistics)
+//   double6 output_tokens      ai_request (as double5)
 //   double7 image_count        ai_request
 //   double8 attempts           ai_request
 //   double9 days_since_activation  heartbeat
@@ -44,6 +47,7 @@
 //   double11-20 reserved
 
 import schema from './event-schema.json';
+import { siteKeyFromUrl } from './metrics';
 import type { Env } from './types';
 
 /** Version 4 UUID, any letter case. @since NEXT_VERSION */
@@ -53,7 +57,6 @@ export const UUID_V4 =
 const PLUGIN_VERSION =
 	/^\d{1,3}\.\d{1,3}\.\d{1,3}([-+][0-9A-Za-z.-]{1,20})?$/;
 const MAX_PLUGIN_VERSION_BYTES = 32;
-const HOUR = 3600;
 const PROVIDER_TYPES = [ 'claude', 'openai', 'gemini', 'ollama' ];
 
 /** Zero-based positions inside `blobs`. @since NEXT_VERSION */
@@ -76,6 +79,7 @@ export const EVENT_BLOB = {
 	WP_VERSION: 15,
 	PHP_VERSION: 16,
 	LOCALE: 17,
+	SITE_KEY: 18,
 } as const;
 
 /** Zero-based positions inside `doubles`. @since NEXT_VERSION */
@@ -92,7 +96,7 @@ export const EVENT_DOUBLE = {
 	DAYS_SINCE_LAST_AI: 9,
 } as const;
 
-const BLOB_COUNT = 18;
+const BLOB_COUNT = 19;
 const DOUBLE_COUNT = 10;
 
 type Slot = { kind: 'blob' | 'double'; index: number };
@@ -139,6 +143,7 @@ export const FIELD_SLOTS: Record< string, Record< string, Slot > > = {
 		wp_version: blob( EVENT_BLOB.WP_VERSION ),
 		php_version: blob( EVENT_BLOB.PHP_VERSION ),
 		locale: blob( EVENT_BLOB.LOCALE ),
+		site_key: blob( EVENT_BLOB.SITE_KEY ),
 		days_since_activation: double( EVENT_DOUBLE.DAYS_SINCE_ACTIVATION ),
 		days_since_last_ai: double( EVENT_DOUBLE.DAYS_SINCE_LAST_AI ),
 	},
@@ -150,7 +155,8 @@ type FieldSpec =
 	| { type: 'int'; min: number; max: number; default: number }
 	| { type: 'pattern'; regex: string; max_bytes: number }
 	| { type: 'uuid4' }
-	| { type: 'providers' };
+	| { type: 'providers' }
+	| { type: 'site_key'; max_bytes: number };
 
 /** The allowlist, from event-schema.json (shared with the plugin's EventSchema::SPEC). */
 const EVENTS = schema.events as unknown as Record<
@@ -250,6 +256,18 @@ function sanitiseValue( spec: FieldSpec, value: unknown ): string | number {
 			].sort();
 			return list.join( ',' );
 		}
+		case 'site_key':
+			// Only the canonical form is kept, so a key always equals what
+			// siteKeyFromUrl() stores in plume_metrics.index1. Two rare keys fail this
+			// round trip and are dropped (the site then does not join): a host that
+			// still starts with www. after one www. was stripped, and a key cut at the
+			// byte limit right after a slash.
+			return typeof value === 'string' &&
+				value !== '' &&
+				byteLength( value ) <= spec.max_bytes &&
+				siteKeyFromUrl( 'https://' + value ) === value
+				? value
+				: '';
 	}
 	return '';
 }
@@ -320,8 +338,7 @@ export function validateBatch( raw: unknown, nowSeconds: number ): BatchResult {
 				fields[ field ] = sanitiseValue( spec, item[ field ] );
 			}
 		}
-		const floored = Math.floor( ts );
-		events.push( { name, ts: floored - ( floored % HOUR ), fields } );
+		events.push( { name, ts: Math.floor( ts ), fields } );
 	}
 
 	if ( events.length === 0 ) {

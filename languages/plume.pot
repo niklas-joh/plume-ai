@@ -48,6 +48,7 @@ msgid "This plugin connects to Plume AI - Write and Design and to third-party AI
 msgstr ""
 
 #: includes/Admin/ActivationNotice.php:88
+#: assets/admin/index.js:14
 msgid "Learn more"
 msgstr ""
 
@@ -1169,15 +1170,35 @@ msgid "When enabled, the AI can draft and publish content directly."
 msgstr ""
 
 #: assets/admin/index.js:14
-msgid "Usage Statistics"
+msgid "Usage sharing"
 msgstr ""
 
 #: assets/admin/index.js:14
-msgid "Share usage statistics with the Plume managed service"
+msgid "Statistics linked to your site address help us find where setup or AI requests fail. Prompts and content are never included."
 msgstr ""
 
 #: assets/admin/index.js:14
-msgid "Applies only when you use the Plume managed service (no API key of your own). For each request and registration, the service records your site domain, plan, feature, AI provider and model, token counts, credits used, response time and whether it succeeded. Prompts and responses are never included. Turn this off to stop recording these statistics from now on; credit counting continues, so your plan limits still apply."
+msgid "(opens in a new tab)"
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Share managed-service request statistics"
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "When you use the managed service, it records each request’s feature, model, tokens, credits and outcome for your site. Credits are still counted when this is off."
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Share usage statistics with Plume"
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Usage sharing is turned off on this site."
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Off unless you turn it on. Turning it off stops sending and deletes this site’s install ID; statistics already sent are kept."
 msgstr ""
 
 #: assets/admin/index.js:14
@@ -2008,4 +2029,42 @@ msgstr ""
 #: assets/usage/index.js:2
 #, js-format
 msgid "%1$s of %2$s credits used"
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "This helps us see where setup or AI requests fail. Statistics are linked to your site address. Nothing is shared unless you say yes."
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Thanks. You can change this in Settings → Features."
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "Share usage statistics"
+msgstr ""
+
+#: assets/admin/index.js:14
+msgid "No thanks"
+msgstr ""
+
+#: includes/Telemetry/PrivacyPolicy.php:64
+msgid "Plume privacy policy"
+msgstr ""
+
+#: includes/Telemetry/PrivacyPolicy.php:67
+msgid "This site uses the Plume AI plugin. Content you submit to its AI features is sent to the AI provider chosen by the site owner and, when the site has no own API key, through the Plume managed service, which records usage statistics including this site's address unless the site owner turns off \"Share managed-service request statistics\"."
+msgstr ""
+
+#: includes/Telemetry/PrivacyPolicy.php:68
+msgid "If the site owner has turned on \"Share usage statistics with Plume\", the plugin also sends Plume usage statistics linked to this site's address: versions, language and plan, which AI features and providers are used, whether AI requests succeed, and timings and token counts. No content, prompts, names, email addresses or other personal data of visitors or users are sent. The statistics are kept with Cloudflare for up to 90 days and copied daily to Plume's Google Cloud project in the EU, where they are kept for up to 2 years."
+msgstr ""
+
+#: includes/Telemetry/PrivacyPolicy.php:69
+msgid "The site's IP address is processed by Cloudflare to deliver each request and to limit abuse, and may appear in Cloudflare's short-lived request logs, but it is not recorded in the usage statistics."
+msgstr ""
+
+#. translators: %s: link to the Plume privacy policy.
+#: includes/Telemetry/PrivacyPolicy.php:72
+#, php-format
+msgid "More information: %s"
 msgstr ""

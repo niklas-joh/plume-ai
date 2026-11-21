@@ -27,7 +27,7 @@ afterEach( () => {
 
 function batch( events: unknown[], overrides: Record< string, unknown > = {} ) {
 	return {
-		schema: 1,
+		schema: 2,
 		install_id: INSTALL_ID,
 		plugin_version: '2.3.0',
 		events,
@@ -59,8 +59,7 @@ function post( body: unknown, headers: Record< string, string > = {} ): Request 
 }
 
 function nowTs(): number {
-	const now = Math.floor( Date.now() / 1000 );
-	return now - ( now % HOUR );
+	return Math.floor( Date.now() / 1000 );
 }
 
 // ── Slot lock (append-only schema) ────────────────────────────────────────────
@@ -86,6 +85,7 @@ describe( 'slot layout', () => {
 			WP_VERSION: 15,
 			PHP_VERSION: 16,
 			LOCALE: 17,
+			SITE_KEY: 18,
 		} );
 	} );
 
@@ -147,6 +147,7 @@ describe( 'slot layout', () => {
 				wp_version: 'blob16',
 				php_version: 'blob17',
 				locale: 'blob18',
+				site_key: 'blob19',
 				days_since_activation: 'double9',
 				days_since_last_ai: 'double10',
 			},
@@ -173,7 +174,7 @@ describe( 'slot layout', () => {
 	it( 'builds a full ai_request datapoint', () => {
 		const dp = buildEventDataPoint( INSTALL_ID, '2.3.0', {
 			name: 'ai_request',
-			ts: 1_799_996_400,
+			ts: 1_799_996_401,
 			fields: {
 				feature: 'chat',
 				provider: 'openai',
@@ -212,21 +213,23 @@ describe( 'slot layout', () => {
 				'',
 				'',
 				'',
+				'',
 			],
-			doubles: [ 1_799_996_400, 1, 429, 1200, 0, 0, 0, 4, 0, 0 ],
+			doubles: [ 1_799_996_401, 2, 429, 1200, 0, 0, 0, 4, 0, 0 ],
 		} );
 	} );
 
 	it( 'builds a full heartbeat datapoint, with defaults for missing ints', () => {
 		const dp = buildEventDataPoint( INSTALL_ID, '2.3.0', {
 			name: 'heartbeat',
-			ts: 1_799_996_400,
+			ts: 1_799_996_401,
 			fields: {
 				tier: 'free',
 				providers: 'claude,ollama',
 				wp_version: '6.7',
 				php_version: '8.3',
 				locale: 'en_GB',
+				site_key: 'example.com/blog',
 				days_since_activation: 12,
 			},
 		} );
@@ -249,8 +252,10 @@ describe( 'slot layout', () => {
 			'6.7',
 			'8.3',
 			'en_GB',
+			'example.com/blog',
 		] );
-		expect( dp.doubles ).toEqual( [ 1_799_996_400, 1, 0, 0, 0, 0, 0, 0, 12, -1 ] );
+		expect( dp.blobs ).toHaveLength( 19 );
+		expect( dp.doubles ).toEqual( [ 1_799_996_401, 2, 0, 0, 0, 0, 0, 0, 12, -1 ] );
 	} );
 
 	it.each( [
@@ -265,14 +270,14 @@ describe( 'slot layout', () => {
 			ts: 3600,
 			fields,
 		} );
-		const blobs = new Array( 18 ).fill( '' );
+		const blobs = new Array( 19 ).fill( '' );
 		blobs[ 0 ] = name;
 		blobs[ 1 ] = '2.3.0';
 		for ( const [ i, v ] of Object.entries( expectedBlobs ) ) {
 			blobs[ Number( i ) ] = v;
 		}
 		expect( dp.blobs ).toEqual( blobs );
-		expect( dp.doubles ).toEqual( [ 3600, 1, 0, 0, 0, 0, 0, 0, 0, 0 ] );
+		expect( dp.doubles ).toEqual( [ 3600, 2, 0, 0, 0, 0, 0, 0, 0, 0 ] );
 		expect( dp.indexes ).toEqual( [ INSTALL_ID ] );
 	} );
 } );
@@ -284,7 +289,8 @@ describe( 'validateBatch', () => {
 
 	it.each( [
 		[ 'not an object', 'x' ],
-		[ 'wrong schema', batch( [ ok ], { schema: 2 } ) ],
+		[ 'schema 1', batch( [ ok ], { schema: 1 } ) ],
+		[ 'wrong schema', batch( [ ok ], { schema: 3 } ) ],
 		[ 'invalid install id', batch( [ ok ], { install_id: 'abc' } ) ],
 		[ 'non-v4 install id', batch( [ ok ], { install_id: '3f2b6c1e-8d4a-1b7f-9a1c-2e5d7f9b0c13' } ) ],
 		[ 'invalid plugin version', batch( [ ok ], { plugin_version: 'latest' } ) ],
@@ -343,10 +349,10 @@ describe( 'validateBatch', () => {
 		} );
 	} );
 
-	it( 'floors ts to the hour and drops events outside the window', () => {
+	it( 'keeps the exact ts (floored to the second) and drops events outside the window', () => {
 		const result = validateBatch(
 			batch( [
-				{ name: 'deactivated', ts: NOW - 125 },
+				{ name: 'deactivated', ts: NOW - 125.7 },
 				{ name: 'deactivated', ts: NOW - 31 * 86400 },
 				{ name: 'deactivated', ts: NOW + 2 * HOUR },
 				{ name: 'deactivated', ts: 'now' },
@@ -357,9 +363,41 @@ describe( 'validateBatch', () => {
 			throw new Error( 'expected ok' );
 		}
 		expect( result.events ).toHaveLength( 1 );
-		expect( result.events[ 0 ].ts % HOUR ).toBe( 0 );
-		expect( result.events[ 0 ].ts ).toBeLessThanOrEqual( NOW - 125 );
+		expect( result.events[ 0 ].ts ).toBe( NOW - 126 );
 		expect( result.dropped ).toBe( 3 );
+	} );
+
+	it( 'keeps a canonical site_key and empties any other value', () => {
+		const result = validateBatch(
+			batch( [
+				{ name: 'heartbeat', ts: NOW, site_key: 'example.com/blog' },
+				{ name: 'heartbeat', ts: NOW, site_key: 'xn--bcher-kva.example' },
+				{ name: 'heartbeat', ts: NOW, site_key: 'Example.com' },
+				{ name: 'heartbeat', ts: NOW, site_key: 'www.example.com' },
+				{ name: 'heartbeat', ts: NOW, site_key: 'example.com/' },
+				{ name: 'heartbeat', ts: NOW, site_key: 'https://example.com' },
+				{ name: 'heartbeat', ts: NOW, site_key: 'example.com/a?b' },
+				{ name: 'heartbeat', ts: NOW, site_key: 'a'.repeat( 97 ) },
+				{ name: 'heartbeat', ts: NOW, site_key: '' },
+				{ name: 'heartbeat', ts: NOW, site_key: 42 },
+			] ),
+			NOW
+		);
+		if ( ! result.ok ) {
+			throw new Error( 'expected ok' );
+		}
+		expect( result.events.map( ( e ) => e.fields.site_key ) ).toEqual( [
+			'example.com/blog',
+			'xn--bcher-kva.example',
+			'',
+			'',
+			'',
+			'',
+			'',
+			'',
+			'',
+			'',
+		] );
 	} );
 
 	it( 'normalises the providers list', () => {
@@ -502,6 +540,30 @@ describe( 'handleEvents', () => {
 	it( 'returns 400 for an invalid batch', async () => {
 		const { env } = eventsEnv();
 		expect( ( await handleEvents( post( batch( [] ) ), env ) ).status ).toBe( 400 );
+	} );
+
+	it( 'accepts schema 2 end to end and stores the heartbeat site_key in blob19', async () => {
+		const { env, writes } = eventsEnv();
+		const ts = nowTs() - 7;
+		const res = await handleEvents(
+			post( batch( [ { name: 'heartbeat', ts, tier: 'free', site_key: 'example.com/blog' } ] ) ),
+			env
+		);
+		expect( res.status ).toBe( 202 );
+		expect( writes ).toHaveLength( 1 );
+		expect( writes[ 0 ].blobs?.[ EVENT_BLOB.SITE_KEY ] ).toBe( 'example.com/blog' );
+		expect( writes[ 0 ].doubles?.[ EVENT_DOUBLE.CLIENT_TS ] ).toBe( ts );
+		expect( writes[ 0 ].doubles?.[ EVENT_DOUBLE.SCHEMA_VERSION ] ).toBe( 2 );
+	} );
+
+	it( 'rejects a schema 1 batch with 400', async () => {
+		const { env, writes } = eventsEnv();
+		const res = await handleEvents(
+			post( batch( [ { name: 'deactivated', ts: nowTs() } ], { schema: 1 } ) ),
+			env
+		);
+		expect( res.status ).toBe( 400 );
+		expect( writes ).toHaveLength( 0 );
 	} );
 
 	it( 'writes one datapoint per event, indexed by the lower-cased install id', async () => {

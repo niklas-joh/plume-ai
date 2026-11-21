@@ -114,7 +114,7 @@ describe( 'OnboardingPage usage sharing', () => {
 
 	it( 'styles the two choices alike and pre-selects neither', async () => {
 		await render();
-		const yes = button( 'Share anonymous usage' );
+		const yes = button( 'Share usage statistics' );
 		const no = button( 'No thanks' );
 		expect( yes.className ).toBe( 'plume-dash-btn' );
 		expect( no.className ).toBe( yes.className );
@@ -124,10 +124,32 @@ describe( 'OnboardingPage usage sharing', () => {
 		);
 	} );
 
+	it( 'shows the consent wording and a Learn more link to the privacy policy', async () => {
+		await render();
+		const card = container.querySelector( '.plume-ob-consent' );
+		expect( card.textContent ).toContain( 'Share usage statistics with Plume' );
+		expect( card.textContent ).toContain(
+			'Statistics are linked to your site address.'
+		);
+		expect( card.textContent ).not.toMatch( /anon[y]m/i );
+		expect( button( 'What is shared?' ) ).toBeUndefined();
+		const link = card.querySelector( 'a' );
+		expect( link.textContent ).toBe( 'Learn more(opens in a new tab)' );
+		const url = new URL( link.href );
+		expect( url.origin + url.pathname ).toBe(
+			'https://wpaimind.com/privacy-policy'
+		);
+		expect( url.searchParams.get( 'utm_source' ) ).toBe( 'plugin' );
+		expect( url.searchParams.get( 'utm_medium' ) ).toBe( 'onboarding' );
+		expect( url.searchParams.get( 'utm_content' ) ).toBe( 'usage_sharing' );
+		expect( link.target ).toBe( '_blank' );
+		expect( link.rel ).toBe( 'noopener noreferrer' );
+	} );
+
 	it( 'saves yes through /settings with the onboarding source', async () => {
 		await render();
 		await act( async () => {
-			button( 'Share anonymous usage' ).click();
+			button( 'Share usage statistics' ).click();
 		} );
 		expect( fetchCalls() ).toEqual( [
 			{
@@ -150,7 +172,7 @@ describe( 'OnboardingPage usage sharing', () => {
 			'Thanks. You can change this in Settings → Features.'
 		);
 		expect( document.activeElement ).toBe( status );
-		expect( button( 'Share anonymous usage' ) ).toBeUndefined();
+		expect( button( 'Share usage statistics' ) ).toBeUndefined();
 	} );
 
 	it( 'sends no step events before consent', async () => {
@@ -165,7 +187,7 @@ describe( 'OnboardingPage usage sharing', () => {
 	it( 'sends step events after consent yes', async () => {
 		await render();
 		await act( async () => {
-			button( 'Share anonymous usage' ).click();
+			button( 'Share usage statistics' ).click();
 		} );
 		await act( async () => {
 			button( 'Get started →' ).click();
@@ -187,7 +209,7 @@ describe( 'OnboardingPage usage sharing', () => {
 	it( 'records welcome/completed when consent and continue are clicked together', async () => {
 		await render();
 		await act( async () => {
-			button( 'Share anonymous usage' ).click();
+			button( 'Share usage statistics' ).click();
 			button( 'Get started →' ).click();
 		} );
 		await flush();

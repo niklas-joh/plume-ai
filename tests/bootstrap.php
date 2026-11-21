@@ -14,6 +14,11 @@ if ( ! defined( 'PLUME_HTTP_TIMEOUT' ) ) {
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
+// Public website, as in plume.php (PrivacyPolicy::POLICY_URL and Utm need it).
+if ( ! defined( 'PLUME_WEBSITE_URL' ) ) {
+	define( 'PLUME_WEBSITE_URL', 'https://wpaimind.com' );
+}
+
 // Prevent get_proxy_url() from calling get_option() in unit tests.
 // Must be after autoload so TierConfig::DEFAULT_PROXY_URL can be resolved.
 if ( ! defined( 'PLUME_PROXY_URL' ) ) {

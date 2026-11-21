@@ -1,5 +1,5 @@
 {
-	"schema_version": 1,
+	"schema_version": 2,
 	"max_events": 50,
 	"max_bytes": 16384,
 	"max_past_seconds": 2592000,
@@ -42,6 +42,7 @@
 			"wp_version": { "type": "pattern", "regex": "^\\d{1,2}\\.\\d{1,2}$", "max_bytes": 5 },
 			"php_version": { "type": "pattern", "regex": "^\\d{1,2}\\.\\d{1,2}$", "max_bytes": 5 },
 			"locale": { "type": "pattern", "regex": "^[a-z]{2,3}(_[A-Z]{2})?(_[a-z0-9]{1,10})?$", "max_bytes": 16 },
+			"site_key": { "type": "site_key", "max_bytes": 96 },
 			"days_since_activation": { "type": "int", "min": -1, "max": 36500, "default": -1 },
 			"days_since_last_ai": { "type": "int", "min": -1, "max": 36500, "default": -1 }
 		},

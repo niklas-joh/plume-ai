@@ -126,6 +126,8 @@ final class TelemetryHarness {
 		Functions\when( 'is_wp_error' )->alias( fn( $thing ) => $thing instanceof \WP_Error );
 		Functions\when( 'get_bloginfo' )->justReturn( '6.7.1' );
 		Functions\when( 'get_locale' )->justReturn( 'en_GB' );
+		Functions\when( 'home_url' )->justReturn( 'https://www.example.com/blog/' );
+		Functions\when( 'wp_parse_url' )->alias( fn( $url, $component = -1 ) => parse_url( $url, $component ) );
 
 		return $h;
 	}

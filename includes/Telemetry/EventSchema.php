@@ -160,6 +160,10 @@ final class EventSchema {
 				'regex'     => '^[a-z]{2,3}(_[A-Z]{2})?(_[a-z0-9]{1,10})?$',
 				'max_bytes' => 16,
 			],
+			'site_key'              => [
+				'type'      => 'site_key',
+				'max_bytes' => 96,
+			],
 			'days_since_activation' => [
 				'type'    => 'int',
 				'min'     => -1,
@@ -270,6 +274,14 @@ final class EventSchema {
 				$list = array_values( array_unique( array_intersect( array_map( 'trim', explode( ',', $value ) ), self::PROVIDERS ) ) );
 				sort( $list );
 				return implode( ',', $list );
+
+			case 'site_key':
+				// Only the canonical form is kept, so the value always equals the
+				// managed service's plume_metrics.index1 for the same site.
+				if ( ! is_string( $value ) || strlen( $value ) > $spec['max_bytes'] ) {
+					return '';
+				}
+				return SiteKey::is_valid( $value ) ? $value : '';
 		}
 		return '';
 	}

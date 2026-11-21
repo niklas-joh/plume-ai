@@ -172,16 +172,21 @@ For `pro_byok`, `credit_limit`, `default_models`, `enabled_providers` and
 ## `POST /v1/events`
 
 Opt-in product usage events from the plugin. A site only sends them after its owner
-chooses "Share anonymous usage" during setup or turns on Settings > Features > Usage
-sharing. The plugin queues events and sends them from an hourly WP-Cron job, in
+chooses "Share usage statistics" during setup or turns on "Share usage statistics with
+Plume" in Settings > Features. The plugin queues events and sends them from an hourly WP-Cron job, in
 batches of at most 25 events; web requests never call this endpoint.
 
 - **No auth, no CORS.** The body must be `Content-Type: application/json` (anything
   else gets `415`), which also stops web pages from posting events through visitors'
   browsers.
-- **Envelope:** `{ "schema": 1, "install_id": "<v4 UUID>", "plugin_version": "x.y.z", "events": [ ... ] }`,
+- **Envelope:** `{ "schema": 2, "install_id": "<v4 UUID>", "plugin_version": "x.y.z", "events": [ ... ] }`,
   1 to 50 events, at most 16 384 bytes (`413` above that, checked on the header and on
   the streamed body). Each event is `{ "name": "...", "ts": <unix seconds>, ...fields }`.
+  Only schema 2 is accepted (`400` otherwise): `ts` is the exact event time and the
+  daily `heartbeat` carries `site_key` (blob19), the site's `home_url()` normalised
+  exactly like `siteKeyFromUrl()`; a value that is not in that canonical form is stored
+  as `''`. Deploy this Worker before or together with a plugin release that sends
+  schema 2, otherwise that release's events are rejected until the Worker catches up.
 - **Allowlist:** `src/event-schema.json`, shared with the plugin's `EventSchema::SPEC`
   (a PHPUnit contract test keeps them identical). Unknown events and events with a `ts`
   outside the last 30 days or more than 1 hour ahead are dropped and counted; unknown
@@ -197,9 +202,11 @@ batches of at most 25 events; web requests never call this endpoint.
   slot layout is documented in `src/events.ts` and locked by `test/events.test.ts`.
   Without the binding the endpoint still answers `202` and writes nothing.
 
-`plume_events` is never joined to `plume_metrics`, on time, tokens, IP or any other
-field. Analytics Engine stamps each datapoint with the send time (the cron run), so use
-`double1` (`client_ts`, already rounded to the hour) for the time of the event:
+Plugin events are linked to sites through the heartbeat `site_key` (blob19), which
+equals `plume_metrics.index1` for the same site, so the two datasets can be joined per
+site via the install ID's heartbeats. Analytics Engine stamps each datapoint with the
+send time (the cron run), so use `double1` (`client_ts`, the exact event time since
+schema 2) for the time of the event:
 
 ```sql
 SELECT

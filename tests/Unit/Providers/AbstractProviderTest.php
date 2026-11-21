@@ -305,14 +305,33 @@ class AbstractProviderTest extends TestCase {
 		$this->assertSame( 'gpt-4.1', $h->flush()[0]['model'] );
 	}
 
-	public function test_proxy_route_sends_zero_tokens(): void {
+	public function test_proxy_route_sends_real_tokens(): void {
 		$h        = $this->active_harness();
+		$provider = $this->make_scripted_provider( [ new CompletionResponse( 'hi', 'gpt-4.1', 1234, 567 ) ], 'proxy' );
+		$provider->complete( $this->request() );
+		$event = $h->flush()[0];
+		$this->assertSame( 'proxy', $event['route'] );
+		$this->assertSame( 1234, $event['input_tokens'] );
+		$this->assertSame( 567, $event['output_tokens'] );
+	}
+
+	public function test_proxy_route_sends_zero_tokens_when_managed_service_statistics_are_off(): void {
+		$h = $this->active_harness();
+		$h->options[ \Plume\Proxy\ProxyClient::OPTION_SHARE_USAGE_STATS ] = false;
 		$provider = $this->make_scripted_provider( [ new CompletionResponse( 'hi', 'gpt-4.1', 1234, 567 ) ], 'proxy' );
 		$provider->complete( $this->request() );
 		$event = $h->flush()[0];
 		$this->assertSame( 'proxy', $event['route'] );
 		$this->assertSame( 0, $event['input_tokens'] );
 		$this->assertSame( 0, $event['output_tokens'] );
+	}
+
+	public function test_byok_route_sends_tokens_when_managed_service_statistics_are_off(): void {
+		$h = $this->active_harness();
+		$h->options[ \Plume\Proxy\ProxyClient::OPTION_SHARE_USAGE_STATS ] = false;
+		$provider = $this->make_scripted_provider( [ new CompletionResponse( 'hi', 'gpt-4.1', 12, 5 ) ] );
+		$provider->complete( $this->request() );
+		$this->assertSame( 12, $h->flush()[0]['input_tokens'] );
 	}
 
 	public function test_ollama_route_model_is_always_custom(): void {

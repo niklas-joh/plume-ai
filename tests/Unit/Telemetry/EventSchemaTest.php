@@ -3,6 +3,8 @@ declare( strict_types=1 );
 
 namespace Plume\Tests\Unit\Telemetry;
 
+use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Plume\Telemetry\ErrorCodes;
 use Plume\Telemetry\EventSchema;
 use Plume\Telemetry\Telemetry;
@@ -104,5 +106,28 @@ class EventSchemaTest extends TestCase {
 		$this->assertSame( $json['events'], EventSchema::SPEC );
 		$this->assertSame( Telemetry::SCHEMA_VERSION, $json['schema_version'] );
 		$this->assertGreaterThanOrEqual( Telemetry::BATCH_SIZE, $json['max_events'] );
+	}
+
+	public function test_site_key_keeps_only_the_canonical_form(): void {
+		Monkey\setUp();
+		try {
+			Functions\when( 'wp_parse_url' )->alias( fn( $url, $component = -1 ) => parse_url( $url, $component ) );
+			$cases = [
+				'example.com/blog'      => 'example.com/blog',
+				'xn--bcher-kva.example' => 'xn--bcher-kva.example',
+				'Example.com'           => '',
+				'www.example.com'       => '',
+				'example.com/'          => '',
+				'https://example.com'   => '',
+				'example.com/a?b'       => '',
+				str_repeat( 'a', 97 )   => '',
+			];
+			foreach ( $cases as $input => $expected ) {
+				$this->assertSame( $expected, EventSchema::sanitise( 'heartbeat', [ 'site_key' => (string) $input ] )['site_key'], (string) $input );
+			}
+			$this->assertSame( '', EventSchema::sanitise( 'heartbeat', [ 'site_key' => 42 ] )['site_key'] );
+		} finally {
+			Monkey\tearDown();
+		}
 	}
 }

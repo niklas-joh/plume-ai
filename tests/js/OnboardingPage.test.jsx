@@ -184,6 +184,20 @@ describe( 'OnboardingPage usage sharing', () => {
 		] );
 	} );
 
+	it( 'records welcome/completed when consent and continue are clicked together', async () => {
+		await render();
+		await act( async () => {
+			button( 'Share anonymous usage' ).click();
+			button( 'Get started →' ).click();
+		} );
+		await flush();
+		const events = apiFetch.mock.calls.map( ( [ req ] ) => req.data );
+		expect( events ).toContainEqual( {
+			event: 'onboarding_step',
+			props: { step: 'welcome', action: 'completed' },
+		} );
+	} );
+
 	it( 'sends the managed route with the onboarding request', async () => {
 		await render();
 		await act( async () => {

@@ -320,13 +320,14 @@ final class Telemetry {
 		$now      = time();
 		$settings = new ProviderSettings();
 		$types    = [];
-		foreach ( [ 'claude', 'openai', 'gemini' ] as $type ) {
-			if ( $settings->has_key( $type ) ) {
+		foreach ( EventSchema::PROVIDERS as $type ) {
+			// Ollama has no key; a configured server URL counts as set up.
+			$is_set = 'ollama' === $type
+				? '' !== (string) get_option( 'plume_ollama_url', '' )
+				: $settings->has_key( $type );
+			if ( $is_set ) {
 				$types[] = $type;
 			}
-		}
-		if ( '' !== (string) get_option( 'plume_ollama_url', '' ) ) {
-			$types[] = 'ollama';
 		}
 
 		$wp_version = '';

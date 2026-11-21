@@ -42,13 +42,6 @@ final class UpgradeRedirect {
 	public const PLANS = [ 'monthly', 'annual' ];
 
 	/**
-	 * Checkout host allowed for the redirect.
-	 *
-	 * @since NEXT_VERSION
-	 */
-	private const CHECKOUT_HOST = 'plume.lemonsqueezy.com';
-
-	/**
 	 * Hook the admin-post handler.
 	 *
 	 * @since NEXT_VERSION
@@ -114,7 +107,7 @@ final class UpgradeRedirect {
 	 * @return string[]
 	 */
 	public static function allow_checkout_host( array $hosts ): array {
-		$hosts[] = self::CHECKOUT_HOST;
+		$hosts[] = SiteRegistration::CHECKOUT_HOST;
 		return $hosts;
 	}
 }

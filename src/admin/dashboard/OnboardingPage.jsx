@@ -775,12 +775,13 @@ export default function OnboardingPage( {
 	telemetryAvailable = false,
 } ) {
 	const [ step, setStep ] = useState( 'step1' ); // 'step1' | 'step2' | 'done'
-	const [ consent, setConsent ] = useState( telemetryConsent );
 	// Decided once, so the card (and its status message) stays after a choice.
 	const [ showConsentCard ] = useState(
 		telemetryAvailable && telemetryConsent === 'unset'
 	);
 	const consentSaved = useRef( Promise.resolve() );
+	// A ref, not state, so a click in the same frame as the choice already sees it.
+	const consentRef = useRef( telemetryConsent );
 	const [ connection, setConnection ] = useState( 'plugin' ); // 'plugin' | 'own_key' | 'pro'
 	const [ apiTierLabel, setApiTierLabel ] = useState(
 		__( 'Using Plugin API (free tier).', 'plume' )
@@ -808,7 +809,7 @@ export default function OnboardingPage( {
 
 	const handleConsent = useCallback(
 		( value ) => {
-			setConsent( value );
+			consentRef.current = value;
 			consentSaved.current = window
 				.fetch( `${ restUrl }/settings`, {
 					method: 'POST',
@@ -826,20 +827,17 @@ export default function OnboardingPage( {
 		[ nonce, restUrl ]
 	);
 
-	const recordStep = useCallback(
-		( stepName, action ) => {
-			if ( consent !== 'yes' ) {
-				return;
-			}
-			consentSaved.current.then( () =>
-				recordClientEvent( 'onboarding_step', {
-					step: stepName,
-					action,
-				} )
-			);
-		},
-		[ consent ]
-	);
+	const recordStep = useCallback( ( stepName, action ) => {
+		if ( consentRef.current !== 'yes' ) {
+			return;
+		}
+		consentSaved.current.then( () =>
+			recordClientEvent( 'onboarding_step', {
+				step: stepName,
+				action,
+			} )
+		);
+	}, [] );
 
 	useEffect( () => {
 		if ( step === 'step2' ) {

@@ -388,7 +388,24 @@ class SettingsRestControllerTest extends TestCase {
         $this->assertSame( [ 'post', 'page' ], $stored['plume_allowed_post_types'] );
     }
 
-    public function test_post_settings_saves_enable_write_tools(): void {
+    /**
+     * String booleans from form-encoded or hand-written REST calls must not
+     * enable write tools (#1077).
+     */
+    public static function enable_write_tools_provider(): array {
+        return [
+            'bool true'    => [ true, true ],
+            'bool false'   => [ false, false ],
+            'string false' => [ 'false', false ],
+            'string 0'     => [ '0', false ],
+            'string true'  => [ 'true', true ],
+        ];
+    }
+
+    /**
+     * @dataProvider enable_write_tools_provider
+     */
+    public function test_post_settings_saves_enable_write_tools( $input, bool $expected ): void {
         $stored = [];
         Functions\when( 'update_option' )->alias( function( $k, $v ) use ( &$stored ) {
             $stored[ $k ] = $v;
@@ -409,12 +426,13 @@ class SettingsRestControllerTest extends TestCase {
         };
 
         $request = new \WP_REST_Request();
-        $request->set_body_params( [ 'enable_write_tools' => true ] );
+        $this->stub_rest_sanitize_boolean();
+        $request->set_body_params( [ 'enable_write_tools' => $input ] );
 
         $controller->save_settings( $request );
 
         $this->assertArrayHasKey( 'plume_enable_write_tools', $stored );
-        $this->assertTrue( $stored['plume_enable_write_tools'] );
+        $this->assertSame( $expected, $stored['plume_enable_write_tools'] );
     }
 
     // ── GET /settings — is_paid field ─────────────────────────────────────────
